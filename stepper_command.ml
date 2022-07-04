@@ -10,7 +10,7 @@ let test_context () =
 
 let test_stepping contract logger =
   test_context () >>=? fun ctx ->
-  Contract_helpers.run_script
+  Wcontract_helpers.run_script
     ~logger
     ctx
     contract
