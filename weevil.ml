@@ -20,7 +20,7 @@
 
 let listen_address = Unix.inet_addr_loopback
 let port = 9000
-let cmd = "./src/bin_weevil/run_stepper.sh"
+let cmd = "./run_stepper.sh"
 
 let () =
   Server.svc ~listen_address ~port ~cmd ()

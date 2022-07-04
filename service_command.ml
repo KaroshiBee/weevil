@@ -1,5 +1,5 @@
 let make_cmd log_file =
-  Printf.sprintf "dune exec -- src/bin_weevil/main.exe stepper %s >svc.log 2>&1" log_file
+  Printf.sprintf "dune exec -- ./main.exe stepper %s >svc.log 2>&1" log_file
 
 let make_address addr_str = match Defaults._DEFAULT_LISTEN_ADDRESS = addr_str with
   | true ->
