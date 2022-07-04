@@ -1,0 +1,23 @@
+opam-version: "2.0"
+maintainer: "simon.parry@karoshibee.com"
+authors: ["Simon Parry"]
+homepage: "https://TODO.com/"
+bug-reports: "https://TODO/issues"
+dev-repo: "git+https://TODO.git"
+license: "MIT"
+depends: [
+  "dune" { >= "2.9" }
+  "tezos-base"
+  "tezos-stdlib-unix"
+  "tezos-clic"
+  "tezos-012-Psithaca-test-helpers"
+  "notty"
+  "nottui"
+  "nottui-lwt"
+  "mwt"
+]
+build: [
+  ["dune" "build" "-p" name "-j" jobs]
+  ["dune" "runtest" "-p" name "-j" jobs] {with-test}
+]
+synopsis: "Tezos: `tezos-weevil` binary"
