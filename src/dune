@@ -1,17 +1,13 @@
-(env
- (static (flags (:standard -ccopt -static))))
-
-(executables
- (names main wvl)
- (libraries weevil
-            tezos-base
-            tezos-base.unix
-            tezos-micheline
-            tezos-protocol-environment
-            tezos-protocol-012-Psithaca
-            tezos-client-012-Psithaca
-            tezos-stdlib-unix
-            tezos-012-Psithaca-test-helpers
+(library
+ (name weevil)
+  (libraries tezos-base
+             tezos-base.unix
+             tezos-micheline
+             tezos-protocol-environment
+             tezos-protocol-012-Psithaca
+             tezos-client-012-Psithaca
+             tezos-stdlib-unix
+             tezos-012-Psithaca-test-helpers
   notty
   notty.unix
   notty.lwt
@@ -27,4 +23,3 @@
           -open Tezos_protocol_environment_012_Psithaca
           -open Tezos_client_012_Psithaca
           -open Tezos_stdlib_unix)))
-

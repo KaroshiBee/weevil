@@ -18,6 +18,8 @@
 (*   (\* let ui = Lwt.bind ll (fun l -> Nottui_lwt.run (View.ui_main contract (Model.Weevil_trace.of_execution_trace l))) in *\) *)
 (*   Lwt_main.run (Lwt.map (fun _ -> ()) ll) *)
 
+open Weevil
+
 let listen_address = Unix.inet_addr_loopback
 let port = 9000
 let cmd = "./run_stepper.sh"
