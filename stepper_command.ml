@@ -184,7 +184,7 @@ module Manpage = struct
 
   let man = description
 
-  let info = Cmdliner.Term.info ~doc:command_description ~man "stepper"
+  let info = Cmdliner.Cmd.info ~doc:command_description ~man "stepper"
 end
 
-let cmd = (Term.term, Manpage.info)
+let cmd = Cmdliner.Cmd.v Manpage.info Term.term
