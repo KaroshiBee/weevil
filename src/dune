@@ -4,10 +4,12 @@
              tezos-base.unix
              tezos-micheline
              tezos-protocol-environment
-             tezos-protocol-012-Psithaca
-             tezos-client-012-Psithaca
+             tezos-protocol-013-PtJakart
+             tezos-protocol-013-PtJakart-parameters
+             tezos-client-013-PtJakart
              tezos-stdlib-unix
-             tezos-012-Psithaca-test-helpers
+             tezos-013-PtJakart-test-helpers
+             tezos-protocol-plugin-013-PtJakart
   notty
   notty.unix
   notty.lwt
@@ -15,13 +17,11 @@
   nottui-lwt
   mwt
  )
- (flags (:standard ;-linkall
+ (flags (:standard -linkall
           -open Tezos_base__TzPervasives
           -open Tezos_micheline
-          -open Tezos_protocol_012_Psithaca
-          -open Tezos_012_Psithaca_test_helpers
-;          -open Tezos_protocol_environment_012_Psithaca
-          -open Tezos_client_012_Psithaca
-;          -open Tezos_stdlib_unix
+          -open Tezos_protocol_013_PtJakart
+          -open Tezos_client_013_PtJakart
+          -open Tezos_013_PtJakart_test_helpers
  ))
 )

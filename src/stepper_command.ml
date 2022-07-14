@@ -1,9 +1,11 @@
 open Protocol
 open Alpha_context
-(* open Error_monad_operators *)
+open Error_monad_operators
+open Tezos_base.TzPervasives.Error_monad.Legacy_monad_globals
 
 
 let test_context () =
+  let open Lwt in
   Context.init 3 >>=? fun (b, _cs) ->
   Incremental.begin_construction b >>=? fun v ->
   return (Incremental.alpha_ctxt v)

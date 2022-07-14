@@ -10,7 +10,7 @@ depends: [
   "tezos-base"
   "tezos-stdlib-unix"
   "tezos-clic"
-  "tezos-012-Psithaca-test-helpers"
+  "tezos-013-Psithaca-test-helpers"
   "notty"
   "nottui"
   "nottui-lwt"

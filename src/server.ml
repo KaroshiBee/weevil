@@ -24,6 +24,7 @@ let handle_message msg =
   | _      -> Unknown ("Unknown command")
 
 let rec handle_connection ic oc ic_process oc_process () =
+  let open Lwt in
   Lwt_io.read_line_opt ic >>=
   (fun msg ->
      match msg with
@@ -48,6 +49,7 @@ let rec handle_connection ic oc ic_process oc_process () =
      | None -> Logs_lwt.info (fun m -> m "Connection closed"))
 
 let accept_connection cmd conn =
+  let open Lwt in
   let fd, _ = conn in
   let ic = Lwt_io.of_fd ~mode:Lwt_io.Input fd in
   let oc = Lwt_io.of_fd ~mode:Lwt_io.Output fd in
@@ -63,6 +65,7 @@ let create_socket listen_address port () =
   sock
 
 let create_server cmd sock =
+  let open Lwt in
   let rec serve () =
     Lwt_unix.accept sock >>=
     accept_connection cmd >>=

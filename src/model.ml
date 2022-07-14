@@ -6,7 +6,7 @@ module Weevil_record = struct
   type t = {
     script_location: Script.location;
     gas: Gas.t;
-    expressions: (Script.expr * string option) list;
+    expressions: Script.expr list;
   }
 
   let make script_location gas expressions : t =
@@ -30,12 +30,7 @@ module Weevil_record = struct
 
   let get_expr_str ?(sep=", ") t =
     t.expressions
-    |> List.map (fun (expr, _) -> _expr_to_string expr)
-    |> String.concat sep
-
-  let get_annotations ?(sep=", ")t =
-    t.expressions
-    |> List.map (fun (_expr, s_opt) -> Option.value ~default:"NOT ANNOTATED" s_opt)
+    |> List.map (fun expr -> _expr_to_string expr)
     |> String.concat sep
 
 
