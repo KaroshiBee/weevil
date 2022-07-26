@@ -1,0 +1,4 @@
+(library
+ (name dapper)
+ (libraries data-encoding)
+)
