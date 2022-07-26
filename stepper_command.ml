@@ -1,6 +1,9 @@
 open Protocol
 open Alpha_context
 (* open Error_monad_operators *)
+module DRq = Dapper.Dap_request
+module DRs = Dapper.Dap_response
+
 
 
 let test_context () =
@@ -23,22 +26,6 @@ let test_stepping contract logger =
   | Error errs ->
     let ss = Format.asprintf "Unexpected error: %a" Error_monad.pp_print_trace errs in
     Lwt.bind (Lwt_io.printl ss) (fun _ -> return_unit)
-
-
-(* type Environment.Error_monad.error += Cannot_serialize_log *)
-
-(* let () = *)
-(*   (\* Cannot serialize log *\) *)
-(*   Environment.Error_monad.register_error_kind *)
-(*     `Temporary *)
-(*     ~id:"michelson_v1.cannot_serialize_log" *)
-(*     ~title:"Not enough gas to serialize execution trace" *)
-(*     ~description: *)
-(*       "Execution trace with stacks was to big to be serialized with the \ *)
-(*        provided gas" *)
-(*     Data_encoding.empty *)
-(*     (function Cannot_serialize_log -> Some () | _ -> None) *)
-(*     (fun () -> Cannot_serialize_log) ; *)
 
 
 module Traced_interpreter = struct
@@ -83,17 +70,34 @@ module Traced_interpreter = struct
     >>=? fun stack -> return (loc, Gas.level ctxt, stack)
 
   let trace_logger oc () : Script_typed_ir.logger =
+    let last_json : Data_encoding.Json.json ref = ref `Null in
     let log : log_element list ref = ref [] in
     let log_interp _ ctxt loc sty stack =
       Printf.(fprintf oc "\n# log_interp\n"; flush oc);
       log := Log (ctxt, loc, stack, sty) :: !log
     in
     let log_entry _ _ctxt _loc _sty _stack =
+      let open Data_encoding.Json in
       Printf.(fprintf oc "# log_entry\n"; flush oc);
-      let _ = read_line () in ()
+      let msg = read_line () in
+      Printf.(fprintf oc "# got '%s'\n" msg; flush oc);
+      match from_string msg with
+      | Ok js -> last_json := js
+      | Error err -> last_json := `Null; Printf.(fprintf oc "# error '%s'\n" err; flush oc);
     in
     let log_exit _ ctxt loc sty stack =
+      let open Data_encoding.Json in
       Printf.(fprintf oc "# log_exit\n"; flush oc);
+      let req = destruct DRq.NextRequest.enc !last_json in
+      let seq = Int64.succ req#seq in
+      let request_seq = req#seq in
+      let success = true in
+      let command = req#command in
+      let resp = new DRs.NextResponse.cls seq request_seq success command in
+      let resp = construct DRs.NextResponse.enc resp |> to_string |> Defaults._replace "\n" "" in
+      Printf.(fprintf oc "%s\n" resp; flush oc);
+
+      (* TODO this needs to be in the information request rather than after step *)
       let l = Log (ctxt, loc, stack, sty) in
       let _ = unparse_log l
         >>=? fun (loc, gas, expr) -> return @@ Model.Weevil_record.make loc gas expr
@@ -114,24 +118,6 @@ module Traced_interpreter = struct
       >>=? fun res -> return (Some (List.rev res))
     in
     {log_exit; log_entry; log_interp; get_log; log_control}
-
-  (* let execute ctxt step_constants ~script ~entrypoint ~parameter = *)
-  (*   let open Script_interpreter in *)
-  (*   let logger = trace_logger () in *)
-  (*   execute *)
-  (*     ~logger *)
-  (*     ~cached_script:None *)
-  (*     ctxt *)
-  (*     Readable *)
-  (*     step_constants *)
-  (*     ~script *)
-  (*     ~entrypoint *)
-  (*     ~parameter *)
-  (*     ~internal:true *)
-  (*   >>=? fun ({ctxt; storage; lazy_storage_diff; operations}, _) -> *)
-  (*   logger.get_log () >|=? fun trace -> *)
-  (*   let trace = Option.value ~default:[] trace in *)
-  (*   ({ctxt; storage; lazy_storage_diff; operations}, trace) *)
 
 end
 

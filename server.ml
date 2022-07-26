@@ -23,7 +23,6 @@ let handle_message msg =
   | "n"    -> Step msg
   | _      -> Unknown ("Unknown command")
 
-
 let rec handle_connection ic oc ic_process oc_process () =
   Lwt_io.read_line_opt ic >>=
   (fun msg ->
@@ -36,15 +35,16 @@ let rec handle_connection ic oc ic_process oc_process () =
              let open Dapper.Dap_request in
              let args = NextArguments.{threadId=1L; singleThread=None; granularity=None} in
              let rq = new NextRequest.cls 1L args in
-             let request = Data_encoding.Json.(construct NextRequest.enc rq |> to_string) in
+             let request = Data_encoding.Json.(construct NextRequest.enc rq |> to_string |> Defaults._replace "\n" "" ) in
              try
-               Printf.fprintf oc_process "%s" request; flush oc_process; Logs_lwt.info (fun m -> m "Stepping with \n%s\n" request)
+               Printf.fprintf oc_process "%s\n" request; flush oc_process; Logs_lwt.info (fun m -> m "Stepping with \n%s\n" request)
              with Sys_error _ ->
                try
                  let _ = Unix.close_process (ic_process, oc_process) in (); Logs_lwt.warn (fun m -> m "Process finished")
                with Unix.Unix_error _ ->
                  Logs_lwt.warn (fun m -> m "Process finished")
            )
+
            | Counter s | Inc s | Unknown s ->
              Lwt_io.write_line oc s
          in

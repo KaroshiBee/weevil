@@ -17,7 +17,7 @@ module Response = struct
     ProtocolMessage.cls_t;
     request_seq:int64;
     success:bool;
-    command:string;
+    command:Dap_request.Request.t;
     message:t option;
     body:'json
   >
@@ -26,7 +26,7 @@ module Response = struct
       (seq:int64)
       (request_seq:int64)
       (success:bool)
-      (command:string)
+      (command:Dap_request.Request.t)
       (message:t option)
       (body:'json)
       = object(_self)
@@ -54,7 +54,7 @@ module Response = struct
          (req "type" ProtocolMessage.enc_t)
          (req "request_seq" int64)
          (req "success" bool)
-         (req "command" string)
+         (req "command" Dap_request.Request.enc_t)
          (opt "message" enc_t)
          (req "body" js)
       )
@@ -73,7 +73,7 @@ module ErrorResponse = struct
       (seq:int64)
       (request_seq:int64)
       (success:bool)
-      (command:string)
+      (command:Dap_request.Request.t)
       (body:body) = object
     inherit [body] Response.cls seq request_seq success command None body
   end
@@ -101,7 +101,7 @@ module MakeEmptyBodyResponse (B:EMPTY_BODY) = struct
       (seq:int64)
       (request_seq:int64)
       (success:bool)
-      (command:string) = object
+      (command:Dap_request.Request.t) = object
     inherit [body] Response.cls seq request_seq success command None B.body
   end
 
