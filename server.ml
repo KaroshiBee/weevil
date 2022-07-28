@@ -12,15 +12,15 @@ let backlog = 10
 
 type event =
   | Counter of string
-  | Inc of string
-  | Step of string
+  (* | Inc of string *)
+  | Step of int
   | Unknown of string
 
 let handle_message msg =
   match msg with
   | "read" -> Counter (string_of_int !counter)
-  | "inc"  -> counter := !counter + 1; Inc ("Counter has been incremented")
-  | "n"    -> Step msg
+  (* | "inc"  -> counter := !counter + 1; Inc ("Counter has been incremented") *)
+  | "n"    -> counter := !counter + 1; Step !counter
   | _      -> Unknown ("Unknown command")
 
 let rec handle_connection ic oc ic_process oc_process () =
@@ -30,11 +30,11 @@ let rec handle_connection ic oc ic_process oc_process () =
      | Some msg -> (
          let next =
            match handle_message msg with
-           | Step _n -> (
+           | Step n -> (
              (* WANT TO WRITE TO PROCESS STDIN/OUT  *)
              let open Dapper.Dap_request in
              let args = NextArguments.{threadId=1L; singleThread=None; granularity=None} in
-             let rq = new NextRequest.cls 1L args in
+             let rq = new NextRequest.cls (Int64.of_int n) args in
              let request = Data_encoding.Json.(construct NextRequest.enc rq |> to_string |> Defaults._replace "\n" "" ) in
              try
                Printf.fprintf oc_process "%s\n" request; flush oc_process; Logs_lwt.info (fun m -> m "Stepping with \n%s\n" request)
@@ -45,7 +45,7 @@ let rec handle_connection ic oc ic_process oc_process () =
                  Logs_lwt.warn (fun m -> m "Process finished")
            )
 
-           | Counter s | Inc s | Unknown s ->
+           | Counter s | Unknown s ->
              Lwt_io.write_line oc s
          in
          next >>= handle_connection ic oc ic_process oc_process

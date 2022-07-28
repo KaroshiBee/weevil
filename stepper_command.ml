@@ -70,7 +70,7 @@ module Traced_interpreter = struct
     >>=? fun stack -> return (loc, Gas.level ctxt, stack)
 
   let trace_logger oc () : Script_typed_ir.logger =
-    let last_json : Data_encoding.Json.json ref = ref `Null in
+    let last_json : Data_encoding.Json.json option ref = ref None in
     let log : log_element list ref = ref [] in
     let log_interp _ ctxt loc sty stack =
       Printf.(fprintf oc "\n# log_interp\n"; flush oc);
@@ -82,33 +82,40 @@ module Traced_interpreter = struct
       let msg = read_line () in
       Printf.(fprintf oc "# got '%s'\n" msg; flush oc);
       match from_string msg with
-      | Ok js -> last_json := js
-      | Error err -> last_json := `Null; Printf.(fprintf oc "# error '%s'\n" err; flush oc);
+      | Ok js ->
+        last_json := Some js
+      | Error err ->
+        last_json := None;
+        Printf.(fprintf oc "# error '%s'\n" err; flush oc);
     in
     let log_exit _ ctxt loc sty stack =
       let open Data_encoding.Json in
       Printf.(fprintf oc "# log_exit\n"; flush oc);
-      let req = destruct DRq.NextRequest.enc !last_json in
-      let seq = Int64.succ req#seq in
-      let request_seq = req#seq in
-      let success = true in
-      let command = req#command in
-      let resp = new DRs.NextResponse.cls seq request_seq success command in
-      let resp = construct DRs.NextResponse.enc resp |> to_string |> Defaults._replace "\n" "" in
-      Printf.(fprintf oc "%s\n" resp; flush oc);
+      match !last_json with
+      | Some js ->
+        let req = destruct DRq.NextRequest.enc js in
+        let seq = Int64.succ req#seq in
+        let request_seq = req#seq in
+        let success = true in
+        let command = req#command in
+        let resp = new DRs.NextResponse.cls seq request_seq success command in
+        let resp = construct DRs.NextResponse.enc resp |> to_string |> Defaults._replace "\n" "" in
+        Printf.(fprintf oc "%s\n" resp; flush oc);
 
-      (* TODO this needs to be in the information request rather than after step *)
-      let l = Log (ctxt, loc, stack, sty) in
-      let _ = unparse_log l
-        >>=? fun (loc, gas, expr) -> return @@ Model.Weevil_record.make loc gas expr
-        >>=? fun wrec ->
-        let (loc_str, gas_str, expr_str) =
-          Model.Weevil_record.(
-            get_location wrec, get_gas wrec, get_expr_str wrec
-          ) in
-        return @@ Printf.(fprintf oc "{\"location\": %s, \"gas\": %s, \"stack\": [%s]}\n" loc_str gas_str expr_str)
-      in
-      log := l :: !log
+        (* TODO this needs to be in the information request rather than after step *)
+        let l = Log (ctxt, loc, stack, sty) in
+        let _ = unparse_log l
+          >>=? fun (loc, gas, expr) -> return @@ Model.Weevil_record.make loc gas expr
+          >>=? fun wrec ->
+          let (loc_str, gas_str, expr_str) =
+            Model.Weevil_record.(
+              get_location wrec, get_gas wrec, get_expr_str wrec
+            ) in
+          return @@ Printf.(fprintf oc "{\"location\": %s, \"gas\": %s, \"stack\": [%s]}\n" loc_str gas_str expr_str)
+        in
+        log := l :: !log
+      | None ->
+        Printf.(fprintf oc "# no message on stack\n"; flush oc);
     in
     let log_control _ =
       Printf.(fprintf oc "# log_control\n"; flush oc);
