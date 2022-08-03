@@ -70,45 +70,29 @@ module Traced_interpreter = struct
     >>=? fun stack -> return (loc, Gas.level ctxt, stack)
 
   let trace_logger oc () : Script_typed_ir.logger =
-    let last_json : Data_encoding.Json.json option ref = ref None in
     let log : log_element list ref = ref [] in
     let log_interp _ ctxt loc sty stack =
       Printf.(fprintf oc "\n# log_interp\n"; flush oc);
       log := Log (ctxt, loc, stack, sty) :: !log
     in
     let log_entry _ _ctxt _loc _sty _stack =
-      let open Data_encoding.Json in
       Printf.(fprintf oc "# log_entry\n"; flush oc);
       let msg = read_line () in
       Printf.(fprintf oc "# got '%s'\n" msg; flush oc);
-      match from_string msg with
-      | Ok js ->
-        last_json := Some js
-      | Error err ->
-        last_json := None;
-        Printf.(fprintf oc "# error '%s'\n" err; flush oc);
     in
     let log_exit _ ctxt loc sty stack =
-      (* let open Data_encoding.Json in *)
       Printf.(fprintf oc "# log_exit\n"; flush oc);
-      match !last_json with
-      | Some _js ->
-        (* TODO raise Stopped event too *)
-
-        (* TODO this needs to be in the information request rather than after step *)
-        let l = Log (ctxt, loc, stack, sty) in
-        let _ = unparse_log l
-          >>=? fun (loc, gas, expr) -> return @@ Model.Weevil_record.make loc gas expr
-          >>=? fun wrec ->
-          let (loc_str, gas_str, expr_str) =
-            Model.Weevil_record.(
-              get_location wrec, get_gas wrec, get_expr_str wrec
-            ) in
-          return @@ Printf.(fprintf oc "{\"location\": %s, \"gas\": %s, \"stack\": [%s]}\n" loc_str gas_str expr_str)
-        in
-        log := l :: !log
-      | None ->
-        Printf.(fprintf oc "# no message on stack\n"; flush oc);
+      let l = Log (ctxt, loc, stack, sty) in
+      let _ = unparse_log l
+        >>=? fun (loc, gas, expr) -> return @@ Model.Weevil_record.make loc gas expr
+        >>=? fun wrec ->
+        let (loc_str, gas_str, expr_str) =
+          Model.Weevil_record.(
+            get_location wrec, get_gas wrec, get_expr_str wrec
+          ) in
+        return @@ Printf.(fprintf oc "{\"location\": %s, \"gas\": %s, \"stack\": [%s]}\n" loc_str gas_str expr_str)
+      in
+      log := l :: !log
     in
     let log_control _ =
       Printf.(fprintf oc "# log_control\n"; flush oc);
