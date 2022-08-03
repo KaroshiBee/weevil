@@ -93,6 +93,7 @@ module Traced_interpreter = struct
       Printf.(fprintf oc "# log_exit\n"; flush oc);
       match !last_json with
       | Some js ->
+        (* TODO raise Stopped event too *)
         let req = destruct DRq.NextRequest.enc js in
         let seq = Int64.succ req#seq in
         let request_seq = req#seq in

@@ -39,6 +39,7 @@ let rec handle_connection ic oc ic_process oc_process () =
              try
                Printf.fprintf oc_process "%s\n" request; flush oc_process; Logs_lwt.info (fun m -> m "Stepping with \n%s\n" request)
              with Sys_error _ ->
+               (* run out of contract to step through *)
                try
                  let _ = Unix.close_process (ic_process, oc_process) in (); Logs_lwt.warn (fun m -> m "Process finished")
                with Unix.Unix_error _ ->
