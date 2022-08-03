@@ -35,6 +35,7 @@ let handle_message msg =
       None
   in
   match msg with
+  (* NOTE 'n' and 'st' are helpers to quickly test stuff *)
   | "n" -> (
       let args = DRq.NextArguments.{threadId=1L; singleThread=None; granularity=None} in
       let req = new DRq.NextRequest.cls 1L args in
@@ -70,18 +71,23 @@ let rec handle_connection ic oc ic_process oc_process () =
            | NextReq req -> (
              let seq = Int64.succ req#seq in
              let request_seq = req#seq in
-             let success = true in
+             let success = ref true in
              let command = req#command in
-             let resp = new DRs.NextResponse.cls seq request_seq success command in
-             let resp = construct DRs.NextResponse.enc resp |> to_string |> Defaults._replace "\n" "" in
-             try
-               Printf.fprintf oc_process "step\n"; flush oc_process; Logs_lwt.info (fun m -> m "Next response \n%s\n" resp);
-             with Sys_error _ ->
-               (* run out of contract to step through *)
+             let _ =
                try
-                 let _ = Unix.close_process (ic_process, oc_process) in (); Logs_lwt.warn (fun m -> m "Process finished")
-               with Unix.Unix_error _ ->
-                 Logs_lwt.warn (fun m -> m "Process finished")
+                 Printf.fprintf oc_process "step\n"; flush oc_process; Logs_lwt.info (fun m -> m "stepping")
+               with Sys_error _ -> (
+                   success := false;
+                   (* run out of contract to step through *)
+                   try
+                     let _ = Unix.close_process (ic_process, oc_process) in (); Logs_lwt.warn (fun m -> m "Process finished")
+                   with Unix.Unix_error _ ->
+                     Logs_lwt.warn (fun m -> m "Process finished")
+                 )
+             in
+             let resp = new DRs.NextResponse.cls seq request_seq !success command in
+             let resp = construct DRs.NextResponse.enc resp |> to_string |> Defaults._replace "\n" "" in
+             Logs_lwt.info (fun m -> m "Next response \n%s\n" resp);
            )
            | StackTrace req ->
              let seq = Int64.succ req#seq in
