@@ -4,6 +4,8 @@
 
     Build with: ocamlfind ocamlopt -package lwt,lwt.unix,logs,logs.lwt -linkpkg -o counter-server ./counter-server.ml
  *)
+module DRq = Dapper.Dap_request
+module DRs = Dapper.Dap_response
 
 (* Shared mutable counter *)
 let counter = ref 0
@@ -11,17 +13,34 @@ let counter = ref 0
 let backlog = 10
 
 type event =
-  | Counter of string
-  (* | Inc of string *)
-  | Step of int
+  | NextReq of DRq.NextRequest.cls_t
   | Unknown of string
 
+
 let handle_message msg =
-  match msg with
-  | "read" -> Counter (string_of_int !counter)
-  (* | "inc"  -> counter := !counter + 1; Inc ("Counter has been incremented") *)
-  | "n"    -> counter := !counter + 1; Step !counter
-  | _      -> Unknown ("Unknown command")
+  let open Data_encoding.Json in
+  let parse_req ~err ~event f js =
+    try
+      let req = f js in
+      Some (event req)
+    with _ ->
+      let _ = Logs_lwt.warn (fun m -> m err) in
+      None
+  in
+  match from_string msg with
+  | Ok js ->
+    let next_req = parse_req
+        ~err:"Not NextReq"
+        ~event:(fun req -> NextReq req)
+        (destruct DRq.NextRequest.enc)
+        js
+    in
+      Option.value ~default:(Unknown "TODO") next_req
+
+  | Error err ->
+    let s = Printf.sprintf "Unknown command '%s' - error '%s'" msg err in
+    Unknown s
+
 
 let rec handle_connection ic oc ic_process oc_process () =
   Lwt_io.read_line_opt ic >>=
@@ -30,24 +49,43 @@ let rec handle_connection ic oc ic_process oc_process () =
      | Some msg -> (
          let next =
            match handle_message msg with
-           | Step n -> (
-             (* WANT TO WRITE TO PROCESS STDIN/OUT  *)
-             let open Dapper.Dap_request in
-             let args = NextArguments.{threadId=1L; singleThread=None; granularity=None} in
-             let rq = new NextRequest.cls (Int64.of_int n) args in
-             let request = Data_encoding.Json.(construct NextRequest.enc rq |> to_string |> Defaults._replace "\n" "" ) in
-             try
-               Printf.fprintf oc_process "%s\n" request; flush oc_process; Logs_lwt.info (fun m -> m "Stepping with \n%s\n" request)
-             with Sys_error _ ->
-               (* run out of contract to step through *)
-               try
-                 let _ = Unix.close_process (ic_process, oc_process) in (); Logs_lwt.warn (fun m -> m "Process finished")
-               with Unix.Unix_error _ ->
-                 Logs_lwt.warn (fun m -> m "Process finished")
-           )
+           | _ -> Logs_lwt.warn (fun m -> m "TODO")
+           (* | Dap js -> ( *)
+           (*     (\* if its a next request - step forward *\) *)
+           (*     let open Data_encoding.Json in *)
+           (*     try *)
+           (*       let req = destruct DRq.NextRequest.enc js in *)
+           (*       Printf.(fprintf oc "%s\n" resp; flush oc); *)
+           (*     with _ *)
+           (*       Logs_lwt.warn (fun m -> m "Not NextRequest") *)
 
-           | Counter s | Unknown s ->
-             Lwt_io.write_line oc s
+           (*     let seq = Int64.succ req#seq in *)
+           (*     let request_seq = req#seq in *)
+           (*     let success = true in *)
+           (*     let command = req#command in *)
+           (*     let resp = new DRs.NextResponse.cls seq request_seq success command in *)
+           (*     let resp = construct DRs.NextResponse.enc resp |> to_string |> Defaults._replace "\n" "" in *)
+           (*     Printf.(fprintf oc "%s\n" resp; flush oc); *)
+
+           (*   ) *)
+           (* | Step n -> ( *)
+           (*   (\* WANT TO WRITE TO PROCESS STDIN/OUT  *\) *)
+           (*   let open Dapper.Dap_request in *)
+           (*   let args = NextArguments.{threadId=1L; singleThread=None; granularity=None} in *)
+           (*   let rq = new NextRequest.cls (Int64.of_int n) args in *)
+           (*   let request = Data_encoding.Json.(construct NextRequest.enc rq |> to_string |> Defaults._replace "\n" "" ) in *)
+           (*   try *)
+           (*     Printf.fprintf oc_process "%s\n" request; flush oc_process; Logs_lwt.info (fun m -> m "Stepping with \n%s\n" request) *)
+           (*   with Sys_error _ -> *)
+           (*     (\* run out of contract to step through *\) *)
+           (*     try *)
+           (*       let _ = Unix.close_process (ic_process, oc_process) in (); Logs_lwt.warn (fun m -> m "Process finished") *)
+           (*     with Unix.Unix_error _ -> *)
+           (*       Logs_lwt.warn (fun m -> m "Process finished") *)
+           (* ) *)
+
+           (* | Counter s | Unknown s -> *)
+           (*   Lwt_io.write_line oc s *)
          in
          next >>= handle_connection ic oc ic_process oc_process
      )

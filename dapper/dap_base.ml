@@ -998,3 +998,26 @@ module SteppingGranularity = struct
       string
 
 end
+
+
+module StackFrame = struct
+(* TODO rest of optional data *)
+  type t = {
+    id: int64;
+    name: string;
+    line: int64;
+    column: int64;
+  }
+
+  let enc =
+    let open Data_encoding in
+    conv
+      (fun {id; name; line; column} -> (id, name, line, column))
+      (fun (id, name, line, column) -> {id; name; line; column})
+      (obj4
+         (req "id" int64)
+         (req "name" string)
+         (req "line" int64)
+         (req "column" int64))
+
+end

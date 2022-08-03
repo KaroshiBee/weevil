@@ -5,12 +5,13 @@ module Request = struct
   type t =
     | Cancel
     | Next
+    | StackTrace
 
   let enc_t =
     let open Data_encoding in
     conv
-      (function | Cancel -> "cancel" | Next -> "next")
-      (function | "cancel" -> Cancel | "next" -> Next | _ -> failwith "Unknown request")
+      (function | Cancel -> "cancel" | Next -> "next" | StackTrace -> "stackTrace")
+      (function | "cancel" -> Cancel | "next" -> Next | "stackTrace" -> StackTrace | _ -> failwith "Unknown request")
       string
 
   type 'json cls_t = <
@@ -121,3 +122,39 @@ end
 (* class ['json] requester_cls (req:'json Request.cls_t) = object
  *   method req = req
  * end *)
+
+module StackTraceArguments = struct
+
+  type t = {
+      threadId: int64;
+      startFrame: int64 option;
+      levels: int64 option;
+      (*  TODO format:  *)
+  }
+
+  let enc =
+    let open Data_encoding in
+    conv
+      (fun {threadId; startFrame; levels} -> (threadId, startFrame, levels))
+      (fun (threadId, startFrame, levels) -> {threadId; startFrame; levels})
+      (obj3
+         (req "threadId" int64)
+         (opt "startFrame" int64)
+         (opt "levels" int64)
+      )
+
+end
+
+module StackTraceRequest = struct
+
+  type args = StackTraceArguments.t
+
+  type cls_t = args Request.cls_t
+
+  class cls (seq:int64) (arguments:args) = object
+    inherit [args] Request.cls seq StackTrace arguments
+  end
+
+  let enc = Request.enc StackTraceArguments.enc
+
+end

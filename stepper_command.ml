@@ -89,19 +89,11 @@ module Traced_interpreter = struct
         Printf.(fprintf oc "# error '%s'\n" err; flush oc);
     in
     let log_exit _ ctxt loc sty stack =
-      let open Data_encoding.Json in
+      (* let open Data_encoding.Json in *)
       Printf.(fprintf oc "# log_exit\n"; flush oc);
       match !last_json with
-      | Some js ->
+      | Some _js ->
         (* TODO raise Stopped event too *)
-        let req = destruct DRq.NextRequest.enc js in
-        let seq = Int64.succ req#seq in
-        let request_seq = req#seq in
-        let success = true in
-        let command = req#command in
-        let resp = new DRs.NextResponse.cls seq request_seq success command in
-        let resp = construct DRs.NextResponse.enc resp |> to_string |> Defaults._replace "\n" "" in
-        Printf.(fprintf oc "%s\n" resp; flush oc);
 
         (* TODO this needs to be in the information request rather than after step *)
         let l = Log (ctxt, loc, stack, sty) in

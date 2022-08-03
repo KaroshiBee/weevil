@@ -114,3 +114,33 @@ module UnitBody = struct type t = unit let body = () let enc = Data_encoding.uni
 module CancelResponse = MakeEmptyBodyResponse(UnitBody)
 
 module NextResponse = MakeEmptyBodyResponse(UnitBody)
+
+module StackTraceResponse = struct
+
+  type body = {
+    stackFrames: StackFrame.t list;
+    totalFrames: int64 option;
+  }
+
+  type cls_t = body Response.cls_t
+
+  class cls
+      (seq:int64)
+      (request_seq:int64)
+      (success:bool)
+      (command:Dap_request.Request.t)
+      (body:body) = object
+    inherit [body] Response.cls seq request_seq success command None body
+  end
+
+  let enc =
+    let open Data_encoding in
+    Response.enc @@
+    conv
+      (fun {stackFrames; totalFrames} -> (stackFrames, totalFrames))
+      (fun (stackFrames, totalFrames) -> {stackFrames; totalFrames})
+      (obj2
+         (req "stackFrames" @@ list StackFrame.enc)
+         (opt "totalFrames" int64))
+
+end
