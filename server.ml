@@ -6,7 +6,7 @@
  *)
 module DRq = Dapper.Dap_request
 module DRs = Dapper.Dap_response
-
+module Db = Dapper.Dap_base
 
 let backlog = 10
 
@@ -60,6 +60,13 @@ let handle_message msg =
         Unknown s
     )
 
+let read_line i = try Some (input_line i) with End_of_file -> None
+
+let rec lines_from_in_channel i acc =
+  match (read_line i) with
+  | None -> List.rev acc
+  | Some s -> lines_from_in_channel i (s :: acc)
+
 let rec handle_connection ic oc ic_process oc_process () =
   let open Data_encoding.Json in
   Lwt_io.read_line_opt ic >>=
@@ -80,9 +87,9 @@ let rec handle_connection ic oc ic_process oc_process () =
                    success := false;
                    (* run out of contract to step through *)
                    try
-                     let _ = Unix.close_process (ic_process, oc_process) in (); Logs_lwt.warn (fun m -> m "Process finished")
+                     let _ = Unix.close_process (ic_process, oc_process) in (); Logs_lwt.warn (fun m -> m "Process finished: sys error")
                    with Unix.Unix_error _ ->
-                     Logs_lwt.warn (fun m -> m "Process finished")
+                     Logs_lwt.warn (fun m -> m "Process finished: unix error")
                  )
              in
              let resp = new DRs.NextResponse.cls seq request_seq !success command in
@@ -95,7 +102,22 @@ let rec handle_connection ic oc ic_process oc_process () =
              let success = true in
              let command = req#command in
              (* TODO read frames from ic_process *)
-             let body = DRs.StackTraceResponse.{stackFrames=[]; totalFrames=None} in
+             let lns =
+               lines_from_in_channel ic_process []
+               |> List.filter (fun ln -> String.get ln 0 != '#')
+               |> List.filter_map (fun ln ->
+                   Data_encoding.Json.from_string ln
+                   |> Result.to_option
+                 )
+               |> List.map (fun ln ->
+                   Data_encoding.Json.destruct Model.Weevil_json.enc ln
+                 )
+               |> List.map (fun wrec ->
+                   let loc = Model.Weevil_json.(wrec.location) in
+                   Db.StackFrame.{id=1L; name="unknown"; line=loc; column=0L}
+                 )
+             in
+             let body = DRs.StackTraceResponse.{stackFrames=lns; totalFrames=None} in
              let resp = new DRs.StackTraceResponse.cls seq request_seq success command body in
              let resp = construct DRs.StackTraceResponse.enc resp |> to_string |> Defaults._replace "\n" "" in
              Logs_lwt.info (fun m -> m "Stack trace response \n%s\n" resp);

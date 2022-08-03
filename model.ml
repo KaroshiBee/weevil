@@ -1,6 +1,29 @@
 open Protocol
 open Alpha_context
 
+module Weevil_json = struct
+
+  type t = {
+    location: int64;
+    gas: string;
+    stack: string list;
+  }
+
+  let enc =
+    let open Data_encoding in
+    conv
+      (fun {location; gas; stack} -> (location, gas, stack))
+      (fun (location, gas, stack) -> {location; gas; stack})
+      (obj3
+         (req "location" int64)
+         (req "gas" string)
+         (req "stack" @@ list string)
+      )
+
+
+
+end
+
 module Weevil_record = struct
 
   type t = {
@@ -15,6 +38,7 @@ module Weevil_record = struct
       gas;
       expressions;
     }
+
 
   let get_gas t =
     Format.asprintf "%a" Gas.pp t.gas
@@ -37,6 +61,15 @@ module Weevil_record = struct
     t.expressions
     |> List.map (fun (_expr, s_opt) -> Option.value ~default:"NOT ANNOTATED" s_opt)
     |> String.concat sep
+
+  let to_weevil_json t =
+    let (loc_str, gas_str, expr_str) =
+      get_location t, get_gas t, get_expr_str t
+    in
+    let location = Int64.of_string loc_str in
+    let gas = gas_str in
+    let stack = String.split_on_char ',' expr_str in
+    Weevil_json.{location; gas; stack}
 
 
 end
