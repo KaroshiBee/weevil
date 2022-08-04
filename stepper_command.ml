@@ -89,11 +89,6 @@ module Traced_interpreter = struct
         let wrec = Model.Weevil_record.to_weevil_json wrec in
         let js = Data_encoding.Json.(construct Model.Weevil_json.enc wrec |> to_string |> Defaults._replace "\n" "") in
         return @@ Printf.fprintf oc "%s\n" js
-        (* let (loc_str, gas_str, expr_str) = *)
-        (*   Model.Weevil_record.( *)
-        (*     get_location wrec, get_gas wrec, get_expr_str wrec *)
-        (*   ) in *)
-        (* return @@ Printf.(fprintf oc "{\"location\": %s, \"gas\": %s, \"stack\": [%s]}\n" loc_str gas_str expr_str) *)
       in
       log := l :: !log
     in

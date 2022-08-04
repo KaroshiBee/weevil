@@ -60,10 +60,10 @@ let handle_message msg =
         Unknown s
     )
 
-let read_line i = try Some (input_line i) with End_of_file -> None
+let read_line_ i = try Some (input_line i) with End_of_file -> None
 
 let rec lines_from_in_channel i acc =
-  match (read_line i) with
+  match (read_line_ i) with
   | None -> List.rev acc
   | Some s -> lines_from_in_channel i (s :: acc)
 
@@ -104,7 +104,7 @@ let rec handle_connection ic oc ic_process oc_process () =
              (* TODO read frames from ic_process *)
              let lns =
                lines_from_in_channel ic_process []
-               |> List.filter (fun ln -> String.get ln 0 != '#')
+               |> List.filter (fun ln -> 0 < String.length ln && String.get ln 0 != '#')
                |> List.filter_map (fun ln ->
                    Data_encoding.Json.from_string ln
                    |> Result.to_option
