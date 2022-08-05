@@ -92,6 +92,7 @@ let rec handle_connection ic oc ic_process oc_process () =
                      Logs_lwt.warn (fun m -> m "Process finished: unix error")
                  )
              in
+             (* TODO need to add Content-Length: 119\r\n\r\n resp_json *)
              let resp = new DRs.NextResponse.cls seq request_seq !success command in
              let resp = construct DRs.NextResponse.enc resp |> to_string |> Defaults._replace "\n" "" in
              Logs_lwt.info (fun m -> m "Next response \n%s\n" resp);
