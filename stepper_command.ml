@@ -72,19 +72,20 @@ module Traced_interpreter = struct
   let trace_logger oc () : Script_typed_ir.logger =
     let log : log_element list ref = ref [] in
     let log_interp _ ctxt loc sty stack =
-      Printf.(fprintf oc "\n# log_interp\n"; flush oc);
+      Printf.(fprintf oc "\n# log_interp @ location %d\n" loc; flush oc);
       log := Log (ctxt, loc, stack, sty) :: !log
     in
-    let log_entry _ _ctxt _loc _sty _stack =
-      Printf.(fprintf oc "# log_entry\n"; flush oc);
+    let log_entry _ _ctxt loc _sty _stack =
+      Printf.(fprintf oc "\n# log_entry @ location %d\n" loc; flush oc);
       let msg = read_line () in
       Printf.(fprintf oc "# got '%s'\n" msg; flush oc);
     in
-    let log_exit _ ctxt loc sty stack =
-      Printf.(fprintf oc "# log_exit\n"; flush oc);
-      let l = Log (ctxt, loc, stack, sty) in
+    (* TODO location here needs to be understood, line number is taken to be length !log for now *)
+    let log_exit _ ctxt loc_ sty stack =
+      Printf.(fprintf oc "# log_exit @ location %d\n" loc_; flush oc);
+      let l = Log (ctxt, loc_, stack, sty) in
       let _ = unparse_log l
-        >>=? fun (loc, gas, expr) -> return @@ Model.Weevil_record.make loc gas expr
+        >>=? fun (_loc, gas, expr) -> let loc = List.length !log in return @@ Model.Weevil_record.make loc gas expr
         >>=? fun wrec ->
         let wrec = Model.Weevil_record.to_weevil_json wrec in
         let js = Data_encoding.Json.(construct Model.Weevil_json.enc wrec |> to_string |> Defaults._replace "\n" "") in
