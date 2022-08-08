@@ -67,6 +67,16 @@ let rec lines_from_in_channel i acc =
   | None -> List.rev acc
   | Some s -> lines_from_in_channel i (s :: acc)
 
+let read_log () =
+  let i = open_in Defaults._DEFAULT_LOG_FILE in
+  try
+    let lns = lines_from_in_channel i [] in
+    close_in i;
+    lns
+  with _ ->
+    close_in_noerr i;
+    []
+
 let rec handle_connection ic oc ic_process oc_process () =
   let open Data_encoding.Json in
   Lwt_io.read_line_opt ic >>=
@@ -102,9 +112,8 @@ let rec handle_connection ic oc ic_process oc_process () =
              let request_seq = req#seq in
              let success = true in
              let command = req#command in
-             (* TODO read frames from ic_process *)
-             let lns =
-               lines_from_in_channel ic_process []
+             (* TODO should be able to arrange so that can read frames from ic_process? *)
+             let lns = read_log ()
                |> List.filter (fun ln -> 0 < String.length ln && String.get ln 0 != '#')
                |> List.filter_map (fun ln ->
                    Data_encoding.Json.from_string ln
