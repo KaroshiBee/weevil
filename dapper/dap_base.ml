@@ -31,6 +31,39 @@ module type ENC_1 = sig
 end
 
 
+module ProtocolMessage_ = struct
+
+  type msg =
+    | Request
+    | Response
+    | Event
+
+  type t = {
+      seq: int64;
+      type_: msg
+    }
+
+  let enc_msg : msg Data_encoding.t =
+    Data_encoding.conv
+      (function | Request -> "request" | Response -> "response" | Event -> "event" )
+      (function | "request" -> Request | "response" -> Response | "event" -> Event | _ -> failwith "Unknown message type")
+      Data_encoding.string
+
+  let make ~seq ~type_ = {seq; type_}
+
+  let enc : t Data_encoding.t =
+    let open Data_encoding in
+    conv
+      (fun {seq; type_} -> (seq, type_))
+      (fun (seq, type_) -> {seq; type_})
+      (obj2
+         (req "seq" int64)
+         (req "type" enc_msg)
+      )
+
+end
+
+
 module Message = struct
 
     (* TODO not sure whats going on with the variables field
