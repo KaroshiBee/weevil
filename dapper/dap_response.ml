@@ -144,3 +144,34 @@ module StackTraceResponse = struct
          (opt "totalFrames" int64))
 
 end
+
+
+
+module ScopesResponse = struct
+
+  type body = {
+    scopes: Scope.t list;
+  }
+
+  type cls_t = body Response.cls_t
+
+  class cls
+      (seq:int64)
+      (request_seq:int64)
+      (success:bool)
+      (command:Dap_request.Request.t)
+      (body:body) = object
+    inherit [body] Response.cls seq request_seq success command None body
+  end
+
+  let enc =
+    let open Data_encoding in
+    Response.enc @@
+    conv
+      (fun {scopes} -> scopes)
+      (fun scopes -> {scopes})
+      (obj1
+         (req "scopes" @@ list Scope.enc)
+      )
+
+end

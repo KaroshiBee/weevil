@@ -1021,3 +1021,24 @@ module StackFrame = struct
          (req "column" int64))
 
 end
+
+
+module Scope = struct
+(* TODO rest of optional data *)
+  type t = {
+    name: string;
+    variablesReference: int64;
+    expensive: bool;
+  }
+
+  let enc =
+    let open Data_encoding in
+    conv
+      (fun {name; variablesReference; expensive} -> (name, variablesReference, expensive))
+      (fun (name, variablesReference, expensive) -> {name; variablesReference; expensive})
+      (obj3
+         (req "name" string)
+         (req "variablesreference" int64)
+         (req "expensive" bool))
+
+end

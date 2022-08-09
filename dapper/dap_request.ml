@@ -6,12 +6,13 @@ module Request = struct
     | Cancel
     | Next
     | StackTrace
+    | Scopes
 
   let enc_t =
     let open Data_encoding in
     conv
-      (function | Cancel -> "cancel" | Next -> "next" | StackTrace -> "stackTrace")
-      (function | "cancel" -> Cancel | "next" -> Next | "stackTrace" -> StackTrace | _ -> failwith "Unknown request")
+      (function | Cancel -> "cancel" | Next -> "next" | StackTrace -> "stackTrace" | Scopes -> "scopes")
+      (function | "cancel" -> Cancel | "next" -> Next | "stackTrace" -> StackTrace | "scopes" -> Scopes | _ -> failwith "Unknown request")
       string
 
   type 'json cls_t = <
@@ -156,5 +157,36 @@ module StackTraceRequest = struct
   end
 
   let enc = Request.enc StackTraceArguments.enc
+
+end
+
+
+module ScopesArguments = struct
+  type t = {
+    frameId: int64;
+  }
+
+  let enc =
+    let open Data_encoding in
+    conv
+      (fun {frameId} -> frameId)
+      (fun frameId -> {frameId})
+      (obj1
+         (req "frameId" int64)
+      )
+
+end
+
+module ScopesRequest = struct
+
+  type args = ScopesArguments.t
+
+  type cls_t = args Request.cls_t
+
+  class cls (seq:int64) (arguments:args) = object
+    inherit [args] Request.cls seq Scopes arguments
+  end
+
+  let enc = Request.enc ScopesArguments.enc
 
 end
