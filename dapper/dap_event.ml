@@ -171,6 +171,16 @@ module StoppedEvent = struct
     hitBreakpointIds: int64 list option;
   }
 
+  let body ~reason ?description ?threadId ?preserveFocusHint ?text ?allThreadsStopped ?hitBreakpointIds () = {
+    reason;
+    description;
+    threadId;
+    preserveFocusHint;
+    text;
+    allThreadsStopped;
+    hitBreakpointIds;
+  }
+
   type cls_t = body Event.cls_t
 
   class cls (seq:int64) (body:body) = object

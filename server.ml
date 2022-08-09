@@ -6,6 +6,7 @@
  *)
 module DRq = Dapper.Dap_request
 module DRs = Dapper.Dap_response
+module DEv = Dapper.Dap_event
 module Db = Dapper.Dap_base
 
 let backlog = 10
@@ -16,13 +17,13 @@ type event =
   | Unknown of string
 
 (* TODO also want to do scopes and variables
-    for our example there is only one stack frame
-    which is the latest stack on the history
-    there is only one scope which is 'locals'
-   and there are multiple variables which are indexed
-   children of the main michelson stack *)
+ *  for our example there is only one stack frame
+ *  which is the latest stack on the history
+ *  there is only one scope which is 'locals',
+ *  which contains the 'stack' and 'gas'
+ *  and there are multiple variables which are indexed
+ *  children of the main michelson stack *)
 
-(* NOTE when not using shortcuts, need to strip off Content-Length field and get inner object *)
 let handle_message msg =
   let open Data_encoding.Json in
   let parse_next_req js =
@@ -54,6 +55,9 @@ let handle_message msg =
       StackTrace req
     )
   | _ -> (
+      (* NOTE when not using helpers,
+         need to strip off Content-Length header field
+         and get inner object *)
       match Result.bind (Defaults.strip_header msg) from_string with
       | Ok js -> (
           match parse_next_req js with
@@ -109,10 +113,15 @@ let rec handle_connection ic oc ic_process oc_process () =
                      Logs_lwt.warn (fun m -> m "Process finished: unix error")
                  )
              in
+             (* send the response *)
              let resp = new DRs.NextResponse.cls seq request_seq !success command in
              let resp = construct DRs.NextResponse.enc resp |> Defaults.wrap_header in
-             Logs_lwt.info (fun m -> m "Next response \n%s\n" resp);
-             (* TODO send stopped event too *)
+             (* send stopped event too *)
+             let seq = Int64.succ seq in
+             let body = DEv.StoppedEvent.(body ~reason:Step ()) in
+             let ev = new DEv.StoppedEvent.cls seq body in
+             let ev = construct DEv.StoppedEvent.enc ev |> Defaults.wrap_header in
+             Logs_lwt.info (fun m -> m "Next response \n%s\nStopped event\n%s\n" resp ev);
            )
            | StackTrace req ->
              let seq = Int64.succ req#seq in
