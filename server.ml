@@ -16,6 +16,7 @@ type event =
   | NextReq of DRq.NextRequest.cls_t
   | StackTrace of DRq.StackTraceRequest.cls_t
   | Scopes of DRq.ScopesRequest.cls_t
+  | Variables of DRq.VariablesRequest.cls_t
   | Unknown of string
 
 (* TODO also want to do scopes and variables
@@ -50,45 +51,20 @@ let parse_scopes_req js =
     let _ = Logs_lwt.warn (fun m -> m "Not scopes request") in
     None
 
+let parse_variables_req js =
+  try
+    let req = destruct DRq.VariablesRequest.enc js in
+    Some (Variables req)
+  with _ ->
+    let _ = Logs_lwt.warn (fun m -> m "Not variables request") in
+    None
+
 let parsers = [
   parse_next_req;
   parse_stacktrace_req;
   parse_scopes_req;
+  parse_variables_req;
 ]
-
-let handle_message msg =
-  match msg with
-  (* NOTE 'n' and 'st' are helpers to quickly test stuff *)
-  | "n" -> (
-      let args = DRq.NextArguments.{threadId=1L; singleThread=None; granularity=None} in
-      let req = new DRq.NextRequest.cls 1L args in
-      NextReq req
-    )
-  | "st" -> (
-      let args = DRq.StackTraceArguments.{threadId=1L; startFrame=None; levels=None} in
-      let req = new DRq.StackTraceRequest.cls 1L args in
-      StackTrace req
-    )
-  | "sc" -> (
-      let args = DRq.ScopesArguments.{frameId=Defaults._THE_FRAME_ID} in
-      let req = new DRq.ScopesRequest.cls 1L args in
-      Scopes req
-    )
-  | _ -> (
-      (* NOTE when not using helpers,
-         need to strip off Content-Length header field
-         and get inner object *)
-      match Result.bind (Defaults.strip_header msg) from_string with
-      | Ok js -> (
-          (* NOTE just grab the first event type that can be parsed *)
-          match List.filter_map (fun p -> p js) parsers with
-          | req :: _ -> req
-          | [] -> Unknown (Printf.sprintf "Unknown js: %s" msg)
-        )
-      | Error err ->
-        let s = Printf.sprintf "Unknown command '%s' - error '%s'" msg err in
-        Unknown s
-    )
 
 let read_line_ i = try Some (input_line i) with End_of_file -> None
 
@@ -117,9 +93,49 @@ let read_weevil_log () =
   |> List.map (fun ln ->
       Data_encoding.Json.destruct Model.Weevil_json.enc ln
     )
-  |> List.map (fun wrec ->
-      let loc = Model.Weevil_json.(wrec.location) in
-      Db.StackFrame.{id=Defaults._THE_FRAME_ID; name=Defaults._THE_FRAME_NAME; line=loc; column=0L}
+
+let handle_message msg =
+  match msg with
+  (* NOTE 'n' and 'st' are helpers to quickly test stuff *)
+  | "n" -> (
+      let args = DRq.NextArguments.{threadId=1L; singleThread=None; granularity=None} in
+      let req = new DRq.NextRequest.cls 1L args in
+      NextReq req
+    )
+  | "st" -> (
+      let args = DRq.StackTraceArguments.{threadId=1L; startFrame=None; levels=None} in
+      let req = new DRq.StackTraceRequest.cls 1L args in
+      StackTrace req
+    )
+  | "sc" -> (
+      let args = DRq.ScopesArguments.{frameId=Defaults._THE_FRAME_ID} in
+      let req = new DRq.ScopesRequest.cls 1L args in
+      Scopes req
+    )
+  | "v" -> (
+      let args = DRq.VariablesArguments.{variablesReference=Defaults._THE_MICHELSON_STACK_LOCAL |> snd} in
+      let req = new DRq.VariablesRequest.cls 1L args in
+      Variables req
+    )
+  | "vgas" -> (
+      let args = DRq.VariablesArguments.{variablesReference=Defaults._THE_GAS_LOCAL |> snd} in
+      let req = new DRq.VariablesRequest.cls 1L args in
+      Variables req
+    )
+  | _ -> (
+      (* NOTE when not using helpers,
+         need to strip off Content-Length header field
+         and get inner object *)
+      match Result.bind (Defaults.strip_header msg) from_string with
+      | Ok js -> (
+          (* NOTE just grab the first event type that can be parsed *)
+          match List.filter_map (fun p -> p js) parsers with
+          | req :: _ -> req
+          | [] -> Unknown (Printf.sprintf "Unknown js: %s" msg)
+        )
+      | Error err ->
+        let s = Printf.sprintf "Unknown command '%s' - error '%s'" msg err in
+        Unknown s
     )
 
 let rec handle_connection ic oc ic_process oc_process () =
@@ -166,7 +182,9 @@ let rec handle_connection ic oc ic_process oc_process () =
                let stackFrames =
                  match read_weevil_log () |> List.rev |> List.hd with
                  | None -> []
-                 | Some last_ln -> [last_ln]
+                 | Some wrec ->
+                   let loc = Model.Weevil_json.(wrec.location) in
+                   [Db.StackFrame.{id=Defaults._THE_FRAME_ID; name=Defaults._THE_FRAME_NAME; line=loc; column=0L}]
                in
                let totalFrames = Some (List.length stackFrames |> Int64.of_int) in
                let body = DRs.StackTraceResponse.{stackFrames; totalFrames} in
@@ -191,6 +209,34 @@ let rec handle_connection ic oc ic_process oc_process () =
                let resp = new DRs.ScopesResponse.cls seq request_seq success command body in
                let resp = construct DRs.ScopesResponse.enc resp |> Defaults.wrap_header in
                Logs_lwt.info (fun m -> m "Scopes response \n%s\n" resp);
+             )
+           | Variables req -> (
+               let seq = Int64.succ req#seq in
+               let request_seq = req#seq in
+               let success = true in
+               let command = req#command in
+               let vref = req#arguments.variablesReference in
+               let gas_name, gas_var = Defaults._THE_GAS_LOCAL in
+               let stack_name, stack_var = Defaults._THE_MICHELSON_STACK_LOCAL in
+               let gas_val, stack_val =
+                 match read_weevil_log () |> List.rev |> List.hd with
+                 | None -> "", ""
+                 | Some wrec -> Model.Weevil_json.(wrec.gas, String.concat ", " wrec.stack |> Printf.sprintf "[%s]")
+               in
+               let name, value =
+                 match (vref = gas_var, vref = stack_var) with
+                 | true, false -> gas_name, gas_val
+                 | false, true -> stack_name, stack_val
+                 | _, _ -> "", ""
+               in
+               let variables = [
+                 Db.Variable_.{name; value; variablesReference=0L}; (* 0 here means not structured ie no children? *)
+               ]
+               in
+               let body = DRs.VariablesResponse.{variables} in
+               let resp = new DRs.VariablesResponse.cls seq request_seq success command body in
+               let resp = construct DRs.VariablesResponse.enc resp |> Defaults.wrap_header in
+               Logs_lwt.info (fun m -> m "Variables response \n%s\n" resp);
              )
            | Unknown s -> Logs_lwt.warn (fun m -> m "Unknown '%s'" s)
 
