@@ -139,19 +139,21 @@ let rec handle_connection ic oc ic_process oc_process () =
              Logs_lwt.info (fun m -> m "Next response \n%s\nStopped event\n%s\n" resp ev);
            )
            | StackTrace req -> (
+             let seq = Int64.succ req#seq in
+             let request_seq = req#seq in
+             let success = true in
+             let command = req#command in
              (* TODO should be able to arrange so that can read frames from ic_process? *)
-             let lns = read_weevil_log () in
-             match List.rev lns |> List.hd with
-             | None -> Logs_lwt.warn (fun m -> m "No Stack trace");
-             | Some last_ln ->
-               let seq = Int64.succ req#seq in
-               let request_seq = req#seq in
-               let success = true in
-               let command = req#command in
-               let body = DRs.StackTraceResponse.{stackFrames=[last_ln]; totalFrames=Some 1L} in
-               let resp = new DRs.StackTraceResponse.cls seq request_seq success command body in
-               let resp = construct DRs.StackTraceResponse.enc resp |> Defaults.wrap_header in
-               Logs_lwt.info (fun m -> m "Stack trace response \n%s\n" resp);
+             let stackFrames =
+               match read_weevil_log () |> List.rev |> List.hd with
+               | None -> []
+               | Some last_ln -> [last_ln]
+             in
+             let totalFrames = Some (List.length stackFrames |> Int64.of_int) in
+             let body = DRs.StackTraceResponse.{stackFrames; totalFrames} in
+             let resp = new DRs.StackTraceResponse.cls seq request_seq success command body in
+             let resp = construct DRs.StackTraceResponse.enc resp |> Defaults.wrap_header in
+             Logs_lwt.info (fun m -> m "Stack trace response \n%s\n" resp);
            )
            | Unknown s -> Logs_lwt.warn (fun m -> m "Unknown '%s'" s)
 
