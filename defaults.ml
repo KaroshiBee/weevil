@@ -4,7 +4,7 @@ let _DEFAULT_PORT = 9000
 
 let _THE_FRAME_ID = 1L
 let _THE_FRAME_NAME = "main" (* TODO would probably be the method name or contract entry point name *)
-let _THE_ONLY_SCOPE = ("Locals", 1L)
+let _THE_ONLY_SCOPE = ("Locals", 1L) (* suggested -> | Arguments | Locals | Registers *)
 let _THE_GAS_LOCAL = ("gas", 0L)
 let _THE_MICHELSON_STACK_LOCAL = ("stack", 1L)
 
