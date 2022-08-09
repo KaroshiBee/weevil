@@ -7,12 +7,13 @@ module Request = struct
     | Next
     | StackTrace
     | Scopes
+    | Variables
 
   let enc_t =
     let open Data_encoding in
     conv
-      (function | Cancel -> "cancel" | Next -> "next" | StackTrace -> "stackTrace" | Scopes -> "scopes")
-      (function | "cancel" -> Cancel | "next" -> Next | "stackTrace" -> StackTrace | "scopes" -> Scopes | _ -> failwith "Unknown request")
+      (function | Cancel -> "cancel" | Next -> "next" | StackTrace -> "stackTrace" | Scopes -> "scopes" | Variables -> "variables")
+      (function | "cancel" -> Cancel | "next" -> Next | "stackTrace" -> StackTrace | "scopes" -> Scopes | "variables" -> Variables |_ -> failwith "Unknown request")
       string
 
   type 'json cls_t = <
@@ -188,5 +189,36 @@ module ScopesRequest = struct
   end
 
   let enc = Request.enc ScopesArguments.enc
+
+end
+
+
+module VariablesArguments = struct
+  type t = {
+    variablesReference: int64;
+  }
+
+  let enc =
+    let open Data_encoding in
+    conv
+      (fun {variablesReference} -> variablesReference)
+      (fun variablesReference -> {variablesReference})
+      (obj1
+         (req "variablesReference" int64)
+      )
+
+end
+
+module VariablesRequest = struct
+
+  type args = VariablesArguments.t
+
+  type cls_t = args Request.cls_t
+
+  class cls (seq:int64) (arguments:args) = object
+    inherit [args] Request.cls seq Variables arguments
+  end
+
+  let enc = Request.enc VariablesArguments.enc
 
 end

@@ -175,3 +175,33 @@ module ScopesResponse = struct
       )
 
 end
+
+
+module VariablesResponse = struct
+
+  type body = {
+    variables: Variable_.t list;
+  }
+
+  type cls_t = body Response.cls_t
+
+  class cls
+      (seq:int64)
+      (request_seq:int64)
+      (success:bool)
+      (command:Dap_request.Request.t)
+      (body:body) = object
+    inherit [body] Response.cls seq request_seq success command None body
+  end
+
+  let enc =
+    let open Data_encoding in
+    Response.enc @@
+    conv
+      (fun {variables} -> variables)
+      (fun variables -> {variables})
+      (obj1
+         (req "variables" @@ list Variable_.enc)
+      )
+
+end

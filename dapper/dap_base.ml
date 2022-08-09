@@ -1038,7 +1038,29 @@ module Scope = struct
       (fun (name, variablesReference, expensive) -> {name; variablesReference; expensive})
       (obj3
          (req "name" string)
-         (req "variablesreference" int64)
+         (req "variablesReference" int64)
          (req "expensive" bool))
+
+end
+
+(* TODO Variable name seems to clash with something *)
+module Variable_ = struct
+(* TODO rest of optional data *)
+  type t = {
+    name: string;
+    value: string;
+    variablesReference: int64;
+  }
+
+  let enc =
+    let open Data_encoding in
+    conv
+      (fun {name; value; variablesReference} -> (name, value, variablesReference))
+      (fun (name, value, variablesReference) -> {name; value; variablesReference})
+      (obj3
+         (req "name" string)
+         (req "value" string)
+         (req "variablesReference" int64)
+      )
 
 end
