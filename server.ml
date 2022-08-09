@@ -22,6 +22,7 @@ type event =
    and there are multiple variables which are indexed
    children of the main michelson stack *)
 
+(* NOTE when not using shortcuts, need to strip off Content-Length field and get inner object *)
 let handle_message msg =
   let open Data_encoding.Json in
   let parse_next_req js =
@@ -53,7 +54,7 @@ let handle_message msg =
       StackTrace req
     )
   | _ -> (
-      match from_string msg with
+      match Result.bind (Defaults.strip_header msg) from_string with
       | Ok js -> (
           match parse_next_req js with
           | Some next_req -> next_req
@@ -108,10 +109,10 @@ let rec handle_connection ic oc ic_process oc_process () =
                      Logs_lwt.warn (fun m -> m "Process finished: unix error")
                  )
              in
-             (* TODO need to add Content-Length: 119\r\n\r\n resp_json *)
              let resp = new DRs.NextResponse.cls seq request_seq !success command in
-             let resp = construct DRs.NextResponse.enc resp |> to_string |> Defaults._replace "\n" "" in
+             let resp = construct DRs.NextResponse.enc resp |> Defaults.wrap_header in
              Logs_lwt.info (fun m -> m "Next response \n%s\n" resp);
+             (* TODO send stopped event too *)
            )
            | StackTrace req ->
              let seq = Int64.succ req#seq in
@@ -135,7 +136,7 @@ let rec handle_connection ic oc ic_process oc_process () =
              in
              let body = DRs.StackTraceResponse.{stackFrames=lns; totalFrames=None} in
              let resp = new DRs.StackTraceResponse.cls seq request_seq success command body in
-             let resp = construct DRs.StackTraceResponse.enc resp |> to_string |> Defaults._replace "\n" "" in
+             let resp = construct DRs.StackTraceResponse.enc resp |> Defaults.wrap_header in
              Logs_lwt.info (fun m -> m "Stack trace response \n%s\n" resp);
            | Unknown s -> Logs_lwt.warn (fun m -> m "Unknown '%s'" s)
 
