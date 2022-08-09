@@ -15,6 +15,12 @@ type event =
   | StackTrace of DRq.StackTraceRequest.cls_t
   | Unknown of string
 
+(* TODO also want to do scopes and variables
+    for our example there is only one stack frame
+    which is the latest stack on the history
+    there is only one scope which is 'locals'
+   and there are multiple variables which are indexed
+   children of the main michelson stack *)
 
 let handle_message msg =
   let open Data_encoding.Json in
