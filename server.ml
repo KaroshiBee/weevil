@@ -88,6 +88,21 @@ let read_log () =
     close_in_noerr i;
     []
 
+let read_weevil_log () =
+  read_log ()
+  |> List.filter (fun ln -> 0 < String.length ln && String.get ln 0 != '#')
+  |> List.filter_map (fun ln ->
+      Data_encoding.Json.from_string ln
+      |> Result.to_option
+    )
+  |> List.map (fun ln ->
+      Data_encoding.Json.destruct Model.Weevil_json.enc ln
+    )
+  |> List.map (fun wrec ->
+      let loc = Model.Weevil_json.(wrec.location) in
+      Db.StackFrame.{id=1L; name="unknown"; line=loc; column=0L}
+    )
+
 let rec handle_connection ic oc ic_process oc_process () =
   let open Data_encoding.Json in
   Lwt_io.read_line_opt ic >>=
@@ -123,30 +138,21 @@ let rec handle_connection ic oc ic_process oc_process () =
              let ev = construct DEv.StoppedEvent.enc ev |> Defaults.wrap_header in
              Logs_lwt.info (fun m -> m "Next response \n%s\nStopped event\n%s\n" resp ev);
            )
-           | StackTrace req ->
-             let seq = Int64.succ req#seq in
-             let request_seq = req#seq in
-             let success = true in
-             let command = req#command in
+           | StackTrace req -> (
              (* TODO should be able to arrange so that can read frames from ic_process? *)
-             let lns = read_log ()
-               |> List.filter (fun ln -> 0 < String.length ln && String.get ln 0 != '#')
-               |> List.filter_map (fun ln ->
-                   Data_encoding.Json.from_string ln
-                   |> Result.to_option
-                 )
-               |> List.map (fun ln ->
-                   Data_encoding.Json.destruct Model.Weevil_json.enc ln
-                 )
-               |> List.map (fun wrec ->
-                   let loc = Model.Weevil_json.(wrec.location) in
-                   Db.StackFrame.{id=1L; name="unknown"; line=loc; column=0L}
-                 )
-             in
-             let body = DRs.StackTraceResponse.{stackFrames=lns; totalFrames=None} in
-             let resp = new DRs.StackTraceResponse.cls seq request_seq success command body in
-             let resp = construct DRs.StackTraceResponse.enc resp |> Defaults.wrap_header in
-             Logs_lwt.info (fun m -> m "Stack trace response \n%s\n" resp);
+             let lns = read_weevil_log () in
+             match List.rev lns |> List.hd with
+             | None -> Logs_lwt.warn (fun m -> m "No Stack trace");
+             | Some last_ln ->
+               let seq = Int64.succ req#seq in
+               let request_seq = req#seq in
+               let success = true in
+               let command = req#command in
+               let body = DRs.StackTraceResponse.{stackFrames=[last_ln]; totalFrames=Some 1L} in
+               let resp = new DRs.StackTraceResponse.cls seq request_seq success command body in
+               let resp = construct DRs.StackTraceResponse.enc resp |> Defaults.wrap_header in
+               Logs_lwt.info (fun m -> m "Stack trace response \n%s\n" resp);
+           )
            | Unknown s -> Logs_lwt.warn (fun m -> m "Unknown '%s'" s)
 
          in
