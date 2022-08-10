@@ -87,11 +87,11 @@ let read_weevil_log () =
   read_log ()
   |> List.filter (fun ln -> 0 < String.length ln && String.get ln 0 != '#')
   |> List.filter_map (fun ln ->
-      Data_encoding.Json.from_string ln
+      from_string ln
       |> Result.to_option
     )
   |> List.map (fun ln ->
-      Data_encoding.Json.destruct Model.Weevil_json.enc ln
+      destruct Model.Weevil_json.enc ln
     )
 
 let handle_message msg =
@@ -139,7 +139,6 @@ let handle_message msg =
     )
 
 let rec handle_connection ic oc ic_process oc_process () =
-  let open Data_encoding.Json in
   Lwt_io.read_line_opt ic >>=
   (fun msg ->
      match msg with
