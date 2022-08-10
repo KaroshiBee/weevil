@@ -99,9 +99,10 @@ let split_out_code contract =
                   ["}}"]
                 ]
 
-let ui_main contract trace =
+let ui_main (_ic:Lwt_io.input_channel) (_oc:Lwt_io.output_channel) =
   let$ st = Lwd.get Model.state in
-  let lines = split_out_code contract in
+  let lines = [""] in
+  let trace = [||] in
   let instr = [W.printf "Mouse CLICK [-] or [+] to go back or forward resp.\nPress ALT-q to quit\n\n"] in
   let btn = Btn_next.make st lines trace in
   let src_code_panel = Src_code.make st.line_number lines in

@@ -3,7 +3,7 @@
     Clients can increment a shared counter or read its current value.
 
     Build with: ocamlfind ocamlopt -package lwt,lwt.unix,logs,logs.lwt -linkpkg -o counter-server ./counter-server.ml
- *)
+*)
 open Data_encoding.Json
 module DRq = Dapper.Dap_request
 module DRs = Dapper.Dap_response
@@ -247,7 +247,7 @@ let rec handle_connection ic oc ic_process oc_process () =
 
          in
          next >>= handle_connection ic oc ic_process oc_process
-     )
+       )
      | None -> Logs_lwt.info (fun m -> m "Connection closed"))
 
 let accept_connection cmd conn =
