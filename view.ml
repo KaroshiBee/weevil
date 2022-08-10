@@ -3,6 +3,11 @@ open Nottui
 module W = Nottui_widgets
 open Lwd_infix
 
+module DRq = Dapper.Dap_request
+module DRs = Dapper.Dap_response
+module DEv = Dapper.Dap_event
+module Db = Dapper.Dap_base
+module Js = Data_encoding.Json
 
 module Src_frag = struct
 
@@ -51,13 +56,15 @@ module Btn_next = struct
     old_state: Model.State.t;
     max_lines:int;
     trace: Model.Weevil_record.t array;
+    ic: Lwt_io.input_channel;
+    oc: Lwt_io.output_channel;
   }
 
-  let make old_state lines trace =
+  let make old_state lines trace ic oc =
     let max_lines = List.length lines in
-    {old_state; max_lines; trace}
+    {old_state; max_lines; trace; ic; oc}
 
-  let render {old_state; max_lines; trace} =
+  let render {old_state; max_lines; trace; ic; oc} =
     let ln = min max_lines old_state.line_number |> max 0 in
     let gas = Model.Weevil_trace.get_safe trace ln |> Model.Weevil_record.get_gas in
     let loc = Model.Weevil_trace.get_safe trace ln |> Model.Weevil_record.get_location in
@@ -70,7 +77,16 @@ module Btn_next = struct
     in
     let btn_text_up = Printf.sprintf "[+]" in
     let btn_action_up () =
-      Lwd.set Model.state (Model.State.incr_line_number old_state max_lines)
+      let args = DRq.NextArguments.{threadId=1L; singleThread=None; granularity=None} in
+      let req = new DRq.NextRequest.cls 1L args in
+      let js = Js.construct DRq.NextRequest.enc req |> Defaults.wrap_header in
+      ignore (
+        Lwt_io.write_line oc js >>= fun _ ->
+        Lwt_io.read_line ic >>= fun _resp ->
+        Lwt_io.read_line ic >>= fun _stopped_ev ->
+        (* TODO extract seq number and update state *)
+        Lwd.set Model.state (Model.State.incr_line_number old_state max_lines) |> Lwt.return
+      )
     in
     [
       Ui.hcat [
@@ -99,11 +115,15 @@ let split_out_code contract =
                   ["}}"]
                 ]
 
-let ui_main (_ic:Lwt_io.input_channel) (_oc:Lwt_io.output_channel) =
+(* TODO
+   pass contract code from command line and on to stepper
+
+*)
+let ui_main (ic:Lwt_io.input_channel) (oc:Lwt_io.output_channel) =
   let$ st = Lwd.get Model.state in
   let lines = [""] in
   let trace = [||] in
   let instr = [W.printf "Mouse CLICK [-] or [+] to go back or forward resp.\nPress ALT-q to quit\n\n"] in
-  let btn = Btn_next.make st lines trace in
+  let btn = Btn_next.make st lines trace ic oc in
   let src_code_panel = Src_code.make st.line_number lines in
   [instr; Btn_next.render btn; Src_code.render src_code_panel] |> List.concat |> Ui.vcat
