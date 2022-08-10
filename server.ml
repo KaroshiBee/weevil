@@ -10,7 +10,6 @@ module DRs = Dapper.Dap_response
 module DEv = Dapper.Dap_event
 module Db = Dapper.Dap_base
 
-let backlog = 10
 
 type event =
   | NextReq of DRq.NextRequest.cls_t
@@ -98,12 +97,12 @@ let handle_message msg =
   match msg with
   (* NOTE 'n' and 'st' are helpers to quickly test stuff *)
   | "n" -> (
-      let args = DRq.NextArguments.{threadId=1L; singleThread=None; granularity=None} in
+      let args = DRq.NextArguments.{threadId=Defaults._THE_THREAD_ID; singleThread=None; granularity=None} in
       let req = new DRq.NextRequest.cls 1L args in
       NextReq req
     )
   | "st" -> (
-      let args = DRq.StackTraceArguments.{threadId=1L; startFrame=None; levels=None} in
+      let args = DRq.StackTraceArguments.{threadId=Defaults._THE_THREAD_ID; startFrame=None; levels=None} in
       let req = new DRq.StackTraceRequest.cls 1L args in
       StackTrace req
     )
@@ -261,7 +260,7 @@ let accept_connection cmd conn =
 let create_socket listen_address port () =
   let sock = Lwt_unix.(socket PF_INET SOCK_STREAM 0) in
   let _a = Lwt_unix.bind sock @@ ADDR_INET(listen_address, port) in ();
-  Lwt_unix.listen sock backlog;
+  Lwt_unix.listen sock Defaults._DEFAULT_BACKLOG;
   sock
 
 let create_server cmd sock =

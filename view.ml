@@ -77,7 +77,7 @@ module Btn_next = struct
     in
     let btn_text_up = Printf.sprintf "[+]" in
     let btn_action_up () =
-      let args = DRq.NextArguments.{threadId=1L; singleThread=None; granularity=None} in
+      let args = DRq.NextArguments.{threadId=Defaults._THE_THREAD_ID; singleThread=None; granularity=None} in
       let req = new DRq.NextRequest.cls 1L args in
       let js = Js.construct DRq.NextRequest.enc req |> Defaults.wrap_header in
       ignore (

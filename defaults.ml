@@ -1,7 +1,9 @@
 let _DEFAULT_LOG_FILE = "weevil_stepper.log"
 let _DEFAULT_LISTEN_ADDRESS = "loopback"
 let _DEFAULT_PORT = 9000
+let _DEFAULT_BACKLOG = 10
 
+let _THE_THREAD_ID = 1L
 let _THE_FRAME_ID = 1L
 let _THE_FRAME_NAME = "main" (* TODO would probably be the method name or contract entry point name *)
 let _THE_ONLY_SCOPE = ("Locals", 1L) (* suggested -> | Arguments | Locals | Registers *)
