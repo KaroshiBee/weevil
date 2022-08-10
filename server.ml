@@ -171,7 +171,9 @@ let rec handle_connection ic oc ic_process oc_process () =
                let body = DEv.StoppedEvent.(body ~reason:Step ()) in
                let ev = new DEv.StoppedEvent.cls seq body in
                let ev = construct DEv.StoppedEvent.enc ev |> Defaults.wrap_header in
-               Logs_lwt.info (fun m -> m "Next response \n%s\nStopped event\n%s\n" resp ev);
+               Logs_lwt.info (fun m -> m "Next response \n%s\nStopped event\n%s\n" resp ev) >>=
+               (fun _ -> Lwt_io.write_line oc resp) >>=
+               (fun _ -> Lwt_io.write_line oc ev)
              )
            | StackTrace req -> (
                let seq = Int64.succ req#seq in
@@ -190,7 +192,8 @@ let rec handle_connection ic oc ic_process oc_process () =
                let body = DRs.StackTraceResponse.{stackFrames; totalFrames} in
                let resp = new DRs.StackTraceResponse.cls seq request_seq success command body in
                let resp = construct DRs.StackTraceResponse.enc resp |> Defaults.wrap_header in
-               Logs_lwt.info (fun m -> m "Stack trace response \n%s\n" resp);
+               Logs_lwt.info (fun m -> m "Stack trace response \n%s\n" resp) >>=
+               (fun _ -> Lwt_io.write_line oc resp)
              )
            | Scopes req -> (
                (* TODO would need to pull the frameId from req and look up the scopes from that *)
@@ -208,7 +211,8 @@ let rec handle_connection ic oc ic_process oc_process () =
                let body = DRs.ScopesResponse.{scopes} in
                let resp = new DRs.ScopesResponse.cls seq request_seq success command body in
                let resp = construct DRs.ScopesResponse.enc resp |> Defaults.wrap_header in
-               Logs_lwt.info (fun m -> m "Scopes response \n%s\n" resp);
+               Logs_lwt.info (fun m -> m "Scopes response \n%s\n" resp) >>=
+               (fun _ -> Lwt_io.write_line oc resp)
              )
            | Variables req -> (
                let seq = Int64.succ req#seq in
@@ -236,7 +240,8 @@ let rec handle_connection ic oc ic_process oc_process () =
                let body = DRs.VariablesResponse.{variables} in
                let resp = new DRs.VariablesResponse.cls seq request_seq success command body in
                let resp = construct DRs.VariablesResponse.enc resp |> Defaults.wrap_header in
-               Logs_lwt.info (fun m -> m "Variables response \n%s\n" resp);
+               Logs_lwt.info (fun m -> m "Variables response \n%s\n" resp) >>=
+               (fun _ -> Lwt_io.write_line oc resp)
              )
            | Unknown s -> Logs_lwt.warn (fun m -> m "Unknown '%s'" s)
 
