@@ -16,7 +16,10 @@ type event =
   | StackTrace of DRq.StackTraceRequest.cls_t
   | Scopes of DRq.ScopesRequest.cls_t
   | Variables of DRq.VariablesRequest.cls_t
+  | ContentLength of int
   | Unknown of string
+  | Empty
+
 
 (* TODO also want to do scopes and variables
  *  for our example there is only one stack frame
@@ -121,11 +124,13 @@ let handle_message msg =
       let req = new DRq.VariablesRequest.cls 1L args in
       Variables req
     )
+  | "\r\n" -> Empty
+  | "" -> Empty
   | _ -> (
       (* NOTE when not using helpers,
-         need to strip off Content-Length header field
-         and get inner object *)
-      match Result.bind (Defaults.strip_header msg) from_string with
+         the Content-Length header field and other \r\n end up as errors
+         *)
+      match from_string msg with (* Result.bind (Defaults.strip_header msg) from_string with *)
       | Ok js -> (
           (* NOTE just grab the first event type that can be parsed *)
           match List.filter_map (fun p -> p js) parsers with
@@ -133,8 +138,15 @@ let handle_message msg =
           | [] -> Unknown (Printf.sprintf "Unknown js: %s" msg)
         )
       | Error err ->
-        let s = Printf.sprintf "Unknown command '%s' - error '%s'" msg err in
-        Unknown s
+        (* TODO be better *)
+        let s = Printf.sprintf "bad command '%s' - error '%s'" msg err in
+        let rgx = Str.regexp_string Defaults._HEADER_FIELD in
+        if Defaults.(contains msg _HEADER_FIELD) then
+        match Str.split rgx msg with
+          | [n] -> let i = int_of_string n in ContentLength i
+          | _ -> Unknown s
+        else
+          Unknown s
     )
 
 let rec handle_connection ic oc ic_process oc_process () =
@@ -169,7 +181,7 @@ let rec handle_connection ic oc ic_process oc_process () =
                let body = DEv.StoppedEvent.(body ~reason:Step ()) in
                let ev = new DEv.StoppedEvent.cls seq body in
                let ev = construct DEv.StoppedEvent.enc ev |> Defaults.wrap_header in
-               Logs_lwt.info (fun m -> m "Next response \n%s\nStopped event\n%s\n" resp ev) >>=
+               Logs_lwt.info (fun m -> m "\nNext response \n%s\nStopped event\n%s\n" resp ev) >>=
                (fun _ -> Lwt_io.write_line oc resp) >>=
                (fun _ -> Lwt_io.write_line oc ev)
              )
@@ -241,7 +253,9 @@ let rec handle_connection ic oc ic_process oc_process () =
                Logs_lwt.info (fun m -> m "Variables response \n%s\n" resp) >>=
                (fun _ -> Lwt_io.write_line oc resp)
              )
+           | ContentLength i -> Logs_lwt.info (fun m -> m "content length %d" i)
            | Unknown s -> Logs_lwt.warn (fun m -> m "Unknown '%s'" s)
+           | Empty -> Logs_lwt.info (fun m -> m "header break")
 
          in
          next >>= handle_connection ic oc ic_process oc_process

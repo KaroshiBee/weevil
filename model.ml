@@ -94,18 +94,18 @@ module State = struct
 
   type t = {
     line_number: int;
-    messages: string list;
+    current_seq: int64;
   }
 
-  let make line_number messages =
+  let make line_number current_seq =
     {
       line_number;
-      messages;
+      current_seq;
     }
 
-  let incr_line_number t max_lines =
+  let incr_line_number t max_lines current_seq =
     let line_number = min max_lines (t.line_number + 1) |> max 0 in
-    {t with line_number}
+    {line_number; current_seq}
 
   let decr_line_number t max_lines =
     let line_number = min max_lines (t.line_number - 1) |> max 0 in
@@ -117,4 +117,4 @@ module State = struct
 
 end
 
-let state = Lwd.var (State.make 0 [])
+let state = Lwd.var (State.make 0 0L)

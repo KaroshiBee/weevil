@@ -65,10 +65,11 @@ module Btn_next = struct
     {old_state; max_lines; trace; ic; oc}
 
   let render {old_state; max_lines; trace; ic; oc} =
+    assert (0 = Array.length trace);
     let ln = min max_lines old_state.line_number |> max 0 in
-    let gas = Model.Weevil_trace.get_safe trace ln |> Model.Weevil_record.get_gas in
-    let loc = Model.Weevil_trace.get_safe trace ln |> Model.Weevil_record.get_location in
-    let exprs = Model.Weevil_trace.get_safe trace ln |> Model.Weevil_record.get_expr_str in
+    let gas = "TODO gas" in (* Model.Weevil_trace.get_safe trace ln |> Model.Weevil_record.get_gas in *)
+    let loc = "TODO loc" in (* Model.Weevil_trace.get_safe trace ln |> Model.Weevil_record.get_location in *)
+    let exprs = "TODO expr" in (* Model.Weevil_trace.get_safe trace ln |> Model.Weevil_record.get_expr_str in *)
 
     (* button actions need to unpause the stepper thread *)
     let btn_text_down = Printf.sprintf "[-]" in
@@ -77,15 +78,17 @@ module Btn_next = struct
     in
     let btn_text_up = Printf.sprintf "[+]" in
     let btn_action_up () =
+      let next_seq = Int64.succ old_state.current_seq in
       let args = DRq.NextArguments.{threadId=Defaults._THE_THREAD_ID; singleThread=None; granularity=None} in
-      let req = new DRq.NextRequest.cls 1L args in
+      let req = new DRq.NextRequest.cls next_seq args in
       let js = Js.construct DRq.NextRequest.enc req |> Defaults.wrap_header in
       ignore (
         Lwt_io.write_line oc js >>= fun _ ->
         Lwt_io.read_line ic >>= fun _resp ->
         Lwt_io.read_line ic >>= fun _stopped_ev ->
-        (* TODO extract seq number and update state *)
-        Lwd.set Model.state (Model.State.incr_line_number old_state max_lines) |> Lwt.return
+        (* TODO extract seq number and update state if success=true *)
+        let current_seq = Int64.add next_seq 2L in
+        Lwd.set Model.state (Model.State.incr_line_number old_state max_lines current_seq) |> Lwt.return
       )
     in
     [
@@ -121,7 +124,7 @@ let split_out_code contract =
 *)
 let ui_main (ic:Lwt_io.input_channel) (oc:Lwt_io.output_channel) =
   let$ st = Lwd.get Model.state in
-  let lines = [""] in
+  let lines = split_out_code Defaults._THE_CONTRACT in
   let trace = [||] in
   let instr = [W.printf "Mouse CLICK [-] or [+] to go back or forward resp.\nPress ALT-q to quit\n\n"] in
   let btn = Btn_next.make st lines trace ic oc in
