@@ -111,9 +111,9 @@ module State = struct
     let line_number = min max_lines (t.line_number - 1) |> max 0 in
     {t with line_number}
 
-  let add_message t message =
-    let messages = message :: t.messages in
-    {t with messages}
+  (* let add_message t message =
+   *   let messages = message :: t.messages in
+   *   {t with messages} *)
 
 end
 
