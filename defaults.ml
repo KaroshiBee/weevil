@@ -10,6 +10,10 @@ let _THE_ONLY_SCOPE = ("Locals", 1L) (* suggested -> | Arguments | Locals | Regi
 let _THE_GAS_LOCAL = ("gas", 0L)
 let _THE_MICHELSON_STACK_LOCAL = ("stack", 1L)
 
+let _THE_CONTRACT =
+  "{parameter unit;storage unit;code {DROP; PUSH mutez 2944023901536524477; \
+   PUSH nat 2; MUL; PUSH mutez 100; ADD; DROP; UNIT; NIL operation; PAIR}}"
+
 
 let _replace input output =
   Str.global_replace (Str.regexp_string input) output

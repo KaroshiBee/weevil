@@ -118,15 +118,11 @@ let process log_file_arg =
   | Some log_file -> log_file
   in
   let oc = open_out log_file in
-  (* let contract = *)
-  (*   "{parameter unit;storage unit;code {DROP; UNIT; NIL operation; PAIR}}" in *)
-  let contract =
-    "{parameter unit;storage unit;code {DROP; PUSH mutez 2944023901536524477; \
-     PUSH nat 2; MUL; PUSH mutez 100; ADD; DROP; UNIT; NIL operation; PAIR}}" in
 
   let logger = Traced_interpreter.trace_logger oc () in
 
-  let stepper = test_stepping contract logger >|= (fun _ -> `Ok ()) in
+  let stepper =
+    test_stepping Defaults._THE_CONTRACT logger >|= (fun _ -> `Ok ()) in
 
   Lwt_main.run stepper
 
