@@ -65,6 +65,92 @@ module Btn_stackFrames = struct
 end
 
 
+module Variable_frag = struct
+  (* ie Gas/Stack etc *)
+
+  type t = {
+    var: Db.Variable_.t;
+  }
+
+  let make var =
+    {var;}
+
+
+  let render {var} =
+    let line = Printf.sprintf "%s: %s" var.name var.value in
+    [W.string line]
+
+end
+
+
+module Btn_scope = struct
+  (* ie Arguments/Locals/Registers *)
+
+  type t = {
+    old_state: Model.State.t;
+    ic: Lwt_io.input_channel;
+    oc: Lwt_io.output_channel;
+    title: string;
+  }
+
+  let make old_state ic oc title =
+    {old_state; ic; oc; title}
+
+
+  let render {old_state; ic; oc; title} oc_log =
+    let btn_text = Printf.sprintf "[+]" in
+    let btn_action () =
+      let _ = old_state.scopes |> List.iter (fun (sc : Db.Scope.t) -> (
+          let next_seq = Int64.succ old_state.current_seq in
+          let args = DRq.VariablesArguments.{variablesReference=sc.variablesReference;} in
+          let req = new DRq.VariablesRequest.cls next_seq args in
+          let js = Js.construct DRq.VariablesRequest.enc req |> Defaults.wrap_header in
+          ignore (
+            Lwt_io.write_line oc js >>= fun _ ->
+            Lwt_io.read_line ic >>= fun _hdr ->
+            Lwt_io.write_line oc_log _hdr >>= fun _ ->
+            Lwt_io.read_line ic >>= fun _break ->
+            Lwt_io.write_line oc_log "break" >>= fun _ ->
+            Lwt_io.read_line ic >>= fun resp_str ->
+            Lwt_io.write_line oc_log resp_str >>= fun _ ->
+            Lwt_io.write_line oc_log "HERE" >>= fun _ ->
+            match Js.from_string resp_str |> Result.map (fun js ->
+                let resp = Js.destruct DRs.VariablesResponse.enc js in
+                if resp#success then
+                  let current_seq = resp#seq in
+                  let variables = resp#body.variables in
+                  (* TODO append or set in Hashtbl for variables *)
+                  Lwd.set Model.state Model.State.{old_state with current_seq; variables}
+              ) with
+            | Ok _ ->
+              let s = Printf.sprintf "got %d variables" (List.length old_state.variables) in
+              Lwt_io.write_line oc_log s
+            | Error err ->
+              let s = Printf.sprintf "ERROR: %s" err in
+              Lwt_io.write_line oc_log s
+              (* |> Result.value ~default:() |> Lwt.return *)
+          )
+        )) in ()
+    in
+    let btn =
+      Ui.hcat [
+        W.printf ~attr:A.empty "  %s" title;
+        W.button ~attr:A.(bg lightblue) btn_text btn_action;
+      ]
+    in
+    let ui_lines = List.fold_left (fun acc v ->
+        let line = Variable_frag.make v in
+        let ui_line = Variable_frag.render line in
+        ui_line :: acc
+      ) [] old_state.variables
+    in
+    let panel = ui_lines |> List.concat |> Ui.vcat in
+    [Ui.vcat [btn; panel]]
+
+
+end
+
+
 module Btn_scopes = struct
 
   type t = {
@@ -108,13 +194,13 @@ module Btn_scopes = struct
     in
     let panel =
       List.fold_left (fun acc (sc:Db.Scope.t) ->
-          let line = Printf.sprintf "%s" sc.name in
-          let ui_line = W.string line in
+          let line = Btn_scope.make old_state ic oc sc.name in
+          let ui_line = Btn_scope.render line oc_log |> Ui.hcat in
           ui_line :: acc
         ) [] old_state.scopes
       |> List.rev |> Ui.vcat
     in
-    [Ui.vcat [btn; panel]]
+    [Ui.vcat [btn; W.string ""; panel]]
 
 
 end
@@ -253,6 +339,6 @@ let ui_main (ic:Lwt_io.input_channel) (oc:Lwt_io.output_channel) (oc_log:Lwt_io.
   let stackframe_btn = Btn_stackFrames.make st ic oc in
   let scopes_btn = Btn_scopes.make st ic oc in
   let code = [Btn_next.render step_btn oc_log; Src_code.render src_code_panel;] |> List.concat |> Ui.vcat in
-  let state = [Btn_stackFrames.render stackframe_btn oc_log; [W.string " "]; Btn_scopes.render scopes_btn oc_log] |> List.concat |> Ui.vcat in
+  let state = [Btn_stackFrames.render stackframe_btn oc_log; [W.string ""]; Btn_scopes.render scopes_btn oc_log] |> List.concat |> Ui.vcat in
   let main = Ui.hcat [code; state] in
   Ui.vcat [instr; main]

@@ -97,6 +97,7 @@ module State = struct
     current_seq: int64;
     stack_frames: Dapper.Dap_base.StackFrame.t list;
     scopes: Dapper.Dap_base.Scope.t list;
+    variables: Dapper.Dap_base.Variable_.t list;
   }
 
   let make line_number current_seq =
@@ -105,6 +106,7 @@ module State = struct
       current_seq;
       stack_frames=[];
       scopes=[];
+      variables=[];
     }
 
   let incr_line_number t max_lines current_seq =

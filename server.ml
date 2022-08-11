@@ -119,12 +119,7 @@ let handle_message msg =
       Scopes req
     )
   | "v" -> (
-      let args = DRq.VariablesArguments.{variablesReference=Defaults._THE_MICHELSON_STACK_LOCAL |> snd} in
-      let req = new DRq.VariablesRequest.cls 1L args in
-      Variables req
-    )
-  | "vgas" -> (
-      let args = DRq.VariablesArguments.{variablesReference=Defaults._THE_GAS_LOCAL |> snd} in
+      let args = DRq.VariablesArguments.{variablesReference=Defaults._THE_ONLY_SCOPE |> snd} in
       let req = new DRq.VariablesRequest.cls 1L args in
       Variables req
     )
@@ -219,8 +214,8 @@ let rec handle_connection ic oc ic_process oc_process () =
                let success = true in
                let command = req#command in
                let locals_name, locals_var = Defaults._THE_ONLY_SCOPE in
-               (* let gas_name, gas_var = Defaults._THE_GAS_LOCAL in
-                * let stack_name, stack_var = Defaults._THE_MICHELSON_STACK_LOCAL in *)
+               (* let _gas_name, gas_var = Defaults._THE_GAS_LOCAL in
+                * let _stack_name, stack_var = Defaults._THE_MICHELSON_STACK_LOCAL in *)
                let scopes = [
                  Db.Scope.{name=locals_name; variablesReference=locals_var; expensive=false};
                ]
@@ -237,22 +232,17 @@ let rec handle_connection ic oc ic_process oc_process () =
                let request_seq = req#seq in
                let success = true in
                let command = req#command in
-               let vref = req#arguments.variablesReference in
-               let gas_name, gas_var = Defaults._THE_GAS_LOCAL in
-               let stack_name, stack_var = Defaults._THE_MICHELSON_STACK_LOCAL in
+               let _vref = req#arguments.variablesReference in
+               let gas_name, _gas_var = Defaults._THE_GAS_LOCAL in
+               let stack_name, _stack_var = Defaults._THE_MICHELSON_STACK_LOCAL in
                let gas_val, stack_val =
                  match read_weevil_log () |> List.rev |> List.hd with
                  | None -> "", ""
                  | Some wrec -> Model.Weevil_json.(wrec.gas, String.concat ", " wrec.stack |> Printf.sprintf "[%s]")
                in
-               let name, value =
-                 match (vref = gas_var, vref = stack_var) with
-                 | true, false -> gas_name, gas_val
-                 | false, true -> stack_name, stack_val
-                 | _, _ -> "", ""
-               in
                let variables = [
-                 Db.Variable_.{name; value; variablesReference=0L}; (* 0 here means not structured ie no children? *)
+                 Db.Variable_.{name=gas_name; value=gas_val; variablesReference=0L}; (* 0 here means not structured ie no children? *)
+                 Db.Variable_.{name=stack_name; value=stack_val; variablesReference=0L}; (* 0 here means not structured ie no children? *)
                ]
                in
                let body = DRs.VariablesResponse.{variables} in
