@@ -47,13 +47,13 @@ module Btn_stackFrames = struct
     in
     let btn =
       Ui.hcat [
-        W.printf ~attr:A.empty "Stack frames ";
         W.button ~attr:A.(bg lightblue) btn_text btn_action;
+        W.printf ~attr:A.empty " Stack frames ";
       ]
     in
     let panel =
       List.fold_left (fun acc (sf:Db.StackFrame.t) ->
-          let line = Printf.sprintf "%s: %d" sf.name (Int64.to_int sf.id) in
+          let line = Printf.sprintf "> %s: %d" sf.name (Int64.to_int sf.id) in
           let ui_line = W.string line in
           ui_line :: acc
         ) [] old_state.stack_frames
@@ -77,8 +77,8 @@ module Variable_frag = struct
 
 
   let render {var} =
-    let line = Printf.sprintf "%s: %s" var.name var.value in
-    [W.string line]
+    let line = Printf.sprintf "> %s: %s" var.name var.value in
+    [Ui.hcat [W.string "    "; W.string line]]
 
 end
 
@@ -133,8 +133,9 @@ module Btn_scope = struct
     in
     let btn =
       Ui.hcat [
-        W.printf ~attr:A.empty "%s" title;
+        W.string "    ";
         W.button ~attr:A.(bg lightblue) btn_text btn_action;
+        W.printf ~attr:A.empty " %s" title;
       ]
     in
     let ui_lines = List.fold_left (fun acc v ->
@@ -187,8 +188,8 @@ module Btn_scopes = struct
     in
     let btn =
       Ui.hcat [
-        W.printf ~attr:A.empty "Scopes ";
         W.button ~attr:A.(bg lightblue) btn_text btn_action;
+        W.printf ~attr:A.empty " Scopes";
       ]
     in
     let panel =
