@@ -9,6 +9,49 @@ module DEv = Dapper.Dap_event
 module Db = Dapper.Dap_base
 module Js = Data_encoding.Json
 
+
+module Btn_stackFrames = struct
+
+  type t = {
+    old_state: Model.State.t;
+    ic: Lwt_io.input_channel;
+    oc: Lwt_io.output_channel;
+  }
+
+  let make old_state ic oc =
+    {old_state; ic; oc}
+
+  let render {old_state; ic; oc} oc_log =
+    let btn_text = Printf.sprintf "[+]" in
+    let btn_action () =
+      let next_seq = Int64.succ old_state.current_seq in
+      let args = DRq.StackTraceArguments.{threadId=Defaults._THE_THREAD_ID; startFrame=None; levels=None} in
+      let req = new DRq.StackTraceRequest.cls next_seq args in
+      let js = Js.construct DRq.StackTraceRequest.enc req |> Defaults.wrap_header in
+      ignore (
+        Lwt_io.write_line oc js >>= fun _ ->
+        Lwt_io.read_line ic >>= fun _hdr ->
+        Lwt_io.write_line oc_log _hdr >>= fun _ ->
+        Lwt_io.read_line ic >>= fun _break ->
+        Lwt_io.write_line oc_log "break" >>= fun _ ->
+        Lwt_io.read_line ic >>= fun _resp ->
+        Lwt_io.write_line oc_log _resp >>= fun _ ->
+        (* TODO extract seq number and update state if success=true *)
+        let current_seq = Int64.add next_seq 1L in
+        Lwd.set Model.state Model.State.{old_state with current_seq} |> Lwt.return
+      )
+    in
+    [
+      Ui.hcat [
+        W.printf ~attr:A.empty " Stack frames ";
+        W.button ~attr:A.(bg lightblue) btn_text btn_action;
+      ]
+    ]
+
+
+end
+
+
 module Src_frag = struct
 
   type t = {
@@ -66,10 +109,10 @@ module Btn_next = struct
 
   let render {old_state; max_lines; trace; ic; oc} oc_log =
     assert (0 = Array.length trace);
-    let ln = min max_lines old_state.line_number |> max 0 in
-    let gas = "TODO gas" in (* Model.Weevil_trace.get_safe trace ln |> Model.Weevil_record.get_gas in *)
-    let loc = "TODO loc" in (* Model.Weevil_trace.get_safe trace ln |> Model.Weevil_record.get_location in *)
-    let exprs = "TODO expr" in (* Model.Weevil_trace.get_safe trace ln |> Model.Weevil_record.get_expr_str in *)
+    (* let ln = min max_lines old_state.line_number |> max 0 in
+     * let gas = "TODO gas" in (\* Model.Weevil_trace.get_safe trace ln |> Model.Weevil_record.get_gas in *\)
+     * let loc = "TODO loc" in (\* Model.Weevil_trace.get_safe trace ln |> Model.Weevil_record.get_location in *\)
+     * let exprs = "TODO expr" in (\* Model.Weevil_trace.get_safe trace ln |> Model.Weevil_record.get_expr_str in *\) *)
 
     (* button actions need to unpause the stepper thread *)
     let btn_text_down = Printf.sprintf "[-]" in
@@ -105,7 +148,7 @@ module Btn_next = struct
       Ui.hcat [
         W.button ~attr:A.(bg lightred) btn_text_down btn_action_down;
         W.button ~attr:A.(bg lightgreen) btn_text_up btn_action_up;
-        W.printf ~attr:A.empty " %d - GAS %s at Location - %s: STACK [ %s ]\n" ln gas loc exprs;
+        W.printf ~attr:A.empty "                                      ";
       ]
     ]
 
@@ -136,7 +179,11 @@ let ui_main (ic:Lwt_io.input_channel) (oc:Lwt_io.output_channel) (oc_log:Lwt_io.
   let$ st = Lwd.get Model.state in
   let lines = split_out_code Defaults._THE_CONTRACT in
   let trace = [||] in
-  let instr = [W.printf "Mouse CLICK [-] or [+] to go back or forward resp.\nPress ALT-q to quit\n\n"] in
-  let btn = Btn_next.make st lines trace ic oc in
+  let instr = W.printf "Mouse CLICK [-] or [+] to go back or forward resp.\nPress ALT-q to quit\n\n" in
+  let step_btn = Btn_next.make st lines trace ic oc in
   let src_code_panel = Src_code.make st.line_number lines in
-  [instr; Btn_next.render btn oc_log; Src_code.render src_code_panel] |> List.concat |> Ui.vcat
+  let stackframe_btn = Btn_stackFrames.make st ic oc in
+  let code = [Btn_next.render step_btn oc_log; Src_code.render src_code_panel;]|> List.concat |> Ui.vcat in
+  let state = Btn_stackFrames.render stackframe_btn oc_log |> Ui.hcat in
+  let main = Ui.hcat [code; state] in
+  Ui.vcat [instr; main]
