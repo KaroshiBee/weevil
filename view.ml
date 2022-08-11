@@ -34,19 +34,33 @@ module Btn_stackFrames = struct
         Lwt_io.write_line oc_log _hdr >>= fun _ ->
         Lwt_io.read_line ic >>= fun _break ->
         Lwt_io.write_line oc_log "break" >>= fun _ ->
-        Lwt_io.read_line ic >>= fun _resp ->
-        Lwt_io.write_line oc_log _resp >>= fun _ ->
+        Lwt_io.read_line ic >>= fun resp_str ->
+        Lwt_io.write_line oc_log resp_str >>= fun _ ->
         (* TODO extract seq number and update state if success=true *)
-        let current_seq = Int64.add next_seq 1L in
-        Lwd.set Model.state Model.State.{old_state with current_seq} |> Lwt.return
+        Js.from_string resp_str |> Result.map (fun js ->
+            let resp = Js.destruct DRs.StackTraceResponse.enc js in
+            if resp#success then
+              let current_seq = resp#seq in
+              let stack_frames = resp#body.stackFrames in
+              Lwd.set Model.state Model.State.{old_state with current_seq; stack_frames}
+          ) |> Result.value ~default:() |> Lwt.return
       )
     in
-    [
+    let btn =
       Ui.hcat [
         W.printf ~attr:A.empty " Stack frames ";
         W.button ~attr:A.(bg lightblue) btn_text btn_action;
       ]
-    ]
+    in
+    let panel =
+      List.fold_left (fun acc (sf:Db.StackFrame.t) ->
+          let line = Printf.sprintf "%s: %d" sf.name (Int64.to_int sf.id) in
+          let ui_line = W.string line in
+          ui_line :: acc
+        ) [] old_state.stack_frames
+      |> List.rev |> Ui.vcat
+    in
+    [Ui.vcat [btn; panel]]
 
 
 end

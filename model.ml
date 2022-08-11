@@ -95,17 +95,19 @@ module State = struct
   type t = {
     line_number: int;
     current_seq: int64;
+    stack_frames: Dapper.Dap_base.StackFrame.t list;
   }
 
   let make line_number current_seq =
     {
       line_number;
       current_seq;
+      stack_frames=[];
     }
 
   let incr_line_number t max_lines current_seq =
     let line_number = min max_lines (t.line_number + 1) |> max 0 in
-    {line_number; current_seq}
+    {t with line_number; current_seq}
 
   let decr_line_number t max_lines =
     let line_number = min max_lines (t.line_number - 1) |> max 0 in
