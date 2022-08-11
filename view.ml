@@ -36,7 +36,6 @@ module Btn_stackFrames = struct
         Lwt_io.write_line oc_log "break" >>= fun _ ->
         Lwt_io.read_line ic >>= fun resp_str ->
         Lwt_io.write_line oc_log resp_str >>= fun _ ->
-        (* TODO extract seq number and update state if success=true *)
         Js.from_string resp_str |> Result.map (fun js ->
             let resp = Js.destruct DRs.StackTraceResponse.enc js in
             if resp#success then
@@ -48,7 +47,7 @@ module Btn_stackFrames = struct
     in
     let btn =
       Ui.hcat [
-        W.printf ~attr:A.empty " Stack frames ";
+        W.printf ~attr:A.empty "Stack frames ";
         W.button ~attr:A.(bg lightblue) btn_text btn_action;
       ]
     in
@@ -58,6 +57,61 @@ module Btn_stackFrames = struct
           let ui_line = W.string line in
           ui_line :: acc
         ) [] old_state.stack_frames
+      |> List.rev |> Ui.vcat
+    in
+    [Ui.vcat [btn; panel]]
+
+
+end
+
+
+module Btn_scopes = struct
+
+  type t = {
+    old_state: Model.State.t;
+    ic: Lwt_io.input_channel;
+    oc: Lwt_io.output_channel;
+  }
+
+  let make old_state ic oc =
+    {old_state; ic; oc}
+
+  let render {old_state; ic; oc} oc_log =
+    let btn_text = Printf.sprintf "[+]" in
+    let btn_action () =
+      let next_seq = Int64.succ old_state.current_seq in
+      let args = DRq.ScopesArguments.{frameId=Defaults._THE_FRAME_ID;} in
+      let req = new DRq.ScopesRequest.cls next_seq args in
+      let js = Js.construct DRq.ScopesRequest.enc req |> Defaults.wrap_header in
+      ignore (
+        Lwt_io.write_line oc js >>= fun _ ->
+        Lwt_io.read_line ic >>= fun _hdr ->
+        Lwt_io.write_line oc_log _hdr >>= fun _ ->
+        Lwt_io.read_line ic >>= fun _break ->
+        Lwt_io.write_line oc_log "break" >>= fun _ ->
+        Lwt_io.read_line ic >>= fun resp_str ->
+        Lwt_io.write_line oc_log resp_str >>= fun _ ->
+        Js.from_string resp_str |> Result.map (fun js ->
+            let resp = Js.destruct DRs.ScopesResponse.enc js in
+            if resp#success then
+              let current_seq = resp#seq in
+              let scopes = resp#body.scopes in
+              Lwd.set Model.state Model.State.{old_state with current_seq; scopes}
+          ) |> Result.value ~default:() |> Lwt.return
+      )
+    in
+    let btn =
+      Ui.hcat [
+        W.printf ~attr:A.empty "Scopes ";
+        W.button ~attr:A.(bg lightblue) btn_text btn_action;
+      ]
+    in
+    let panel =
+      List.fold_left (fun acc (sc:Db.Scope.t) ->
+          let line = Printf.sprintf "%s" sc.name in
+          let ui_line = W.string line in
+          ui_line :: acc
+        ) [] old_state.scopes
       |> List.rev |> Ui.vcat
     in
     [Ui.vcat [btn; panel]]
@@ -197,7 +251,8 @@ let ui_main (ic:Lwt_io.input_channel) (oc:Lwt_io.output_channel) (oc_log:Lwt_io.
   let step_btn = Btn_next.make st lines trace ic oc in
   let src_code_panel = Src_code.make st.line_number lines in
   let stackframe_btn = Btn_stackFrames.make st ic oc in
-  let code = [Btn_next.render step_btn oc_log; Src_code.render src_code_panel;]|> List.concat |> Ui.vcat in
-  let state = Btn_stackFrames.render stackframe_btn oc_log |> Ui.hcat in
+  let scopes_btn = Btn_scopes.make st ic oc in
+  let code = [Btn_next.render step_btn oc_log; Src_code.render src_code_panel;] |> List.concat |> Ui.vcat in
+  let state = [Btn_stackFrames.render stackframe_btn oc_log; [W.string " "]; Btn_scopes.render scopes_btn oc_log] |> List.concat |> Ui.vcat in
   let main = Ui.hcat [code; state] in
   Ui.vcat [instr; main]
