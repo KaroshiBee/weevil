@@ -134,7 +134,7 @@ module Btn_scope = struct
     in
     let btn =
       Ui.hcat [
-        W.printf ~attr:A.empty "  %s" title;
+        W.printf ~attr:A.empty "%s" title;
         W.button ~attr:A.(bg lightblue) btn_text btn_action;
       ]
     in
@@ -145,7 +145,7 @@ module Btn_scope = struct
       ) [] old_state.variables
     in
     let panel = ui_lines |> List.concat |> Ui.vcat in
-    [Ui.vcat [btn; panel]]
+    [Ui.vcat [btn; W.string ""; panel]]
 
 
 end
