@@ -113,7 +113,6 @@ module Btn_scope = struct
             Lwt_io.write_line oc_log "break" >>= fun _ ->
             Lwt_io.read_line ic >>= fun resp_str ->
             Lwt_io.write_line oc_log resp_str >>= fun _ ->
-            Lwt_io.write_line oc_log "HERE" >>= fun _ ->
             match Js.from_string resp_str |> Result.map (fun js ->
                 let resp = Js.destruct DRs.VariablesResponse.enc js in
                 if resp#success then
