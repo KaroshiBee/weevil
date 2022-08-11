@@ -11,6 +11,7 @@ let () =
   let ui =
     init () >>= fun ctx ->
     connect ~ctx client >>= fun (_flow, ic, oc) ->
-    Nottui_lwt.run (View.ui_main ic oc)
+    Lwt_io.(open_file ~mode:output "weevil_ui.log") >>= fun oc_log ->
+    Nottui_lwt.run (View.ui_main ic oc oc_log)
   in
   Lwt_main.run ui

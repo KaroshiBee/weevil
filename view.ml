@@ -64,7 +64,7 @@ module Btn_next = struct
     let max_lines = List.length lines in
     {old_state; max_lines; trace; ic; oc}
 
-  let render {old_state; max_lines; trace; ic; oc} =
+  let render {old_state; max_lines; trace; ic; oc} oc_log =
     assert (0 = Array.length trace);
     let ln = min max_lines old_state.line_number |> max 0 in
     let gas = "TODO gas" in (* Model.Weevil_trace.get_safe trace ln |> Model.Weevil_record.get_gas in *)
@@ -84,8 +84,18 @@ module Btn_next = struct
       let js = Js.construct DRq.NextRequest.enc req |> Defaults.wrap_header in
       ignore (
         Lwt_io.write_line oc js >>= fun _ ->
+        Lwt_io.read_line ic >>= fun _hdr ->
+        Lwt_io.write_line oc_log _hdr >>= fun _ ->
+        Lwt_io.read_line ic >>= fun _break ->
+        Lwt_io.write_line oc_log "break" >>= fun _ ->
         Lwt_io.read_line ic >>= fun _resp ->
+        Lwt_io.write_line oc_log _resp >>= fun _ ->
+        Lwt_io.read_line ic >>= fun _hdr ->
+        Lwt_io.write_line oc_log _hdr >>= fun _ ->
+        Lwt_io.read_line ic >>= fun _break ->
+        Lwt_io.write_line oc_log "break" >>= fun _ ->
         Lwt_io.read_line ic >>= fun _stopped_ev ->
+        Lwt_io.write_line oc_log _stopped_ev >>= fun _ ->
         (* TODO extract seq number and update state if success=true *)
         let current_seq = Int64.add next_seq 2L in
         Lwd.set Model.state (Model.State.incr_line_number old_state max_lines current_seq) |> Lwt.return
@@ -122,11 +132,11 @@ let split_out_code contract =
    pass contract code from command line and on to stepper
 
 *)
-let ui_main (ic:Lwt_io.input_channel) (oc:Lwt_io.output_channel) =
+let ui_main (ic:Lwt_io.input_channel) (oc:Lwt_io.output_channel) (oc_log:Lwt_io.output_channel) =
   let$ st = Lwd.get Model.state in
   let lines = split_out_code Defaults._THE_CONTRACT in
   let trace = [||] in
   let instr = [W.printf "Mouse CLICK [-] or [+] to go back or forward resp.\nPress ALT-q to quit\n\n"] in
   let btn = Btn_next.make st lines trace ic oc in
   let src_code_panel = Src_code.make st.line_number lines in
-  [instr; Btn_next.render btn; Src_code.render src_code_panel] |> List.concat |> Ui.vcat
+  [instr; Btn_next.render btn oc_log; Src_code.render src_code_panel] |> List.concat |> Ui.vcat

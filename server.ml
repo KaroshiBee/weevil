@@ -163,12 +163,14 @@ let rec handle_connection ic oc ic_process oc_process () =
                let command = req#command in
                let _ =
                  try
-                   Printf.fprintf oc_process "step\n"; flush oc_process; Logs_lwt.info (fun m -> m "stepping")
+                   Printf.fprintf oc_process "step\n"; flush oc_process;
+                   Logs_lwt.info (fun m -> m "Got Next request\n%s\n" msg)
                  with Sys_error _ -> (
                      success := false;
                      (* run out of contract to step through *)
                      try
-                       let _ = Unix.close_process (ic_process, oc_process) in (); Logs_lwt.warn (fun m -> m "Process finished: sys error")
+                       let _ = Unix.close_process (ic_process, oc_process) in ();
+                       Logs_lwt.warn (fun m -> m "Process finished: sys error")
                      with Unix.Unix_error _ ->
                        Logs_lwt.warn (fun m -> m "Process finished: unix error")
                    )
@@ -202,6 +204,7 @@ let rec handle_connection ic oc ic_process oc_process () =
                let body = DRs.StackTraceResponse.{stackFrames; totalFrames} in
                let resp = new DRs.StackTraceResponse.cls seq request_seq success command body in
                let resp = construct DRs.StackTraceResponse.enc resp |> Defaults.wrap_header in
+               Logs_lwt.info (fun m -> m "Got StackTrace request\n%s\n" msg) >>= fun _ ->
                Logs_lwt.info (fun m -> m "Stack trace response \n%s\n" resp) >>=
                (fun _ -> Lwt_io.write_line oc resp)
              )
@@ -221,6 +224,7 @@ let rec handle_connection ic oc ic_process oc_process () =
                let body = DRs.ScopesResponse.{scopes} in
                let resp = new DRs.ScopesResponse.cls seq request_seq success command body in
                let resp = construct DRs.ScopesResponse.enc resp |> Defaults.wrap_header in
+               Logs_lwt.info (fun m -> m "Got Scopes request\n%s\n" msg) >>= fun _ ->
                Logs_lwt.info (fun m -> m "Scopes response \n%s\n" resp) >>=
                (fun _ -> Lwt_io.write_line oc resp)
              )
@@ -250,6 +254,7 @@ let rec handle_connection ic oc ic_process oc_process () =
                let body = DRs.VariablesResponse.{variables} in
                let resp = new DRs.VariablesResponse.cls seq request_seq success command body in
                let resp = construct DRs.VariablesResponse.enc resp |> Defaults.wrap_header in
+               Logs_lwt.info (fun m -> m "Got Variables request\n%s\n" msg) >>= fun _ ->
                Logs_lwt.info (fun m -> m "Variables response \n%s\n" resp) >>=
                (fun _ -> Lwt_io.write_line oc resp)
              )
