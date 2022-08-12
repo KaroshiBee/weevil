@@ -110,6 +110,13 @@ module Dependencies = struct
 end
 
 
+(*
+the _enum fields arent picked up by Json_schema module
+and so using Json_schema.to_json wont work.
+Have to use Ezjsonm.from_channel to read the raw json and then query that.
+It is for this reason that also have to manually add some stuff to a path as
+recursion progresses (e.g. "properties" or "allOf" > index 1)
+*)
 module Enums = struct
 
   (* TODO thread these through as module state *)
@@ -190,11 +197,29 @@ module Enums = struct
       match Q.query enum_path schema_js with
       | `A names ->
         let names = List.map Ezjsonm.decode_string_exn names in
+        (* TODO turn into module defn *)
+
 
         Printf.printf "------------------%sGOT _ENUM [%s] UNDER '%s'\n" (space !_spaces) (String.concat ", " names) (Q.json_pointer_of_path enum_path)
       | _ -> ()
     with _ -> ()
 
+  let make_module_name ~path =
+    let name =
+      path
+      |> List.filter_map (fun el ->
+          match el with
+          | `Star | `Index _ | `Next -> None
+          | `Field f -> (
+              match f with
+              | "definitions" | "allOf" | "items" | "_enum" | "properties" -> None
+              | _ -> Some f
+            )
+          | _ -> None
+        )
+      |> String.concat "_"
+    in
+    String.(lowercase_ascii name |> capitalize_ascii)
 
 
   let names = function
