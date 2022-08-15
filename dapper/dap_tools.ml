@@ -119,8 +119,26 @@ recursion progresses (e.g. "properties" or "allOf" > index 1)
 *)
 module Enums = struct
 
+  let make_module_name ~path =
+    let name =
+      path
+      |> List.filter_map (fun el ->
+          match el with
+          | `Star | `Index _ | `Next -> None
+          | `Field f -> (
+              match f with
+              | "definitions" | "allOf" | "items" | "_enum" | "properties" -> None
+              | _ -> Some f
+            )
+          | _ -> None
+        )
+      |> String.concat "_"
+    in
+    String.capitalize_ascii name
+    (* String.(lowercase_ascii name |> capitalize_ascii) *)
+
   (* TODO thread these through as module state *)
-  let tbl : Json_query.path StrHashtbl.t = StrHashtbl.create 100
+  let tbl : (string * string list) list StrHashtbl.t = StrHashtbl.create 100
   let _spaces = ref 0
 
   let space n =
@@ -162,14 +180,14 @@ module Enums = struct
         assert (not unique_items);
         assert (Option.is_none additional_items);
         Printf.printf "%sprocess mono-morphic array under '%s'\n" (space !_spaces) (Q.json_pointer_of_path ~wildcards:true path);
-        let new_path = `Field "items" :: (List.rev path) |> List.rev in
+        let new_path = path @ [`Field "items"] in
         process_element ~schema_js ~path:new_path element
       )
     | Combine (c, elements) -> (
         match c with
         | All_of -> (
             Printf.printf "%sprocess combination with %d elements under '%s'\n" (space !_spaces) (List.length elements) (Q.json_pointer_of_path ~wildcards:true path);
-            let new_path = `Index 1 :: `Field "allOf" :: List.rev path |> List.rev in
+            let new_path = path @ [`Field "allOf"; `Index 1] in
             elements |> List.iter (fun el -> process_element ~schema_js ~path:new_path el)
           )
         | Any_of | One_of | Not -> () (* failwith "TODO other combinators" *)
@@ -187,39 +205,29 @@ module Enums = struct
 
   and process_property ~schema_js ~path pname element _required _extra =
     Printf.printf "%sprocess property '%s' under '%s'\n" (space !_spaces) pname (Q.json_pointer_of_path ~wildcards:true path);
-    let new_path = `Field pname :: `Field "properties" :: (List.rev path) |> List.rev in
+    let new_path = path @ [`Field "properties"; `Field pname ] in
     process_element ~schema_js ~path:new_path element
 
   and process_string ~schema_js ~path =
     Printf.printf "%sgot string under '%s'\n" (space !_spaces) (Q.json_pointer_of_path ~wildcards:true path);
-    try
-      let enum_path = `Field "_enum" :: (List.rev path) |> List.rev in
-      match Q.query enum_path schema_js with
-      | `A names ->
-        let names = List.map Ezjsonm.decode_string_exn names in
-        (* TODO turn into module defn *)
-
-
-        Printf.printf "------------------%sGOT _ENUM [%s] UNDER '%s'\n" (space !_spaces) (String.concat ", " names) (Q.json_pointer_of_path enum_path)
-      | _ -> ()
-    with _ -> ()
-
-  let make_module_name ~path =
-    let name =
-      path
-      |> List.filter_map (fun el ->
-          match el with
-          | `Star | `Index _ | `Next -> None
-          | `Field f -> (
-              match f with
-              | "definitions" | "allOf" | "items" | "_enum" | "properties" -> None
-              | _ -> Some f
-            )
-          | _ -> None
-        )
-      |> String.concat "_"
+    let aux ~path ~field =
+      try
+        let enum_path = path @ [`Field field] in
+        match Q.query enum_path schema_js with
+        | `A names ->
+          let names =
+            List.map Ezjsonm.decode_string_exn names
+          in
+          (* TODO turn into module defn *)
+          let module_name = make_module_name ~path:enum_path in
+          let x = (module_name, names) in
+          let xs = StrHashtbl.find_opt tbl field |> Option.value ~default:[] in
+          StrHashtbl.replace tbl field (x :: xs);
+        | _ -> ()
+      with _ -> ()
     in
-    String.(lowercase_ascii name |> capitalize_ascii)
+    aux ~path ~field:"_enum";
+    aux ~path ~field:"enum"
 
 
   let names = function
@@ -240,5 +248,54 @@ module Enums = struct
     |> List.map (fun (name, deps) -> Printf.sprintf "%s:\n  [ %s ]" name @@ String.concat "; " deps)
     |> List.sort String.compare
     |> List.iter (fun ln -> Printf.printf "%s\n\n" ln)
+
+end
+
+
+module GenEncodings = struct
+  let clean_field_name field =
+    Stringext.replace_all field ~pattern:" " ~with_:"_" |> String.capitalize_ascii
+
+  let struct_tpl ~name ~body =
+    Printf.sprintf "\nmodule %s = struct\n%s\nend" name body
+
+  let typet_tpl ~fields =
+    let s = fields
+            |> List.map clean_field_name
+            |> String.concat " | "
+    in
+    Printf.sprintf "type t = | %s" s
+
+  let enc_s_t_tpl ~fields ~name =
+    let s = fields
+      |> List.map (fun el -> Printf.sprintf "\"%s\" -> %s" el (clean_field_name el))
+      |> String.concat " | "
+    in
+    Printf.sprintf "(function | %s | _ -> failwith \"Unknown %s\")" s name
+
+  let enc_t_s_tpl ~fields =
+    let s = fields
+            |> List.map (fun el -> Printf.sprintf "%s -> \"%s\"" (clean_field_name el) el)
+            |> String.concat " | "
+    in
+    Printf.sprintf "(function | %s)" s
+
+  let enc_tpl ~fields ~name = [
+    "let enc = "; "let open Data_encoding in";
+    "conv";
+    enc_t_s_tpl ~fields;
+    enc_s_t_tpl ~fields ~name;
+    "string";
+  ] |> String.concat "\n"
+
+
+  let enum_tpl name fields =
+    let body = [
+      typet_tpl ~fields;
+      enc_tpl ~fields ~name;
+    ] |> String.concat "\n"
+    in struct_tpl ~name ~body
+
+
 
 end
