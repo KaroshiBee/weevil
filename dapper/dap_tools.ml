@@ -12,7 +12,7 @@ let make_module_name ~path =
         | `Star | `Index _ | `Next -> None
         | `Field f -> (
             match f with
-            | "definitions" | "allOf" | "items" | "_enum" | "properties" -> None
+            | "definitions" | "allOf" | "oneOf" | "items" | "_enum" | "properties" -> None
             | _ -> Some f
           )
         | _ -> None
@@ -95,14 +95,22 @@ module WalkSchema = struct
     | Combine (c, elements) -> (
         match c with
         | All_of -> (
-            Logs.debug (fun m -> m "process combination with %d elements under '%s'\n"  (List.length elements) (Q.json_pointer_of_path ~wildcards:true path));
+            Logs.debug (fun m -> m "process combination allOf with %d elements under '%s'\n"  (List.length elements) (Q.json_pointer_of_path ~wildcards:true path));
             elements
               |> List.iteri (fun i el ->
                 let new_path = path @ [`Field "allOf"; `Index i] in
                 process_element t ~tbl ~schema_js ~path:new_path el
               )
           )
-        | Any_of | One_of | Not -> () (* failwith "TODO other combinators" *)
+        | One_of -> (
+            Logs.debug (fun m -> m "process combination oneOf with %d elements under '%s'\n"  (List.length elements) (Q.json_pointer_of_path ~wildcards:true path));
+            elements
+              |> List.iteri (fun i el ->
+                let new_path = path @ [`Field "oneOf"; `Index i] in
+                process_element t ~tbl ~schema_js ~path:new_path el
+              )
+          )
+        | Any_of | Not -> () (* failwith "TODO other combinators" *)
       )
     | Def_ref ref_path -> t.def_ref tbl schema_js path (Def_ref ref_path)
     | Id_ref _ -> () (* failwith "TODO Id_ref" *)
@@ -238,15 +246,16 @@ module Dependencies = struct
 
   let def_ref tbl _schema_js path = function
     | Def_ref ref_path -> (
-      match path with
-      | `Field "definitions" :: `Field nm :: _ ->
-        let name = make_module_name ~path:[`Field nm] in
+        (* need to strip off last field ie go up a level *)
+        let name = match List.rev path with
+        | _ :: tl -> make_module_name ~path:(List.rev tl)
+        | _ -> make_module_name ~path
+        in
         let path_str = Q.json_pointer_of_path ref_path in
         (* add path_str to the entries under name *)
         let ps = StrHashtbl.find_opt tbl name |> Option.value ~default:[] in
         StrHashtbl.replace tbl name (path_str :: ps)
-      | _ -> ()
-    )
+      )
     | _ -> Logs.warn (fun m -> m "Wasn't expecting non-def-ref element kind")
 
   let walk schema_js =
@@ -299,7 +308,80 @@ module Objects = struct
 
 end
 
+let unweird_name nm =
+  match (String.lowercase_ascii nm) with
+  | "type" | "module" | "lazy" -> Printf.sprintf "%s_" nm
+  | "null" -> "empty_"
+  | _ -> nm
+
+let get_leaf_type js js_ptr =
+  Json_query.(
+    let pth = (path_of_json_pointer js_ptr) @ [`Field "type"] in
+    try
+      match query pth js with
+      | `String "integer" | `String "number" -> "int64"
+      | `String "boolean" -> "bool"
+      | `String "array" -> "string" (* TODO *)
+      | `String "object" -> "string" (* TODO *)
+      | `String s -> s
+      | _ -> failwith (Printf.sprintf "unknown leaf type @ %s/type" js_ptr)
+    with _ ->
+      "string" (* TODO some things like ModuleEvent_body arent in deps? *)
+  )
 
 let () =
   Logs.set_reporter (Logs.format_reporter ());
-  Logs.set_level (Some Logs.Debug)
+  Logs.set_level (Some Logs.Debug);
+  let js = Ezjsonm.from_channel @@ open_in "../schema/debugAdapterProtocol-1.56.X.json" in
+  let _enums = Enums.walk js in
+  let deps = Dependencies.walk js in
+  let objs = Objects.walk js in
+  let cc fields s =
+    (fields |> List.map (fun (field_name, _, _) -> unweird_name field_name) |> String.concat s)
+  in
+
+  let io = open_out "test.ml" in
+  objs
+  |> StrHashtbl.iter (fun module_name fields ->
+      if StrHashtbl.mem deps module_name || List.length fields > 10 then () else (
+        if String.equal "Module" module_name then () else (
+          let n = List.length fields in
+          Printf.fprintf io "\nmodule %s = struct\n" (unweird_name module_name);
+          Printf.fprintf io "\ntype t = {\n";
+          fields
+          |> List.iter (fun (field_name, js_ptr, required) ->
+              Printf.fprintf io "\n%s: %s%s;" (unweird_name field_name) (get_leaf_type js js_ptr) (if required then "" else " option")
+            );
+          Printf.fprintf io "\n}\n";
+
+          Printf.fprintf io "\nlet enc = \nlet open Data_encoding in \nconv \n";
+          Printf.fprintf io "(fun {%s} -> (%s)\n)" (cc fields "; ") (cc fields ", ");
+          Printf.fprintf io "(fun (%s) -> {%s}\n)" (cc fields ", ") (cc fields "; ");
+          Printf.fprintf io "(obj%n %s)" n (
+            fields
+            |> List.map (fun (field_name, js_ptr, required) ->
+                Printf.sprintf "(%s \"%s\"%s)" (if required then "req" else "opt") field_name (get_leaf_type js js_ptr)
+              )
+            |> String.concat "\n"
+          );
+
+          Printf.fprintf io "\nlet make %s () = \n{%s}\n" (
+            fields
+            |> List.map (fun (field_name, _js_ptr, required) ->
+                Printf.sprintf "%s%s" (if required then "~" else "?") (unweird_name field_name)
+              )
+            |> String.concat " "
+          ) (
+            fields
+            |> List.map (fun (field_name, _js_ptr, _required) ->
+                unweird_name field_name
+              )
+            |> String.concat "; "
+          );
+
+
+          Printf.fprintf io "\nend\n\n";
+        )
+      )
+    );
+  close_out io;
