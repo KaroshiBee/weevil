@@ -15,7 +15,7 @@ module Dependencies = struct
 
   (* extract all $ref *)
   let rec process_name ~schema name =
-    Printf.printf "%sprocess name start: '%s'\n" (space !_spaces) name;
+    Logs.debug (fun m -> m "%sprocess name start: '%s'\n" (space !_spaces) name);
     _spaces := !_spaces + 4;
 
     (* first check is valid name *)
@@ -25,10 +25,10 @@ module Dependencies = struct
     process_element ~schema ~name element;
 
     _spaces := !_spaces - 4;
-    Printf.printf "%sprocess name end: '%s'\n" (space !_spaces) name;
+    Logs.debug (fun m -> m "%sprocess name end: '%s'\n" (space !_spaces) name);
 
   and process_element ~schema ~name el =
-    Printf.printf "%sprocess element under '%s'\n" (space !_spaces) name;
+    Logs.debug (fun m -> m "%sprocess element under '%s'\n" (space !_spaces) name);
     process_kind ~schema ~name el.kind
 
   and process_kind ~schema ~name = function
@@ -39,7 +39,7 @@ module Dependencies = struct
         assert (0 = min_properties);
         assert (Option.is_none max_properties);
         assert (Option.is_some additional_properties);
-        Printf.printf "%sprocess object with %d properties under '%s'\n" (space !_spaces) (List.length properties) name;
+        Logs.debug (fun m -> m "%sprocess object with %d properties under '%s'\n" (space !_spaces) (List.length properties) name);
         properties |> List.iter (fun (pname, ty, required, extra) -> process_property ~schema ~name pname ty required extra)
       )
     | Array (_, _) -> () (* failwith "TODO array" *)
@@ -48,13 +48,13 @@ module Dependencies = struct
         assert (Option.is_none max_items);
         assert (not unique_items);
         assert (Option.is_none additional_items);
-        Printf.printf "%sprocess mono-morphic array under '%s'\n" (space !_spaces) name;
+        Logs.debug (fun m -> m "%sprocess mono-morphic array under '%s'\n" (space !_spaces) name);
         process_element ~schema ~name element
       )
     | Combine (c, elements) -> (
         match c with
         | All_of -> (
-            Printf.printf "%sprocess combination with %d elements under '%s'\n" (space !_spaces) (List.length elements) name;
+            Logs.debug (fun m -> m "%sprocess combination with %d elements under '%s'\n" (space !_spaces) (List.length elements) name);
             elements |> List.iter (fun el -> process_element ~schema ~name el)
           )
         | Any_of | One_of | Not -> () (* failwith "TODO other combinators" *)
@@ -67,11 +67,11 @@ module Dependencies = struct
         StrHashtbl.replace tbl name (path_str :: ps);
       (* if path_str is also a new ref then recurse into it *)
       if not @@ StrHashtbl.mem tbl path_str then (
-        Printf.printf "%sfound new $ref '%s' under '%s', recursing\n" (space !_spaces) path_str name;
+        Logs.debug (fun m -> m "%sfound new $ref '%s' under '%s', recursing\n" (space !_spaces) path_str name);
         process_name ~schema path_str
       )
       else (
-        Printf.printf "%sfound old $ref '%s' under '%s', not recursing\n" (space !_spaces) path_str name;
+        Logs.debug (fun m -> m "%sfound old $ref '%s' under '%s', not recursing\n" (space !_spaces) path_str name);
       )
     | Id_ref _ -> () (* failwith "TODO Id_ref" *)
     | Ext_ref _ -> () (* failwith "TODO Ext_ref" *)
@@ -84,7 +84,7 @@ module Dependencies = struct
     | Dummy -> () (* failwith "TODO Dummy" *)
 
   and process_property ~schema ~name pname element _required _extra =
-    Printf.printf "%sprocess property '%s' under '%s'\n" (space !_spaces) pname name;
+    Logs.debug (fun m -> m "%sprocess property '%s' under '%s'\n" (space !_spaces) pname name);
     process_element ~schema ~name element
 
 
@@ -96,7 +96,7 @@ module Dependencies = struct
   let process schema =
     StrHashtbl.reset tbl;
     let ns = Q.query [`Field "definitions"] (to_json schema) |> names in
-    Printf.printf "\n\nprocessing '%d' names\n" @@ List.length ns;
+    Logs.debug (fun m -> m "\n\nprocessing '%d' names\n" @@ List.length ns);
     ns |> List.iter (fun nm -> let name = Printf.sprintf "/definitions/%s" nm in process_name ~schema name);
     tbl
 
@@ -105,7 +105,7 @@ module Dependencies = struct
     |> List.of_seq
     |> List.map (fun (name, deps) -> Printf.sprintf "%s:\n  [ %s ]" name @@ String.concat "; " deps)
     |> List.sort String.compare
-    |> List.iter (fun ln -> Printf.printf "%s\n\n" ln)
+    |> List.iter (fun ln -> Logs.debug (fun m -> m "%s\n\n" ln))
 
 end
 
@@ -138,7 +138,7 @@ module Enums = struct
     (* String.(lowercase_ascii name |> capitalize_ascii) *)
 
   (* TODO thread these through as module state *)
-  let tbl : (string * string list) list StrHashtbl.t = StrHashtbl.create 100
+  let tbl : string list StrHashtbl.t = StrHashtbl.create 100
   let _spaces = ref 0
 
   let space n =
@@ -146,7 +146,7 @@ module Enums = struct
 
   let rec process_dfn ~schema_js ~path =
     let dfn = Q.json_pointer_of_path ~wildcards:true path in
-    Printf.printf "%sprocess dfn start: '%s'\n" (space !_spaces) dfn;
+    Logs.debug (fun m -> m "%sprocess dfn start: '%s'\n" (space !_spaces) dfn);
     _spaces := !_spaces + 4;
 
     (* first check is valid name *)
@@ -156,10 +156,10 @@ module Enums = struct
     process_element ~schema_js ~path element;
 
     _spaces := !_spaces - 4;
-    Printf.printf "%sprocess dfn end: '%s'\n" (space !_spaces) dfn;
+    Logs.debug (fun m -> m "%sprocess dfn end: '%s'\n" (space !_spaces) dfn);
 
   and process_element ~schema_js ~path el =
-    Printf.printf "%sprocess element under '%s'\n" (space !_spaces) (Q.json_pointer_of_path ~wildcards:true path);
+    Logs.debug (fun m -> m "%sprocess element under '%s'\n" (space !_spaces) (Q.json_pointer_of_path ~wildcards:true path));
     process_kind ~schema_js ~path el.kind
 
   and process_kind ~schema_js ~path = function
@@ -170,7 +170,7 @@ module Enums = struct
         assert (0 = min_properties);
         assert (Option.is_none max_properties);
         assert (Option.is_some additional_properties);
-        Printf.printf "%sprocess object with %d properties under '%s'\n" (space !_spaces) (List.length properties) (Q.json_pointer_of_path ~wildcards:true path);
+        Logs.debug (fun m -> m "%sprocess object with %d properties under '%s'\n" (space !_spaces) (List.length properties) (Q.json_pointer_of_path ~wildcards:true path));
         properties |> List.iter (fun (pname, ty, required, extra) -> process_property ~schema_js ~path pname ty required extra)
       )
     | Array (_, _) -> () (* failwith "TODO array" *)
@@ -179,14 +179,14 @@ module Enums = struct
         assert (Option.is_none max_items);
         assert (not unique_items);
         assert (Option.is_none additional_items);
-        Printf.printf "%sprocess mono-morphic array under '%s'\n" (space !_spaces) (Q.json_pointer_of_path ~wildcards:true path);
+        Logs.debug (fun m -> m "%sprocess mono-morphic array under '%s'\n" (space !_spaces) (Q.json_pointer_of_path ~wildcards:true path));
         let new_path = path @ [`Field "items"] in
         process_element ~schema_js ~path:new_path element
       )
     | Combine (c, elements) -> (
         match c with
         | All_of -> (
-            Printf.printf "%sprocess combination with %d elements under '%s'\n" (space !_spaces) (List.length elements) (Q.json_pointer_of_path ~wildcards:true path);
+            Logs.debug (fun m -> m "%sprocess combination with %d elements under '%s'\n" (space !_spaces) (List.length elements) (Q.json_pointer_of_path ~wildcards:true path));
             let new_path = path @ [`Field "allOf"; `Index 1] in
             elements |> List.iter (fun el -> process_element ~schema_js ~path:new_path el)
           )
@@ -204,12 +204,12 @@ module Enums = struct
     | Dummy -> () (* failwith "TODO Dummy" *)
 
   and process_property ~schema_js ~path pname element _required _extra =
-    Printf.printf "%sprocess property '%s' under '%s'\n" (space !_spaces) pname (Q.json_pointer_of_path ~wildcards:true path);
+    Logs.debug (fun m -> m "%sprocess property '%s' under '%s'\n" (space !_spaces) pname (Q.json_pointer_of_path ~wildcards:true path));
     let new_path = path @ [`Field "properties"; `Field pname ] in
     process_element ~schema_js ~path:new_path element
 
   and process_string ~schema_js ~path =
-    Printf.printf "%sgot string under '%s'\n" (space !_spaces) (Q.json_pointer_of_path ~wildcards:true path);
+    Logs.debug (fun m -> m "%sgot string under '%s'\n" (space !_spaces) (Q.json_pointer_of_path ~wildcards:true path));
     let aux ~path ~field =
       try
         let enum_path = path @ [`Field field] in
@@ -218,11 +218,18 @@ module Enums = struct
           let names =
             List.map Ezjsonm.decode_string_exn names
           in
-          (* TODO turn into module defn *)
-          let module_name = make_module_name ~path:enum_path in
-          let x = (module_name, names) in
-          let xs = StrHashtbl.find_opt tbl field |> Option.value ~default:[] in
-          StrHashtbl.replace tbl field (x :: xs);
+          let module_name = match List.rev path with
+          | `Field "command" :: _ -> "Command_enum" (* Request command types *)
+          | `Field "event" :: _ -> "Event_enum" (* Event types *)
+          (* | `Field "message" :: _ ->
+           *   if field = "_enum" && List.length names = 1 && List.hd names = "cancelled" then
+           *     "Message_enum" (\* Response message types - only one currently *\)
+           *   else
+           *     make_module_name ~path:enum_path *)
+          | _ -> make_module_name ~path:enum_path
+          in
+          let xs = StrHashtbl.find_opt tbl module_name |> Option.value ~default:[] in
+          StrHashtbl.replace tbl module_name (names @ xs);
         | _ -> ()
       with _ -> ()
     in
@@ -238,7 +245,7 @@ module Enums = struct
   let process schema_js =
     StrHashtbl.reset tbl;
     let ns = Q.query [`Field "definitions"] schema_js |> names in
-    Printf.printf "\n\nprocessing '%d' names\n" @@ List.length ns;
+    Logs.debug (fun m -> m "\n\nprocessing '%d' names\n" @@ List.length ns);
     ns |> List.iter (fun nm -> let path = [`Field "definitions"; `Field nm] in process_dfn ~schema_js ~path);
     tbl
 
@@ -247,7 +254,7 @@ module Enums = struct
     |> List.of_seq
     |> List.map (fun (name, deps) -> Printf.sprintf "%s:\n  [ %s ]" name @@ String.concat "; " deps)
     |> List.sort String.compare
-    |> List.iter (fun ln -> Printf.printf "%s\n\n" ln)
+    |> List.iter (fun ln -> Logs.debug (fun m -> m "%s\n\n" ln))
 
 end
 
@@ -257,7 +264,7 @@ module GenEncodings = struct
     Stringext.replace_all field ~pattern:" " ~with_:"_" |> String.capitalize_ascii
 
   let struct_tpl ~name ~body =
-    Printf.sprintf "\nmodule %s = struct\n%s\nend" name body
+    Printf.sprintf "\n(* WARN autogenerated - do not modify by hand *)\n\nmodule %s = struct\n%s\nend" name body
 
   let typet_tpl ~fields =
     let s = fields
@@ -290,12 +297,21 @@ module GenEncodings = struct
 
 
   let enum_tpl name fields =
-    let body = [
-      typet_tpl ~fields;
-      enc_tpl ~fields ~name;
-    ] |> String.concat "\n"
-    in struct_tpl ~name ~body
+    if List.length fields = 1 then (
+      Logs.debug (fun m -> m "Ignoring %s, only one field\n" name); ""
+    )
+    else
+      let body = [
+        typet_tpl ~fields;
+        enc_tpl ~fields ~name;
+      ] |> String.concat "\n"
+      in struct_tpl ~name ~body
 
 
 
 end
+
+
+let () =
+  Logs.set_reporter (Logs.format_reporter ());
+  Logs.set_level (Some Logs.Info)
