@@ -21,7 +21,6 @@ module Event = struct
     | ProgressEnd
     | Invalidated
     | Memory
-    | RunInTerminal
 
   let enc_t =
     let open Data_encoding in
@@ -44,7 +43,6 @@ module Event = struct
         | ProgressEnd -> "progressEnd"
         | Invalidated -> "invalidated"
         | Memory -> "memory"
-        | RunInTerminal -> "runInTerminal"
       )
       (function
         | "initialized" -> Initialized
@@ -64,7 +62,6 @@ module Event = struct
         | "progressEnd" -> ProgressEnd
         | "invalidated" -> Invalidated
         | "memory" -> Memory
-        | "runInTerminal" -> RunInTerminal
         | _ -> failwith "Unknown event"
       )
       string
