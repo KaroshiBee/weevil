@@ -32,7 +32,7 @@ type event =
 let parse_next_req js =
   try
     let req = destruct DRq.NextRequest.enc js in
-    assert(req#command = DRq.Request.Next);
+    assert(req#command = Db.Command_enum.Next);
     Some (NextReq req)
   with _ ->
     let _ = Logs_lwt.warn (fun m -> m "Not next request") in
@@ -41,7 +41,7 @@ let parse_next_req js =
 let parse_stacktrace_req js =
   try
     let req = destruct DRq.StackTraceRequest.enc js in
-    assert(req#command = DRq.Request.StackTrace);
+    assert(req#command = Db.Command_enum.StackTrace);
     Some (StackTrace req)
   with _ ->
     let _ = Logs_lwt.warn (fun m -> m "Not stack trace request") in
@@ -50,7 +50,7 @@ let parse_stacktrace_req js =
 let parse_scopes_req js =
   try
     let req = destruct DRq.ScopesRequest.enc js in
-    assert(req#command = DRq.Request.Scopes);
+    assert(req#command = Db.Command_enum.Scopes);
     Some (Scopes req)
   with _ ->
     let _ = Logs_lwt.warn (fun m -> m "Not scopes request") in
@@ -59,7 +59,7 @@ let parse_scopes_req js =
 let parse_variables_req js =
   try
     let req = destruct DRq.VariablesRequest.enc js in
-    assert(req#command = DRq.Request.Variables);
+    assert(req#command = Db.Command_enum.Variables);
     Some (Variables req)
   with _ ->
     let _ = Logs_lwt.warn (fun m -> m "Not variables request") in

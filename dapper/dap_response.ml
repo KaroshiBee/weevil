@@ -17,7 +17,7 @@ module Response = struct
     ProtocolMessage.cls_t;
     request_seq:int64;
     success:bool;
-    command:Dap_request.Request.t;
+    command:Command_enum.t;
     message:t option;
     body:'json
   >
@@ -51,10 +51,10 @@ module Response = struct
 
       (obj7
          (req "seq" int64)
-         (req "type" ProtocolMessage.enc_t)
+         (req "type" ProtocolMessage.enc)
          (req "request_seq" int64)
          (req "success" bool)
-         (req "command" Dap_request.Request.enc_t)
+         (req "command" Command_enum.enc)
          (opt "message" enc_t)
          (req "body" js)
       )
@@ -73,7 +73,7 @@ module ErrorResponse = struct
       (seq:int64)
       (request_seq:int64)
       (success:bool)
-      (command:Dap_request.Request.t)
+      (command:Command_enum.t)
       (body:body) = object
     inherit [body] Response.cls seq request_seq success command None body
   end
@@ -101,7 +101,7 @@ module MakeEmptyBodyResponse (B:EMPTY_BODY) = struct
       (seq:int64)
       (request_seq:int64)
       (success:bool)
-      (command:Dap_request.Request.t) = object
+      (command:Command_enum.t) = object
     inherit [body] Response.cls seq request_seq success command None B.body
   end
 
@@ -128,7 +128,7 @@ module StackTraceResponse = struct
       (seq:int64)
       (request_seq:int64)
       (success:bool)
-      (command:Dap_request.Request.t)
+      (command:Command_enum.t)
       (body:body) = object
     inherit [body] Response.cls seq request_seq success command None body
   end
@@ -159,7 +159,7 @@ module ScopesResponse = struct
       (seq:int64)
       (request_seq:int64)
       (success:bool)
-      (command:Dap_request.Request.t)
+      (command:Command_enum.t)
       (body:body) = object
     inherit [body] Response.cls seq request_seq success command None body
   end
@@ -189,7 +189,7 @@ module VariablesResponse = struct
       (seq:int64)
       (request_seq:int64)
       (success:bool)
-      (command:Dap_request.Request.t)
+      (command:Command_enum.t)
       (body:body) = object
     inherit [body] Response.cls seq request_seq success command None body
   end

@@ -1,15 +1,10 @@
+include Dap_enum
+
 module ProtocolMessage = struct
 
-  type t =
-    | Request
-    | Response
-    | Event
+  type t = ProtocolMessage_type.t
 
-  let enc_t : t Data_encoding.t =
-    Data_encoding.conv
-      (function | Request -> "request" | Response -> "response" | Event -> "event" )
-      (function | "request" -> Request | "response" -> Response | "event" -> Event | _ -> failwith "Unknown message type")
-      Data_encoding.string
+  let enc : t Data_encoding.t = ProtocolMessage_type.enc
 
   type cls_t = < seq:int64; type_:t >
 
@@ -102,27 +97,10 @@ module Message = struct
 end
 
 
-module ChecksumAlgorithm = struct
-
-  type t =
-    | MD5
-    | SHA1
-    | SHA256
-    | Timestamp
-
-  let enc =
-    let open Data_encoding in
-    conv
-      (function | MD5 -> "MD5" | SHA1 -> "SHA1" | SHA256 -> "SHA256" | Timestamp -> "timestamp")
-      (function | "MD5" -> MD5 | "SHA1" -> SHA1 | "SHA256" -> SHA256 | "timestamp" -> Timestamp | _ -> failwith "Unknown Checksum")
-      string
-
-end
-
 module Checksum = struct
 
   type t = {
-    algorithm: ChecksumAlgorithm.t;
+    algorithm: ChecksumAlgorithm_enum.t;
     checksum: string;
   }
 
@@ -132,7 +110,7 @@ module Checksum = struct
       (fun {algorithm; checksum} -> (algorithm, checksum))
       (fun (algorithm, checksum) -> {algorithm; checksum})
       (obj2
-         (req "algorithm" ChecksumAlgorithm.enc)
+         (req "algorithm" ChecksumAlgorithm_enum.enc)
          (req "checksum" string))
 
 end
@@ -140,23 +118,11 @@ end
 
 module Source = struct
 
-  type hint =
-    | Normal
-    | Emphasize
-    | Deemphasize
-
-  let hint_enc =
-    let open Data_encoding in
-    conv
-      (function | Normal -> "normal" | Emphasize -> "emphasize" | Deemphasize -> "deemphasize")
-      (function | "normal" -> Normal | "emphasize" -> Emphasize | "deemphasize" -> Deemphasize | _ -> failwith "Unknown hint")
-      string
-
   type 'json t = {
     name: string option;
     path: string option;
     sourceReference: int64 option;
-    presentationHint: hint option;
+    presentationHint: Source_presentationHint_enum.t option;
     origin: string option;
     sources: 'json t list option;
     adapterData: 'json option;
@@ -209,38 +175,13 @@ module Source = struct
              (opt "name" string)
              (opt "path" string)
              (opt "sourceReference" int64)
-             (opt "presentationHint" hint_enc)
+             (opt "presentationHint" Source_presentationHint_enum.enc)
              (opt "origin" string)
              (opt "sources" (list e))
              (opt "adapterData" json_enc)
              (opt "checksums" @@ list Checksum.enc)
           )
       )
-end
-
-
-module Reason = struct
-
-  type t =
-    | New
-    | Changed
-    | Removed
-
-  let enc =
-    let open Data_encoding in
-    conv
-      (function
-        | New -> "new"
-        | Changed -> "changed"
-        | Removed -> "removed"
-      )
-      (function
-        | "new" -> New
-        | "changed" -> Changed
-        | "removed" -> Removed
-        | _ -> failwith "Unknown reason"
-      )
-      string
 end
 
 
@@ -482,35 +423,11 @@ end
 
 module ColumnDescriptor = struct
 
-  type column_type =
-    | String
-    | Number
-    | Boolean
-    | UnixTimestampUTC
-
-  let column_type_enc =
-    let open Data_encoding in
-    conv
-      (function
-        | String -> "string"
-        | Number -> "number"
-        | Boolean -> "boolean"
-        | UnixTimestampUTC -> "unixTimestampUTC"
-      )
-      (function
-        | "string" -> String
-        | "number" -> Number
-        | "boolean" -> Boolean
-        | "unixTimestampUTC" -> UnixTimestampUTC
-        | _ -> failwith "Unknown column type"
-      )
-      string
-
   type t = {
     attributeName: string;
     label: string;
     format: string option;
-    type_: column_type option;
+    type_: ColumnDescriptor_type_enum.t option;
     width: int64 option
   }
 
@@ -547,7 +464,7 @@ module ColumnDescriptor = struct
          (req "attributeName" string)
          (req "label" string)
          (opt "format" string)
-         (opt "type" column_type_enc)
+         (opt "type" ColumnDescriptor_type_enum.enc)
          (opt "width" int64)
       )
 end
@@ -576,7 +493,7 @@ module Capabilities = struct
     completionTriggerCharacters: string list option;
     supportsModulesRequest: bool option;
     additionalModuleColumns: ColumnDescriptor.t list option;
-    supportedChecksumAlgorithms: ChecksumAlgorithm.t list option;
+    supportedChecksumAlgorithms: ChecksumAlgorithm_enum.t list option;
     supportsRestartRequest: bool option;
     supportsExceptionOptions: bool option;
     supportsValueFormattingOptions: bool option;
@@ -729,7 +646,7 @@ module Capabilities = struct
          (opt "completionTriggerCharacters" @@ list string)
          (opt "supportsModulesRequest" bool)
          (opt "additionalModuleColumns" @@ list ColumnDescriptor.enc)
-         (opt "supportedChecksumAlgorithms" @@ list ChecksumAlgorithm.enc)
+         (opt "supportedChecksumAlgorithms" @@ list ChecksumAlgorithm_enum.enc)
          (opt "supportsRestartRequest" bool)
          (opt "supportsExceptionOptions" bool)
          (opt "supportsValueFormattingOptions" bool)
@@ -953,49 +870,6 @@ module Capabilities = struct
   let enc =
     let open Data_encoding in
     merge_objs enc_t0 @@ merge_objs enc_t1 @@ merge_objs enc_t2 enc_t3
-
-end
-
-
-module InvalidatedAreas = struct
-  type t =
-    | All
-    | Stacks
-    | Threads
-    | Variables
-
-  let enc =
-    let open Data_encoding in
-    conv
-      (function
-        | All -> "all"
-        | Stacks -> "stacks"
-        | Threads -> "threads"
-        | Variables -> "variables"
-      )
-      (function
-        | "all" -> All
-        | "stacks" -> Stacks
-        | "threads" -> Threads
-        | "variables" -> Variables
-        | _ -> failwith "Unknown invalidated areas"
-      )
-      string
-end
-
-module SteppingGranularity = struct
-
-  type t =
-    | Statement
-    | Line
-    | Instruction
-
-  let enc =
-    let open Data_encoding in
-    conv
-      (function | Statement -> "statement" | Line -> "line" | Instruction -> "instruction")
-      (function | "statement" -> Statement | "line" -> Line | "instruction" -> Instruction | _ -> failwith "Unknown stepping granularity")
-      string
 
 end
 

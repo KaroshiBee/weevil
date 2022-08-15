@@ -1,20 +1,9 @@
 open Dap_base
 
+
 module Request = struct
 
-  type t =
-    | Cancel
-    | Next
-    | StackTrace
-    | Scopes
-    | Variables
-
-  let enc_t =
-    let open Data_encoding in
-    conv
-      (function | Cancel -> "cancel" | Next -> "next" | StackTrace -> "stackTrace" | Scopes -> "scopes" | Variables -> "variables")
-      (function | "cancel" -> Cancel | "next" -> Next | "stackTrace" -> StackTrace | "scopes" -> Scopes | "variables" -> Variables |_ -> failwith "Unknown request")
-      string
+  type t = Command_enum.t
 
   type 'json cls_t = <
     ProtocolMessage.cls_t;
@@ -45,8 +34,8 @@ module Request = struct
 
       (obj4
          (req "seq" int64)
-         (req "type" ProtocolMessage.enc_t)
-         (req "command" enc_t)
+         (req "type" ProtocolMessage.enc)
+         (req "command" Command_enum.enc)
          (req "arguments" js)
       )
 
@@ -91,7 +80,7 @@ module NextArguments = struct
   type t = {
     threadId: int64;
     singleThread: bool option;
-    granularity: SteppingGranularity.t option;
+    granularity: SteppingGranularity_enum.t option;
   }
 
   let enc =
@@ -102,7 +91,7 @@ module NextArguments = struct
       (obj3
          (req "threadId" int64)
          (opt "singleThread" bool)
-         (opt "granularity" SteppingGranularity.enc)
+         (opt "granularity" SteppingGranularity_enum.enc)
       )
 
 end

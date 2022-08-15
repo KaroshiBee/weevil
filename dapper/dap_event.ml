@@ -3,69 +3,7 @@ open Dap_base
 
 module Event = struct
 
-  type t =
-    | Initialized
-    | Stopped
-    | Continued
-    | Exited
-    | Terminated
-    | Thread
-    | Output
-    | Breakpoint
-    | Module
-    | LoadedSource
-    | Process
-    | Capabilities
-    | ProgressStart
-    | ProgressUpdate
-    | ProgressEnd
-    | Invalidated
-    | Memory
-
-  let enc_t =
-    let open Data_encoding in
-    conv
-      (function
-        | Initialized -> "initialized"
-        | Stopped -> "stopped"
-        | Continued -> "continued"
-        | Exited -> "exited"
-        | Terminated -> "terminated"
-        | Thread -> "thread"
-        | Output -> "output"
-        | Breakpoint -> "breakpoint"
-        | Module -> "module"
-        | LoadedSource -> "loadedSource"
-        | Process -> "process"
-        | Capabilities -> "capabilities"
-        | ProgressStart -> "progressStart"
-        | ProgressUpdate -> "progressUpdate"
-        | ProgressEnd -> "progressEnd"
-        | Invalidated -> "invalidated"
-        | Memory -> "memory"
-      )
-      (function
-        | "initialized" -> Initialized
-        | "stopped" -> Stopped
-        | "continued" -> Continued
-        | "exited" -> Exited
-        | "terminated" -> Terminated
-        | "thread" -> Thread
-        | "output" -> Output
-        | "breakpoint" -> Breakpoint
-        | "module" -> Module
-        | "loadedSource" -> LoadedSource
-        | "process" -> Process
-        | "capabilities" -> Capabilities
-        | "progressStart" -> ProgressStart
-        | "progressUpdate" -> ProgressUpdate
-        | "progressEnd" -> ProgressEnd
-        | "invalidated" -> Invalidated
-        | "memory" -> Memory
-        | _ -> failwith "Unknown event"
-      )
-      string
-
+  type t = Event_enum.t
 
   type 'json cls_t = <
     ProtocolMessage.cls_t;
@@ -96,8 +34,8 @@ module Event = struct
 
       (obj4
          (req "seq" int64)
-         (req "type" ProtocolMessage.enc_t)
-         (req "event" enc_t)
+         (req "type" ProtocolMessage.enc)
+         (req "event" Event_enum.enc)
          (req "body" js)
       )
 
@@ -119,47 +57,8 @@ end
 
 module StoppedEvent = struct
 
-  type reason =
-    | Step
-    | Breakpoint
-    | Exception
-    | Pause
-    | Entry
-    | Goto
-    | Function_breakpoint
-    | Data_breakpoint
-    | Instruction_breakpoint
-
-  let enc_reason =
-    let open Data_encoding in
-    conv
-      (function
-        | Step -> "step"
-        | Breakpoint -> "breakpoint"
-        | Exception -> "exception"
-        | Pause -> "pause"
-        | Entry -> "entry"
-        | Goto -> "goto"
-        | Function_breakpoint -> "function breakpoint"
-        | Data_breakpoint -> "data breakpoint"
-        | Instruction_breakpoint -> "instruction breakpoint"
-      )
-      (function
-        | "step" -> Step
-        | "breakpoint" -> Breakpoint
-        | "exception" -> Exception
-        | "pause" -> Pause
-        | "entry" -> Entry
-        | "goto" -> Goto
-        | "function breakpoint" -> Function_breakpoint
-        | "data breakpoint" -> Data_breakpoint
-        | "instruction breakpoint" -> Instruction_breakpoint
-        | _ -> failwith "Unknown stopping reason"
-      )
-      string
-
   type body = {
-    reason: reason;
+    reason: StoppedEvent_body_reason.t;
     description: string option;
     threadId: int64 option;
     preserveFocusHint: bool option;
@@ -223,7 +122,7 @@ module StoppedEvent = struct
          hitBreakpointIds
        })
       (obj7
-         (req "reason" enc_reason)
+         (req "reason" StoppedEvent_body_reason.enc)
          (opt "description" string)
          (opt "threadId" int64)
          (opt "preserveFocusHint" bool)
@@ -311,19 +210,8 @@ end
 
 module ThreadEvent = struct
 
-  type reason =
-    | Started
-    | Exited
-
-  let enc_reason =
-    let open Data_encoding in
-    conv
-      (function | Started -> "started" | Exited -> "exited")
-      (function | "started" -> Started | "exited" -> Exited | _ -> failwith "Unknown thread reason")
-      string
-
   type body = {
-    reason: reason;
+    reason: ThreadEvent_body_reason.t;
     threadId: int64;
   }
 
@@ -340,7 +228,7 @@ module ThreadEvent = struct
       (fun {reason; threadId} -> (reason, threadId))
       (fun (reason, threadId) -> {reason; threadId})
       (obj2
-         (req "reason" enc_reason)
+         (req "reason" ThreadEvent_body_reason.enc)
          (req "threadId" int64))
 
 end
@@ -348,58 +236,10 @@ end
 
 module OutputEvent = struct
 
-  type category =
-    | Console
-    | Important
-    | Stdout
-    | Stderr
-    | Telemetry
-
-  let enc_category =
-    let open Data_encoding in
-    conv
-      (function
-        | Console -> "console"
-        | Important -> "important"
-        | Stdout -> "stdout"
-        | Stderr -> "stderr"
-        | Telemetry -> "telemetry"
-      )
-      (function
-        | "console" -> Console
-        | "important" -> Important
-        | "stdout" -> Stdout
-        | "stderr" -> Stderr
-        | "telemetry" -> Telemetry
-        | _ -> failwith "Unknown output category"
-      )
-      string
-
-  type group =
-    | Start
-    | StartCollapsed
-    | End
-
-  let enc_group =
-    let open Data_encoding in
-    conv
-      (function
-        | Start -> "start"
-        | StartCollapsed -> "startCollapsed"
-        | End -> "end"
-      )
-      (function
-        | "start" -> Start
-        | "startCollapsed" -> StartCollapsed
-        | "end" -> End
-        | _ -> failwith "Unknown output group"
-      )
-      string
-
   type 'json body = {
     output: string;
-    category: category option;
-    group: group option;
+    category: OutputEvent_body_category.t option;
+    group: OutputEvent_body_group_enum.t option;
     variablesReference: int64 option;
     source: 'json Source.t option;
     line: int64 option;
@@ -462,8 +302,8 @@ module OutputEvent = struct
       )
       (obj8
          (req "output" string)
-         (opt "category" enc_category)
-         (opt "group" enc_group)
+         (opt "category" OutputEvent_body_category.enc)
+         (opt "group" OutputEvent_body_group_enum.enc)
          (opt "variablesReference" int64)
          (opt "source" (Source.enc json))
          (opt "line" int64)
@@ -477,7 +317,7 @@ end
 module BreakpointEvent = struct
 
   type 'json body = {
-    reason: Reason.t;
+    reason: BreakpointEvent_body_reason.t;
     breakpoint: 'json Breakpoint.t;
   }
 
@@ -508,7 +348,7 @@ module BreakpointEvent = struct
          }
       )
       (obj2
-         (req "reason" Reason.enc)
+         (req "reason" BreakpointEvent_body_reason.enc)
          (req "breakpoint" Breakpoint.enc)
       )
 
@@ -518,7 +358,7 @@ end
 module ModuleEvent = struct
 
   type body = {
-    reason: Reason.t;
+    reason: ModuleEvent_body_reason_enum.t;
     module_: Module_.t
   }
 
@@ -549,7 +389,7 @@ module ModuleEvent = struct
          }
       )
       (obj2
-         (req "reason" Reason.enc)
+         (req "reason" ModuleEvent_body_reason_enum.enc)
          (req "module" Module_.enc)
       )
 
@@ -559,7 +399,7 @@ end
 module LoadedSourceEvent = struct
 
   type 'json body = {
-    reason: Reason.t;
+    reason: LoadedSourceEvent_body_reason_enum.t;
     source: 'json Source.t;
   }
 
@@ -590,7 +430,7 @@ module LoadedSourceEvent = struct
          }
       )
       (obj2
-         (req "reason" Reason.enc)
+         (req "reason" LoadedSourceEvent_body_reason_enum.enc)
          (req "source" @@ Source.enc json)
       )
 
@@ -599,32 +439,11 @@ end
 
 module ProcessEvent = struct
 
-  type start_method =
-    | Launch
-    | Attach
-    | AttachForSuspendedLaunch
-
-  let start_method_enc =
-    let open Data_encoding in
-    conv
-      (function
-        | Launch -> "launch"
-        | Attach -> "attach"
-        | AttachForSuspendedLaunch -> "attachForSuspendedLaunch"
-      )
-      (function
-        | "launch" -> Launch
-        | "attach" -> Attach
-        | "attachForSuspendedLaunch" -> AttachForSuspendedLaunch
-        | _ -> failwith "Unknown start method"
-      )
-      string
-
   type body = {
     name: string;
     systemProcessId: int64 option;
     isLocalProcess: bool option;
-    startMethod: start_method option;
+    startMethod: ProcessEvent_body_startMethod_enum.t option;
     pointerSize: int64 option;
   }
 
@@ -670,7 +489,7 @@ module ProcessEvent = struct
          (req "name" string)
          (opt "systemProcessId" int64)
          (opt "isLocalProcess" bool)
-         (opt "startMethod" start_method_enc)
+         (opt "startMethod" ProcessEvent_body_startMethod_enum.enc)
          (opt "pointerSize" int64)
       )
 

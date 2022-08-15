@@ -1,4 +1,4 @@
 (library
  (name dapper)
- (libraries data-encoding)
+ (libraries data-encoding logs)
 )
