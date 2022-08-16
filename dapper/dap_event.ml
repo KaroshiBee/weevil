@@ -3,7 +3,7 @@ open Dap_base
 
 module Event = struct
 
-  type t = Event_enum.t
+  type t = Dap_base.Event.t
 
   type 'json cls_t = <
     ProtocolMessage.cls_t;
@@ -35,7 +35,7 @@ module Event = struct
       (obj4
          (req "seq" int64)
          (req "type" ProtocolMessage.enc)
-         (req "event" Event_enum.enc)
+         (req "event" Dap_base.Event.enc)
          (req "body" js)
       )
 
@@ -239,7 +239,7 @@ module OutputEvent = struct
   type 'json body = {
     output: string;
     category: OutputEvent_body_category.t option;
-    group: OutputEvent_body_group_enum.t option;
+    group: OutputEvent_body_group.t option;
     variablesReference: int64 option;
     source: 'json Source.t option;
     line: int64 option;
@@ -303,7 +303,7 @@ module OutputEvent = struct
       (obj8
          (req "output" string)
          (opt "category" OutputEvent_body_category.enc)
-         (opt "group" OutputEvent_body_group_enum.enc)
+         (opt "group" OutputEvent_body_group.enc)
          (opt "variablesReference" int64)
          (opt "source" (Source.enc json))
          (opt "line" int64)
@@ -358,7 +358,7 @@ end
 module ModuleEvent = struct
 
   type body = {
-    reason: ModuleEvent_body_reason_enum.t;
+    reason: ModuleEvent_body_reason.t;
     module_: Module_.t
   }
 
@@ -389,7 +389,7 @@ module ModuleEvent = struct
          }
       )
       (obj2
-         (req "reason" ModuleEvent_body_reason_enum.enc)
+         (req "reason" ModuleEvent_body_reason.enc)
          (req "module" Module_.enc)
       )
 
@@ -399,7 +399,7 @@ end
 module LoadedSourceEvent = struct
 
   type 'json body = {
-    reason: LoadedSourceEvent_body_reason_enum.t;
+    reason: LoadedSourceEvent_body_reason.t;
     source: 'json Source.t;
   }
 
@@ -430,7 +430,7 @@ module LoadedSourceEvent = struct
          }
       )
       (obj2
-         (req "reason" LoadedSourceEvent_body_reason_enum.enc)
+         (req "reason" LoadedSourceEvent_body_reason.enc)
          (req "source" @@ Source.enc json)
       )
 
@@ -443,7 +443,7 @@ module ProcessEvent = struct
     name: string;
     systemProcessId: int64 option;
     isLocalProcess: bool option;
-    startMethod: ProcessEvent_body_startMethod_enum.t option;
+    startMethod: ProcessEvent_body_startMethod.t option;
     pointerSize: int64 option;
   }
 
@@ -489,7 +489,7 @@ module ProcessEvent = struct
          (req "name" string)
          (opt "systemProcessId" int64)
          (opt "isLocalProcess" bool)
-         (opt "startMethod" ProcessEvent_body_startMethod_enum.enc)
+         (opt "startMethod" ProcessEvent_body_startMethod.enc)
          (opt "pointerSize" int64)
       )
 

@@ -214,14 +214,14 @@ module Enums = struct
             List.map Ezjsonm.decode_string_exn names
           in
           let module_name = match List.rev path with
-          | `Field "command" :: _ -> "Command_enum" (* Request command types *)
-          | `Field "event" :: _ -> "Event_enum" (* Event types *)
+          | `Field "command" :: _ -> "Command" (* Request command types *)
+          | `Field "event" :: _ -> "Event" (* Event types *)
           (* | `Field "message" :: _ ->
            *   if field = "_enum" && List.length names = 1 && List.hd names = "cancelled" then
            *     "Message_enum" (\* Response message types - only one currently *\)
            *   else
            *     make_module_name ~path:enum_path *)
-          | _ -> make_module_name ~path:enum_path
+          | _ -> make_module_name ~path
           in
           let xs = StrHashtbl.find_opt tbl module_name |> Option.value ~default:[] in
           StrHashtbl.replace tbl module_name (names @ xs);
@@ -242,34 +242,33 @@ module Enums = struct
 
 end
 
+module CombDeps = struct
+
+  type t = combinator option
+
+  let to_string = function
+    | Some All_of -> "allOf"
+    | Some One_of -> "oneOf"
+    | Some Any_of -> "anyOf"
+    | Some Not -> "not"
+    | None -> ""
+
+  let of_string = function
+    | "allOf" -> Some All_of
+    | "oneOf" -> Some One_of
+    | "anyOf" -> Some Any_of
+    | "not" -> Some Not
+    | _ -> None
+
+  let of_path_tip ~path =
+    match List.rev path with
+    | `Index _ :: `Field s :: _ -> s |> of_string |> to_string
+    | _ -> ""
+
+
+end
 
 module Dependencies = struct
-
-  module CombDeps = struct
-    type t = combinator option
-
-    let to_string = function
-      | Some All_of -> "allOf"
-      | Some One_of -> "oneOf"
-      | Some Any_of -> "anyOf"
-      | Some Not -> "not"
-      | None -> ""
-
-    let of_string = function
-      | "allOf" -> Some All_of
-      | "oneOf" -> Some One_of
-      | "anyOf" -> Some Any_of
-      | "not" -> Some Not
-      | _ -> None
-
-    let of_path_tip ~path =
-      match List.rev path with
-      | `Index _ :: `Field s :: _ -> s |> of_string |> to_string
-      | _ -> ""
-
-                  
-  end
-
 
   let def_ref tbl _schema_js path = function
     | Def_ref ref_path -> (

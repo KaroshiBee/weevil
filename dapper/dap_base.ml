@@ -100,7 +100,7 @@ end
 module Checksum = struct
 
   type t = {
-    algorithm: ChecksumAlgorithm_enum.t;
+    algorithm: ChecksumAlgorithm.t;
     checksum: string;
   }
 
@@ -110,7 +110,7 @@ module Checksum = struct
       (fun {algorithm; checksum} -> (algorithm, checksum))
       (fun (algorithm, checksum) -> {algorithm; checksum})
       (obj2
-         (req "algorithm" ChecksumAlgorithm_enum.enc)
+         (req "algorithm" ChecksumAlgorithm.enc)
          (req "checksum" string))
 
 end
@@ -122,7 +122,7 @@ module Source = struct
     name: string option;
     path: string option;
     sourceReference: int64 option;
-    presentationHint: Source_presentationHint_enum.t option;
+    presentationHint: Source_presentationHint.t option;
     origin: string option;
     sources: 'json t list option;
     adapterData: 'json option;
@@ -175,7 +175,7 @@ module Source = struct
              (opt "name" string)
              (opt "path" string)
              (opt "sourceReference" int64)
-             (opt "presentationHint" Source_presentationHint_enum.enc)
+             (opt "presentationHint" Source_presentationHint.enc)
              (opt "origin" string)
              (opt "sources" (list e))
              (opt "adapterData" json_enc)
@@ -427,7 +427,7 @@ module ColumnDescriptor = struct
     attributeName: string;
     label: string;
     format: string option;
-    type_: ColumnDescriptor_type_enum.t option;
+    type_: ColumnDescriptor_type.t option;
     width: int64 option
   }
 
@@ -464,7 +464,7 @@ module ColumnDescriptor = struct
          (req "attributeName" string)
          (req "label" string)
          (opt "format" string)
-         (opt "type" ColumnDescriptor_type_enum.enc)
+         (opt "type" ColumnDescriptor_type.enc)
          (opt "width" int64)
       )
 end
@@ -493,7 +493,7 @@ module Capabilities = struct
     completionTriggerCharacters: string list option;
     supportsModulesRequest: bool option;
     additionalModuleColumns: ColumnDescriptor.t list option;
-    supportedChecksumAlgorithms: ChecksumAlgorithm_enum.t list option;
+    supportedChecksumAlgorithms: ChecksumAlgorithm.t list option;
     supportsRestartRequest: bool option;
     supportsExceptionOptions: bool option;
     supportsValueFormattingOptions: bool option;
@@ -646,7 +646,7 @@ module Capabilities = struct
          (opt "completionTriggerCharacters" @@ list string)
          (opt "supportsModulesRequest" bool)
          (opt "additionalModuleColumns" @@ list ColumnDescriptor.enc)
-         (opt "supportedChecksumAlgorithms" @@ list ChecksumAlgorithm_enum.enc)
+         (opt "supportedChecksumAlgorithms" @@ list ChecksumAlgorithm.enc)
          (opt "supportsRestartRequest" bool)
          (opt "supportsExceptionOptions" bool)
          (opt "supportsValueFormattingOptions" bool)

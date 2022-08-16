@@ -3,7 +3,7 @@ open Dap_base
 
 module Request = struct
 
-  type t = Command_enum.t
+  type t = Command.t
 
   type 'json cls_t = <
     ProtocolMessage.cls_t;
@@ -35,7 +35,7 @@ module Request = struct
       (obj4
          (req "seq" int64)
          (req "type" ProtocolMessage.enc)
-         (req "command" Command_enum.enc)
+         (req "command" Command.enc)
          (req "arguments" js)
       )
 
@@ -80,7 +80,7 @@ module NextArguments = struct
   type t = {
     threadId: int64;
     singleThread: bool option;
-    granularity: SteppingGranularity_enum.t option;
+    granularity: SteppingGranularity.t option;
   }
 
   let enc =
@@ -91,7 +91,7 @@ module NextArguments = struct
       (obj3
          (req "threadId" int64)
          (opt "singleThread" bool)
-         (opt "granularity" SteppingGranularity_enum.enc)
+         (opt "granularity" SteppingGranularity.enc)
       )
 
 end
