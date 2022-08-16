@@ -36,6 +36,8 @@ module WalkSchema = struct
   let _nothing _tbl _string_js _path _stuff = ()
   let _nothing2 _tbl _string_js _path _newpath _stuff = ()
 
+  type prop_ty = EmptyObj of object_specs | Obj of object_specs
+
   type ('a, 'b, 'c) t = {
     strings: 'a StrHashtbl.t -> Json_repr.ezjsonm -> Json_query.path -> Json_schema.element_kind -> unit;
     def_ref: 'b StrHashtbl.t -> Json_repr.ezjsonm -> Json_query.path -> Json_schema.element_kind -> unit;
@@ -72,12 +74,12 @@ module WalkSchema = struct
         assert (Option.is_some additional_properties);
         Logs.debug (fun m -> m "process object with %d properties under '%s'\n"  (List.length properties) (Q.json_pointer_of_path ~wildcards:true path));
         if List.length properties = 0 then
-          let obj_specs = {properties=[]; pattern_properties; additional_properties; min_properties; max_properties; schema_dependencies; property_dependencies} in
+          let obj_specs = EmptyObj {properties=[]; pattern_properties; additional_properties; min_properties; max_properties; schema_dependencies; property_dependencies} in
           process_property t ~tbl ~schema_js ~path obj_specs
         else
           properties
           |> List.iter (fun (pname, ty, required, extra) ->
-              let obj_specs = {properties=[(pname, ty, required, extra)]; pattern_properties; additional_properties; min_properties; max_properties; schema_dependencies; property_dependencies} in
+              let obj_specs = Obj {properties=[(pname, ty, required, extra)]; pattern_properties; additional_properties; min_properties; max_properties; schema_dependencies; property_dependencies} in
               process_property t ~tbl ~schema_js ~path obj_specs
             )
 
@@ -112,10 +114,10 @@ module WalkSchema = struct
           )
         | Any_of | Not -> () (* failwith "TODO other combinators" *)
       )
-    | Def_ref ref_path -> t.def_ref tbl schema_js path (Def_ref ref_path)
+    | Def_ref _ as x -> t.def_ref tbl schema_js path x
     | Id_ref _ -> () (* failwith "TODO Id_ref" *)
     | Ext_ref _ -> () (* failwith "TODO Ext_ref" *)
-    | String ss -> t.strings tbl schema_js path (String ss)
+    | String _ as s -> t.strings tbl schema_js path s
     | Integer _ -> () (* failwith "TODO Integer" *)
     | Number _ -> () (* failwith "TODO Number" *)
     | Boolean -> () (* failwith "TODO Boolean" *)
@@ -123,17 +125,16 @@ module WalkSchema = struct
     | Any -> () (* failwith "TODO Any" *)
     | Dummy -> () (* failwith "TODO Dummy" *)
 
-  and process_property t ~tbl ~schema_js ~path obj_specs =
-    let obj_specs' = Object obj_specs in
-    if List.length obj_specs.properties = 1 then (
-      (* NOTE can be empty object, so only recurse if len=1 *)
-      let (pname, element, _, _) = List. hd obj_specs.properties in
+  and process_property t ~tbl ~schema_js ~path = function
+    (* NOTE can be empty object, so only recurse if len=1 *)
+    | EmptyObj specs -> t.props tbl schema_js path path (Object specs)
+    | Obj specs -> (
+      let (pname, element, _, _) = List. hd specs.properties in
       Logs.debug (fun m -> m "process property '%s' under '%s'\n"  pname (Q.json_pointer_of_path ~wildcards:true path));
       let new_path = path @ [`Field "properties"; `Field pname ] in
-      t.props tbl schema_js path new_path obj_specs';
+      t.props tbl schema_js path new_path (Object specs);
       process_element t ~tbl ~schema_js ~path:new_path element
-    ) else
-      t.props tbl schema_js path path obj_specs'
+    )
 
 
   let process t schema_js =
@@ -141,7 +142,7 @@ module WalkSchema = struct
       | `O fields -> fields |> List.map (fun (nm, _) -> nm)
       | _ -> []
     in
-    let tbl = StrHashtbl.create 100 in
+    let tbl = StrHashtbl.create 500 in
     let ns = Q.query [`Field "definitions"] schema_js |> names in
     Logs.debug (fun m -> m "\n\nprocessing '%d' names\n" @@ List.length ns);
     ns |> List.iter (fun nm ->
@@ -244,28 +245,74 @@ end
 
 module Dependencies = struct
 
+  module CombDeps = struct
+    type t = combinator option
+
+    let to_string = function
+      | Some All_of -> "allOf"
+      | Some One_of -> "oneOf"
+      | Some Any_of -> "anyOf"
+      | Some Not -> "not"
+      | None -> ""
+
+    let of_string = function
+      | "allOf" -> Some All_of
+      | "oneOf" -> Some One_of
+      | "anyOf" -> Some Any_of
+      | "not" -> Some Not
+      | _ -> None
+
+    let of_path_tip ~path =
+      match List.rev path with
+      | `Index _ :: `Field s :: _ -> s |> of_string |> to_string
+      | _ -> ""
+
+                  
+  end
+
+
   let def_ref tbl _schema_js path = function
     | Def_ref ref_path -> (
-        (* need to strip off last field ie go up a level *)
-        let name = match List.rev path with
-        | _ :: tl -> make_module_name ~path:(List.rev tl)
-        | _ -> make_module_name ~path
-        in
+        Logs.info (fun m -> m "Dependencies - def_ref: path '%s', ref_path: '%s'" (Q.json_pointer_of_path path) (Q.json_pointer_of_path ref_path));
+        let name = make_module_name ~path in
+        let combstr = CombDeps.of_path_tip ~path in
+        (* (\* need to strip off last field ie go up a level *\)
+         * let name = match List.rev path with
+         * | _ :: tl -> make_module_name ~path:(List.rev tl)
+         * | _ -> make_module_name ~path
+         * in *)
         let path_str = Q.json_pointer_of_path ref_path in
         (* add path_str to the entries under name *)
         let ps = StrHashtbl.find_opt tbl name |> Option.value ~default:[] in
-        StrHashtbl.replace tbl name (path_str :: ps)
+        StrHashtbl.replace tbl name ((combstr, path_str) :: ps)
       )
     | _ -> Logs.warn (fun m -> m "Wasn't expecting non-def-ref element kind")
 
+  let props tbl _ path new_path = function
+    | Object _obj_specs -> (
+        Logs.info (fun m -> m "Dependencies - props: path '%s', new_path: '%s'" (Q.json_pointer_of_path path) (Q.json_pointer_of_path new_path));
+        let name = make_module_name ~path in
+        let combstr = CombDeps.of_path_tip ~path in
+        let path_str = Q.json_pointer_of_path new_path in
+        let ps = StrHashtbl.find_opt tbl name |> Option.value ~default:[] in
+        StrHashtbl.replace tbl name ((combstr, path_str) :: ps)
+      )
+    | _ -> ()
+
   let walk schema_js =
-    let t = WalkSchema.make ~def_ref () in
+    let t = WalkSchema.make ~def_ref ~props () in
     WalkSchema.process t schema_js
 
   let render tbl io =
     tbl
-      |> StrHashtbl.to_seq
-      |> Seq.iter (fun (name, fields) -> Printf.fprintf io "%s:%s\n" name (String.concat ", " fields))
+    |> StrHashtbl.to_seq
+    |> List.of_seq
+    |> List.sort (fun (x, _) (y, _) -> String.compare x y)
+    |> List.iter (fun (name, fields) ->
+        Printf.fprintf io "%s:\n    %s\n"
+          name
+          (String.concat "\n    " (fields |> List.map (fun (comb, f) -> Printf.sprintf "(%s, %s)" comb f)))
+      )
 
 end
 
@@ -331,57 +378,57 @@ let get_leaf_type js js_ptr =
 
 let () =
   Logs.set_reporter (Logs.format_reporter ());
-  Logs.set_level (Some Logs.Debug);
-  let js = Ezjsonm.from_channel @@ open_in "../schema/debugAdapterProtocol-1.56.X.json" in
-  let _enums = Enums.walk js in
-  let deps = Dependencies.walk js in
-  let objs = Objects.walk js in
-  let cc fields s =
-    (fields |> List.map (fun (field_name, _, _) -> unweird_name field_name) |> String.concat s)
-  in
-
-  let io = open_out "test.ml" in
-  objs
-  |> StrHashtbl.iter (fun module_name fields ->
-      if StrHashtbl.mem deps module_name || List.length fields > 10 then () else (
-        if String.equal "Module" module_name then () else (
-          let n = List.length fields in
-          Printf.fprintf io "\nmodule %s = struct\n" (unweird_name module_name);
-          Printf.fprintf io "\ntype t = {\n";
-          fields
-          |> List.iter (fun (field_name, js_ptr, required) ->
-              Printf.fprintf io "\n%s: %s%s;" (unweird_name field_name) (get_leaf_type js js_ptr) (if required then "" else " option")
-            );
-          Printf.fprintf io "\n}\n";
-
-          Printf.fprintf io "\nlet enc = \nlet open Data_encoding in \nconv \n";
-          Printf.fprintf io "(fun {%s} -> (%s)\n)" (cc fields "; ") (cc fields ", ");
-          Printf.fprintf io "(fun (%s) -> {%s}\n)" (cc fields ", ") (cc fields "; ");
-          Printf.fprintf io "(obj%n %s)" n (
-            fields
-            |> List.map (fun (field_name, js_ptr, required) ->
-                Printf.sprintf "(%s \"%s\"%s)" (if required then "req" else "opt") field_name (get_leaf_type js js_ptr)
-              )
-            |> String.concat "\n"
-          );
-
-          Printf.fprintf io "\nlet make %s () = \n{%s}\n" (
-            fields
-            |> List.map (fun (field_name, _js_ptr, required) ->
-                Printf.sprintf "%s%s" (if required then "~" else "?") (unweird_name field_name)
-              )
-            |> String.concat " "
-          ) (
-            fields
-            |> List.map (fun (field_name, _js_ptr, _required) ->
-                unweird_name field_name
-              )
-            |> String.concat "; "
-          );
-
-
-          Printf.fprintf io "\nend\n\n";
-        )
-      )
-    );
-  close_out io;
+  Logs.set_level (Some Logs.Info);
+  (* let js = Ezjsonm.from_channel @@ open_in "../schema/debugAdapterProtocol-1.56.X.json" in
+   * let _enums = Enums.walk js in
+   * let deps = Dependencies.walk js in
+   * let objs = Objects.walk js in
+   * let cc fields s =
+   *   (fields |> List.map (fun (field_name, _, _) -> unweird_name field_name) |> String.concat s)
+   * in
+   *
+   * let io = open_out "test.ml" in
+   * objs
+   * |> StrHashtbl.iter (fun module_name fields ->
+   *     if StrHashtbl.mem deps module_name || List.length fields > 10 then () else (
+   *       if String.equal "Module" module_name then () else (
+   *         let n = List.length fields in
+   *         Printf.fprintf io "\nmodule %s = struct\n" (unweird_name module_name);
+   *         Printf.fprintf io "\ntype t = {\n";
+   *         fields
+   *         |> List.iter (fun (field_name, js_ptr, required) ->
+   *             Printf.fprintf io "\n%s: %s%s;" (unweird_name field_name) (get_leaf_type js js_ptr) (if required then "" else " option")
+   *           );
+   *         Printf.fprintf io "\n}\n";
+   *
+   *         Printf.fprintf io "\nlet enc = \nlet open Data_encoding in \nconv \n";
+   *         Printf.fprintf io "(fun {%s} -> (%s)\n)" (cc fields "; ") (cc fields ", ");
+   *         Printf.fprintf io "(fun (%s) -> {%s}\n)" (cc fields ", ") (cc fields "; ");
+   *         Printf.fprintf io "(obj%n %s)" n (
+   *           fields
+   *           |> List.map (fun (field_name, js_ptr, required) ->
+   *               Printf.sprintf "(%s \"%s\"%s)" (if required then "req" else "opt") field_name (get_leaf_type js js_ptr)
+   *             )
+   *           |> String.concat "\n"
+   *         );
+   *
+   *         Printf.fprintf io "\nlet make %s () = \n{%s}\n" (
+   *           fields
+   *           |> List.map (fun (field_name, _js_ptr, required) ->
+   *               Printf.sprintf "%s%s" (if required then "~" else "?") (unweird_name field_name)
+   *             )
+   *           |> String.concat " "
+   *         ) (
+   *           fields
+   *           |> List.map (fun (field_name, _js_ptr, _required) ->
+   *               unweird_name field_name
+   *             )
+   *           |> String.concat "; "
+   *         );
+   *
+   *
+   *         Printf.fprintf io "\nend\n\n";
+   *       )
+   *     )
+   *   );
+   * close_out io; *)
