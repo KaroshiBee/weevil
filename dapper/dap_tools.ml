@@ -4,22 +4,37 @@ module Q = Json_query
 
 module StrHashtbl = Hashtbl.Make(struct type t = string let equal = String.equal let hash = Hashtbl.hash end)
 
-let make_module_name ~path =
-  let name =
-    path
-    |> List.filter_map (fun el ->
-        match el with
-        | `Star | `Index _ | `Next -> None
-        | `Field f -> (
-            match f with
-            | "definitions" | "allOf" | "oneOf" | "items" | "_enum" | "properties" -> None
-            | _ -> Some f
-          )
-        | _ -> None
-      )
-    |> String.concat "_"
-  in
-  String.capitalize_ascii name
+module ModuleName = struct
+
+  let _make_module_name ~path =
+    let name =
+      path
+      |> List.filter_map (fun el ->
+          match el with
+          | `Star | `Index _ | `Next -> None
+          | `Field f -> (
+              match f with
+              | "definitions" | "allOf" | "oneOf" | "items" | "_enum" | "properties" -> None
+              | _ -> Some f
+            )
+          | _ -> None
+        )
+      |> String.concat "_"
+    in
+    String.capitalize_ascii name
+
+  let make_module_name ~path =
+    match List.rev path with
+    | `Field "command" :: _ -> "Command" (* Request command types *)
+    | `Field "event" :: _ -> "Event" (* Event types *)
+    (* | `Field "message" :: _ ->
+             *   if field = "_enum" && List.length names = 1 && List.hd names = "cancelled" then
+             *     "Message_enum" (\* Response message types - only one currently *\)
+             *   else
+             *     make_module_name ~path:enum_path *)
+    | _ -> _make_module_name ~path
+
+end
 
 
 (*
@@ -213,16 +228,7 @@ module Enums = struct
           let names =
             List.map Ezjsonm.decode_string_exn names
           in
-          let module_name = match List.rev path with
-          | `Field "command" :: _ -> "Command" (* Request command types *)
-          | `Field "event" :: _ -> "Event" (* Event types *)
-          (* | `Field "message" :: _ ->
-           *   if field = "_enum" && List.length names = 1 && List.hd names = "cancelled" then
-           *     "Message_enum" (\* Response message types - only one currently *\)
-           *   else
-           *     make_module_name ~path:enum_path *)
-          | _ -> make_module_name ~path
-          in
+          let module_name = ModuleName.make_module_name ~path in
           let xs = StrHashtbl.find_opt tbl module_name |> Option.value ~default:[] in
           StrHashtbl.replace tbl module_name (names @ xs);
         | _ -> ()
@@ -273,7 +279,7 @@ module Dependencies = struct
   let def_ref tbl _schema_js path = function
     | Def_ref ref_path -> (
         Logs.info (fun m -> m "Dependencies - def_ref: path '%s', ref_path: '%s'" (Q.json_pointer_of_path path) (Q.json_pointer_of_path ref_path));
-        let name = make_module_name ~path in
+        let name = ModuleName.make_module_name ~path in
         let combstr = CombDeps.of_path_tip ~path in
         (* (\* need to strip off last field ie go up a level *\)
          * let name = match List.rev path with
@@ -290,7 +296,7 @@ module Dependencies = struct
   let props tbl _ path new_path = function
     | Object _obj_specs -> (
         Logs.info (fun m -> m "Dependencies - props: path '%s', new_path: '%s'" (Q.json_pointer_of_path path) (Q.json_pointer_of_path new_path));
-        let name = make_module_name ~path in
+        let name = ModuleName.make_module_name ~path in
         let combstr = CombDeps.of_path_tip ~path in
         let path_str = Q.json_pointer_of_path new_path in
         let ps = StrHashtbl.find_opt tbl name |> Option.value ~default:[] in
@@ -321,7 +327,7 @@ module Objects = struct
   let props tbl _ path new_path = function
     | Object obj_specs -> (
         (* the key in the dict ie name of the type with the property fields *)
-        let module_name = make_module_name ~path in
+        let module_name = ModuleName.make_module_name ~path in
         let xs = StrHashtbl.find_opt tbl module_name |> Option.value ~default:[] in
         match obj_specs.properties with
         | [(name, _, required, _)] ->
@@ -363,7 +369,7 @@ let unweird_name nm =
 let get_type enums js js_ptr is_enc =
   Json_query.(
     let path = (path_of_json_pointer js_ptr) in
-    let module_name = make_module_name ~path in
+    let module_name = ModuleName.make_module_name ~path in
     match module_name with
     | "Request_type" | "Response_type" | "Event_type" ->
         Printf.sprintf "Dap_enum.ProtocolMessage_type.%s" (if is_enc then "enc" else "t")
