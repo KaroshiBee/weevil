@@ -42,9 +42,9 @@ module ModuleName = struct
   let to_type_t t = Printf.sprintf "%s.t" t.safe_name
   let to_enc t = Printf.sprintf "%s.enc" t.safe_name
   let to_module_name t = Printf.sprintf "%s" t.safe_name
-  let to_functor_arg t = function
-    | `Command -> Printf.sprintf "struct let command=%s" t.safe_name
-    | `Event -> Printf.sprintf "struct let event=%s" t.safe_name
+  let to_functor_arg = function
+    | `Command s -> Printf.sprintf "struct let command=%s" s
+    | `Event s -> Printf.sprintf "struct let event=%s" s
 
 end
 
@@ -52,8 +52,8 @@ end
 module Field_spec = struct
   type field_name = string
   type t = {
-    safe_name: field_name;
-    field_name: field_name;
+    safe_name: field_name; (* safe to use as an ocaml record name *)
+    field_name: field_name; (* original field name as per spec *)
     required: bool;
     is_cyclic: bool;
   }
@@ -77,6 +77,9 @@ module LeafNodes = struct
 
   type field_name = string
   type module_name = ModuleName.t
+  type specs = {
+    module_name: module_name
+  }
   type object_specs = {
     module_name: module_name;
     fields: Field_spec.t list;
@@ -86,35 +89,67 @@ module LeafNodes = struct
     inner_type: module_name;
   }
 
-  type request_spec = {
-    module_name: module_name;
-    command_t: module_name;
-    args_m: module_name;
-  }
+  module RequestSpec = struct
 
-  type response_spec = {
-    module_name: module_name;
-    command_t: module_name;
-    body_m: module_name;
-  }
+    type t = {
+      module_name: module_name;
+      command_t: module_name;
+      args_m: module_name;
+    }
 
-  type event_spec = {
-    module_name: module_name;
-    event_t: module_name;
-    body_m: module_name;
-  }
+    let render t =
+      let command_t = ModuleName.to_type_t t.command_t in
+      Printf.sprintf
+        "module %s = MakeRequest (%s) (%s)"
+        (ModuleName.to_module_name t.module_name)
+        (ModuleName.to_functor_arg (`Command command_t))
+        (ModuleName.to_module_name t.args_m)
+  end
+
+  module ResponseSpec = struct
+    type t = {
+      module_name: module_name;
+      command_t: module_name;
+      body_m: module_name;
+    }
+
+    let render t =
+      let command_t = ModuleName.to_type_t t.command_t in
+      Printf.sprintf
+        "module %s = MakeResponse (%s) (%s)"
+        (ModuleName.to_module_name t.module_name)
+        (ModuleName.to_functor_arg (`Command command_t))
+        (ModuleName.to_module_name t.body_m)
+  end
+
+  module EventSpec = struct
+    type t = {
+      module_name: module_name;
+      event_t: module_name;
+      body_m: module_name;
+    }
+
+    let render t =
+      let event_t = ModuleName.to_type_t t.event_t in
+      Printf.sprintf
+        "module %s = MakeEvent (%s) (%s)"
+        (ModuleName.to_module_name t.module_name)
+        (ModuleName.to_functor_arg (`Event event_t))
+        (ModuleName.to_module_name t.body_m)
+  end
+
 
   type t = [
     | `Json
-    | `Enum of module_name (* already dealt with *)
-    | `EmptyObject of module_name
+    | `Enum of specs (* already dealt with *)
+    | `EmptyObject of specs
     | `Object of object_specs
-    | `CyclicObject of object_specs
-    | `LargeObject of object_specs
+    (* | `CyclicObject of object_specs
+     * | `LargeObject of object_specs *)
     | `Array of array_specs
-    | `Request of request_spec
-    | `Response of response_spec
-    | `Event of event_spec
+    | `Request of RequestSpec.t
+    | `Response of ResponseSpec.t
+    | `Event of EventSpec.t
   ]
 
 
