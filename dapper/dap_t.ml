@@ -25,6 +25,12 @@ module type ENC0 = sig
   val enc : t Data_encoding.encoding
 end
 
+(* Empty Object encoder for when arguments or body fields aren't present *)
+module EmptyObject = struct
+  type t = unit
+  let enc =
+    Data_encoding.unit
+end
 
 (* MakeRequest and MakeResponse functor output are parameterised by a Command.t value *)
 module type CMD = sig
@@ -95,6 +101,24 @@ module type RESPONSE = sig
 
 end
 
+(* NOTE sometimes body has a schema but it is optional *)
+module type RESPONSE_OPTIONAL_BODY = sig
+  type body
+  type t
+
+  val seq : t -> int64
+  val type_ : t -> D.ProtocolMessage_type.t
+  val request_seq : t -> int64
+  val success : t -> bool
+  val command : t -> D.Command.t
+  val message : t -> string option
+  val body : t -> body option
+
+  val enc : t Data_encoding.encoding
+  val make : seq:int64 -> request_seq:int64 -> success:bool -> ?message:string -> ?body:body -> unit -> t
+
+end
+
 module MakeResponse (C:CMD) (B:ENC0) : (RESPONSE with type body := B.t) = struct
   type t = {
     seq : int64;
@@ -131,6 +155,48 @@ module MakeResponse (C:CMD) (B:ENC0) : (RESPONSE with type body := B.t) = struct
          (req "body" B.enc))
 
   let make ~seq ~request_seq ~success ?message ~body () =
+    let type_ = D.ProtocolMessage_type.Response in
+    let command = C.command in
+    {seq; type_; request_seq; success; command; message; body}
+
+end
+
+module MakeResponse_optionalBody (C:CMD) (B:ENC0) : (RESPONSE_OPTIONAL_BODY with type body := B.t) = struct
+  type t = {
+    seq : int64;
+    type_ : D.ProtocolMessage_type.t;
+    request_seq : int64;
+    success : bool;
+    command : D.Command.t;
+    message : string option; (* only used once I think, keep as string for now *)
+    body : B.t option;
+  }
+
+  let seq t = t. seq
+  let type_ t = t.type_
+  let request_seq t = t.request_seq
+  let success t = t.success
+  let command t = t.command
+  let message t = t.message
+  let body t = t.body
+
+  let enc =
+    let open Data_encoding in
+    conv
+      (fun {seq; type_; request_seq; success; command; message; body} ->
+        (seq, type_, request_seq, success, command, message, body))
+      (fun (seq, type_, request_seq, success, command, message, body) ->
+        {seq; type_; request_seq; success; command; message; body})
+      (obj7
+         (req "seq" int64)
+         (req "type" D.ProtocolMessage_type.enc)
+         (req "request_seq" int64)
+         (req "success" bool)
+         (req "command" D.Command.enc)
+         (opt "message" string)
+         (opt "body" B.enc))
+
+  let make ~seq ~request_seq ~success ?message ?body () =
     let type_ = D.ProtocolMessage_type.Response in
     let command = C.command in
     {seq; type_; request_seq; success; command; message; body}

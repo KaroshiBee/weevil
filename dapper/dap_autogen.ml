@@ -26,7 +26,7 @@ module ModuleName = struct
   let of_path ~path =
     let safe_name =
       match List.rev path with
-      | `Field "command" :: _ -> "Command" (* Request command types *)
+      | `Field "command" :: _ -> "Command" (* Request/Response command types *)
       | `Field "event" :: _ -> "Event" (* Event types *)
       (* | `Field "message" :: _ ->
                *   if field = "_enum" && List.length names = 1 && List.hd names = "cancelled" then
@@ -43,10 +43,9 @@ module ModuleName = struct
   let to_type_t t = Printf.sprintf "%s.t" t.safe_name
   let to_enc t = Printf.sprintf "%s.enc" t.safe_name
   let to_module_name t = Printf.sprintf "%s" t.safe_name
-  let to_value t ~value = Printf.sprintf "%s.%s" t.safe_name value
-  let to_functor_arg t = function
-    | `Command command_value -> Printf.sprintf "struct let command=%s" (to_value t ~value:command_value)
-    | `Event event_value -> Printf.sprintf "struct let event=%s" (to_value t ~value:event_value)
+  let to_functor_arg = function
+    | `Command command_value -> Printf.sprintf "struct let command=Command.%s end" command_value
+    | `Event event_value -> Printf.sprintf "struct let event=Event.%s end" event_value
 
 end
 
@@ -90,11 +89,13 @@ module LeafNodes = struct
     inner_type: module_name;
   }
 
+  type 'a maybe_spec = [ `Required of 'a | `Optional of 'a | `None]
+
+
   module RequestSpec = struct
 
     type t = {
       module_name: module_name;
-      command_name: module_name;
       command_value: string;
       args_name: module_name;
     }
@@ -103,30 +104,61 @@ module LeafNodes = struct
       Printf.sprintf
         "module %s = MakeRequest (%s) (%s)"
         (ModuleName.to_module_name t.module_name)
-        (ModuleName.to_functor_arg t.command_name (`Command t.command_value))
+        (ModuleName.to_functor_arg (`Command t.command_value))
         (ModuleName.to_module_name t.args_name)
   end
 
   module ResponseSpec = struct
     type t = {
       module_name: module_name;
-      command_name: module_name;
       command_value: string;
-      body_name: module_name;
+      body_name: module_name maybe_spec;
     }
 
+    (* NOTE have to extract response command value from module name *)
+    let make ~module_js_ptr ?body_js_ptr () =
+      let module_name = ModuleName.of_string ~js_ptr:module_js_ptr in
+      let command_value =
+        let mname = ModuleName.to_module_name module_name in
+        match Stringext.cut mname ~on:"Response" with
+        | Some (value, _) -> value
+        | None -> failwith (Printf.sprintf "Incorrect Response name %s" mname)
+      in
+      let body_name = body_js_ptr |> Option.map (function
+        | `Required js_ptr -> `Required (ModuleName.of_string ~js_ptr)
+        | `Optional js_ptr -> `Optional (ModuleName.of_string ~js_ptr)
+        | `None -> `None
+        ) |> Option.value ~default:`None
+      in
+      {module_name; command_value; body_name}
+
+
     let render t =
-      Printf.sprintf
-        "module %s = MakeResponse (%s) (%s)"
-        (ModuleName.to_module_name t.module_name)
-        (ModuleName.to_functor_arg t.command_name (`Command t.command_value))
-        (ModuleName.to_module_name t.body_name)
+      match t.body_name with
+      | `Required body_name ->
+        Printf.sprintf
+          "module %s = MakeResponse (%s) (%s)"
+          (ModuleName.to_module_name t.module_name)
+          (ModuleName.to_functor_arg (`Command t.command_value))
+          (ModuleName.to_module_name body_name)
+      | `Optional body_name ->
+        Printf.sprintf
+          "module %s = MakeResponse_optionalBody (%s) (%s)"
+          (ModuleName.to_module_name t.module_name)
+          (ModuleName.to_functor_arg (`Command t.command_value))
+          (ModuleName.to_module_name body_name)
+      | `None ->
+        Printf.sprintf
+          "module %s = MakeResponse_optionalBody (%s) (%s)"
+          (ModuleName.to_module_name t.module_name)
+          (ModuleName.to_functor_arg (`Command t.command_value))
+          "EmptyObject"
+
   end
 
   module EventSpec = struct
     type t = {
       module_name: module_name;
-      event_name: module_name;
       event_value: string;
       body_name: module_name;
     }
@@ -135,7 +167,7 @@ module LeafNodes = struct
       Printf.sprintf
         "module %s = MakeEvent (%s) (%s)"
         (ModuleName.to_module_name t.module_name)
-        (ModuleName.to_functor_arg t.event_name (`Event t.event_value))
+        (ModuleName.to_functor_arg (`Event t.event_value))
         (ModuleName.to_module_name t.body_name)
   end
 

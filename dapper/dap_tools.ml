@@ -41,8 +41,10 @@ end
  * the _enum fields arent picked up by Json_schema module
  * and so using Json_schema.to_json wont work.
  * Have to use Ezjsonm.from_channel to read the raw json and then query that.
- * It is for this reason that also have to manually add some stuff to a path as
+ * Also note that certain enums are scattered across the document (Command.t and Event.t)
+ * Also note that have to manually add some stuff to a path as
  * recursion progresses (e.g. "properties" or "allOf" > index 1)
+ * because Json_schema doesnt hold that info
 *)
 
 
@@ -171,6 +173,8 @@ end
 
 module Enums = struct
 
+  (* TODO there is an ErrorResponse but no Command.Error *)
+
   let clean_field_name field =
     Stringext.replace_all field ~pattern:" " ~with_:"_" |> String.capitalize_ascii
 
@@ -208,6 +212,7 @@ module Enums = struct
 
 
   let enum_tpl name fields =
+    (* NOTE we ignore the single named enums as they are collected into Command.t or Event.t *)
     if List.length fields = 1 then (
       Logs.debug (fun m -> m "Ignoring %s, only one field\n" name); ""
     )
