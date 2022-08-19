@@ -6,6 +6,10 @@ module ModuleName = struct
     path: Q.path;
   }
 
+  let _COMMAND = "Command"
+  let _EVENT = "Event"
+
+
   let _make_module_name ~path =
     let name =
       path
@@ -26,8 +30,8 @@ module ModuleName = struct
   let of_path ~path =
     let safe_name =
       match List.rev path with
-      | `Field "command" :: _ -> "Command" (* Request/Response command types *)
-      | `Field "event" :: _ -> "Event" (* Event types *)
+      | `Field "command" :: _ -> _COMMAND (* Request/Response command types *)
+      | `Field "event" :: _ -> _EVENT (* Event types *)
       (* | `Field "message" :: _ ->
                *   if field = "_enum" && List.length names = 1 && List.hd names = "cancelled" then
                *     "Message_enum" (\* Response message types - only one currently *\)
@@ -44,8 +48,8 @@ module ModuleName = struct
   let to_enc t = Printf.sprintf "%s.enc" t.safe_name
   let to_module_name t = Printf.sprintf "%s" t.safe_name
   let to_functor_arg = function
-    | `Command command_value -> Printf.sprintf "struct let command=Command.%s end" command_value
-    | `Event event_value -> Printf.sprintf "struct let event=Event.%s end" event_value
+    | `Command command_value -> Printf.sprintf "struct let command=%s.%s end" _COMMAND command_value
+    | `Event event_value -> Printf.sprintf "struct let event=%s.%s end" _EVENT event_value
 
 end
 
@@ -91,7 +95,7 @@ module LeafNodes = struct
 
   type 'a maybe_spec = [ `Required of 'a | `Optional of 'a | `None]
 
-  let empty_object = "EmptyObject"
+  let _EMPTY_OBJECT = "EmptyObject"
 
   module RequestSpec = struct
 
@@ -131,7 +135,7 @@ module LeafNodes = struct
           "module %s = MakeRequest_optionalArgs (%s) (%s)"
           (ModuleName.to_module_name t.module_name)
           (ModuleName.to_functor_arg (`Command t.command_value))
-          empty_object
+          _EMPTY_OBJECT
   end
 
   module ResponseSpec = struct
@@ -178,7 +182,7 @@ module LeafNodes = struct
           "module %s = MakeResponse_optionalBody (%s) (%s)"
           (ModuleName.to_module_name t.module_name)
           (ModuleName.to_functor_arg (`Command t.command_value))
-          empty_object
+          _EMPTY_OBJECT
 
   end
 
@@ -219,7 +223,7 @@ module LeafNodes = struct
           "module %s = MakeEvent_optionalBody (%s) (%s)"
           (ModuleName.to_module_name t.module_name)
           (ModuleName.to_functor_arg (`Event t.event_value))
-          empty_object
+          _EMPTY_OBJECT
 
   end
 
