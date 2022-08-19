@@ -25,7 +25,8 @@ module type ENC0 = sig
   val enc : t Data_encoding.encoding
 end
 
-(* Empty Object encoder for when arguments or body fields aren't present *)
+(* Empty Object encoder for when arguments or body fields aren't present,
+   NOTE this is different to when there are optional arg/body but schema is still stated *)
 module EmptyObject = struct
   type t = unit
   let enc =
@@ -48,6 +49,19 @@ module type REQUEST = sig
 
   val enc : t Data_encoding.encoding
   val make : seq:int64 -> arguments:args -> unit -> t
+end
+
+(* NOTE sometimes args has a schema but it is optional *)
+module type REQUEST_OPTIONAL_ARGS = sig
+  type args
+  type t
+  val seq : t -> int64
+  val type_ : t -> D.ProtocolMessage_type.t
+  val command : t -> D.Command.t
+  val arguments : t -> args option
+
+  val enc : t Data_encoding.encoding
+  val make : seq:int64 -> ?arguments:args -> unit -> t
 end
 
 
@@ -77,6 +91,38 @@ module MakeRequest (C:CMD) (ARGS:ENC0) : (REQUEST with type args := ARGS.t) = st
          (req "arguments" ARGS.enc))
 
   let make ~seq ~arguments () =
+    let type_ = D.ProtocolMessage_type.Request in
+    let command = C.command in
+    {seq; type_; command; arguments}
+
+end
+
+module MakeRequest_optionalArgs (C:CMD) (ARGS:ENC0) : (REQUEST_OPTIONAL_ARGS with type args := ARGS.t) = struct
+  type t = {
+    seq : int64;
+    type_ : D.ProtocolMessage_type.t;
+    command : D.Command.t;
+    arguments : ARGS.t option;
+  }
+
+  let seq t = t.seq
+  let type_ t = t.type_
+  let command t = t.command
+  let arguments t = t.arguments
+
+
+  let enc =
+    let open Data_encoding in
+    conv
+      (fun {seq; type_; command; arguments} -> (seq, type_, command, arguments))
+      (fun (seq, type_, command, arguments) -> {seq; type_; command; arguments})
+      (obj4
+         (req "seq" int64)
+         (req "type" D.ProtocolMessage_type.enc)
+         (req "command" D.Command.enc)
+         (opt "arguments" ARGS.enc))
+
+  let make ~seq ?arguments () =
     let type_ = D.ProtocolMessage_type.Request in
     let command = C.command in
     {seq; type_; command; arguments}
@@ -223,6 +269,21 @@ module type EVENT = sig
 
 end
 
+(* NOTE sometimes event schema have optional body  *)
+module type EVENT_OPTIONAL_BODY = sig
+  type body
+  type t
+
+  val seq : t -> int64
+  val type_ : t -> D.ProtocolMessage_type.t
+  val event : t -> D.Event.t
+  val body : t -> body option
+
+  val enc : t Data_encoding.encoding
+  val make : seq:int64 -> ?body:body -> unit -> t
+
+end
+
 module MakeEvent (E:EV) (B:ENC0) : (EVENT with type body := B.t) = struct
   type t = {
     seq : int64;
@@ -248,6 +309,37 @@ module MakeEvent (E:EV) (B:ENC0) : (EVENT with type body := B.t) = struct
          (req "body" B.enc))
 
   let make ~seq ~body () =
+    let type_ = D.ProtocolMessage_type.Event in
+    let event = E.event in
+    {seq; type_; event; body}
+
+end
+
+module MakeEvent_optionalBody (E:EV) (B:ENC0) : (EVENT_OPTIONAL_BODY with type body := B.t) = struct
+  type t = {
+    seq : int64;
+    type_ : D.ProtocolMessage_type.t;
+    event : D.Event.t;
+    body : B.t option;
+  }
+
+  let seq t = t.seq
+  let type_ t = t.type_
+  let event t = t.event
+  let body t = t.body
+
+  let enc =
+    let open Data_encoding in
+    conv
+      (fun {seq; type_; event; body} -> (seq, type_, event, body))
+      (fun (seq, type_, event, body) -> {seq; type_; event; body})
+      (obj4
+         (req "seq" int64)
+         (req "type" D.ProtocolMessage_type.enc)
+         (req "event" D.Event.enc)
+         (opt "body" B.enc))
+
+  let make ~seq ?body () =
     let type_ = D.ProtocolMessage_type.Event in
     let event = E.event in
     {seq; type_; event; body}

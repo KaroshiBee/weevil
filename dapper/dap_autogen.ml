@@ -91,21 +91,36 @@ module LeafNodes = struct
 
   type 'a maybe_spec = [ `Required of 'a | `Optional of 'a | `None]
 
+  let empty_object = "EmptyObject"
 
   module RequestSpec = struct
 
     type t = {
       module_name: module_name;
       command_value: string;
-      args_name: module_name;
+      args_name: module_name maybe_spec;
     }
 
     let render t =
-      Printf.sprintf
-        "module %s = MakeRequest (%s) (%s)"
-        (ModuleName.to_module_name t.module_name)
-        (ModuleName.to_functor_arg (`Command t.command_value))
-        (ModuleName.to_module_name t.args_name)
+      match t.args_name with
+      | `Required args_name ->
+        Printf.sprintf
+          "module %s = MakeRequest (%s) (%s)"
+          (ModuleName.to_module_name t.module_name)
+          (ModuleName.to_functor_arg (`Command t.command_value))
+          (ModuleName.to_module_name args_name)
+      | `Optional args_name ->
+        Printf.sprintf
+          "module %s = MakeRequest_optionalArgs (%s) (%s)"
+          (ModuleName.to_module_name t.module_name)
+          (ModuleName.to_functor_arg (`Command t.command_value))
+          (ModuleName.to_module_name args_name)
+      | `None ->
+        Printf.sprintf
+          "module %s = MakeRequest_optionalArgs (%s) (%s)"
+          (ModuleName.to_module_name t.module_name)
+          (ModuleName.to_functor_arg (`Command t.command_value))
+          empty_object
   end
 
   module ResponseSpec = struct
@@ -152,7 +167,7 @@ module LeafNodes = struct
           "module %s = MakeResponse_optionalBody (%s) (%s)"
           (ModuleName.to_module_name t.module_name)
           (ModuleName.to_functor_arg (`Command t.command_value))
-          "EmptyObject"
+          empty_object
 
   end
 
@@ -160,15 +175,30 @@ module LeafNodes = struct
     type t = {
       module_name: module_name;
       event_value: string;
-      body_name: module_name;
+      body_name: module_name maybe_spec;
     }
 
     let render t =
-      Printf.sprintf
-        "module %s = MakeEvent (%s) (%s)"
-        (ModuleName.to_module_name t.module_name)
-        (ModuleName.to_functor_arg (`Event t.event_value))
-        (ModuleName.to_module_name t.body_name)
+      match t.body_name with
+      | `Required body_name ->
+        Printf.sprintf
+          "module %s = MakeEvent (%s) (%s)"
+          (ModuleName.to_module_name t.module_name)
+          (ModuleName.to_functor_arg (`Event t.event_value))
+          (ModuleName.to_module_name body_name)
+      | `Optional body_name ->
+        Printf.sprintf
+          "module %s = MakeEvent_optionalBody (%s) (%s)"
+          (ModuleName.to_module_name t.module_name)
+          (ModuleName.to_functor_arg (`Event t.event_value))
+          (ModuleName.to_module_name body_name)
+      | `None ->
+        Printf.sprintf
+          "module %s = MakeEvent_optionalBody (%s) (%s)"
+          (ModuleName.to_module_name t.module_name)
+          (ModuleName.to_functor_arg (`Event t.event_value))
+          empty_object
+
   end
 
 
