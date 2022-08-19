@@ -2,7 +2,8 @@ module Q = Json_query
 
 module ModuleName = struct
   type t = {
-    safe_name: string
+    safe_name: string;
+    path: Q.path;
   }
 
   let _make_module_name ~path =
@@ -34,7 +35,7 @@ module ModuleName = struct
                *     make_module_name ~path:enum_path *)
       | _ -> _make_module_name ~path
     in
-    {safe_name}
+    {safe_name; path}
 
   let of_string ~js_ptr =
     of_path ~path:(Q.path_of_json_pointer js_ptr)
@@ -42,9 +43,10 @@ module ModuleName = struct
   let to_type_t t = Printf.sprintf "%s.t" t.safe_name
   let to_enc t = Printf.sprintf "%s.enc" t.safe_name
   let to_module_name t = Printf.sprintf "%s" t.safe_name
-  let to_functor_arg = function
-    | `Command s -> Printf.sprintf "struct let command=%s" s
-    | `Event s -> Printf.sprintf "struct let event=%s" s
+  let to_value t ~value = Printf.sprintf "%s.%s" t.safe_name value
+  let to_functor_arg t = function
+    | `Command command_value -> Printf.sprintf "struct let command=%s" (to_value t ~value:command_value)
+    | `Event event_value -> Printf.sprintf "struct let event=%s" (to_value t ~value:event_value)
 
 end
 
@@ -75,7 +77,6 @@ end
 
 module LeafNodes = struct
 
-  type field_name = string
   type module_name = ModuleName.t
   type specs = {
     module_name: module_name
@@ -85,7 +86,7 @@ module LeafNodes = struct
     fields: Field_spec.t list;
   }
   type array_specs = {
-    module_name: module_name;
+    field_name: Field_spec.t;
     inner_type: module_name;
   }
 
@@ -93,49 +94,49 @@ module LeafNodes = struct
 
     type t = {
       module_name: module_name;
-      command_t: module_name;
-      args_m: module_name;
+      command_name: module_name;
+      command_value: string;
+      args_name: module_name;
     }
 
     let render t =
-      let command_t = ModuleName.to_type_t t.command_t in
       Printf.sprintf
         "module %s = MakeRequest (%s) (%s)"
         (ModuleName.to_module_name t.module_name)
-        (ModuleName.to_functor_arg (`Command command_t))
-        (ModuleName.to_module_name t.args_m)
+        (ModuleName.to_functor_arg t.command_name (`Command t.command_value))
+        (ModuleName.to_module_name t.args_name)
   end
 
   module ResponseSpec = struct
     type t = {
       module_name: module_name;
-      command_t: module_name;
-      body_m: module_name;
+      command_name: module_name;
+      command_value: string;
+      body_name: module_name;
     }
 
     let render t =
-      let command_t = ModuleName.to_type_t t.command_t in
       Printf.sprintf
         "module %s = MakeResponse (%s) (%s)"
         (ModuleName.to_module_name t.module_name)
-        (ModuleName.to_functor_arg (`Command command_t))
-        (ModuleName.to_module_name t.body_m)
+        (ModuleName.to_functor_arg t.command_name (`Command t.command_value))
+        (ModuleName.to_module_name t.body_name)
   end
 
   module EventSpec = struct
     type t = {
       module_name: module_name;
-      event_t: module_name;
-      body_m: module_name;
+      event_name: module_name;
+      event_value: string;
+      body_name: module_name;
     }
 
     let render t =
-      let event_t = ModuleName.to_type_t t.event_t in
       Printf.sprintf
         "module %s = MakeEvent (%s) (%s)"
         (ModuleName.to_module_name t.module_name)
-        (ModuleName.to_functor_arg (`Event event_t))
-        (ModuleName.to_module_name t.body_m)
+        (ModuleName.to_functor_arg t.event_name (`Event t.event_value))
+        (ModuleName.to_module_name t.body_name)
   end
 
 
@@ -151,6 +152,5 @@ module LeafNodes = struct
     | `Response of ResponseSpec.t
     | `Event of EventSpec.t
   ]
-
 
 end
