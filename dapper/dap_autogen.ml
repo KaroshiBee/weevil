@@ -101,6 +101,17 @@ module LeafNodes = struct
       args_name: module_name maybe_spec;
     }
 
+    let make ~module_js_ptr ~command_value ?args_js_ptr () =
+      let module_name = ModuleName.of_string ~js_ptr:module_js_ptr in
+      let command_value = String.capitalize_ascii command_value in
+      let args_name = args_js_ptr |> Option.map (function
+        | `Required js_ptr -> `Required (ModuleName.of_string ~js_ptr)
+        | `Optional js_ptr -> `Optional (ModuleName.of_string ~js_ptr)
+        | `None -> `None
+        ) |> Option.value ~default:`None
+      in
+      {module_name; command_value; args_name}
+
     let render t =
       match t.args_name with
       | `Required args_name ->
@@ -177,6 +188,17 @@ module LeafNodes = struct
       event_value: string;
       body_name: module_name maybe_spec;
     }
+
+    let make ~module_js_ptr ~event_value ?body_js_ptr () =
+      let module_name = ModuleName.of_string ~js_ptr:module_js_ptr in
+      let event_value = String.capitalize_ascii event_value in
+      let body_name = body_js_ptr |> Option.map (function
+        | `Required js_ptr -> `Required (ModuleName.of_string ~js_ptr)
+        | `Optional js_ptr -> `Optional (ModuleName.of_string ~js_ptr)
+        | `None -> `None
+        ) |> Option.value ~default:`None
+      in
+      {module_name; event_value; body_name}
 
     let render t =
       match t.body_name with
