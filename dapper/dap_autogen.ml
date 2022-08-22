@@ -16,7 +16,8 @@ module ModuleName = struct
       path
       |> List.filter_map (fun el ->
           match el with
-          | `Star | `Index _ | `Next -> None
+          | `Star | `Next -> None
+          | `Index n -> Some (string_of_int n)
           | `Field f -> (
               match f with
               | "definitions" | "allOf" | "oneOf" | "items" | "_enum" | "properties" -> None
@@ -253,7 +254,7 @@ module LeafNodes = struct
     inner_type: ModuleName.t;
   }
 
-  type ref_specs = {
+  type name_type_specs = {
     field_name: ModuleName.t;
     field_type: ModuleName.t;
   }
@@ -267,7 +268,9 @@ module LeafNodes = struct
     (* | `CyclicObject of object_specs
      * | `LargeObject of object_specs *)
     | `Array of array_specs
-    | `Ref of ref_specs
+    | `Ref of name_type_specs
+    | `AllOf of name_type_specs list
+    | `OneOf of name_type_specs list
     | `Request of RequestSpec.t
     | `Response of ResponseSpec.t
     | `Event of EventSpec.t
@@ -296,7 +299,7 @@ module Dfs = struct
 
   let add_sorted_module_name t ~path ~desc =
     (* adds to the _KEY list for topo sort of all names, *)
-    let empty = [] in (* (ModuleName.of_string ~js_ptr:"Command", "command enum"); (ModuleName.of_string ~js_ptr:"Event", "event enum")] in *)
+    let empty = [] in
     let mname = ModuleName.of_path ~path in
     let module_names = match (Data.find_opt t _KEY |> Option.value ~default:(SortedModuleNames empty)) with
       | SortedModuleNames names -> (mname, desc) :: names
@@ -379,30 +382,37 @@ module Dfs = struct
        only want to recurse down into the defn if it is not already being/been visited *)
     let dfn = Q.json_pointer_of_path path in
 
-    Logs.debug (fun m -> m "process dfn start: '%s'\n"  dfn);
-    (* check is valid name by finding the definition *)
-    let schema = Json_schema.of_json schema_js in
-    let element = find_definition dfn schema in
-    (* if added new one then recurse too *)
-    if check_and_add_visited t ~path dfn then (
-      process_element t ~schema_js ~path element;
-      add_sorted_module_name t ~path ~desc:"definition";
-    ) else (
-      Logs.debug (fun m -> m "already visited: '%s'\n"  dfn);
-    );
-    Logs.debug (fun m -> m "process dfn end: '%s'\n"  dfn);
+    Logs.debug (fun m -> m "process dfn start: '%s'"  dfn);
+    match dfn with
+    | "/definitions/ProtocolMessage" | "/definitions/Request" | "/definitions/Event" | "/definitions/Response" ->
+      Logs.debug (fun m -> m "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!special case: '%s'"  dfn)
+    | _ -> (
+        (* check is valid name by finding the definition *)
+        let schema = Json_schema.of_json schema_js in
+        let element = find_definition dfn schema in
+        (* if added new one then recurse too *)
+        if check_and_add_visited t ~path dfn then (
+          Logs.debug (fun m -> m "visiting: '%s'"  dfn);
+          process_element t ~schema_js ~path element;
+          (* add_sorted_module_name t ~path ~desc:"definition"; *)
+          Logs.debug (fun m -> m "finished: '%s'"  dfn)
+        ) else (
+          Logs.debug (fun m -> m "already visited: '%s'"  dfn)
+        )
+      );
+    Logs.debug (fun m -> m "process dfn end: '%s'"  dfn)
 
 
   and process_element t ~schema_js ~path el =
     (* TODO can get proper enums here, still need to qry for _enums *)
-    Logs.debug (fun m -> m "process element under '%s'\n"  (Q.json_pointer_of_path ~wildcards:true path));
+    Logs.debug (fun m -> m "process element under '%s'"  (Q.json_pointer_of_path ~wildcards:true path));
     let enums = el.enum |> Option.value ~default:[] in
     let enums = enums |> List.map Json_repr.from_any |> List.map Ezjsonm.decode_string_exn in
     let n = List.length enums in
     if n > 0 then (
-      Logs.info (fun m -> m "element under '%s' has enum [%s]"
-                    (Q.json_pointer_of_path ~wildcards:true path)
-                    (enums |> String.concat ", "));
+      Logs.debug (fun m -> m "element under '%s' has enum [%s]"
+                     (Q.json_pointer_of_path ~wildcards:true path)
+                     (enums |> String.concat ", "));
       let module_name = ModuleName.of_path ~path in
       let enums = enums |> List.map (fun field_name -> Enum_spec.make ~field_name ()) in
       if ModuleName.is_command module_name then (
@@ -419,8 +429,8 @@ module Dfs = struct
         add_sorted_module_name t ~path ~desc:"enum"
       )
       else (
-        Logs.info (fun m -> m "Ignoring element under '%s'"
-                      (Q.json_pointer_of_path ~wildcards:true path))
+        Logs.debug (fun m -> m "Ignoring element under '%s'"
+                       (Q.json_pointer_of_path ~wildcards:true path))
       )
     ) else (
       process_kind t ~schema_js ~path el.kind
@@ -434,7 +444,7 @@ module Dfs = struct
         assert (0 = min_properties);
         assert (Option.is_none max_properties);
         assert (Option.is_some additional_properties);
-        Logs.debug (fun m -> m "process object with %d properties under '%s'\n"  (List.length properties) (Q.json_pointer_of_path ~wildcards:true path));
+        Logs.debug (fun m -> m "process object with %d properties under '%s'"  (List.length properties) (Q.json_pointer_of_path ~wildcards:true path));
         if List.length properties = 0 then
           (* TODO append EmptyObject, dont need to call process_property  *)
           let leaf = `EmptyObject in
@@ -443,7 +453,7 @@ module Dfs = struct
         else (
           properties
           |> List.iter (fun (pname, ty, _required, _extra) ->
-              Logs.debug (fun m -> m "process property '%s' under '%s'\n"  pname (Q.json_pointer_of_path ~wildcards:true path));
+              Logs.debug (fun m -> m "process property '%s' under '%s'"  pname (Q.json_pointer_of_path ~wildcards:true path));
               let new_path = path @ [`Field "properties"; `Field pname ] in
               process_element t ~schema_js ~path:new_path ty
             );
@@ -468,7 +478,7 @@ module Dfs = struct
         assert (Option.is_none max_items);
         assert (not unique_items);
         assert (Option.is_none additional_items);
-        Logs.debug (fun m -> m "process mono-morphic array under '%s'\n"  (Q.json_pointer_of_path ~wildcards:true path));
+        Logs.debug (fun m -> m "process mono-morphic array under '%s'"  (Q.json_pointer_of_path ~wildcards:true path));
         let new_path = path @ [`Field "items"] in
         process_element t ~schema_js ~path:new_path element;
         (* TODO should now be able to make the array specs *)
@@ -481,33 +491,81 @@ module Dfs = struct
     | Combine (c, elements) -> (
         match c with
         | All_of -> (
-            Logs.debug (fun m -> m "process combination allOf with %d elements under '%s'\n"  (List.length elements) (Q.json_pointer_of_path ~wildcards:true path));
+            Logs.debug (fun m -> m "process combination allOf with %d elements under '%s'"  (List.length elements) (Q.json_pointer_of_path ~wildcards:true path));
             elements
             |> List.iteri (fun i el ->
                 let new_path = path @ [`Field "allOf"; `Index i] in
                 process_element t ~schema_js ~path:new_path el;
-              )
-            (* TODO make an all_of thingy after filter out Request/Response/Event/ProtocolMessage refs  *)
+              );
+            (* make an all_of thingy after filter out Request/Response/Event/ProtocolMessage refs  *)
+            let nts =
+              elements
+              |> List.mapi (fun i _el ->
+                  let new_path = path @ [`Field "allOf"; `Index i] in
+                  let field_name = ModuleName.of_path ~path in
+                  let field_type = ModuleName.of_path ~path:new_path in
+                  ({field_name; field_type} : LeafNodes.name_type_specs)
+                )
+            in
+            let leaf = `AllOf nts in
+            add_leaf_node t ~path ~leaf;
+            add_sorted_module_name t ~path ~desc:"allof";
           )
         | One_of -> (
-            Logs.debug (fun m -> m "process combination oneOf with %d elements under '%s'\n"  (List.length elements) (Q.json_pointer_of_path ~wildcards:true path));
+            Logs.info (fun m -> m "process combination oneOf with %d elements under '%s'"  (List.length elements) (Q.json_pointer_of_path ~wildcards:true path));
             elements
             |> List.iteri (fun i el ->
                 let new_path = path @ [`Field "oneOf"; `Index i] in
                 process_element t ~schema_js ~path:new_path el;
-              )
+              );
+            let nts =
+              elements
+              |> List.mapi (fun i _el ->
+                  let new_path = path @ [`Field "oneOf"; `Index i] in
+                  let field_name = ModuleName.of_path ~path in
+                  let field_type = ModuleName.of_path ~path:new_path in
+                  ({field_name; field_type} : LeafNodes.name_type_specs)
+                )
+            in
+            let leaf = `OneOf nts in
+            add_leaf_node t ~path ~leaf;
+            add_sorted_module_name t ~path ~desc:"oneof";
           )
-        | Any_of -> Logs.debug (fun m -> m "TODO combinator ANY_OF @ %s" (Q.json_pointer_of_path ~wildcards:true path))
+        | Any_of -> (
+            Logs.info (fun m -> m "TODO combinator ANY_OF @ %s with %d choices" (Q.json_pointer_of_path ~wildcards:true path) (List.length elements));
+            let names = elements
+            |> List.map (fun el -> match el.kind with
+                | Monomorphic_array _ -> "array"
+                | Boolean -> "boolean"
+                | Integer _ -> "integer"
+                | Null -> "null"
+                | Number _ -> "number"
+                | Object _ -> "object"
+                | String _ -> "string"
+                | _ -> failwith "unknown AnyOf name"
+              )
+            |> List.sort (String.compare)
+            in
+            (* TODO be better *)
+            let leaf : LeafNodes.t =
+              match (String.concat "," names) with
+              | "array,boolean,integer,null,number,object,string" -> `Json
+              | _ -> `Field {encoder="string"}
+            in
+            add_leaf_node t ~path ~leaf;
+            add_sorted_module_name t ~path ~desc:"anyof";
+          )
         | Not -> let _ = failwith (Printf.sprintf "TODO combinator NOT @ %s" (Q.json_pointer_of_path ~wildcards:true path)) in ()
       )
     | Def_ref ref_path -> (
-        Logs.debug (fun m -> m "Dependencies - def_ref: path '%s', ref_path: '%s'" (Q.json_pointer_of_path path) (Q.json_pointer_of_path ref_path));
+        let ref_path_str = Q.json_pointer_of_path ref_path in
+        Logs.debug (fun m -> m "Dependencies - def_ref: path '%s', ref_path: '%s'" (Q.json_pointer_of_path path) ref_path_str);
         process_definition t ~schema_js ~path:ref_path;
         let field_name = ModuleName.of_path ~path in
         let field_type = ModuleName.of_path ~path:ref_path in
         let leaf = LeafNodes.(`Ref {field_name; field_type}) in
         add_leaf_node t ~path ~leaf;
-        add_sorted_module_name t ~path ~desc:"ref";
+        add_sorted_module_name t ~path ~desc:"ref"
       )
 
     | Id_ref _ -> let _ = failwith "TODO Id_ref" in ()
@@ -536,7 +594,7 @@ module Dfs = struct
     let t = Data.create 500 in
     (* NOTE know all /definitions/ are objects and are the only top-level things *)
     let ns = Q.query [`Field "definitions"] schema_js |> names in
-    Logs.debug (fun m -> m "\n\nprocessing '%d' names\n" @@ List.length ns);
+    Logs.debug (fun m -> m "\n\nprocessing '%d' names" @@ List.length ns);
     ns |> List.iter (fun nm ->
         let path = [`Field "definitions"; `Field nm]
         in process_definition t ~schema_js ~path
