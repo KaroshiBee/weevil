@@ -270,24 +270,44 @@ module Dfs = struct
   module Data = Hashtbl.Make(struct type t = string let equal = String.equal let hash = Hashtbl.hash end)
 
   let _KEY = "sorted_module_names"
+  let _VISITED = "visited"
   let _EL = "elements"
 
   type el =
     | SortedModuleNames of (ModuleName.t*string) list
-    | Visited of ModuleName.t
+    | Visited of ModuleName.t Data.t
     | Leaves of LeafNodes.t Data.t
 
   type t = el Data.t
 
   let add_sorted_module_name t ~path ~desc =
     (* adds to the _KEY list for topo sort of all names, *)
+    let empty = [] in
     let mname = ModuleName.of_path ~path in
-    let module_names = match (Data.find_opt t _KEY |> Option.value ~default:(SortedModuleNames [])) with
+    let module_names = match (Data.find_opt t _KEY |> Option.value ~default:(SortedModuleNames empty)) with
       | SortedModuleNames names -> (mname, desc) :: names
-      | Visited _ -> []
-      | Leaves _ -> []
+      | Visited _ -> empty
+      | Leaves _ -> empty
     in
     Data.replace t _KEY (SortedModuleNames module_names)
+
+  let check_and_add_visited t ~path dfn =
+    (* add to the visited tbl if not already there,
+       returns whether a new one was added  *)
+    let empty = Data.create 500 in
+    let added_new, visited = match (Data.find_opt t _VISITED |> Option.value ~default:(Visited empty)) with
+      | SortedModuleNames _ -> (false, empty)
+      | Visited vs ->
+        let is_present = Data.mem vs dfn in
+        if not is_present then (
+          let mname = ModuleName.of_path ~path in
+          Data.replace vs dfn mname;
+          (true, vs)
+        ) else (false, vs)
+      | Leaves _ -> (false, empty)
+    in
+    Data.replace t _VISITED (Visited visited);
+    added_new
 
   let add_leaf_node t ~path ~leaf =
     let empty = Data.create 500 in
@@ -299,21 +319,19 @@ module Dfs = struct
     Data.replace t _EL (Leaves ls)
 
 
-  let rec process_dfn t ~schema_js ~path =
+  let rec process_definition t ~schema_js ~path =
     (* this will be a *Request/*Response/*Event/Object top level definition
        will want to ignore base class ProtocolMessage, Request, Response, Event types
-       as they are handled with the functors above *)
-    let dfn = Q.json_pointer_of_path ~wildcards:true path in
+       as they are handled with the functors above
+       only want to recurse down into the defn if it is not already being/been visited *)
+    let dfn = Q.json_pointer_of_path path in
 
     Logs.debug (fun m -> m "process dfn start: '%s'\n"  dfn);
-    (* check is valid name *)
+    (* check is valid name by finding the definition *)
     let schema = Json_schema.of_json schema_js in
     let element = find_definition dfn schema in
-    (* if already visited then dont recurse *)
-    (* but add to the topo sort anyway *)
-    if not @@ Data.mem t dfn then (
-      let mname = ModuleName.of_path ~path in
-      Data.replace t dfn (Visited mname);
+    (* if added new one then recurse too *)
+    if check_and_add_visited t ~path dfn then (
       process_element t ~schema_js ~path element;
       add_sorted_module_name t ~path ~desc:"definition";
     ) else (
@@ -350,7 +368,7 @@ module Dfs = struct
         Logs.debug (fun m -> m "process object with %d properties under '%s'\n"  (List.length properties) (Q.json_pointer_of_path ~wildcards:true path));
         if List.length properties = 0 then
           (* TODO append EmptyObject, dont need to call process_property  *)
-          let leaf = LeafNodes.(`EmptyObject) in
+          let leaf = `EmptyObject in
           add_leaf_node t ~path ~leaf
         else
           properties
@@ -394,7 +412,7 @@ module Dfs = struct
       )
     | Def_ref ref_path -> (
         Logs.debug (fun m -> m "Dependencies - def_ref: path '%s', ref_path: '%s'" (Q.json_pointer_of_path path) (Q.json_pointer_of_path ref_path));
-        process_dfn t ~schema_js ~path:ref_path;
+        process_definition t ~schema_js ~path:ref_path;
       )
 
     | Id_ref _ -> let _ = failwith "TODO Id_ref" in ()
@@ -423,7 +441,7 @@ module Dfs = struct
     Logs.debug (fun m -> m "\n\nprocessing '%d' names\n" @@ List.length ns);
     ns |> List.iter (fun nm ->
         let path = [`Field "definitions"; `Field nm]
-        in process_dfn t ~schema_js ~path
+        in process_definition t ~schema_js ~path
       );
     t
 
