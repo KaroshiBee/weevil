@@ -75,7 +75,7 @@ module Enum_spec = struct
 end
 
 
-module Field_spec = struct
+module Prop_spec = struct
   type field_name = string
   type t = {
     safe_name: field_name; (* safe to use as an ocaml record name *)
@@ -92,163 +92,166 @@ module Field_spec = struct
     make ~field_name ~required ~is_cyclic:true ()
 end
 
+type 'a maybe_spec = [ `Required of 'a | `Optional of 'a | `None]
+
+
+module RequestSpec = struct
+
+  type t = {
+    module_name: ModuleName.t;
+    command_value: string;
+    args_name: ModuleName.t maybe_spec;
+  }
+
+  let make ~module_js_ptr ~command_value ?args_js_ptr () =
+    let module_name = ModuleName.of_string ~js_ptr:module_js_ptr in
+    let command_value = String.capitalize_ascii command_value in
+    let args_name = args_js_ptr |> Option.map (function
+        | `Required js_ptr -> `Required (ModuleName.of_string ~js_ptr)
+        | `Optional js_ptr -> `Optional (ModuleName.of_string ~js_ptr)
+        | `None -> `None
+      ) |> Option.value ~default:`None
+    in
+    {module_name; command_value; args_name}
+
+  let render t =
+    match t.args_name with
+    | `Required args_name ->
+      Printf.sprintf
+        "module %s = MakeRequest (%s) (%s)"
+        (ModuleName.to_module_name t.module_name)
+        (ModuleName.to_functor_arg (`Command t.command_value))
+        (ModuleName.to_module_name args_name)
+    | `Optional args_name ->
+      Printf.sprintf
+        "module %s = MakeRequest_optionalArgs (%s) (%s)"
+        (ModuleName.to_module_name t.module_name)
+        (ModuleName.to_functor_arg (`Command t.command_value))
+        (ModuleName.to_module_name args_name)
+    | `None ->
+      Printf.sprintf
+        "module %s = MakeRequest_optionalArgs (%s) (%s)"
+        (ModuleName.to_module_name t.module_name)
+        (ModuleName.to_functor_arg (`Command t.command_value))
+        _EMPTY_OBJECT
+end
+
+module ResponseSpec = struct
+  type t = {
+    module_name: ModuleName.t;
+    command_value: string;
+    body_name: ModuleName.t maybe_spec;
+  }
+
+  (* NOTE have to extract response command value from module name *)
+  let make ~module_js_ptr ?body_js_ptr () =
+    let module_name = ModuleName.of_string ~js_ptr:module_js_ptr in
+    let command_value =
+      let mname = ModuleName.to_module_name module_name in
+      match Stringext.cut mname ~on:"Response" with
+      | Some (value, _) -> value
+      | None -> failwith (Printf.sprintf "Incorrect Response name %s" mname)
+    in
+    let body_name = body_js_ptr |> Option.map (function
+        | `Required js_ptr -> `Required (ModuleName.of_string ~js_ptr)
+        | `Optional js_ptr -> `Optional (ModuleName.of_string ~js_ptr)
+        | `None -> `None
+      ) |> Option.value ~default:`None
+    in
+    {module_name; command_value; body_name}
+
+
+  let render t =
+    match t.body_name with
+    | `Required body_name ->
+      Printf.sprintf
+        "module %s = MakeResponse (%s) (%s)"
+        (ModuleName.to_module_name t.module_name)
+        (ModuleName.to_functor_arg (`Command t.command_value))
+        (ModuleName.to_module_name body_name)
+    | `Optional body_name ->
+      Printf.sprintf
+        "module %s = MakeResponse_optionalBody (%s) (%s)"
+        (ModuleName.to_module_name t.module_name)
+        (ModuleName.to_functor_arg (`Command t.command_value))
+        (ModuleName.to_module_name body_name)
+    | `None ->
+      Printf.sprintf
+        "module %s = MakeResponse_optionalBody (%s) (%s)"
+        (ModuleName.to_module_name t.module_name)
+        (ModuleName.to_functor_arg (`Command t.command_value))
+        _EMPTY_OBJECT
+
+end
+
+module EventSpec = struct
+  type t = {
+    module_name: ModuleName.t;
+    event_value: string;
+    body_name: ModuleName.t maybe_spec;
+  }
+
+  let make ~module_js_ptr ~event_value ?body_js_ptr () =
+    let module_name = ModuleName.of_string ~js_ptr:module_js_ptr in
+    let event_value = String.capitalize_ascii event_value in
+    let body_name = body_js_ptr |> Option.map (function
+        | `Required js_ptr -> `Required (ModuleName.of_string ~js_ptr)
+        | `Optional js_ptr -> `Optional (ModuleName.of_string ~js_ptr)
+        | `None -> `None
+      ) |> Option.value ~default:`None
+    in
+    {module_name; event_value; body_name}
+
+  let render t =
+    match t.body_name with
+    | `Required body_name ->
+      Printf.sprintf
+        "module %s = MakeEvent (%s) (%s)"
+        (ModuleName.to_module_name t.module_name)
+        (ModuleName.to_functor_arg (`Event t.event_value))
+        (ModuleName.to_module_name body_name)
+    | `Optional body_name ->
+      Printf.sprintf
+        "module %s = MakeEvent_optionalBody (%s) (%s)"
+        (ModuleName.to_module_name t.module_name)
+        (ModuleName.to_functor_arg (`Event t.event_value))
+        (ModuleName.to_module_name body_name)
+    | `None ->
+      Printf.sprintf
+        "module %s = MakeEvent_optionalBody (%s) (%s)"
+        (ModuleName.to_module_name t.module_name)
+        (ModuleName.to_functor_arg (`Event t.event_value))
+        _EMPTY_OBJECT
+
+end
+
+
 
 module LeafNodes = struct
 
-  type module_name = ModuleName.t
   type specs = {
-    module_name: module_name
+    encoder: string
   }
+
   type enum_specs = {
-    module_name: module_name;
+    module_name: ModuleName.t;
     enums: Enum_spec.t list;
   }
   type object_specs = {
-    module_name: module_name;
-    fields: Field_spec.t list;
+    module_name: ModuleName.t;
+    fields: Prop_spec.t list;
   }
   type array_specs = {
-    field_name: Field_spec.t;
-    inner_type: module_name;
+    field_name: Prop_spec.t;
+    inner_type: ModuleName.t;
   }
-
-  type 'a maybe_spec = [ `Required of 'a | `Optional of 'a | `None]
-
-  module RequestSpec = struct
-
-    type t = {
-      module_name: module_name;
-      command_value: string;
-      args_name: module_name maybe_spec;
-    }
-
-    let make ~module_js_ptr ~command_value ?args_js_ptr () =
-      let module_name = ModuleName.of_string ~js_ptr:module_js_ptr in
-      let command_value = String.capitalize_ascii command_value in
-      let args_name = args_js_ptr |> Option.map (function
-        | `Required js_ptr -> `Required (ModuleName.of_string ~js_ptr)
-        | `Optional js_ptr -> `Optional (ModuleName.of_string ~js_ptr)
-        | `None -> `None
-        ) |> Option.value ~default:`None
-      in
-      {module_name; command_value; args_name}
-
-    let render t =
-      match t.args_name with
-      | `Required args_name ->
-        Printf.sprintf
-          "module %s = MakeRequest (%s) (%s)"
-          (ModuleName.to_module_name t.module_name)
-          (ModuleName.to_functor_arg (`Command t.command_value))
-          (ModuleName.to_module_name args_name)
-      | `Optional args_name ->
-        Printf.sprintf
-          "module %s = MakeRequest_optionalArgs (%s) (%s)"
-          (ModuleName.to_module_name t.module_name)
-          (ModuleName.to_functor_arg (`Command t.command_value))
-          (ModuleName.to_module_name args_name)
-      | `None ->
-        Printf.sprintf
-          "module %s = MakeRequest_optionalArgs (%s) (%s)"
-          (ModuleName.to_module_name t.module_name)
-          (ModuleName.to_functor_arg (`Command t.command_value))
-          _EMPTY_OBJECT
-  end
-
-  module ResponseSpec = struct
-    type t = {
-      module_name: module_name;
-      command_value: string;
-      body_name: module_name maybe_spec;
-    }
-
-    (* NOTE have to extract response command value from module name *)
-    let make ~module_js_ptr ?body_js_ptr () =
-      let module_name = ModuleName.of_string ~js_ptr:module_js_ptr in
-      let command_value =
-        let mname = ModuleName.to_module_name module_name in
-        match Stringext.cut mname ~on:"Response" with
-        | Some (value, _) -> value
-        | None -> failwith (Printf.sprintf "Incorrect Response name %s" mname)
-      in
-      let body_name = body_js_ptr |> Option.map (function
-        | `Required js_ptr -> `Required (ModuleName.of_string ~js_ptr)
-        | `Optional js_ptr -> `Optional (ModuleName.of_string ~js_ptr)
-        | `None -> `None
-        ) |> Option.value ~default:`None
-      in
-      {module_name; command_value; body_name}
-
-
-    let render t =
-      match t.body_name with
-      | `Required body_name ->
-        Printf.sprintf
-          "module %s = MakeResponse (%s) (%s)"
-          (ModuleName.to_module_name t.module_name)
-          (ModuleName.to_functor_arg (`Command t.command_value))
-          (ModuleName.to_module_name body_name)
-      | `Optional body_name ->
-        Printf.sprintf
-          "module %s = MakeResponse_optionalBody (%s) (%s)"
-          (ModuleName.to_module_name t.module_name)
-          (ModuleName.to_functor_arg (`Command t.command_value))
-          (ModuleName.to_module_name body_name)
-      | `None ->
-        Printf.sprintf
-          "module %s = MakeResponse_optionalBody (%s) (%s)"
-          (ModuleName.to_module_name t.module_name)
-          (ModuleName.to_functor_arg (`Command t.command_value))
-          _EMPTY_OBJECT
-
-  end
-
-  module EventSpec = struct
-    type t = {
-      module_name: module_name;
-      event_value: string;
-      body_name: module_name maybe_spec;
-    }
-
-    let make ~module_js_ptr ~event_value ?body_js_ptr () =
-      let module_name = ModuleName.of_string ~js_ptr:module_js_ptr in
-      let event_value = String.capitalize_ascii event_value in
-      let body_name = body_js_ptr |> Option.map (function
-        | `Required js_ptr -> `Required (ModuleName.of_string ~js_ptr)
-        | `Optional js_ptr -> `Optional (ModuleName.of_string ~js_ptr)
-        | `None -> `None
-        ) |> Option.value ~default:`None
-      in
-      {module_name; event_value; body_name}
-
-    let render t =
-      match t.body_name with
-      | `Required body_name ->
-        Printf.sprintf
-          "module %s = MakeEvent (%s) (%s)"
-          (ModuleName.to_module_name t.module_name)
-          (ModuleName.to_functor_arg (`Event t.event_value))
-          (ModuleName.to_module_name body_name)
-      | `Optional body_name ->
-        Printf.sprintf
-          "module %s = MakeEvent_optionalBody (%s) (%s)"
-          (ModuleName.to_module_name t.module_name)
-          (ModuleName.to_functor_arg (`Event t.event_value))
-          (ModuleName.to_module_name body_name)
-      | `None ->
-        Printf.sprintf
-          "module %s = MakeEvent_optionalBody (%s) (%s)"
-          (ModuleName.to_module_name t.module_name)
-          (ModuleName.to_functor_arg (`Event t.event_value))
-          _EMPTY_OBJECT
-
-  end
 
 
   type t = [
     | `Json
+    | `EmptyObject
+    | `Field of specs (* final string, int, number etc *)
     | `Enum of enum_specs (* _enum already dealt with *)
-    | `EmptyObject of specs
     | `Object of object_specs
     (* | `CyclicObject of object_specs
      * | `LargeObject of object_specs *)
@@ -272,27 +275,28 @@ module Dfs = struct
   type el =
     | SortedModuleNames of (ModuleName.t*string) list
     | Visited of ModuleName.t
-    | El of LeafNodes.t list
+    | Leaves of LeafNodes.t Data.t
 
   type t = el Data.t
 
-  let add_definition t ~path ~desc=
+  let add_sorted_module_name t ~path ~desc =
     (* adds to the _KEY list for topo sort of all names, *)
     let mname = ModuleName.of_path ~path in
     let module_names = match (Data.find_opt t _KEY |> Option.value ~default:(SortedModuleNames [])) with
       | SortedModuleNames names -> (mname, desc) :: names
       | Visited _ -> []
-      | El _ -> []
+      | Leaves _ -> []
     in
     Data.replace t _KEY (SortedModuleNames module_names)
 
-  let add_el t ~el =
-    let els = match (Data.find_opt t _EL |> Option.value ~default:(El [])) with
-      | SortedModuleNames _ -> []
-      | Visited _ -> []
-      | El els -> el :: els
+  let add_leaf_node t ~path ~leaf =
+    let empty = Data.create 500 in
+    let ls = match (Data.find_opt t _EL |> Option.value ~default:(Leaves empty)) with
+      | SortedModuleNames _ -> empty
+      | Visited _ -> empty
+      | Leaves ls -> Data.replace ls (Q.json_pointer_of_path path) leaf; ls
     in
-    Data.replace t _EL (El els)
+    Data.replace t _EL (Leaves ls)
 
 
   let rec process_dfn t ~schema_js ~path =
@@ -311,7 +315,7 @@ module Dfs = struct
       let mname = ModuleName.of_path ~path in
       Data.replace t dfn (Visited mname);
       process_element t ~schema_js ~path element;
-      add_definition t ~path ~desc:"definition";
+      add_sorted_module_name t ~path ~desc:"definition";
     ) else (
       Logs.debug (fun m -> m "already visited: '%s'\n"  dfn);
     );
@@ -329,8 +333,8 @@ module Dfs = struct
                     (enums |> String.concat ", "));
       let module_name = ModuleName.of_path ~path in
       let enums = enums |> List.map (fun field_name -> Enum_spec.make ~field_name ()) in
-      let el = LeafNodes.(`Enum {module_name; enums}) in
-      add_el t ~el
+      let leaf = LeafNodes.(`Enum {module_name; enums}) in
+      add_leaf_node t ~path ~leaf
     ) else (
       process_kind t ~schema_js ~path el.kind
     )
@@ -346,9 +350,8 @@ module Dfs = struct
         Logs.debug (fun m -> m "process object with %d properties under '%s'\n"  (List.length properties) (Q.json_pointer_of_path ~wildcards:true path));
         if List.length properties = 0 then
           (* TODO append EmptyObject, dont need to call process_property  *)
-          let module_name = ModuleName.of_path ~path in
-          let el = LeafNodes.(`EmptyObject {module_name}) in
-          add_el t ~el
+          let leaf = LeafNodes.(`EmptyObject) in
+          add_leaf_node t ~path ~leaf
         else
           properties
           |> List.iter (fun (pname, ty, _required, _extra) ->
@@ -396,10 +399,10 @@ module Dfs = struct
 
     | Id_ref _ -> let _ = failwith "TODO Id_ref" in ()
     | Ext_ref _ -> let _ = failwith "TODO Ext_ref" in ()
-    | String _ as _s -> ()
-    | Integer _ -> () (* failwith "TODO Integer" *)
-    | Number _ -> () (* failwith "TODO Number" *)
-    | Boolean -> () (* failwith "TODO Boolean" *)
+    | String _ as _s -> add_leaf_node t ~path ~leaf:LeafNodes.(`Field {encoder="string"})
+    | Integer _ -> add_leaf_node t ~path ~leaf:LeafNodes.(`Field {encoder="int64"})
+    | Number _ -> add_leaf_node t ~path ~leaf:LeafNodes.(`Field {encoder="int64"})
+    | Boolean -> add_leaf_node t ~path ~leaf:LeafNodes.(`Field {encoder="bool"})
     | Null -> let _ = failwith "TODO Null" in ()
     | Any -> let _ = failwith "TODO Any" in ()
     | Dummy -> let _ = failwith "TODO Dummy" in ()
@@ -415,7 +418,7 @@ module Dfs = struct
       | _ -> []
     in
     let t = Data.create 500 in
-    (* NOTE know all /definitions/ are objects *)
+    (* NOTE know all /definitions/ are objects and are the only top-level things *)
     let ns = Q.query [`Field "definitions"] schema_js |> names in
     Logs.debug (fun m -> m "\n\nprocessing '%d' names\n" @@ List.length ns);
     ns |> List.iter (fun nm ->
@@ -428,7 +431,7 @@ module Dfs = struct
     match Data.find_opt t _KEY |> Option.value ~default:(SortedModuleNames []) with
     | SortedModuleNames xs -> xs |> List.rev
     | Visited _ -> []
-    | El _ -> []
+    | Leaves _ -> []
 
 
 end
