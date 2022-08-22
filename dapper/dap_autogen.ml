@@ -52,6 +52,12 @@ module ModuleName = struct
     | `Command command_value -> Printf.sprintf "struct let command=%s.%s end" _COMMAND command_value
     | `Event event_value -> Printf.sprintf "struct let event=%s.%s end" _EVENT event_value
 
+  let is_command t =
+    String.equal t.safe_name _COMMAND
+
+  let is_event t =
+    String.equal t.safe_name _EVENT
+
 end
 
 
@@ -274,26 +280,31 @@ module Dfs = struct
   let _EL = "elements"
 
   type el =
-    | SortedModuleNames of (ModuleName.t*string) list
-    | Visited of ModuleName.t Data.t
-    | Leaves of LeafNodes.t Data.t
+    | SortedModuleNames of (ModuleName.t*string) list (* under _KEY *)
+    | Visited of ModuleName.t Data.t (* under _VISITED *)
+    | Leaves of LeafNodes.t Data.t (* under _EL *)
+    | Command of LeafNodes.enum_specs (* under _COMMAND *)
+    | Event of LeafNodes.enum_specs (* under _EVENT *)
 
   type t = el Data.t
 
   let add_sorted_module_name t ~path ~desc =
     (* adds to the _KEY list for topo sort of all names, *)
-    let empty = [] in
+    let empty = [] in (* (ModuleName.of_string ~js_ptr:"Command", "command enum"); (ModuleName.of_string ~js_ptr:"Event", "event enum")] in *)
     let mname = ModuleName.of_path ~path in
     let module_names = match (Data.find_opt t _KEY |> Option.value ~default:(SortedModuleNames empty)) with
       | SortedModuleNames names -> (mname, desc) :: names
       | Visited _ -> empty
       | Leaves _ -> empty
+      | Command _ -> empty
+      | Event _ -> empty
     in
     Data.replace t _KEY (SortedModuleNames module_names)
 
   let check_and_add_visited t ~path dfn =
     (* add to the visited tbl if not already there,
-       returns whether a new one was added  *)
+       returns whether a new one was added,
+       dfn that result in a Command or Event get added under their full path *)
     let empty = Data.create 500 in
     let added_new, visited = match (Data.find_opt t _VISITED |> Option.value ~default:(Visited empty)) with
       | SortedModuleNames _ -> (false, empty)
@@ -305,6 +316,8 @@ module Dfs = struct
           (true, vs)
         ) else (false, vs)
       | Leaves _ -> (false, empty)
+      | Command _ -> (false, empty)
+      | Event _ -> (false, empty)
     in
     Data.replace t _VISITED (Visited visited);
     added_new
@@ -315,8 +328,42 @@ module Dfs = struct
       | SortedModuleNames _ -> empty
       | Visited _ -> empty
       | Leaves ls -> Data.replace ls (Q.json_pointer_of_path path) leaf; ls
+      | Command _ -> empty
+      | Event _ -> empty
     in
     Data.replace t _EL (Leaves ls)
+
+  let append_to_command_enum_node t ~enums =
+    let open LeafNodes in
+    let empty : enum_specs = {
+      module_name=(ModuleName.of_string ~js_ptr:("/"^_COMMAND));
+      enums=[];
+    } in
+
+    let xs = match (Data.find_opt t _COMMAND |> Option.value ~default:(Command empty)) with
+      | SortedModuleNames _ -> empty
+      | Visited _ -> empty
+      | Leaves _ -> empty
+      | Command es -> {es with enums=es.enums @ enums}
+      | Event _ -> empty
+    in
+    Data.replace t _COMMAND (Command xs)
+
+  let append_to_event_enum_node t ~enums =
+    let open LeafNodes in
+    let empty : enum_specs = {
+      module_name=(ModuleName.of_string ~js_ptr:("/"^_EVENT));
+      enums=[];
+    } in
+
+    let xs = match (Data.find_opt t _EVENT |> Option.value ~default:(Event empty)) with
+      | SortedModuleNames _ -> empty
+      | Visited _ -> empty
+      | Leaves _ -> empty
+      | Command _ -> empty
+      | Event es -> {es with enums=es.enums @ enums}
+    in
+    Data.replace t _EVENT (Event xs)
 
 
   let rec process_definition t ~schema_js ~path =
@@ -345,14 +392,30 @@ module Dfs = struct
     Logs.debug (fun m -> m "process element under '%s'\n"  (Q.json_pointer_of_path ~wildcards:true path));
     let enums = el.enum |> Option.value ~default:[] in
     let enums = enums |> List.map Json_repr.from_any |> List.map Ezjsonm.decode_string_exn in
-    if List.length enums > 1 then (
+    let n = List.length enums in
+    if n > 0 then (
       Logs.info (fun m -> m "element under '%s' has enum [%s]"
                     (Q.json_pointer_of_path ~wildcards:true path)
                     (enums |> String.concat ", "));
       let module_name = ModuleName.of_path ~path in
       let enums = enums |> List.map (fun field_name -> Enum_spec.make ~field_name ()) in
-      let leaf = LeafNodes.(`Enum {module_name; enums}) in
-      add_leaf_node t ~path ~leaf
+      if ModuleName.is_command module_name then (
+        append_to_command_enum_node t ~enums
+        (* NOTE dont add to topo sort list *)
+      )
+      else if ModuleName.is_event module_name then (
+        append_to_event_enum_node t ~enums
+        (* NOTE dont add to topo sort list *)
+      )
+      else if n > 1 then (
+        let leaf = LeafNodes.(`Enum {module_name; enums}) in
+        add_leaf_node t ~path ~leaf;
+        add_sorted_module_name t ~path ~desc:"enum"
+      )
+      else (
+        Logs.info (fun m -> m "Ignoring element under '%s'"
+                      (Q.json_pointer_of_path ~wildcards:true path))
+      )
     ) else (
       process_kind t ~schema_js ~path el.kind
     )
@@ -369,7 +432,8 @@ module Dfs = struct
         if List.length properties = 0 then
           (* TODO append EmptyObject, dont need to call process_property  *)
           let leaf = `EmptyObject in
-          add_leaf_node t ~path ~leaf
+          add_leaf_node t ~path ~leaf;
+          add_sorted_module_name t ~path ~desc:"empty object";
         else
           properties
           |> List.iter (fun (pname, ty, _required, _extra) ->
@@ -393,7 +457,7 @@ module Dfs = struct
         | All_of -> (
             Logs.debug (fun m -> m "process combination allOf with %d elements under '%s'\n"  (List.length elements) (Q.json_pointer_of_path ~wildcards:true path));
             elements
-              |> List.iteri (fun i el ->
+            |> List.iteri (fun i el ->
                 let new_path = path @ [`Field "allOf"; `Index i] in
                 process_element t ~schema_js ~path:new_path el;
               )
@@ -402,7 +466,7 @@ module Dfs = struct
         | One_of -> (
             Logs.debug (fun m -> m "process combination oneOf with %d elements under '%s'\n"  (List.length elements) (Q.json_pointer_of_path ~wildcards:true path));
             elements
-              |> List.iteri (fun i el ->
+            |> List.iteri (fun i el ->
                 let new_path = path @ [`Field "oneOf"; `Index i] in
                 process_element t ~schema_js ~path:new_path el;
               )
@@ -417,10 +481,18 @@ module Dfs = struct
 
     | Id_ref _ -> let _ = failwith "TODO Id_ref" in ()
     | Ext_ref _ -> let _ = failwith "TODO Ext_ref" in ()
-    | String _ as _s -> add_leaf_node t ~path ~leaf:LeafNodes.(`Field {encoder="string"})
-    | Integer _ -> add_leaf_node t ~path ~leaf:LeafNodes.(`Field {encoder="int64"})
-    | Number _ -> add_leaf_node t ~path ~leaf:LeafNodes.(`Field {encoder="int64"})
-    | Boolean -> add_leaf_node t ~path ~leaf:LeafNodes.(`Field {encoder="bool"})
+    | String _ as _s ->
+      add_leaf_node t ~path ~leaf:LeafNodes.(`Field {encoder="string"});
+      add_sorted_module_name t ~path ~desc:"string field";
+    | Integer _ ->
+      add_leaf_node t ~path ~leaf:LeafNodes.(`Field {encoder="int64"});
+      add_sorted_module_name t ~path ~desc:"int field";
+    | Number _ ->
+      add_leaf_node t ~path ~leaf:LeafNodes.(`Field {encoder="int64"});
+      add_sorted_module_name t ~path ~desc:"number field";
+    | Boolean ->
+      add_leaf_node t ~path ~leaf:LeafNodes.(`Field {encoder="bool"});
+      add_sorted_module_name t ~path ~desc:"bool field";
     | Null -> let _ = failwith "TODO Null" in ()
     | Any -> let _ = failwith "TODO Any" in ()
     | Dummy -> let _ = failwith "TODO Dummy" in ()
@@ -446,10 +518,15 @@ module Dfs = struct
     t
 
   let topo_sorted t =
-    match Data.find_opt t _KEY |> Option.value ~default:(SortedModuleNames []) with
-    | SortedModuleNames xs -> xs |> List.rev
-    | Visited _ -> []
-    | Leaves _ -> []
+    let empty = [] in
+    let command_enum = match Data.find t _COMMAND with | Command specs -> specs | _ -> failwith "no Command enum found" in
+    let event_enum = match Data.find t _EVENT with | Event specs -> specs | _ -> failwith "no Event enum found" in
+    match Data.find_opt t _KEY |> Option.value ~default:(SortedModuleNames empty) with
+    | SortedModuleNames xs -> (command_enum.module_name, "command enum") :: (event_enum.module_name, "event enum") :: (xs |> List.rev)
+    | Visited _ -> empty
+    | Leaves _ -> empty
+    | Command _ -> empty
+    | Event _ -> empty
 
 
 end
