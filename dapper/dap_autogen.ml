@@ -86,16 +86,17 @@ module Prop_spec = struct
   type t = {
     safe_name: field_name; (* safe to use as an ocaml record name *)
     field_name: field_name; (* original field name as per spec *)
+    field_type: ModuleName.t;
     required: bool;
     is_cyclic: bool;
   }
 
-  let make ~field_name ?(required=true) ?(is_cyclic=false) () =
+  let make ~field_name ~field_type ?(required=true) ?(is_cyclic=false) () =
     let safe_name = _unweird_name field_name in
-    {safe_name; field_name; required; is_cyclic}
+    {safe_name; field_name; field_type; required; is_cyclic}
 
-  let make_cyclic ~field_name ?(required=true) () =
-    make ~field_name ~required ~is_cyclic:true ()
+  let make_cyclic ~field_name ~field_type ?(required=true) () =
+    make ~field_name ~field_type ~required ~is_cyclic:true ()
 end
 
 type 'a maybe_spec = [ `Required of 'a | `Optional of 'a | `None]
@@ -248,10 +249,14 @@ module LeafNodes = struct
     fields: Prop_spec.t list;
   }
   type array_specs = {
-    field_name: Prop_spec.t;
+    field_name: ModuleName.t;
     inner_type: ModuleName.t;
   }
 
+  type ref_specs = {
+    field_name: ModuleName.t;
+    field_type: ModuleName.t;
+  }
 
   type t = [
     | `Json
@@ -262,6 +267,7 @@ module LeafNodes = struct
     (* | `CyclicObject of object_specs
      * | `LargeObject of object_specs *)
     | `Array of array_specs
+    | `Ref of ref_specs
     | `Request of RequestSpec.t
     | `Response of ResponseSpec.t
     | `Event of EventSpec.t
@@ -434,12 +440,27 @@ module Dfs = struct
           let leaf = `EmptyObject in
           add_leaf_node t ~path ~leaf;
           add_sorted_module_name t ~path ~desc:"empty object";
-        else
+        else (
           properties
           |> List.iter (fun (pname, ty, _required, _extra) ->
-              process_property t ~schema_js ~path pname ty
-            )
-          (* TODO should now be able to make the object specs *)
+              Logs.debug (fun m -> m "process property '%s' under '%s'\n"  pname (Q.json_pointer_of_path ~wildcards:true path));
+              let new_path = path @ [`Field "properties"; `Field pname ] in
+              process_element t ~schema_js ~path:new_path ty
+            );
+
+          (* should now be able to make the object specs *)
+          let fields =
+            properties
+            |> List.map (fun (pname, _ty, required, _extra) ->
+                let prop_path = path @ [`Field "properties"; `Field pname ] in
+                let field_type = ModuleName.of_path ~path:prop_path in
+                Prop_spec.make ~field_name:pname ~field_type ~required ())
+          in
+          let leaf = LeafNodes.(`Object {module_name=(ModuleName.of_path ~path); fields}) in
+          add_leaf_node t ~path ~leaf;
+          add_sorted_module_name t ~path ~desc:"object";
+        )
+
       )
     | Array (_, _) -> let _ = failwith "TODO array" in ()
     | Monomorphic_array (element, {min_items; max_items; unique_items; additional_items}) -> (
@@ -451,6 +472,11 @@ module Dfs = struct
         let new_path = path @ [`Field "items"] in
         process_element t ~schema_js ~path:new_path element;
         (* TODO should now be able to make the array specs *)
+        let field_name = ModuleName.of_path ~path in
+        let inner_type = ModuleName.of_path ~path:new_path in
+        let leaf = LeafNodes.(`Array {field_name; inner_type}) in
+        add_leaf_node t ~path ~leaf;
+        add_sorted_module_name t ~path ~desc:"array";
       )
     | Combine (c, elements) -> (
         match c with
@@ -477,6 +503,11 @@ module Dfs = struct
     | Def_ref ref_path -> (
         Logs.debug (fun m -> m "Dependencies - def_ref: path '%s', ref_path: '%s'" (Q.json_pointer_of_path path) (Q.json_pointer_of_path ref_path));
         process_definition t ~schema_js ~path:ref_path;
+        let field_name = ModuleName.of_path ~path in
+        let field_type = ModuleName.of_path ~path:ref_path in
+        let leaf = LeafNodes.(`Ref {field_name; field_type}) in
+        add_leaf_node t ~path ~leaf;
+        add_sorted_module_name t ~path ~desc:"ref";
       )
 
     | Id_ref _ -> let _ = failwith "TODO Id_ref" in ()
@@ -496,11 +527,6 @@ module Dfs = struct
     | Null -> let _ = failwith "TODO Null" in ()
     | Any -> let _ = failwith "TODO Any" in ()
     | Dummy -> let _ = failwith "TODO Dummy" in ()
-
-  and process_property t ~schema_js ~path pname element =
-    Logs.debug (fun m -> m "process property '%s' under '%s'\n"  pname (Q.json_pointer_of_path ~wildcards:true path));
-    let new_path = path @ [`Field "properties"; `Field pname ] in
-    process_element t ~schema_js ~path:new_path element
 
   let make ~schema_js =
     let names = function
