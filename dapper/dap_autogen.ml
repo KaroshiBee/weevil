@@ -288,9 +288,11 @@ module Dfs = struct
   let _VISITED = "visited"
   let _EL = "elements"
 
+  type visit_status = Started | Finished
+
   type el =
     | SortedModuleNames of (ModuleName.t*string) list (* under _KEY *)
-    | Visited of ModuleName.t Data.t (* under _VISITED *)
+    | Visited of visit_status Data.t (* under _VISITED *)
     | Leaves of LeafNodes.t Data.t (* under _EL *)
     | Command of LeafNodes.enum_specs (* under _COMMAND *)
     | Event of LeafNodes.enum_specs (* under _EVENT *)
@@ -310,18 +312,18 @@ module Dfs = struct
     in
     Data.replace t _KEY (SortedModuleNames module_names)
 
-  let check_and_add_visited t ~path dfn =
+  let check_and_add_visited t ~path =
     (* add to the visited tbl if not already there,
        returns whether a new one was added,
        dfn that result in a Command or Event get added under their full path *)
+    let dfn = Q.json_pointer_of_path path in
     let empty = Data.create 500 in
     let added_new, visited = match (Data.find_opt t _VISITED |> Option.value ~default:(Visited empty)) with
       | SortedModuleNames _ -> (false, empty)
       | Visited vs ->
         let is_present = Data.mem vs dfn in
         if not is_present then (
-          let mname = ModuleName.of_path ~path in
-          Data.replace vs dfn mname;
+          Data.replace vs dfn Started;
           (true, vs)
         ) else (false, vs)
       | Leaves _ -> (false, empty)
@@ -330,6 +332,23 @@ module Dfs = struct
     in
     Data.replace t _VISITED (Visited visited);
     added_new
+
+  let assert_and_close_visited t ~path =
+    (* asserts is in the visited tbl
+       and then sets its visit_status to Finished *)
+    let dfn = Q.json_pointer_of_path path in
+    let empty = Data.create 500 in
+    let visited = match (Data.find_opt t _VISITED |> Option.value ~default:(Visited empty)) with
+      | SortedModuleNames _ -> empty
+      | Visited vs ->
+        assert (Data.mem vs dfn);
+        Data.replace vs dfn Finished;
+        vs
+      | Leaves _ -> empty
+      | Command _ -> empty
+      | Event _ -> empty
+    in
+    Data.replace t _VISITED (Visited visited)
 
   let add_leaf_node t ~path ~leaf =
     let empty = Data.create 500 in
@@ -391,13 +410,13 @@ module Dfs = struct
         let schema = Json_schema.of_json schema_js in
         let element = find_definition dfn schema in
         (* if added new one then recurse too *)
-        if check_and_add_visited t ~path dfn then (
+        if check_and_add_visited t ~path then (
           Logs.debug (fun m -> m "visiting: '%s'"  dfn);
           process_element t ~schema_js ~path element;
-          (* add_sorted_module_name t ~path ~desc:"definition"; *)
+          assert_and_close_visited t ~path;
           Logs.debug (fun m -> m "finished: '%s'"  dfn)
         ) else (
-          Logs.debug (fun m -> m "already visited: '%s'"  dfn)
+          Logs.debug (fun m -> m "already visiting/visited: '%s'"  dfn)
         )
       );
     Logs.debug (fun m -> m "process dfn end: '%s'"  dfn)
