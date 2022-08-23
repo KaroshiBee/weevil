@@ -89,15 +89,12 @@ module Prop_spec = struct
     field_name: field_name; (* original field name as per spec *)
     field_type: ModuleName.t;
     required: bool;
-    is_cyclic: bool;
   }
 
-  let make ~field_name ~field_type ?(required=true) ?(is_cyclic=false) () =
+  let make ~field_name ~field_type ?(required=true) () =
     let safe_name = _unweird_name field_name in
-    {safe_name; field_name; field_type; required; is_cyclic}
+    {safe_name; field_name; field_type; required}
 
-  let make_cyclic ~field_name ~field_type ?(required=true) () =
-    make ~field_name ~field_type ~required ~is_cyclic:true ()
 end
 
 type 'a maybe_spec = [ `Required of 'a | `Optional of 'a | `None]
@@ -268,7 +265,7 @@ module LeafNodes = struct
     (* | `CyclicObject of object_specs
      * | `LargeObject of object_specs *)
     | `Array of array_specs
-    | `Ref of name_type_specs
+    | `Ref of name_type_specs * bool
     | `AllOf of name_type_specs list
     | `OneOf of name_type_specs list
     (* | `Request of RequestSpec.t
@@ -288,7 +285,7 @@ module Dfs = struct
   let _VISITED = "visited"
   let _EL = "elements"
 
-  type visit_status = Started | Finished
+  type visit_status = Started | Finished | Unknown
 
   type el =
     | SortedModuleNames of (ModuleName.t*string) list (* under _KEY *)
@@ -350,6 +347,18 @@ module Dfs = struct
     in
     Data.replace t _VISITED (Visited visited)
 
+  let get_visit_status t ~path =
+    let dfn = Q.json_pointer_of_path path in
+    let empty = Data.create 500 in
+    match (Data.find_opt t _VISITED |> Option.value ~default:(Visited empty)) with
+      | SortedModuleNames _ -> Unknown
+      | Visited vs ->
+        Data.find_opt vs dfn |> Option.value ~default:Unknown
+      | Leaves _ -> Unknown
+      | Command _ -> Unknown
+      | Event _ -> Unknown
+
+
   let add_leaf_node t ~path ~leaf =
     let empty = Data.create 500 in
     let ls = match (Data.find_opt t _EL |> Option.value ~default:(Leaves empty)) with
@@ -393,6 +402,15 @@ module Dfs = struct
     in
     Data.replace t _EVENT (Event xs)
 
+  let is_special_definition ~path =
+    let pth = Array.of_list path in
+    let n = Array.length pth in
+    if n = 2 && pth.(0) = `Field "definitions" then
+      match pth.(1) with
+      | `Field "ProtocolMessage" | `Field "Request" | `Field "Event" | `Field "Response" -> true
+      | _ -> false
+    else
+      false
 
   let rec process_definition t ~schema_js ~path =
     (* this will be a *Request/*Response/*Event/Object top level definition
@@ -402,10 +420,9 @@ module Dfs = struct
     let dfn = Q.json_pointer_of_path path in
 
     Logs.debug (fun m -> m "process dfn start: '%s'"  dfn);
-    match dfn with
-    | "/definitions/ProtocolMessage" | "/definitions/Request" | "/definitions/Event" | "/definitions/Response" ->
+    if is_special_definition ~path then
       Logs.debug (fun m -> m "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!special case: '%s'"  dfn)
-    | _ -> (
+    else (
         (* check is valid name by finding the definition *)
         let schema = Json_schema.of_json schema_js in
         let element = find_definition dfn schema in
@@ -531,7 +548,7 @@ module Dfs = struct
             add_sorted_module_name t ~path ~desc:"allof";
           )
         | One_of -> (
-            Logs.info (fun m -> m "process combination oneOf with %d elements under '%s'"  (List.length elements) (Q.json_pointer_of_path ~wildcards:true path));
+            Logs.debug (fun m -> m "process combination oneOf with %d elements under '%s'"  (List.length elements) (Q.json_pointer_of_path ~wildcards:true path));
             elements
             |> List.iteri (fun i el ->
                 let new_path = path @ [`Field "oneOf"; `Index i] in
@@ -551,7 +568,7 @@ module Dfs = struct
             add_sorted_module_name t ~path ~desc:"oneof";
           )
         | Any_of -> (
-            Logs.info (fun m -> m "TODO combinator ANY_OF @ %s with %d choices" (Q.json_pointer_of_path ~wildcards:true path) (List.length elements));
+            Logs.debug (fun m -> m "TODO combinator ANY_OF @ %s with %d choices" (Q.json_pointer_of_path ~wildcards:true path) (List.length elements));
             let names = elements
             |> List.map (fun el -> match el.kind with
                 | Monomorphic_array _ -> "array"
@@ -579,12 +596,17 @@ module Dfs = struct
     | Def_ref ref_path -> (
         let ref_path_str = Q.json_pointer_of_path ref_path in
         Logs.debug (fun m -> m "Dependencies - def_ref: path '%s', ref_path: '%s'" (Q.json_pointer_of_path path) ref_path_str);
+        let is_cyclic = match get_visit_status t ~path:ref_path with
+        | Started -> Logs.info (fun m -> m "1) Cyclic dependency - def_ref: path '%s', ref_path: '%s'" (Q.json_pointer_of_path path) ref_path_str); true
+        | _ -> false
+        in
+
         process_definition t ~schema_js ~path:ref_path;
         let field_name = ModuleName.of_path ~path in
         let field_type = ModuleName.of_path ~path:ref_path in
-        let leaf = LeafNodes.(`Ref {field_name; field_type}) in
+        let leaf = LeafNodes.(`Ref ({field_name; field_type}, is_cyclic)) in
         add_leaf_node t ~path ~leaf;
-        add_sorted_module_name t ~path ~desc:"ref"
+        add_sorted_module_name t ~path ~desc:(Printf.sprintf "ref%s" (if is_cyclic then " - cyclic" else ""))
       )
 
     | Id_ref _ -> let _ = failwith "TODO Id_ref" in ()
