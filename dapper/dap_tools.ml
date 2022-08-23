@@ -84,6 +84,4 @@ let () =
   let io = open_out "test1.ml" in
   D.get_enums t
   |> List.iter (fun enum -> let s = RenderEnums.(of_enum ~enum () |> render) in Printf.fprintf io "%s\n" s);
-  D.get_enum_suggestions t
-  |> List.iter (fun enum -> let s = RenderEnums.(of_enum ~enum () |> render) in Printf.fprintf io "%s\n" s);
   close_out io

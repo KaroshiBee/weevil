@@ -682,9 +682,6 @@ module Dfs = struct
     t
 
   let _get t ~(what:[ `Module_names | `Elements | `Command_enum | `Event_enum ]) =
-    (* let empty = [] in
-     * let command_enum = match Data.find t _COMMAND with | Command specs -> specs | _ -> failwith "no Command enum found" in
-     * let event_enum = match Data.find t _EVENT with | Event specs -> specs | _ -> failwith "no Event enum found" in *)
     let ky = match what with
       | `Module_names -> _KEY
       | `Elements -> _EL
@@ -698,32 +695,35 @@ module Dfs = struct
     | SortedModuleNames xs -> xs |> List.rev (* |> List.map fst *)
     | _ -> []
 
-  let get_enums t =
-    let pmsg : LeafNodes.enum_specs = {
-      field_name=ModuleName.of_string ~js_ptr:"/ProtocolMessage_type";
-      enums=["request"; "response"; "event"] |> List.map (fun field_name -> Enum_spec.make ~field_name ());
-    }
+  let get_enums =
+    let get_enum_suggestions t =
+      match _get t ~what:`Elements with
+      | Leaves tbl ->
+        tbl
+        |> Data.to_seq
+        |> Seq.filter_map (fun (_ky, el) -> match el with | `EnumSuggestions specs -> Some (`EnumSuggestions specs) | _ -> None)
+        |> List.of_seq
+      | _ -> []
     in
-    let command_enum = match _get t ~what:`Command_enum with | Command specs -> specs | _ -> failwith "no Command enum found" in
-    let event_enum = match _get t ~what:`Event_enum with | Event specs -> specs | _ -> failwith "no Event enum found" in
-    let enums = match _get t ~what:`Elements with
-    | Leaves tbl ->
-      tbl
-      |> Data.to_seq
-      |> Seq.filter_map (fun (_ky, el) -> match el with | `Enum specs -> Some (`Enum specs) | _ -> None)
-      |> List.of_seq
-    | _ -> []
-    in
-    (`Enum pmsg) :: (`Enum command_enum) :: (`Enum event_enum) :: enums
+    function t ->
+      let enum_suggestions = get_enum_suggestions t in
 
-  let get_enum_suggestions t =
-    match _get t ~what:`Elements with
-    | Leaves tbl ->
-      tbl
-      |> Data.to_seq
-      |> Seq.filter_map (fun (_ky, el) -> match el with | `EnumSuggestions specs -> Some (`EnumSuggestions specs) | _ -> None)
-      |> List.of_seq
-    | _ -> []
+      let pmsg : LeafNodes.enum_specs = {
+        field_name=ModuleName.of_string ~js_ptr:"/ProtocolMessage_type";
+        enums=["request"; "response"; "event"] |> List.map (fun field_name -> Enum_spec.make ~field_name ());
+      }
+      in
+      let command_enum = match _get t ~what:`Command_enum with | Command specs -> specs | _ -> failwith "no Command enum found" in
+      let event_enum = match _get t ~what:`Event_enum with | Event specs -> specs | _ -> failwith "no Event enum found" in
+      let enums = match _get t ~what:`Elements with
+        | Leaves tbl ->
+          tbl
+          |> Data.to_seq
+          |> Seq.filter_map (fun (_ky, el) -> match el with | `Enum specs -> Some (`Enum specs) | _ -> None)
+          |> List.of_seq
+        | _ -> []
+      in
+      (`Enum pmsg) :: (`Enum command_enum) :: (`Enum event_enum) :: enums @ enum_suggestions
 
 
 
