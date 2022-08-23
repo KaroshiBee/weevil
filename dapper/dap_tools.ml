@@ -94,45 +94,57 @@ module RenderObjects = struct
 
   let typet_tpl (t:t) =
     let s = t.specs.fields
-          |> List.map (fun (p:Prop_spec.t) -> Printf.sprintf "%s: %s;" p.safe_name p.field_t)
+          |> List.map (fun (p:Prop_spec.t) -> Printf.sprintf "%s: %s%s;" p.safe_name p.field_t (if not p.required then " option" else ""))
           |> String.concat "\n"
     in
     Printf.sprintf "type t = { %s }" s
 
-  (* let enc_s_t_tpl (t:t) =
-   *   let specs = t.specs in
-   *   let s = specs.fields
-   *     |> List.map (fun (el:Prop_spec.t) -> Printf.sprintf "\"%s\" -> %s" el.field_name el.safe_name)
-   *     |> String.concat " | "
-   *   in
-   *   if t.is_suggestion then
-   *     Printf.sprintf "(function | %s | _ as s -> Other s)" s
-   *   else
-   *     Printf.sprintf "(function | %s | _ -> failwith \"Unknown %s\")" s specs.field_name.safe_name
-   *
-   * let enc_t_s_tpl (t:t) =
-   *   let s = t.specs.enums
-   *           |> List.map (fun (el:Enum_spec.t) -> Printf.sprintf "%s -> \"%s\"" el.safe_name el.field_name)
-   *           |> String.concat " | "
-   *   in
-   *   if t.is_suggestion then
-   *     Printf.sprintf "(function | %s | Other s -> s)" s
-   *   else
-   *     Printf.sprintf "(function | %s)" s
-   *
-   * let enc_tpl (t:t) = [
-   *   "let enc = "; "let open Data_encoding in";
-   *   "conv";
-   *   enc_t_s_tpl t;
-   *   enc_s_t_tpl t;
-   *   "string";
-   * ] |> String.concat "\n" *)
+  let enc_t_s_tpl (t:t) =
+    let specs = t.specs in
+    let srec = specs.fields
+      |> List.map (fun (el:Prop_spec.t) -> el.safe_name)
+      |> String.concat "; "
+    in
+    let stup = specs.fields
+      |> List.map (fun (el:Prop_spec.t) -> el.safe_name)
+      |> String.concat ", "
+    in
+    Printf.sprintf "(fun {%s} -> (%s))" srec stup
+
+  let enc_s_t_tpl (t:t) =
+    let specs = t.specs in
+    let srec = specs.fields
+      |> List.map (fun (el:Prop_spec.t) -> el.safe_name)
+      |> String.concat "; "
+    in
+    let stup = specs.fields
+      |> List.map (fun (el:Prop_spec.t) -> el.safe_name)
+      |> String.concat ", "
+    in
+    Printf.sprintf "(fun (%s) -> {%s})" stup srec
+
+  let enc_obj (t:t) =
+    let n = List.length t.specs.fields in
+    let sobj = Printf.sprintf "obj%d" n in
+    let sfrags = t.specs.fields
+                 |> List.map (fun (p:Prop_spec.t) -> Printf.sprintf "(%s \"%s\" %s)" (if p.required then "req" else "opt") p.field_name p.field_enc)
+                   |> String.concat "\n"
+    in
+    Printf.sprintf "(%s\n%s\n)" sobj sfrags
+
+  let enc_tpl (t:t) = [
+    "let enc = "; "let open Data_encoding in";
+    "conv";
+    enc_t_s_tpl t;
+    enc_s_t_tpl t;
+    enc_obj t;
+  ] |> String.concat "\n"
 
 
   let render (t:t) =
     let body = [
       typet_tpl t;
-      (* enc_tpl t; *)
+      enc_tpl t;
     ] |> String.concat "\n"
     in
     struct_tpl t ~body
@@ -141,11 +153,11 @@ module RenderObjects = struct
     let field_type = prop_spec.field_type in
     try
       match D.Data.find tbl (ModuleName.to_js_ptr field_type) with
-      | `Json -> "any_document"
+      | `Json -> "string" (* TODO this is param by an 'a "Json_encoding.any_ezjson_value" *)
       | `Field f -> f.encoder
       | `Enum e -> (ModuleName.to_enc e.field_name)
       | `EnumSuggestions e -> (ModuleName.to_enc e.field_name)
-      | `EmptyObject o -> (ModuleName.to_enc o.field_name)
+      | `EmptyObject _o -> "string" (* (ModuleName.to_enc o.field_name) *)
       | `Object o -> (ModuleName.to_enc o.field_name)
       | _ -> "string" (* TODO *)
     with _ -> "string"
@@ -155,7 +167,7 @@ module RenderObjects = struct
     let field_type = prop_spec.field_type in
     try
       match D.Data.find tbl (ModuleName.to_js_ptr field_type) with
-      | `Json -> "Json_repr.any"
+      | `Json -> "string" (* "Json_repr.ezjsonm" *)
       | `Field f -> f.encoder
       | `Enum e -> (ModuleName.to_type_t e.field_name)
       | `EnumSuggestions e -> (ModuleName.to_type_t e.field_name)
@@ -166,20 +178,23 @@ module RenderObjects = struct
 
   let of_object ~obj ~tbl () =
     let specs : L.object_specs = match obj with
-    | `Object specs_in -> specs_in
-    | _ -> failwith "not an object"
+      | `Object specs_in -> specs_in
+      | _ -> failwith "not an object"
     in
     if List.length specs.fields > 10 then
-      Logs.warn (fun m -> m "Object %s has more than 10 fields" specs.field_name.safe_name);
+      (Logs.warn (fun m -> m "Object %s has more than 10 fields" specs.field_name.safe_name); failwith "error")
+    else (
 
-    let fields = specs.fields
-                 |> List.map (fun (prop_spec:Prop_spec.t) ->
-                     let field_enc = get_field_enc prop_spec ~tbl in
-                     let field_t = get_field_t prop_spec ~tbl in
-                     {prop_spec with field_enc; field_t})
-    in
-    let specs = {specs with fields} in
-    {specs; tbl}
+
+      let fields = specs.fields
+                   |> List.map (fun (prop_spec:Prop_spec.t) ->
+                       let field_enc = get_field_enc prop_spec ~tbl in
+                       let field_t = get_field_t prop_spec ~tbl in
+                       {prop_spec with field_enc; field_t})
+      in
+      let specs = {specs with fields} in
+      {specs; tbl}
+    )
 
 end
 
@@ -198,5 +213,5 @@ let () =
   Printf.fprintf io "open Dap_enum\n\n";
   let tbl = match D._get t ~what:`Elements with | Leaves tbl -> tbl | _ -> failwith "error" in
   D.get_objects t
-  |> List.iter (fun obj -> let s = RenderObjects.(of_object ~obj ~tbl () |> render) in Printf.fprintf io "%s\n" s);
+  |> List.iter (fun obj -> try let s = RenderObjects.(of_object ~obj ~tbl () |> render) in Printf.fprintf io "%s\n" s with _ -> ());
   close_out io
