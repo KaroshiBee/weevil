@@ -72,29 +72,34 @@ let _unweird_name nm =
 
 
 module Enum_spec = struct
-  type field_name = string
   type t = {
-    safe_name: field_name; (* safe to use as an ocaml record name *)
-    field_name: field_name; (* original field name as per spec *)
+    safe_name: string; (* safe to use as an ocaml enum value *)
+    field_name: string; (* original field name as per spec *)
   }
 
   let make ~field_name () =
-    let safe_name = _unweird_name field_name in
+    let safe_name =
+      _unweird_name field_name
+      |> Stringext.replace_all ~pattern:" " ~with_:"_"
+      |> String.capitalize_ascii
+    in
     {safe_name; field_name}
 end
 
 
 module Prop_spec = struct
-  type field_name = string
   type t = {
-    safe_name: field_name; (* safe to use as an ocaml record name *)
-    field_name: field_name; (* original field name as per spec *)
+    safe_name: string; (* safe to use as an ocaml record name *)
+    field_name: string; (* original field name as per spec *)
     field_type: ModuleName.t;
     required: bool;
   }
 
   let make ~field_name ~field_type ?(required=true) () =
-    let safe_name = _unweird_name field_name in
+    let safe_name =
+      _unweird_name field_name
+      |> Stringext.replace_all ~pattern:" " ~with_:"_"
+    in
     {safe_name; field_name; field_type; required}
 
 end
@@ -613,7 +618,15 @@ module Dfs = struct
     | Id_ref _ -> let _ = failwith "TODO Id_ref" in ()
     | Ext_ref _ -> let _ = failwith "TODO Ext_ref" in ()
     | String _ ->
-      (* NOTE if its an _enum set then parse as `EnumSuggestions *)
+      (* NOTE if its an _enum set then parse as `EnumSuggestions:
+         the _enum fields arent picked up by Json_schema module
+         and so using Json_schema.to_json wont work.
+         Have to use Ezjsonm.from_channel to read the raw json and then query that.
+         Also note that certain enums are scattered across the document (Command.t and Event.t)
+         Also note that have to manually add some stuff to a path as
+         recursion progresses (e.g. "properties" or "allOf" > index 1)
+         because Json_schema doesnt hold that info
+      *)
       let leaf, names =
         try
           let enum_path = path @ [`Field "_enum"] in
@@ -668,16 +681,53 @@ module Dfs = struct
       );
     t
 
+  let _get t ~(what:[ `Module_names | `Elements | `Command_enum | `Event_enum ]) =
+    (* let empty = [] in
+     * let command_enum = match Data.find t _COMMAND with | Command specs -> specs | _ -> failwith "no Command enum found" in
+     * let event_enum = match Data.find t _EVENT with | Event specs -> specs | _ -> failwith "no Event enum found" in *)
+    let ky = match what with
+      | `Module_names -> _KEY
+      | `Elements -> _EL
+      | `Command_enum -> _COMMAND
+      | `Event_enum -> _EVENT
+    in
+    Data.find t ky
+
   let topo_sorted t =
-    let empty = [] in
-    let command_enum = match Data.find t _COMMAND with | Command specs -> specs | _ -> failwith "no Command enum found" in
-    let event_enum = match Data.find t _EVENT with | Event specs -> specs | _ -> failwith "no Event enum found" in
-    match Data.find_opt t _KEY |> Option.value ~default:(SortedModuleNames empty) with
-    | SortedModuleNames xs -> (command_enum.field_name, "command enum") :: (event_enum.field_name, "event enum") :: (xs |> List.rev)
-    | Visited _ -> empty
-    | Leaves _ -> empty
-    | Command _ -> empty
-    | Event _ -> empty
+    match _get t ~what:`Module_names with
+    | SortedModuleNames xs -> xs |> List.rev (* |> List.map fst *)
+    | _ -> []
+
+  let get_enums t =
+    let pmsg : LeafNodes.enum_specs = {
+      field_name=ModuleName.of_string ~js_ptr:"/ProtocolMessage_type";
+      enums=["request"; "response"; "event"] |> List.map (fun field_name -> Enum_spec.make ~field_name ());
+    }
+    in
+    let command_enum = match _get t ~what:`Command_enum with | Command specs -> specs | _ -> failwith "no Command enum found" in
+    let event_enum = match _get t ~what:`Event_enum with | Event specs -> specs | _ -> failwith "no Event enum found" in
+    let enums = match _get t ~what:`Elements with
+    | Leaves tbl ->
+      tbl
+      |> Data.to_seq
+      |> Seq.filter_map (fun (_ky, el) -> match el with | `Enum specs -> Some (`Enum specs) | _ -> None)
+      |> List.of_seq
+    | _ -> []
+    in
+    (`Enum pmsg) :: (`Enum command_enum) :: (`Enum event_enum) :: enums
+
+  let get_enum_suggestions t =
+    match _get t ~what:`Elements with
+    | Leaves tbl ->
+      tbl
+      |> Data.to_seq
+      |> Seq.filter_map (fun (_ky, el) -> match el with | `EnumSuggestions specs -> Some (`EnumSuggestions specs) | _ -> None)
+      |> List.of_seq
+    | _ -> []
+
+
+
+
 
 
 end
