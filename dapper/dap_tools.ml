@@ -140,11 +140,24 @@ module RenderObjects = struct
     enc_obj t;
   ] |> String.concat "\n"
 
+  let make_tpl (t:t) =
+    let args =
+      t.specs.fields
+      |> List.map (fun (p:Prop_spec.t) -> Printf.sprintf "%s%s" (if p.required then "~" else "?") p.safe_name)
+      |> String.concat " "
+    in
+    let rec_fields =
+      t.specs.fields
+      |> List.map (fun (p:Prop_spec.t) -> Printf.sprintf "%s" p.safe_name)
+      |> String.concat "; "
+    in
+    Printf.sprintf "let make %s () = \n{%s}" args rec_fields
 
   let render (t:t) =
     let body = [
       typet_tpl t;
       enc_tpl t;
+      make_tpl t;
     ] |> String.concat "\n"
     in
     struct_tpl t ~body
@@ -167,7 +180,7 @@ module RenderObjects = struct
     let field_type = prop_spec.field_type in
     try
       match D.Data.find tbl (ModuleName.to_js_ptr field_type) with
-      | `Json -> "string" (* "Json_repr.ezjsonm" *)
+      | `Json -> "string" (* TODO see above "Json_repr.ezjsonm" *)
       | `Field f -> f.encoder
       | `Enum e -> (ModuleName.to_type_t e.field_name)
       | `EnumSuggestions e -> (ModuleName.to_type_t e.field_name)
@@ -202,16 +215,16 @@ end
 let () =
   Logs.set_reporter (Logs.format_reporter ());
   Logs.set_level (Some Logs.Info);
-  let schema_js = Ezjsonm.from_channel @@ open_in "../schema/debugAdapterProtocol-1.56.X.json" in
-  let t = D.make ~schema_js in
-  let io = open_out "dap_enum.ml" in
-  D.get_enums t
-  |> List.iter (fun enum -> let s = RenderEnums.(of_enum ~enum () |> render) in Printf.fprintf io "%s\n" s);
-  close_out io;
+  (* let schema_js = Ezjsonm.from_channel @@ open_in "../schema/debugAdapterProtocol-1.56.X.json" in *)
+  (* let t = D.make ~schema_js in *)
+  (* let io = open_out "dap_enum.ml" in *)
+  (* D.get_enums t *)
+  (* |> List.iter (fun enum -> let s = RenderEnums.(of_enum ~enum () |> render) in Printf.fprintf io "%s\n" s); *)
+  (* close_out io; *)
 
-  let io = open_out "test1.ml" in
-  Printf.fprintf io "open Dap_enum\n\n";
-  let tbl = match D._get t ~what:`Elements with | Leaves tbl -> tbl | _ -> failwith "error" in
-  D.get_objects t
-  |> List.iter (fun obj -> try let s = RenderObjects.(of_object ~obj ~tbl () |> render) in Printf.fprintf io "%s\n" s with _ -> ());
-  close_out io
+  (* let io = open_out "test1.ml" in *)
+  (* Printf.fprintf io "open Dap_enum\n\n"; *)
+  (* let tbl = match D._get t ~what:`Elements with | Leaves tbl -> tbl | _ -> failwith "error" in *)
+  (* D.get_objects t *)
+  (* |> List.iter (fun obj -> try let s = RenderObjects.(of_object ~obj ~tbl () |> render) in Printf.fprintf io "%s\n" s with _ -> ()); *)
+  (* close_out io *)
