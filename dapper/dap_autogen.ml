@@ -1,4 +1,6 @@
 module Q = Json_query
+module S = Json_schema
+
 
 let _COMMAND = "Command"
 let _EVENT = "Event"
@@ -275,8 +277,6 @@ module LeafNodes = struct
 
 end
 
-open Json_schema
-
 module Dfs = struct
 
   module Data = Hashtbl.Make(struct type t = string let equal = String.equal let hash = Hashtbl.hash end)
@@ -425,7 +425,7 @@ module Dfs = struct
     else (
         (* check is valid name by finding the definition *)
         let schema = Json_schema.of_json schema_js in
-        let element = find_definition dfn schema in
+        let element = S.find_definition dfn schema in
         (* if added new one then recurse too *)
         if check_and_add_visited t ~path then (
           Logs.debug (fun m -> m "visiting: '%s'"  dfn);
@@ -570,7 +570,7 @@ module Dfs = struct
         | Any_of -> (
             Logs.debug (fun m -> m "TODO combinator ANY_OF @ %s with %d choices" (Q.json_pointer_of_path ~wildcards:true path) (List.length elements));
             let names = elements
-            |> List.map (fun el -> match el.kind with
+            |> List.map (fun (el:S.element) -> match el.kind with
                 | Monomorphic_array _ -> "array"
                 | Boolean -> "boolean"
                 | Integer _ -> "integer"
