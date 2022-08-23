@@ -239,11 +239,11 @@ module LeafNodes = struct
   }
 
   type enum_specs = {
-    module_name: ModuleName.t;
+    field_name: ModuleName.t;
     enums: Enum_spec.t list;
   }
   type object_specs = {
-    module_name: ModuleName.t;
+    field_name: ModuleName.t;
     fields: Prop_spec.t list;
   }
   type array_specs = {
@@ -373,7 +373,7 @@ module Dfs = struct
   let append_to_command_enum_node t ~enums =
     let open LeafNodes in
     let empty : enum_specs = {
-      module_name=(ModuleName.of_string ~js_ptr:("/"^_COMMAND));
+      field_name=(ModuleName.of_string ~js_ptr:("/"^_COMMAND));
       enums=[];
     } in
 
@@ -389,7 +389,7 @@ module Dfs = struct
   let append_to_event_enum_node t ~enums =
     let open LeafNodes in
     let empty : enum_specs = {
-      module_name=(ModuleName.of_string ~js_ptr:("/"^_EVENT));
+      field_name=(ModuleName.of_string ~js_ptr:("/"^_EVENT));
       enums=[];
     } in
 
@@ -449,18 +449,18 @@ module Dfs = struct
       Logs.debug (fun m -> m "element under '%s' has enum [%s]"
                      (Q.json_pointer_of_path ~wildcards:true path)
                      (enums |> String.concat ", "));
-      let module_name = ModuleName.of_path ~path in
+      let field_name = ModuleName.of_path ~path in
       let enums = enums |> List.map (fun field_name -> Enum_spec.make ~field_name ()) in
-      if ModuleName.is_command module_name then (
+      if ModuleName.is_command field_name then (
         append_to_command_enum_node t ~enums
         (* NOTE dont add to topo sort list *)
       )
-      else if ModuleName.is_event module_name then (
+      else if ModuleName.is_event field_name then (
         append_to_event_enum_node t ~enums
         (* NOTE dont add to topo sort list *)
       )
       else if n > 1 then (
-        let leaf = LeafNodes.(`Enum {module_name; enums}) in
+        let leaf = LeafNodes.(`Enum {field_name; enums}) in
         add_leaf_node t ~path ~leaf;
         add_sorted_module_name t ~path ~desc:"enum"
       )
@@ -502,7 +502,7 @@ module Dfs = struct
                 let field_type = ModuleName.of_path ~path:prop_path in
                 Prop_spec.make ~field_name:pname ~field_type ~required ())
           in
-          let leaf = LeafNodes.(`Object {module_name=(ModuleName.of_path ~path); fields}) in
+          let leaf = LeafNodes.(`Object {field_name=(ModuleName.of_path ~path); fields}) in
           add_leaf_node t ~path ~leaf;
           add_sorted_module_name t ~path ~desc:"object";
         )
@@ -647,7 +647,7 @@ module Dfs = struct
     let command_enum = match Data.find t _COMMAND with | Command specs -> specs | _ -> failwith "no Command enum found" in
     let event_enum = match Data.find t _EVENT with | Event specs -> specs | _ -> failwith "no Event enum found" in
     match Data.find_opt t _KEY |> Option.value ~default:(SortedModuleNames empty) with
-    | SortedModuleNames xs -> (command_enum.module_name, "command enum") :: (event_enum.module_name, "event enum") :: (xs |> List.rev)
+    | SortedModuleNames xs -> (command_enum.field_name, "command enum") :: (event_enum.field_name, "event enum") :: (xs |> List.rev)
     | Visited _ -> empty
     | Leaves _ -> empty
     | Command _ -> empty
