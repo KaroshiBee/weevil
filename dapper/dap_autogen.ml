@@ -271,9 +271,9 @@ module LeafNodes = struct
     | `Ref of name_type_specs
     | `AllOf of name_type_specs list
     | `OneOf of name_type_specs list
-    | `Request of RequestSpec.t
-    | `Response of ResponseSpec.t
-    | `Event of EventSpec.t
+    (* | `Request of RequestSpec.t
+     * | `Response of ResponseSpec.t
+     * | `Event of EventSpec.t *)
   ]
 
 end
