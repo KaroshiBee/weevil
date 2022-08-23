@@ -262,7 +262,8 @@ module LeafNodes = struct
     | `Json
     | `EmptyObject
     | `Field of specs (* final string, int, number etc *)
-    | `Enum of enum_specs (* _enum already dealt with *)
+    | `Enum of enum_specs
+    | `EnumSuggestions of enum_specs
     | `Object of object_specs
     (* | `CyclicObject of object_specs
      * | `LargeObject of object_specs *)
@@ -611,9 +612,34 @@ module Dfs = struct
 
     | Id_ref _ -> let _ = failwith "TODO Id_ref" in ()
     | Ext_ref _ -> let _ = failwith "TODO Ext_ref" in ()
-    | String _ as _s ->
-      add_leaf_node t ~path ~leaf:LeafNodes.(`Field {encoder="string"});
-      add_sorted_module_name t ~path ~desc:"string field";
+    | String _ ->
+      (* NOTE if its an _enum set then parse as `EnumSuggestions *)
+      let leaf, names =
+        try
+          let enum_path = path @ [`Field "_enum"] in
+          match Q.query enum_path schema_js with
+          | `A names ->
+            let names =
+              List.map Ezjsonm.decode_string_exn names
+            in
+            let field_name = ModuleName.of_path ~path in
+            let enums = names |> List.map (fun nm -> Enum_spec.make ~field_name:nm () ) in
+            Some LeafNodes.(`EnumSuggestions {field_name; enums}), Some (String.concat ", " names)
+          | _ -> None, None
+        with _ -> None, None
+      in
+      let leaf =
+        leaf
+        |> Option.value ~default:LeafNodes.(`Field {encoder="string"})
+      in
+      let desc =
+        names
+        |> Option.map (fun nms -> (Printf.sprintf "string field with suggestions {%s}" nms))
+        |> Option.value ~default:"string field"
+      in
+      add_leaf_node t ~path ~leaf;
+      add_sorted_module_name t ~path ~desc;
+
     | Integer _ ->
       add_leaf_node t ~path ~leaf:LeafNodes.(`Field {encoder="int64"});
       add_sorted_module_name t ~path ~desc:"int field";
