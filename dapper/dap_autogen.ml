@@ -54,6 +54,7 @@ module ModuleName = struct
   let to_functor_arg = function
     | `Command command_value -> Printf.sprintf "struct let command=%s.%s end" _COMMAND command_value
     | `Event event_value -> Printf.sprintf "struct let event=%s.%s end" _EVENT event_value
+  let to_js_ptr t = Q.json_pointer_of_path t.path
 
   let is_command t =
     String.equal t.safe_name _COMMAND
@@ -92,6 +93,8 @@ module Prop_spec = struct
     safe_name: string; (* safe to use as an ocaml record name *)
     field_name: string; (* original field name as per spec *)
     field_type: ModuleName.t;
+    field_enc:string;
+    field_t:string;
     required: bool;
   }
 
@@ -100,7 +103,9 @@ module Prop_spec = struct
       _unweird_name field_name
       |> Stringext.replace_all ~pattern:" " ~with_:"_"
     in
-    {safe_name; field_name; field_type; required}
+    let field_enc = "" in
+    let field_t = "" in
+    {safe_name; field_name; field_type; field_enc; field_t; required}
 
 end
 
@@ -249,6 +254,9 @@ module LeafNodes = struct
     field_name: ModuleName.t;
     enums: Enum_spec.t list;
   }
+  type empty_object_specs = {
+    field_name: ModuleName.t;
+  }
   type object_specs = {
     field_name: ModuleName.t;
     fields: Prop_spec.t list;
@@ -265,10 +273,10 @@ module LeafNodes = struct
 
   type t = [
     | `Json
-    | `EmptyObject
     | `Field of specs (* final string, int, number etc *)
     | `Enum of enum_specs
     | `EnumSuggestions of enum_specs
+    | `EmptyObject of empty_object_specs
     | `Object of object_specs
     (* | `CyclicObject of object_specs
      * | `LargeObject of object_specs *)
@@ -489,7 +497,7 @@ module Dfs = struct
         Logs.debug (fun m -> m "process object with %d properties under '%s'"  (List.length properties) (Q.json_pointer_of_path ~wildcards:true path));
         if List.length properties = 0 then
           (* TODO append EmptyObject, dont need to call process_property  *)
-          let leaf = `EmptyObject in
+          let leaf = LeafNodes.(`EmptyObject {field_name=ModuleName.of_path ~path}) in
           add_leaf_node t ~path ~leaf;
           add_sorted_module_name t ~path ~desc:"empty object";
         else (
@@ -725,7 +733,14 @@ module Dfs = struct
       in
       (`Enum pmsg) :: (`Enum command_enum) :: (`Enum event_enum) :: enums @ enum_suggestions
 
-
+  let get_objects =
+    function t ->
+      let mnames = topo_sorted t |> List.map fst in
+      let tbl = match _get t ~what:`Elements with | Leaves ls -> ls | _ -> failwith "cannot find any elements" in
+      mnames |> List.filter_map (fun mname ->
+          let leaf = Data.find_opt tbl (ModuleName.to_js_ptr mname) in
+          Option.bind leaf (function | `Object specs -> Some (`Object specs) | _ -> None ) (* `EmptyObject specs -> Some (`EmptyObject specs) | _ -> None) *)
+        )
 
 
 

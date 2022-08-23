@@ -58,7 +58,7 @@ end
 module StoppedEvent = struct
 
   type body = {
-    reason: StoppedEvent_body_reason.t;
+    reason: StoppedEvent_1_body_reason.t;
     description: string option;
     threadId: int64 option;
     preserveFocusHint: bool option;
@@ -122,7 +122,7 @@ module StoppedEvent = struct
          hitBreakpointIds
        })
       (obj7
-         (req "reason" StoppedEvent_body_reason.enc)
+         (req "reason" StoppedEvent_1_body_reason.enc)
          (opt "description" string)
          (opt "threadId" int64)
          (opt "preserveFocusHint" bool)
@@ -211,7 +211,7 @@ end
 module ThreadEvent = struct
 
   type body = {
-    reason: ThreadEvent_body_reason.t;
+    reason: ThreadEvent_1_body_reason.t;
     threadId: int64;
   }
 
@@ -228,7 +228,7 @@ module ThreadEvent = struct
       (fun {reason; threadId} -> (reason, threadId))
       (fun (reason, threadId) -> {reason; threadId})
       (obj2
-         (req "reason" ThreadEvent_body_reason.enc)
+         (req "reason" ThreadEvent_1_body_reason.enc)
          (req "threadId" int64))
 
 end
@@ -238,8 +238,8 @@ module OutputEvent = struct
 
   type 'json body = {
     output: string;
-    category: OutputEvent_body_category.t option;
-    group: OutputEvent_body_group.t option;
+    category: OutputEvent_1_body_category.t option;
+    group: OutputEvent_1_body_group.t option;
     variablesReference: int64 option;
     source: 'json Source.t option;
     line: int64 option;
@@ -302,8 +302,8 @@ module OutputEvent = struct
       )
       (obj8
          (req "output" string)
-         (opt "category" OutputEvent_body_category.enc)
-         (opt "group" OutputEvent_body_group.enc)
+         (opt "category" OutputEvent_1_body_category.enc)
+         (opt "group" OutputEvent_1_body_group.enc)
          (opt "variablesReference" int64)
          (opt "source" (Source.enc json))
          (opt "line" int64)
@@ -317,7 +317,7 @@ end
 module BreakpointEvent = struct
 
   type 'json body = {
-    reason: BreakpointEvent_body_reason.t;
+    reason: BreakpointEvent_1_body_reason.t;
     breakpoint: 'json Breakpoint.t;
   }
 
@@ -348,7 +348,7 @@ module BreakpointEvent = struct
          }
       )
       (obj2
-         (req "reason" BreakpointEvent_body_reason.enc)
+         (req "reason" BreakpointEvent_1_body_reason.enc)
          (req "breakpoint" Breakpoint.enc)
       )
 
@@ -358,14 +358,14 @@ end
 module ModuleEvent = struct
 
   type body = {
-    reason: ModuleEvent_body_reason.t;
+    reason: ModuleEvent_1_body_reason.t;
     module_: Module_.t
   }
 
   type cls_t = body Event.cls_t
 
   class cls (seq:int64) (body:body) = object
-    inherit [body] Event.cls seq Module body
+    inherit [body] Event.cls seq Module_ body
   end
 
   let enc =
@@ -389,7 +389,7 @@ module ModuleEvent = struct
          }
       )
       (obj2
-         (req "reason" ModuleEvent_body_reason.enc)
+         (req "reason" ModuleEvent_1_body_reason.enc)
          (req "module" Module_.enc)
       )
 
@@ -399,7 +399,7 @@ end
 module LoadedSourceEvent = struct
 
   type 'json body = {
-    reason: LoadedSourceEvent_body_reason.t;
+    reason: LoadedSourceEvent_1_body_reason.t;
     source: 'json Source.t;
   }
 
@@ -430,7 +430,7 @@ module LoadedSourceEvent = struct
          }
       )
       (obj2
-         (req "reason" LoadedSourceEvent_body_reason.enc)
+         (req "reason" LoadedSourceEvent_1_body_reason.enc)
          (req "source" @@ Source.enc json)
       )
 
@@ -443,7 +443,7 @@ module ProcessEvent = struct
     name: string;
     systemProcessId: int64 option;
     isLocalProcess: bool option;
-    startMethod: ProcessEvent_body_startMethod.t option;
+    startMethod: ProcessEvent_1_body_startMethod.t option;
     pointerSize: int64 option;
   }
 
@@ -489,7 +489,7 @@ module ProcessEvent = struct
          (req "name" string)
          (opt "systemProcessId" int64)
          (opt "isLocalProcess" bool)
-         (opt "startMethod" ProcessEvent_body_startMethod.enc)
+         (opt "startMethod" ProcessEvent_1_body_startMethod.enc)
          (opt "pointerSize" int64)
       )
 
