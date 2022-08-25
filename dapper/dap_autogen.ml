@@ -696,7 +696,10 @@ module Dfs = struct
       | `Command_enum -> _COMMAND
       | `Event_enum -> _EVENT
     in
-    Data.find t ky
+    try
+      Data.find t ky
+    with Not_found ->
+      failwith (Printf.sprintf "Cannot find key '%s'" ky)
 
   let topo_sorted t =
     match _get t ~what:`Module_names with
