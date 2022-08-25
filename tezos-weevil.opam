@@ -11,6 +11,7 @@ depends: [
   "tezos-stdlib-unix"
   "tezos-clic"
   "tezos-012-Psithaca-test-helpers"
+  "ppx_expect"
   "notty"
   "nottui"
   "nottui-lwt"
