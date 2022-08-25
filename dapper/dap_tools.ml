@@ -173,6 +173,7 @@ module RenderObjects = struct
       | `EmptyObject _o -> Printf.sprintf "%s.enc" Dapper__Dap_autogen._EMPTY_OBJECT
       | `Object o -> (ModuleName.to_enc o.field_name)
       | `Ref (e, _is_cyclic) -> (ModuleName.to_enc e.field_type) (* TODO is cyclic *)
+      | `Array arr -> Printf.sprintf "list %s" (ModuleName.to_enc arr.inner_type)
       | _ -> "string" (* TODO *)
     with _ -> "string"
 
@@ -188,6 +189,7 @@ module RenderObjects = struct
       | `EmptyObject _o -> Printf.sprintf "%s.t" Dapper__Dap_autogen._EMPTY_OBJECT
       | `Object o -> (ModuleName.to_type_t o.field_name)
       | `Ref (e, _is_cyclic) -> (ModuleName.to_type_t e.field_type)
+      | `Array arr -> Printf.sprintf "%s list" (ModuleName.to_type_t arr.inner_type)
       | _ -> "string" (* TODO *)
     with _ -> "string"
 
@@ -217,21 +219,21 @@ end
 let () =
   Logs.set_reporter (Logs.format_reporter ());
   Logs.set_level (Some Logs.Info);
-  let schema_js = Ezjsonm.from_channel @@ open_in "../schema/debugAdapterProtocol-1.56.X.json" in
-  let t = D.make ~schema_js in
-  let io = open_out "test1.ml" in
-  Printf.fprintf io "open Dap_t\n\n";
-  Logs.debug (fun m -> m "rendering enums start");
-  D.get_enums t
-  |> List.iter (fun enum -> let s = RenderEnums.(of_enum ~enum () |> render) in Printf.fprintf io "%s\n" s);
-  Logs.debug (fun m -> m "rendering enums end");
-  (* close_out io;
-   *
-   * let io = open_out "test1.ml" in *)
-  Logs.debug (fun m -> m "getting all elements");
-  let tbl = match D._get t ~what:`Elements with | Leaves tbl -> tbl | _ -> failwith "error" in
-  Logs.debug (fun m -> m "rendering objects start");
-  D.get_objects t
-  |> List.iter (fun obj -> try let s = RenderObjects.(of_object ~obj ~tbl () |> render) in Printf.fprintf io "%s\n" s with _ -> ());
-  Logs.debug (fun m -> m "rendering objects start");
-  close_out io
+  (* let schema_js = Ezjsonm.from_channel @@ open_in "../schema/debugAdapterProtocol-1.56.X.json" in
+   * let t = D.make ~schema_js in
+   * let io = open_out "test1.ml" in
+   * Printf.fprintf io "open Dap_t\n\n";
+   * Logs.debug (fun m -> m "rendering enums start");
+   * D.get_enums t
+   * |> List.iter (fun enum -> let s = RenderEnums.(of_enum ~enum () |> render) in Printf.fprintf io "%s\n" s);
+   * Logs.debug (fun m -> m "rendering enums end");
+   * (\* close_out io;
+   *  *
+   *  * let io = open_out "test1.ml" in *\)
+   * Logs.debug (fun m -> m "getting all elements");
+   * let tbl = match D._get t ~what:`Elements with | Leaves tbl -> tbl | _ -> failwith "error" in
+   * Logs.debug (fun m -> m "rendering objects start");
+   * D.get_objects t
+   * |> List.iter (fun obj -> try let s = RenderObjects.(of_object ~obj ~tbl () |> render) in Printf.fprintf io "%s\n" s with _ -> ());
+   * Logs.debug (fun m -> m "rendering objects start");
+   * close_out io *)

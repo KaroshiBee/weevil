@@ -131,6 +131,25 @@ module RequestSpec = struct
     in
     {module_name; command_value; args_name}
 
+  let of_path_exn ~path =
+    assert (List.length path = 2);
+    let pth = Array.of_list path in
+    (* should be /definitions/XXXRequest  *)
+    assert (pth.(0) = `Field "definitions");
+    let v = match pth.(1) with
+      | `Field x -> x
+      | _ -> failwith "expecting Field 'definitions'"
+    in
+
+    let command_value =
+      match Stringext.cut v ~on:"Request" with
+      | Some (enum_str, "") -> enum_str
+      | _ -> failwith "expecting command value"
+    in
+    let args_name = `None in
+    let module_name = ModuleName.of_path ~path in
+    {module_name; command_value; args_name}
+
   let render t =
     match t.args_name with
     | `Required args_name ->
@@ -177,6 +196,25 @@ module ResponseSpec = struct
     in
     {module_name; command_value; body_name}
 
+  let of_path_exn ~path =
+    assert (List.length path = 2);
+    let pth = Array.of_list path in
+    (* should be /definitions/XXXResponse  *)
+    assert (pth.(0) = `Field "definitions");
+    let v = match pth.(1) with
+      | `Field x -> x
+      | _ -> failwith "expecting Field 'definitions'"
+    in
+
+    let command_value =
+      match Stringext.cut v ~on:"Response" with
+      | Some (enum_str, "") -> enum_str
+      | _ -> failwith "expecting command value"
+    in
+    let body_name = `None in
+    let module_name = ModuleName.of_path ~path in
+    {module_name; command_value; body_name}
+
 
   let render t =
     match t.body_name with
@@ -217,6 +255,25 @@ module EventSpec = struct
         | `None -> `None
       ) |> Option.value ~default:`None
     in
+    {module_name; event_value; body_name}
+
+  let of_path_exn ~path =
+    assert (List.length path = 2);
+    let pth = Array.of_list path in
+    (* should be /definitions/XXXEvent  *)
+    assert (pth.(0) = `Field "definitions");
+    let v = match pth.(1) with
+      | `Field x -> x
+      | _ -> failwith "expecting Field 'definitions'"
+    in
+
+    let event_value =
+      match Stringext.cut v ~on:"Event" with
+      | Some (enum_str, "") -> enum_str
+      | _ -> failwith "expecting event value"
+    in
+    let body_name = `None in
+    let module_name = ModuleName.of_path ~path in
     {module_name; event_value; body_name}
 
   let render t =
@@ -278,15 +335,15 @@ module LeafNodes = struct
     | `EnumSuggestions of enum_specs
     | `EmptyObject of empty_object_specs
     | `Object of object_specs
-    (* | `CyclicObject of object_specs
-     * | `LargeObject of object_specs *)
+    (* | `CyclicObject of object_specs *)
+    | `LargeObject of object_specs (* more than 10 fields *)
     | `Array of array_specs
     | `Ref of name_type_specs * bool
     | `AllOf of name_type_specs list
     | `OneOf of name_type_specs list
-    (* | `Request of RequestSpec.t
-     * | `Response of ResponseSpec.t
-     * | `Event of EventSpec.t *)
+    | `Event of EventSpec.t
+    | `Response of ResponseSpec.t
+    | `Request of RequestSpec.t
   ]
 
 end
@@ -495,7 +552,8 @@ module Dfs = struct
         assert (Option.is_none max_properties);
         assert (Option.is_some additional_properties);
         Logs.debug (fun m -> m "process object with %d properties under '%s'"  (List.length properties) (Q.json_pointer_of_path ~wildcards:true path));
-        if List.length properties = 0 then
+        let n = List.length properties in
+        if n = 0 then
           (* TODO append EmptyObject, dont need to call process_property  *)
           let leaf = LeafNodes.(`EmptyObject {field_name=ModuleName.of_path ~path}) in
           add_leaf_node t ~path ~leaf;
@@ -516,7 +574,13 @@ module Dfs = struct
                 let field_type = ModuleName.of_path ~path:prop_path in
                 Prop_spec.make ~field_name:pname ~field_type ~required ())
           in
-          let leaf = LeafNodes.(`Object {field_name=(ModuleName.of_path ~path); fields}) in
+          let specs = LeafNodes.{field_name=(ModuleName.of_path ~path); fields} in
+          let leaf : LeafNodes.t =
+            if n > 10 then
+              `LargeObject specs
+            else
+              `Object specs
+          in
           add_leaf_node t ~path ~leaf;
           add_sorted_module_name t ~path ~desc:"object";
         )
@@ -557,9 +621,26 @@ module Dfs = struct
                   ({field_name; field_type} : LeafNodes.name_type_specs)
                 )
             in
-            let leaf = `AllOf nts in
-            add_leaf_node t ~path ~leaf;
-            add_sorted_module_name t ~path ~desc:"allof";
+            let leaf, desc =
+              try
+                let leaf_spec = EventSpec.of_path_exn ~path in
+                let leaf = `Event leaf_spec in
+                (leaf, "event")
+              with _ ->
+                try
+                  let leaf_spec = ResponseSpec.of_path_exn ~path in
+                  let leaf = `Response leaf_spec in
+                  (leaf, "response")
+                with _ ->
+                  try
+                    let leaf_spec = RequestSpec.of_path_exn ~path in
+                    let leaf = `Request leaf_spec in
+                    (leaf, "request")
+                  with _ ->
+                    `AllOf nts, "allof"
+            in
+              add_leaf_node t ~path ~leaf;
+              add_sorted_module_name t ~path ~desc;
           )
         | One_of -> (
             Logs.debug (fun m -> m "process combination oneOf with %d elements under '%s'"  (List.length elements) (Q.json_pointer_of_path ~wildcards:true path));
