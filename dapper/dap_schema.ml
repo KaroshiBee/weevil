@@ -2,45 +2,61 @@ module El = Dap_again
 module Q = Json_query
 module S = Json_schema
 
-module Dfs = struct
+module D = Hashtbl.Make(struct type t = string let equal = String.equal let hash = Hashtbl.hash end)
 
-  module Data = Hashtbl.Make(struct type t = string let equal = String.equal let hash = Hashtbl.hash end)
+module Names = struct
 
-  (* let _KEY = "names"
-   * let _VISITED = "visited"
-   * let _EL = "elements" *)
-
-  type visit_status = Started | Finished | Unknown
-
-  type t = {
-    names: (Q.path*string) list;
-    visited: visit_status Data.t;
+  type el = {
+    path:Q.path;
+    desc:string;
   }
 
+  type t = el list
+
   let add_sorted_module_name t ~path ~desc =
-    {t with names=(path, desc)::t.names}
+    {path; desc} :: t
+
+  let get t ~desc =
+    t
+    |> List.filter (fun t -> t.desc = desc)
+    |> List.map (fun t -> Q.json_pointer_of_path t.path)
+
+end
+
+module Visited = struct
+  type visit_status = Started | Finished | Unknown
+  type t = visit_status D.t
 
   let check_and_add_visited t ~path =
     (* add to the visited tbl if not already there,
-       returns whether a new one was added,
-       dfn that result in a Command or Event get added under their full path *)
+       returns whether a new one was added, *)
     let dfn = Q.json_pointer_of_path path in
-    let is_present = Data.mem t.visited dfn in
+    let is_present = D.mem t dfn in
     if not is_present then
-      Data.replace t.visited dfn Started;
+      D.replace t dfn Started;
     t, (not is_present)
 
   let assert_and_close_visited t ~path =
     (* asserts is in the visited tbl
        and then sets its visit_status to Finished *)
     let dfn = Q.json_pointer_of_path path in
-    assert (Data.mem t.visited dfn);
-    Data.replace t.visited dfn Finished;
+    assert (D.mem t dfn);
+    D.replace t dfn Finished;
     t
 
   let get_visit_status t ~path =
     let dfn = Q.json_pointer_of_path path in
-    Data.find_opt t.visited dfn |> Option.value ~default:Unknown
+    D.find_opt t dfn |> Option.value ~default:Unknown
+
+end
+
+
+module Dfs = struct
+
+  type t = {
+    names: Names.t;
+    visited: Visited.t;
+  }
 
   let rec process_definition t ~schema_js ~path =
     (* this will be a *Request/*Response/*Event/Object top level definition
@@ -50,7 +66,7 @@ module Dfs = struct
     let dfn = Q.json_pointer_of_path path in
 
     Logs.debug (fun m -> m "process dfn start: '%s'"  dfn);
-    let t' =
+    let t =
       if El.is_special_definition ~path then (
         Logs.debug (fun m -> m "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!special case: '%s'"  dfn);
         t
@@ -60,20 +76,20 @@ module Dfs = struct
         let schema = Json_schema.of_json schema_js in
         let element = S.find_definition dfn schema in
         (* if added new one then recurse too *)
-        let t, did_add = check_and_add_visited t ~path in
+        let visited, did_add = Visited.check_and_add_visited t.visited ~path in
         if did_add then (
           Logs.debug (fun m -> m "visiting: '%s'"  dfn);
-          let t = process_element t ~schema_js ~path element in
-          let t = assert_and_close_visited t ~path in
+          let t = process_element {t with visited} ~schema_js ~path element in
+          let visited = Visited.assert_and_close_visited t.visited ~path in
           Logs.debug (fun m -> m "finished: '%s'"  dfn);
-          t
+          {t with visited}
         ) else (
           Logs.debug (fun m -> m "already visiting/visited: '%s'"  dfn);
           t
         )
       ) in
     Logs.debug (fun m -> m "process dfn end: '%s'"  dfn);
-    t'
+    t
 
 
   and process_element t ~schema_js ~path el =
@@ -99,7 +115,8 @@ module Dfs = struct
       if n > 1 then (
         (* let leaf = LeafNodes.(`Enum {field_name; enums}) in *)
         (* add_leaf_node t ~path ~leaf; *)
-        add_sorted_module_name t ~path ~desc:"enum"
+        let names = Names.add_sorted_module_name t.names ~path ~desc:"enum" in
+        {t with names}
       )
       else (
         Logs.debug (fun m -> m "Ignoring element under '%s'"
@@ -124,20 +141,21 @@ module Dfs = struct
           (* TODO append EmptyObject, dont need to call process_property  *)
           (* let leaf = LeafNodes.(`EmptyObject {field_name=ModuleName.of_path ~path}) in
            * add_leaf_node t ~path ~leaf; *)
-          add_sorted_module_name t ~path ~desc:"empty obj"
+          let names = Names.add_sorted_module_name t.names ~path ~desc:"empty obj" in
+          {t with names}
         else (
-          let t' =
+          let t =
             properties
             |> List.fold_left (fun acc (pname, ty, _required, _extra) ->
                 Logs.debug (fun m -> m "process property '%s' under '%s'"  pname (Q.json_pointer_of_path ~wildcards:true path));
                 let new_path = path @ [`Field "properties"; `Field pname ] in
-                let t' = process_element acc ~schema_js ~path:new_path ty in
+                let t = process_element acc ~schema_js ~path:new_path ty in
                 (* Logs.debug (fun m -> m "PROPS: got new names [%s], replacing old names [%s]"
-                 *               (t'.names |> List.map (fun (p, _) -> Q.json_pointer_of_path p) |> String.concat ", ")
+                 *               (t.names |> List.map (fun (p, _) -> Q.json_pointer_of_path p) |> String.concat ", ")
                  *               (acc.names |> List.map (fun (p, _) -> Q.json_pointer_of_path p) |> String.concat ", ")
                  *           ); *)
-                let names = t'.names in
-                Data.replace_seq acc.visited (Data.to_seq t'.visited);
+                let names = t.names in
+                D.replace_seq acc.visited (D.to_seq t.visited);
                 {names; visited=acc.visited}
               ) t
           in
@@ -158,7 +176,8 @@ module Dfs = struct
            *     `Object specs
            * in
            * add_leaf_node t ~path ~leaf; *)
-          add_sorted_module_name t' ~path ~desc:"object"
+          let names = Names.add_sorted_module_name t.names ~path ~desc:"object" in
+          {t with names}
         )
 
       )
@@ -170,29 +189,30 @@ module Dfs = struct
         assert (Option.is_none additional_items);
         Logs.debug (fun m -> m "process mono-morphic array under '%s'"  (Q.json_pointer_of_path ~wildcards:true path));
         let new_path = path @ [`Field "items"] in
-        let t' = process_element t ~schema_js ~path:new_path element in
+        let t = process_element t ~schema_js ~path:new_path element in
         (* TODO should now be able to make the array specs *)
         (* let field_name = ModuleName.of_path ~path in
          * let inner_type = ModuleName.of_path ~path:new_path in
          * let leaf = LeafNodes.(`Array {field_name; inner_type}) in
          * add_leaf_node t ~path ~leaf; *)
-        add_sorted_module_name t' ~path ~desc:"array items"
+        let names = Names.add_sorted_module_name t.names ~path ~desc:"array items" in
+        {t with names}
       )
     | Combine (c, elements) -> (
         match c with
         | All_of -> (
             Logs.debug (fun m -> m "process combination allOf with %d elements under '%s'"  (List.length elements) (Q.json_pointer_of_path ~wildcards:true path));
-            let (_, t') =
+            let (_, t) =
               elements
               |> List.fold_left (fun (i, acc) el ->
                   let new_path = path @ [`Field "allOf"; `Index i] in
-                  let t' = process_element acc ~schema_js ~path:new_path el in
+                  let t = process_element acc ~schema_js ~path:new_path el in
                   (* Logs.debug (fun m -> m "ALLOF got new names [%s], replacing old names [%s]"
-                   *               (t'.names |> List.map (fun (p, _) -> Q.json_pointer_of_path p) |> String.concat ", ")
+                   *               (t.names |> List.map (fun (p, _) -> Q.json_pointer_of_path p) |> String.concat ", ")
                    *               (acc.names |> List.map (fun (p, _) -> Q.json_pointer_of_path p) |> String.concat ", ")
                    *           ); *)
-                  let names = t'.names in
-                  Data.replace_seq acc.visited (Data.to_seq t'.visited);
+                  let names = t.names in
+                  D.replace_seq acc.visited (D.to_seq t.visited);
                   (i+1, {names; visited=acc.visited})
                 ) (0, t)
             in
@@ -226,17 +246,18 @@ module Dfs = struct
              *         `AllOf nts, "allof"
              * in
              *   add_leaf_node t ~path ~leaf; *)
-              add_sorted_module_name t' ~path ~desc:"allof"
+            let names = Names.add_sorted_module_name t.names ~path ~desc:"allof" in
+            {t with names}
           )
         | One_of -> (
             Logs.debug (fun m -> m "process combination oneOf with %d elements under '%s'"  (List.length elements) (Q.json_pointer_of_path ~wildcards:true path));
-            let (_, t') =
+            let (_, t) =
               elements
               |> List.fold_left (fun (i, acc) el ->
                   let new_path = path @ [`Field "oneOf"; `Index i] in
-                  let t' = process_element t ~schema_js ~path:new_path el in
-                  let names = List.concat [t'.names; acc.names] in
-                  Data.replace_seq acc.visited (Data.to_seq t'.visited);
+                  let t = process_element t ~schema_js ~path:new_path el in
+                  let names = List.concat [t.names; acc.names] in
+                  D.replace_seq acc.visited (D.to_seq t.visited);
                   (i+1, {names; visited=acc.visited})
                 ) (0, t)
             in
@@ -251,7 +272,8 @@ module Dfs = struct
              * in
              * let leaf = `OneOf nts in
              * add_leaf_node t ~path ~leaf; *)
-            add_sorted_module_name t' ~path ~desc:"oneof"
+            let names = Names.add_sorted_module_name t.names ~path ~desc:"oneof" in
+            {t with names}
           )
         | Any_of -> (
             Logs.debug (fun m -> m "TODO combinator ANY_OF @ %s with %d choices" (Q.json_pointer_of_path ~wildcards:true path) (List.length elements));
@@ -275,24 +297,26 @@ module Dfs = struct
              *   | _ -> `Field {encoder="string"}
              * in
              * add_leaf_node t ~path ~leaf; *)
-            add_sorted_module_name t ~path ~desc:"anyof"
+            let names = Names.add_sorted_module_name t.names ~path ~desc:"anyof" in
+            {t with names}
           )
         | Not -> failwith (Printf.sprintf "TODO combinator NOT @ %s" (Q.json_pointer_of_path ~wildcards:true path))
       )
     | Def_ref ref_path -> (
         let ref_path_str = Q.json_pointer_of_path ref_path in
         Logs.debug (fun m -> m "Dependencies - def_ref: path '%s', ref_path: '%s'" (Q.json_pointer_of_path path) ref_path_str);
-        let is_cyclic = match get_visit_status t ~path:ref_path with
+        let is_cyclic = match Visited.get_visit_status t.visited ~path:ref_path with
         | Started -> Logs.debug (fun m -> m "1) Cyclic dependency - def_ref: path '%s', ref_path: '%s'" (Q.json_pointer_of_path path) ref_path_str); true
         | _ -> false
         in
 
-        let t' = if is_cyclic then t else process_definition t ~schema_js ~path:ref_path in
+        let t = if is_cyclic then t else process_definition t ~schema_js ~path:ref_path in
         (* let field_name = ModuleName.of_path ~path in
          * let field_type = ModuleName.of_path ~path:ref_path in
          * let leaf = LeafNodes.(`Ref ({field_name; field_type}, is_cyclic)) in
          * add_leaf_node t ~path ~leaf; *)
-        add_sorted_module_name t' ~path ~desc:(Printf.sprintf "ref%s" (if is_cyclic then " - cyclic" else ""))
+        let names = Names.add_sorted_module_name t.names ~path ~desc:(Printf.sprintf "ref%s" (if is_cyclic then " - cyclic" else "")) in
+        {t with names}
       )
 
     | Id_ref _ -> failwith "TODO Id_ref"
@@ -325,17 +349,21 @@ module Dfs = struct
         |> Option.value ~default:"string field"
       in
       (* add_leaf_node t ~path ~leaf; *)
-      add_sorted_module_name t ~path ~desc
+      let names = Names.add_sorted_module_name t.names ~path ~desc in
+      {t with names}
 
     | Integer _ ->
       (* add_leaf_node t ~path ~leaf:LeafNodes.(`Field {encoder="int64"}); *)
-      add_sorted_module_name t ~path ~desc:"int field"
+      let names = Names.add_sorted_module_name t.names ~path ~desc:"int field" in
+      {t with names}
     | Number _ ->
       (* add_leaf_node t ~path ~leaf:LeafNodes.(`Field {encoder="int64"}); *)
-      add_sorted_module_name t ~path ~desc:"number field"
+      let names = Names.add_sorted_module_name t.names ~path ~desc:"number field" in
+      {t with names}
     | Boolean ->
       (* add_leaf_node t ~path ~leaf:LeafNodes.(`Field {encoder="bool"}); *)
-      add_sorted_module_name t ~path ~desc:"bool field"
+      let names = Names.add_sorted_module_name t.names ~path ~desc:"bool field" in
+      {t with names}
     | Null -> failwith "TODO Null"
     | Any -> failwith "TODO Any"
     | Dummy -> failwith "TODO Dummy"
@@ -345,15 +373,15 @@ module Dfs = struct
       | `O fields -> fields |> List.map (fun (nm, _) -> nm)
       | _ -> []
     in
-    let t = {names=[]; visited=Data.create 500} in
+    let t = {names=[]; visited=D.create 500} in
     (* NOTE know all /definitions/ are objects and are the only top-level things *)
     let ns = Q.query [`Field "definitions"] schema_js |> names in
     Logs.debug (fun m -> m "\n\nprocessing '%d' names" @@ List.length ns);
     ns |> List.fold_left (fun acc nm ->
         let path = [`Field "definitions"; `Field nm] in
-        let t' = process_definition acc ~schema_js ~path in
-        let names = t'.names in
-        Data.replace_seq acc.visited (Data.to_seq t'.visited);
+        let t = process_definition acc ~schema_js ~path in
+        let names = t.names in
+        D.replace_seq acc.visited (D.to_seq t.visited);
         {names; visited=acc.visited}
       ) t
 
