@@ -12,6 +12,11 @@ let _unweird_name ?(capitalize=false) name =
   |> (fun s -> if capitalize then String.capitalize_ascii s else s)
 
 
+let root_path ~(path:Q.path) =
+  match path with
+  | (`Field "definitions") :: (`Field f) :: _ -> [(`Field "definitions"); (`Field f)]
+  | _ -> []
+
 module Obj_spec = struct
 
   type field = {
@@ -30,11 +35,6 @@ module Obj_spec = struct
 
   let of_path ~path ?(fields=[]) ?(is_cyclic=false) () =
     {path; fields; is_cyclic}
-
-  let root_path t =
-    match t.path with
-    | (`Field "definitions") :: (`Field f) :: _ -> [(`Field "definitions"); (`Field f)]
-    | _ -> []
 
   let is_big t =
     List.length t.fields > 10
@@ -114,7 +114,7 @@ module Req_spec = struct
   type t = {
     path: Q.path;
     command: string;
-    args: string option;
+    args: Obj_spec.t option;
   }
 
   exception Not_request of string
@@ -133,21 +133,8 @@ module Req_spec = struct
   let set_args t ~args =
     {t with args=(Some args)}
 
-      (* not an enum, check for special things like
-         .../body on Event,
-         .../body or .../message on Response
-         .../arguments on Request
-         *)
-      (* let parent =
-       *   match (D.find_opt t.elements dfn) with
-       *   | Some (El.Object obj_specs) -> Some (El.make ~path:(El.Obj_spec.root_path obj_specs))
-       *   | _ -> None
-       * in
-       * match (parent, List.hd @@ List.rev @@ path) with
-       * | (Some (Request _), `Field "arguments") -> *)
-
-  let is_arguments_for t ~obj_specs =
-    let root_path = Obj_spec.root_path obj_specs in
+  let is_arguments_for t ~(obj_specs:Obj_spec.t) =
+    let root_path = root_path ~path:obj_specs.path in
     let is_same = String.equal (Q.json_pointer_of_path t.path) (Q.json_pointer_of_path root_path) in
     (* NOTE arguments field should be at /definitions/XXXRequest/allOf/1/properties/arguments *)
     is_same && 6 = List.length obj_specs.path &&
@@ -163,8 +150,8 @@ module Resp_spec = struct
   type t = {
     path: Q.path;
     command: string;
-    body: string option;
-    message: string option;
+    body: Obj_spec.t option;
+    message: Obj_spec.t option;
   }
 
   exception Not_response of string
@@ -183,8 +170,8 @@ module Resp_spec = struct
   let set_body t ~body =
     {t with body=(Some body)}
 
-  let is_body_for t ~obj_specs =
-    let root_path = Obj_spec.root_path obj_specs in
+  let is_body_for t ~(obj_specs:Obj_spec.t) =
+    let root_path = root_path ~path:obj_specs.path in
     let is_same = String.equal (Q.json_pointer_of_path t.path) (Q.json_pointer_of_path root_path) in
     (* NOTE body field should be at /definitions/XXXResponse/allOf/1/properties/body *)
     is_same && 6 = List.length obj_specs.path &&
@@ -195,8 +182,8 @@ module Resp_spec = struct
   let set_message t ~message =
     {t with message=(Some message)}
 
-  let is_message_for t ~obj_specs =
-    let root_path = Obj_spec.root_path obj_specs in
+  let is_message_for t ~(obj_specs:Obj_spec.t) =
+    let root_path = root_path ~path:obj_specs.path in
     let is_same = String.equal (Q.json_pointer_of_path t.path) (Q.json_pointer_of_path root_path) in
     (* NOTE message field should be at /definitions/XXXMessage/allOf/1/properties/message *)
     is_same && 6 = List.length obj_specs.path &&
@@ -211,7 +198,7 @@ module Event_spec = struct
   type t = {
     path: Q.path;
     event: string;
-    body: string option;
+    body: Obj_spec.t option;
   }
 
   exception Not_event of string
@@ -230,8 +217,8 @@ module Event_spec = struct
   let set_body t ~body =
     {t with body=(Some body)}
 
-  let is_body_for t ~obj_specs =
-    let root_path = Obj_spec.root_path obj_specs in
+  let is_body_for t ~(obj_specs:Obj_spec.t) =
+    let root_path = root_path ~path:obj_specs.path in
     let is_same = String.equal (Q.json_pointer_of_path t.path) (Q.json_pointer_of_path root_path) in
     (* NOTE body field should be at /definitions/XXXEvent/allOf/1/properties/body *)
     is_same && 6 = List.length obj_specs.path &&
