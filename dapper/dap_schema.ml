@@ -49,10 +49,10 @@ module Dfs = struct
        only want to recurse down into the defn if it is not already being/been visited *)
     let dfn = Q.json_pointer_of_path path in
 
-    Logs.info (fun m -> m "process dfn start: '%s'"  dfn);
+    Logs.debug (fun m -> m "process dfn start: '%s'"  dfn);
     let t' =
       if El.is_special_definition ~path then (
-        Logs.info (fun m -> m "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!special case: '%s'"  dfn);
+        Logs.debug (fun m -> m "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!special case: '%s'"  dfn);
         t
       )
       else (
@@ -62,28 +62,28 @@ module Dfs = struct
         (* if added new one then recurse too *)
         let t, did_add = check_and_add_visited t ~path in
         if did_add then (
-          Logs.info (fun m -> m "visiting: '%s'"  dfn);
+          Logs.debug (fun m -> m "visiting: '%s'"  dfn);
           let t = process_element t ~schema_js ~path element in
           let t = assert_and_close_visited t ~path in
-          Logs.info (fun m -> m "finished: '%s'"  dfn);
+          Logs.debug (fun m -> m "finished: '%s'"  dfn);
           t
         ) else (
-          Logs.info (fun m -> m "already visiting/visited: '%s'"  dfn);
+          Logs.debug (fun m -> m "already visiting/visited: '%s'"  dfn);
           t
         )
       ) in
-    Logs.info (fun m -> m "process dfn end: '%s'"  dfn);
+    Logs.debug (fun m -> m "process dfn end: '%s'"  dfn);
     t'
 
 
   and process_element t ~schema_js ~path el =
     (* TODO can get proper enums here, still need to qry for _enums *)
-    Logs.info (fun m -> m "process element under '%s'"  (Q.json_pointer_of_path ~wildcards:true path));
+    Logs.debug (fun m -> m "process element under '%s'"  (Q.json_pointer_of_path ~wildcards:true path));
     let enums = el.enum |> Option.value ~default:[] in
     let enums = enums |> List.map Json_repr.from_any |> List.map Ezjsonm.decode_string_exn in
     let n = List.length enums in
     if n > 0 then (
-      Logs.info (fun m -> m "element under '%s' has enum [%s]"
+      Logs.debug (fun m -> m "element under '%s' has enum [%s]"
                      (Q.json_pointer_of_path ~wildcards:true path)
                      (enums |> String.concat ", "));
       (* let field_name = ModuleName.of_path ~path in
@@ -102,7 +102,7 @@ module Dfs = struct
         add_sorted_module_name t ~path ~desc:"enum"
       )
       else (
-        Logs.info (fun m -> m "Ignoring element under '%s'"
+        Logs.debug (fun m -> m "Ignoring element under '%s'"
                        (Q.json_pointer_of_path ~wildcards:true path));
         t
       )
@@ -118,7 +118,7 @@ module Dfs = struct
         assert (0 = min_properties);
         assert (Option.is_none max_properties);
         assert (Option.is_some additional_properties);
-        Logs.info (fun m -> m "process object with %d properties under '%s'"  (List.length properties) (Q.json_pointer_of_path ~wildcards:true path));
+        Logs.debug (fun m -> m "process object with %d properties under '%s'"  (List.length properties) (Q.json_pointer_of_path ~wildcards:true path));
         let n = List.length properties in
         if n = 0 then
           (* TODO append EmptyObject, dont need to call process_property  *)
@@ -129,10 +129,10 @@ module Dfs = struct
           let t' =
             properties
             |> List.fold_left (fun acc (pname, ty, _required, _extra) ->
-                Logs.info (fun m -> m "process property '%s' under '%s'"  pname (Q.json_pointer_of_path ~wildcards:true path));
+                Logs.debug (fun m -> m "process property '%s' under '%s'"  pname (Q.json_pointer_of_path ~wildcards:true path));
                 let new_path = path @ [`Field "properties"; `Field pname ] in
                 let t' = process_element acc ~schema_js ~path:new_path ty in
-                (* Logs.info (fun m -> m "PROPS: got new names [%s], replacing old names [%s]"
+                (* Logs.debug (fun m -> m "PROPS: got new names [%s], replacing old names [%s]"
                  *               (t'.names |> List.map (fun (p, _) -> Q.json_pointer_of_path p) |> String.concat ", ")
                  *               (acc.names |> List.map (fun (p, _) -> Q.json_pointer_of_path p) |> String.concat ", ")
                  *           ); *)
@@ -168,7 +168,7 @@ module Dfs = struct
         assert (Option.is_none max_items);
         assert (not unique_items);
         assert (Option.is_none additional_items);
-        Logs.info (fun m -> m "process mono-morphic array under '%s'"  (Q.json_pointer_of_path ~wildcards:true path));
+        Logs.debug (fun m -> m "process mono-morphic array under '%s'"  (Q.json_pointer_of_path ~wildcards:true path));
         let new_path = path @ [`Field "items"] in
         let t' = process_element t ~schema_js ~path:new_path element in
         (* TODO should now be able to make the array specs *)
@@ -181,13 +181,13 @@ module Dfs = struct
     | Combine (c, elements) -> (
         match c with
         | All_of -> (
-            Logs.info (fun m -> m "process combination allOf with %d elements under '%s'"  (List.length elements) (Q.json_pointer_of_path ~wildcards:true path));
+            Logs.debug (fun m -> m "process combination allOf with %d elements under '%s'"  (List.length elements) (Q.json_pointer_of_path ~wildcards:true path));
             let (_, t') =
               elements
               |> List.fold_left (fun (i, acc) el ->
                   let new_path = path @ [`Field "allOf"; `Index i] in
                   let t' = process_element acc ~schema_js ~path:new_path el in
-                  (* Logs.info (fun m -> m "ALLOF got new names [%s], replacing old names [%s]"
+                  (* Logs.debug (fun m -> m "ALLOF got new names [%s], replacing old names [%s]"
                    *               (t'.names |> List.map (fun (p, _) -> Q.json_pointer_of_path p) |> String.concat ", ")
                    *               (acc.names |> List.map (fun (p, _) -> Q.json_pointer_of_path p) |> String.concat ", ")
                    *           ); *)
@@ -229,7 +229,7 @@ module Dfs = struct
               add_sorted_module_name t' ~path ~desc:"allof"
           )
         | One_of -> (
-            Logs.info (fun m -> m "process combination oneOf with %d elements under '%s'"  (List.length elements) (Q.json_pointer_of_path ~wildcards:true path));
+            Logs.debug (fun m -> m "process combination oneOf with %d elements under '%s'"  (List.length elements) (Q.json_pointer_of_path ~wildcards:true path));
             let (_, t') =
               elements
               |> List.fold_left (fun (i, acc) el ->
@@ -254,7 +254,7 @@ module Dfs = struct
             add_sorted_module_name t' ~path ~desc:"oneof"
           )
         | Any_of -> (
-            Logs.info (fun m -> m "TODO combinator ANY_OF @ %s with %d choices" (Q.json_pointer_of_path ~wildcards:true path) (List.length elements));
+            Logs.debug (fun m -> m "TODO combinator ANY_OF @ %s with %d choices" (Q.json_pointer_of_path ~wildcards:true path) (List.length elements));
             (* let names = elements
              * |> List.map (fun (el:S.element) -> match el.kind with
              *     | Monomorphic_array _ -> "array"
@@ -281,9 +281,9 @@ module Dfs = struct
       )
     | Def_ref ref_path -> (
         let ref_path_str = Q.json_pointer_of_path ref_path in
-        Logs.info (fun m -> m "Dependencies - def_ref: path '%s', ref_path: '%s'" (Q.json_pointer_of_path path) ref_path_str);
+        Logs.debug (fun m -> m "Dependencies - def_ref: path '%s', ref_path: '%s'" (Q.json_pointer_of_path path) ref_path_str);
         let is_cyclic = match get_visit_status t ~path:ref_path with
-        | Started -> Logs.info (fun m -> m "1) Cyclic dependency - def_ref: path '%s', ref_path: '%s'" (Q.json_pointer_of_path path) ref_path_str); true
+        | Started -> Logs.debug (fun m -> m "1) Cyclic dependency - def_ref: path '%s', ref_path: '%s'" (Q.json_pointer_of_path path) ref_path_str); true
         | _ -> false
         in
 
@@ -348,7 +348,7 @@ module Dfs = struct
     let t = {names=[]; visited=Data.create 500} in
     (* NOTE know all /definitions/ are objects and are the only top-level things *)
     let ns = Q.query [`Field "definitions"] schema_js |> names in
-    Logs.info (fun m -> m "\n\nprocessing '%d' names" @@ List.length ns);
+    Logs.debug (fun m -> m "\n\nprocessing '%d' names" @@ List.length ns);
     ns |> List.fold_left (fun acc nm ->
         let path = [`Field "definitions"; `Field nm] in
         let t' = process_definition acc ~schema_js ~path in
