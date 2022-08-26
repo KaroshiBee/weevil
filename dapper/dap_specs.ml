@@ -170,3 +170,21 @@ module Enum = struct
     {t with enums={safe_name; dirty_name}::t.enums}
 
 end
+
+
+type t =
+  | Request_specs of Req.t
+  | Response_specs of Resp.t
+  | Event_specs of Event.t
+  | Object_specs of Obj.t
+  | Enum_specs of Enum.t
+
+
+let make ~path ?dirty_names () =
+  match dirty_names with
+  | Some dirty_names -> Enum_specs (Enum.of_path ~path ~dirty_names ())
+  | None ->
+    try let specs = Req.of_path_exn ~path () in Request_specs specs with Req.Not_request _ ->
+    try let specs = Resp.of_path_exn ~path () in Response_specs specs with Resp.Not_response _ ->
+    try let specs = Event.of_path_exn ~path () in Event_specs specs with Event.Not_event _ ->
+      let specs = Obj.of_path ~path () in Object_specs specs

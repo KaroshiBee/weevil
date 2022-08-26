@@ -1,4 +1,4 @@
-module El = Dap_again
+module El = Dap_specs
 module Q = Json_query
 module S = Json_schema
 
@@ -61,19 +61,22 @@ module Dfs = struct
   type t = {
     names: Names.t;
     visited: Visited.t;
+    elements: El.t D.t;
   }
 
   let rec process_definition t ~schema_js ~path =
     (* this will be a *Request/*Response/*Event/Object top level definition
        will want to ignore base class ProtocolMessage, Request, Response, Event types
-       as they are handled with the functors above
-       only want to recurse down into the defn if it is not already being/been visited *)
+       as they are handled with the functors in Dap_t
+       only want to recurse down into the defn if it is not already being/been visited
+       and, if so, we want to recurse after setting the initial defn in elements map
+       *)
     let dfn = Q.json_pointer_of_path path in
 
     Logs.debug (fun m -> m "process dfn start: '%s'"  dfn);
     let t =
       if El.is_special_definition ~path then (
-        Logs.debug (fun m -> m "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!special case: '%s'"  dfn);
+        Logs.debug (fun m -> m "ignore special case: '%s'"  dfn);
         t
       )
       else (
@@ -84,6 +87,8 @@ module Dfs = struct
         let visited, did_add = Visited.check_and_add_visited t.visited ~path in
         if did_add then (
           Logs.debug (fun m -> m "visiting: '%s'"  dfn);
+          let el = El.make ~path () in
+          D.replace t.elements dfn el;
           let t = process_element {t with visited} ~schema_js ~path element in
           let visited = Visited.assert_and_close_visited t.visited ~path in
           Logs.debug (fun m -> m "finished: '%s'"  dfn);
@@ -95,7 +100,6 @@ module Dfs = struct
       ) in
     Logs.debug (fun m -> m "process dfn end: '%s'"  dfn);
     t
-
 
   and process_element t ~schema_js ~path el =
     (* TODO can get proper enums here, still need to qry for _enums *)
@@ -161,7 +165,7 @@ module Dfs = struct
                  *           ); *)
                 let names = t.names in
                 D.replace_seq acc.visited (D.to_seq t.visited);
-                {names; visited=acc.visited}
+                {t with names; visited=acc.visited}
               ) t
           in
 
@@ -218,7 +222,7 @@ module Dfs = struct
                    *           ); *)
                   let names = t.names in
                   D.replace_seq acc.visited (D.to_seq t.visited);
-                  (i+1, {names; visited=acc.visited})
+                  (i+1, {t with names; visited=acc.visited})
                 ) (0, t)
             in
 
@@ -263,7 +267,7 @@ module Dfs = struct
                   let t = process_element t ~schema_js ~path:new_path el in
                   let names = List.concat [t.names; acc.names] in
                   D.replace_seq acc.visited (D.to_seq t.visited);
-                  (i+1, {names; visited=acc.visited})
+                  (i+1, {t with names; visited=acc.visited})
                 ) (0, t)
             in
             (* let nts =
@@ -378,7 +382,7 @@ module Dfs = struct
       | `O fields -> fields |> List.map (fun (nm, _) -> nm)
       | _ -> []
     in
-    let t = {names=[]; visited=D.create 500} in
+    let t = {names=[]; visited=D.create 500; elements=D.create 500} in
     (* NOTE know all /definitions/ are objects and are the only top-level things *)
     let ns = Q.query [`Field "definitions"] schema_js |> names in
     Logs.debug (fun m -> m "\n\nprocessing '%d' names" @@ List.length ns);
@@ -387,7 +391,7 @@ module Dfs = struct
         let t = process_definition acc ~schema_js ~path in
         let names = t.names in
         D.replace_seq acc.visited (D.to_seq t.visited);
-        {names; visited=acc.visited}
+        {t with names; visited=acc.visited}
       ) t
 
 end
