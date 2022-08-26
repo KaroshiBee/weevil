@@ -21,6 +21,11 @@ module Names = struct
     |> List.filter (fun t -> t.desc = desc)
     |> List.map (fun t -> Q.json_pointer_of_path t.path)
 
+  let begins_with t ~prefix =
+    t
+    |> List.filter (fun t -> Stringext.chop_prefix t.desc ~prefix |> Option.is_some)
+    |> List.map (fun t -> Q.json_pointer_of_path t.path)
+
 end
 
 module Visited = struct
