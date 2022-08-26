@@ -1,5 +1,15 @@
 module Q = Json_query
 
+let is_special_definition ~path =
+  let pth = Array.of_list path in
+  let n = Array.length pth in
+  if n = 2 && pth.(0) = `Field "definitions" then
+    match pth.(1) with
+    | `Field "ProtocolMessage" | `Field "Request" | `Field "Event" | `Field "Response" -> true
+    | _ -> false
+  else
+    false
+
 module Req = struct
   type t = {
     path: Q.path;
