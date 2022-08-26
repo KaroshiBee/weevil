@@ -10,7 +10,7 @@ let is_special_definition ~path =
   else
     false
 
-module Req = struct
+module Req_spec = struct
   type t = {
     path: Q.path;
     command: string;
@@ -36,7 +36,7 @@ module Req = struct
 end
 
 
-module Resp = struct
+module Resp_spec = struct
   type t = {
     path: Q.path;
     command: string;
@@ -66,7 +66,7 @@ module Resp = struct
 end
 
 
-module Event = struct
+module Event_spec = struct
   type t = {
     path: Q.path;
     event: string;
@@ -103,7 +103,7 @@ let _unweird_name ?(capitalize=false) name =
   |> (fun s -> if capitalize then String.capitalize_ascii s else s)
 
 
-module Obj = struct
+module Obj_spec = struct
 
   type field = {
     safe_name:string;
@@ -133,7 +133,7 @@ module Obj = struct
 end
 
 
-module Enum = struct
+module Enum_spec = struct
 
   type enum_val = {
     safe_name: string;
@@ -169,22 +169,42 @@ module Enum = struct
     let safe_name = _unweird_name ~capitalize:true dirty_name in
     {t with enums={safe_name; dirty_name}::t.enums}
 
+  let append_enums  t ~enums =
+    let dirty_names = List.concat [
+          List.map (fun nm -> nm.dirty_name) enums;
+          List.map (fun nm -> nm.dirty_name) t.enums
+        ] in
+    set_enums t ~dirty_names
+
+  let is_command t =
+    1 = List.length t.enums &&
+    match (List.hd @@ List.rev @@ t.path) with
+    | `Field "command" -> true
+    | _ -> false
+
+  let is_event t =
+    1 = List.length t.enums &&
+    match (List.hd @@ List.rev @@ t.path) with
+    | `Field "event" -> true
+    | _ -> false
+
+
 end
 
 
 type t =
-  | Request_specs of Req.t
-  | Response_specs of Resp.t
-  | Event_specs of Event.t
-  | Object_specs of Obj.t
-  | Enum_specs of Enum.t
+  | Request of Req_spec.t
+  | Response of Resp_spec.t
+  | Event of Event_spec.t
+  | Object of Obj_spec.t
+  | Enum of Enum_spec.t
 
 
 let make ~path ?dirty_names () =
   match dirty_names with
-  | Some dirty_names -> Enum_specs (Enum.of_path ~path ~dirty_names ())
+  | Some dirty_names -> Enum (Enum_spec.of_path ~path ~dirty_names ())
   | None ->
-    try let specs = Req.of_path_exn ~path () in Request_specs specs with Req.Not_request _ ->
-    try let specs = Resp.of_path_exn ~path () in Response_specs specs with Resp.Not_response _ ->
-    try let specs = Event.of_path_exn ~path () in Event_specs specs with Event.Not_event _ ->
-      let specs = Obj.of_path ~path () in Object_specs specs
+    try let specs = Req_spec.of_path_exn ~path () in Request specs with Req_spec.Not_request _ ->
+    try let specs = Resp_spec.of_path_exn ~path () in Response specs with Resp_spec.Not_response _ ->
+    try let specs = Event_spec.of_path_exn ~path () in Event specs with Event_spec.Not_event _ ->
+      let specs = Obj_spec.of_path ~path () in Object specs

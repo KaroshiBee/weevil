@@ -55,8 +55,14 @@ module Visited = struct
 
 end
 
+(* TODO add Error to Command.t enum  *)
+(* TODO add Protocol_message_type enum *)
 
 module Dfs = struct
+
+  let _CMD = "/definitions/FAKE/command" (* fake Command enum path *)
+  let _EV = "/definitions/FAKE/event" (* fake Event enum path *)
+  let _MSG = "/definitions/FAKE/protocol_message_type"
 
   type t = {
     names: Names.t;
@@ -70,6 +76,7 @@ module Dfs = struct
        as they are handled with the functors in Dap_t
        only want to recurse down into the defn if it is not already being/been visited
        and, if so, we want to recurse after setting the initial defn in elements map
+       with the notion that some objects might get rewritten as enums
        *)
     let dfn = Q.json_pointer_of_path path in
 
@@ -103,6 +110,7 @@ module Dfs = struct
 
   and process_element t ~schema_js ~path el =
     (* TODO can get proper enums here, still need to qry for _enums *)
+    let dfn = Q.json_pointer_of_path path in
     Logs.debug (fun m -> m "process element under '%s'"  (Q.json_pointer_of_path ~wildcards:true path));
     let enums = el.enum |> Option.value ~default:[] in
     let enums = enums |> List.map Json_repr.from_any |> List.map Ezjsonm.decode_string_exn in
@@ -111,27 +119,22 @@ module Dfs = struct
       Logs.debug (fun m -> m "element under '%s' has enum [%s]"
                      (Q.json_pointer_of_path ~wildcards:true path)
                      (enums |> String.concat ", "));
-      (* let field_name = ModuleName.of_path ~path in
-       * let enums = enums |> List.map (fun field_name -> Enum_spec.make ~field_name ()) in *)
-      (* if ModuleName.is_command field_name then (
-       *   append_to_command_enum_node t ~enums
-       *   (\* NOTE dont add to topo sort list *\)
-       * )
-       * else if ModuleName.is_event field_name then (
-       *   append_to_event_enum_node t ~enums
-       *   (\* NOTE dont add to topo sort list *\)
-       * ) *)
-      if n > 1 then (
-        (* let leaf = LeafNodes.(`Enum {field_name; enums}) in *)
-        (* add_leaf_node t ~path ~leaf; *)
-        let names = Names.add_sorted_module_name t.names ~path ~desc:"enum" in
-        {t with names}
-      )
-      else (
-        Logs.debug (fun m -> m "Ignoring element under '%s'"
-                       (Q.json_pointer_of_path ~wildcards:true path));
-        t
-      )
+      let enum_spec = El.Enum_spec.of_path ~path ~dirty_names:enums () in
+      let ky =
+        match (El.Enum_spec.is_command enum_spec, El.Enum_spec.is_event enum_spec) with
+        | true, false -> _CMD
+        | false, true -> _EV
+        | _, _ -> dfn
+      in
+      let to_add =
+        match (D.find_opt t.elements ky) with
+        | Some (El.Enum enum_spec') -> El.Enum_spec.append_enums enum_spec' ~enums:enum_spec.enums
+        | Some (El.Object _) -> enum_spec
+        | Some _ -> failwith (Printf.sprintf "Expecting enum spec for ky '%s', got Req/Resp/Ev" ky)
+        | None -> enum_spec
+      in
+      D.replace t.elements ky (El.Enum to_add);
+      if n > 1 then let names = Names.add_sorted_module_name t.names ~path ~desc:"enum" in {t with names} else t
     ) else (
       process_kind t ~schema_js ~path el.kind
     )
@@ -385,7 +388,7 @@ module Dfs = struct
     let t = {names=[]; visited=D.create 500; elements=D.create 500} in
     (* NOTE know all /definitions/ are objects and are the only top-level things *)
     let ns = Q.query [`Field "definitions"] schema_js |> names in
-    Logs.debug (fun m -> m "\n\nprocessing '%d' names" @@ List.length ns);
+    Logs.info (fun m -> m "\n\nprocessing '%d' names" @@ List.length ns);
     ns |> List.fold_left (fun acc nm ->
         let path = [`Field "definitions"; `Field nm] in
         let t = process_definition acc ~schema_js ~path in
