@@ -1,4 +1,4 @@
-module El = Dap_specs
+module Sp = Dap_specs
 module Q = Json_query
 module S = Json_schema
 
@@ -67,7 +67,7 @@ module Dfs = struct
   type t = {
     names: Names.t;
     visited: Visited.t;
-    elements: El.t D.t;
+    specs: Sp.t D.t;
   }
 
   let rec process_definition t ~schema_js ~path =
@@ -82,7 +82,7 @@ module Dfs = struct
 
     Logs.debug (fun m -> m "process dfn start: '%s'"  dfn);
     let t =
-      if El.is_special_definition ~path then (
+      if Sp.is_special_definition ~path then (
         Logs.debug (fun m -> m "ignore special case: '%s'"  dfn);
         t
       )
@@ -94,8 +94,8 @@ module Dfs = struct
         let visited, did_add = Visited.check_and_add_visited t.visited ~path in
         if did_add then (
           Logs.debug (fun m -> m "visiting: '%s'"  dfn);
-          let el = El.make ~path () in
-          D.replace t.elements dfn el;
+          let spec = Sp.make ~path () in
+          D.replace t.specs dfn spec;
           let t = process_element {t with visited} ~schema_js ~path element in
           let visited = Visited.assert_and_close_visited t.visited ~path in
           Logs.debug (fun m -> m "finished: '%s'"  dfn);
@@ -109,31 +109,32 @@ module Dfs = struct
     t
 
   and process_element t ~schema_js ~path el =
-    (* TODO can get proper enums here, still need to qry for _enums *)
+    (* can get proper enums here, still need to qry for _enums *)
     let dfn = Q.json_pointer_of_path path in
     Logs.debug (fun m -> m "process element under '%s'"  (Q.json_pointer_of_path ~wildcards:true path));
     let enums = el.enum |> Option.value ~default:[] in
     let enums = enums |> List.map Json_repr.from_any |> List.map Ezjsonm.decode_string_exn in
     let n = List.length enums in
+    (* it is an enum of some sort *)
     if n > 0 then (
       Logs.debug (fun m -> m "element under '%s' has enum [%s]"
                      (Q.json_pointer_of_path ~wildcards:true path)
                      (enums |> String.concat ", "));
-      let enum_spec = El.Enum_spec.of_path ~path ~dirty_names:enums () in
+      let enum_spec = Sp.Enum_spec.of_path ~path ~dirty_names:enums () in
       let ky =
-        match (El.Enum_spec.is_command enum_spec, El.Enum_spec.is_event enum_spec) with
+        match (Sp.Enum_spec.is_command enum_spec, Sp.Enum_spec.is_event enum_spec) with
         | true, false -> _CMD
         | false, true -> _EV
         | _, _ -> dfn
       in
       let to_add =
-        match (D.find_opt t.elements ky) with
-        | Some (El.Enum enum_spec') -> El.Enum_spec.append_enums enum_spec' ~enums:enum_spec.enums
-        | Some (El.Object _) -> enum_spec
+        match (D.find_opt t.specs ky) with
+        | Some (Sp.Enum enum_spec') -> Sp.Enum_spec.append_enums enum_spec' ~enums:enum_spec.enums
+        | Some (Sp.Object _) -> enum_spec
         | Some _ -> failwith (Printf.sprintf "Expecting enum spec for ky '%s', got Req/Resp/Ev" ky)
         | None -> enum_spec
       in
-      D.replace t.elements ky (El.Enum to_add);
+      D.replace t.specs ky (Sp.Enum to_add);
       if n > 1 then let names = Names.add_sorted_module_name t.names ~path ~desc:"enum" in {t with names} else t
     ) else (
       process_kind t ~schema_js ~path el.kind
@@ -147,51 +148,35 @@ module Dfs = struct
         assert (0 = min_properties);
         assert (Option.is_none max_properties);
         assert (Option.is_some additional_properties);
+        let _dfn = Q.json_pointer_of_path path in
         Logs.debug (fun m -> m "process object with %d properties under '%s'"  (List.length properties) (Q.json_pointer_of_path ~wildcards:true path));
         let n = List.length properties in
-        if n = 0 then
-          (* TODO append EmptyObject, dont need to call process_property  *)
-          (* let leaf = LeafNodes.(`EmptyObject {field_name=ModuleName.of_path ~path}) in
-           * add_leaf_node t ~path ~leaf; *)
-          let names = Names.add_sorted_module_name t.names ~path ~desc:"empty obj" in
-          {t with names}
-        else (
-          let t =
-            properties
-            |> List.fold_left (fun acc (pname, ty, _required, _extra) ->
-                Logs.debug (fun m -> m "process property '%s' under '%s'"  pname (Q.json_pointer_of_path ~wildcards:true path));
-                let new_path = path @ [`Field "properties"; `Field pname ] in
-                let t = process_element acc ~schema_js ~path:new_path ty in
-                (* Logs.debug (fun m -> m "PROPS: got new names [%s], replacing old names [%s]"
-                 *               (t.names |> List.map (fun (p, _) -> Q.json_pointer_of_path p) |> String.concat ", ")
-                 *               (acc.names |> List.map (fun (p, _) -> Q.json_pointer_of_path p) |> String.concat ", ")
-                 *           ); *)
-                let names = t.names in
-                D.replace_seq acc.visited (D.to_seq t.visited);
-                {t with names; visited=acc.visited}
-              ) t
-          in
+        let t =
+          if n = 0 then
+            let names = Names.add_sorted_module_name t.names ~path ~desc:"empty obj" in
+            {t with names}
+          else (
+            let t =
+              properties
+              |> List.fold_left (fun acc (pname, ty, _required, _extra) ->
+                  Logs.debug (fun m -> m "process property '%s' under '%s'"  pname (Q.json_pointer_of_path ~wildcards:true path));
+                  let new_path = path @ [`Field "properties"; `Field pname ] in
+                  let t = process_element acc ~schema_js ~path:new_path ty in
+                  (* Logs.debug (fun m -> m "PROPS: got new names [%s], replacing old names [%s]"
+                   *               (t.names |> List.map (fun (p, _) -> Q.json_pointer_of_path p) |> String.concat ", ")
+                   *               (acc.names |> List.map (fun (p, _) -> Q.json_pointer_of_path p) |> String.concat ", ")
+                   *           ); *)
+                  let names = t.names in
+                  D.replace_seq acc.visited (D.to_seq t.visited);
+                  {t with names; visited=acc.visited}
+                ) t
+            in
 
-          (* (\* should now be able to make the object specs *\)
-           * let fields =
-           *   properties
-           *   |> List.map (fun (pname, _ty, required, _extra) ->
-           *       let prop_path = path @ [`Field "properties"; `Field pname ] in
-           *       let field_type = ModuleName.of_path ~path:prop_path in
-           *       Prop_spec.make ~field_name:pname ~field_type ~required ())
-           * in
-           * let specs = LeafNodes.{field_name=(ModuleName.of_path ~path); fields} in
-           * let leaf : LeafNodes.t =
-           *   if n > 10 then
-           *     `LargeObject specs
-           *   else
-           *     `Object specs
-           * in
-           * add_leaf_node t ~path ~leaf; *)
-          let names = Names.add_sorted_module_name t.names ~path ~desc:"object" in
-          {t with names}
-        )
-
+            let names = Names.add_sorted_module_name t.names ~path ~desc:"object" in
+            {t with names}
+          )
+        in
+        t
       )
     | Array (_, _) -> failwith "TODO array"
     | Monomorphic_array (element, {min_items; max_items; unique_items; additional_items}) -> (
@@ -385,7 +370,7 @@ module Dfs = struct
       | `O fields -> fields |> List.map (fun (nm, _) -> nm)
       | _ -> []
     in
-    let t = {names=[]; visited=D.create 500; elements=D.create 500} in
+    let t = {names=[]; visited=D.create 500; specs=D.create 500} in
     (* NOTE know all /definitions/ are objects and are the only top-level things *)
     let ns = Q.query [`Field "definitions"] schema_js |> names in
     Logs.info (fun m -> m "\n\nprocessing '%d' names" @@ List.length ns);
