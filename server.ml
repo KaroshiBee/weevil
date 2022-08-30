@@ -10,8 +10,12 @@ module DRs = Dapper.Dap_response
 module DEv = Dapper.Dap_event
 module Db = Dapper.Dap_base
 
+let content_length = ref 0
+let header_breaks = ref 0
+let buffer = ref ""
 
 type event =
+  | InitReq of DRq.InitializeRequest.cls_t
   | NextReq of DRq.NextRequest.cls_t
   | StackTrace of DRq.StackTraceRequest.cls_t
   | Scopes of DRq.ScopesRequest.cls_t
@@ -28,6 +32,15 @@ type event =
  *  which contains the 'stack' and 'gas'
  *  and there are multiple variables which are indexed
  *  children of the main michelson stack *)
+
+let parse_initialize_req js =
+  try
+    let req = destruct DRq.InitializeRequest.enc js in
+    assert(req#command = DRq.Request.Initialize);
+    Some (InitReq req)
+  with _ ->
+    let _ = Logs_lwt.warn (fun m -> m "Not init request") in
+    None
 
 let parse_next_req js =
   try
@@ -66,6 +79,7 @@ let parse_variables_req js =
     None
 
 let parsers = [
+  parse_initialize_req;
   parse_next_req;
   parse_stacktrace_req;
   parse_scopes_req;
@@ -101,6 +115,7 @@ let read_weevil_log () =
     )
 
 let handle_message msg =
+  (* let msg = if !content_length > 0 then String.sub msg 0 !content_length else msg in *)
   match msg with
   (* NOTE 'n' and 'st' are helpers to quickly test stuff *)
   | "n" -> (
@@ -153,8 +168,12 @@ let rec handle_connection ic oc ic_process oc_process () =
   (fun msg ->
      match msg with
      | Some msg -> (
+         Logs.info (fun m -> m "Got msg: '%s'" msg);
          let next =
            match handle_message msg with
+           | InitReq _req -> (
+               Logs_lwt.info (fun m -> m "Got initialize request");
+             )
            | NextReq req -> (
                let seq = Int64.succ req#seq in
                let request_seq = req#seq in
@@ -252,9 +271,13 @@ let rec handle_connection ic oc ic_process oc_process () =
                Logs_lwt.info (fun m -> m "Variables response \n%s\n" resp) >>=
                (fun _ -> Lwt_io.write_line oc resp)
              )
-           | ContentLength i -> Logs_lwt.info (fun m -> m "content length %d" i)
+           | ContentLength i -> content_length := i; Logs_lwt.info (fun m -> m "content length %d" i)
            | Unknown s -> Logs_lwt.warn (fun m -> m "Unknown '%s'" s)
-           | Empty -> Logs_lwt.info (fun m -> m "header break")
+           | Empty ->
+             header_breaks := (succ !header_breaks);
+             match !header_breaks with
+             | 1 -> header_breaks := 0; Logs_lwt.info (fun m -> m "One header break, need to read %d of msg" !content_length)
+             | _ -> Logs_lwt.info (fun m -> m "header break %d" !header_breaks)
 
          in
          next >>= handle_connection ic oc ic_process oc_process
@@ -266,9 +289,10 @@ let accept_connection cmd conn =
   let ic = Lwt_io.of_fd ~mode:Lwt_io.Input fd in
   let oc = Lwt_io.of_fd ~mode:Lwt_io.Output fd in
   let ic_process, oc_process = Unix.open_process cmd in
-  let jobs = Lwt.join [handle_connection ic oc ic_process oc_process ()] in
+  let l = Logs_lwt.info (fun m -> m "New connection") in
+  let jobs = Lwt.join [l; handle_connection ic oc ic_process oc_process ()] in
   Lwt.on_failure (jobs >>= return) (fun e -> Logs.err (fun m -> m "%s" (Printexc.to_string e) ));
-  Logs_lwt.info (fun m -> m "New connection\n") >>= Lwt.return
+  Lwt.return_unit
 
 let create_socket listen_address port () =
   let sock = Lwt_unix.(socket PF_INET SOCK_STREAM 0) in

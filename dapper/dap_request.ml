@@ -8,12 +8,13 @@ module Request = struct
     | StackTrace
     | Scopes
     | Variables
+    | Initialize
 
   let enc_t =
     let open Data_encoding in
     conv
-      (function | Cancel -> "cancel" | Next -> "next" | StackTrace -> "stackTrace" | Scopes -> "scopes" | Variables -> "variables")
-      (function | "cancel" -> Cancel | "next" -> Next | "stackTrace" -> StackTrace | "scopes" -> Scopes | "variables" -> Variables |_ -> failwith "Unknown request")
+      (function | Cancel -> "cancel" | Next -> "next" | StackTrace -> "stackTrace" | Scopes -> "scopes" | Variables -> "variables" | Initialize -> "initialize")
+      (function | "cancel" -> Cancel | "next" -> Next | "stackTrace" -> StackTrace | "scopes" -> Scopes | "variables" -> Variables | "initialize" -> Initialize | _ -> failwith "Unknown request")
       string
 
   type 'json cls_t = <
@@ -220,5 +221,188 @@ module VariablesRequest = struct
   end
 
   let enc = Request.enc VariablesArguments.enc
+
+end
+
+
+module InitializeRequestArguments = struct
+  type t0 = {
+    clientId: string option;
+    clientName: string option;
+    adapterId: string;
+    locale: string option;
+    linesStartAt1: bool;
+    columnsStartAt1: bool;
+    pathFormat: string option; (* TODO *)
+  }
+
+  let enc_t0 =
+    let open Data_encoding in
+    conv
+      ( fun {
+          clientId;
+          clientName;
+          adapterId;
+          locale;
+          linesStartAt1;
+          columnsStartAt1;
+          pathFormat;
+        } -> (
+          clientId,
+          clientName,
+          adapterId,
+          locale,
+          linesStartAt1,
+          columnsStartAt1,
+          pathFormat
+      ))
+      ( fun (
+          clientId,
+          clientName,
+          adapterId,
+          locale,
+          linesStartAt1,
+          columnsStartAt1,
+          pathFormat
+      ) -> {
+          clientId;
+          clientName;
+          adapterId;
+          locale;
+          linesStartAt1;
+          columnsStartAt1;
+          pathFormat;
+        })
+      (obj7
+          (opt "clientId" string)
+          (opt "clientName" string)
+          (req "adapterId" string)
+          (opt "locale" string)
+          (req "linesStartAt1" bool)
+          (req "columnsStartAt1" bool)
+          (opt "pathFormat" string)
+      )
+
+  type t1 = {
+    supportsVariableType: bool option;
+    supportsVariablePaging: bool option;
+    supportsRunInTerminalRequest: bool option;
+    supportsMemoryReferences: bool option;
+    supportsProgressreporting: bool option;
+    supportsInvalidatedEvent: bool option;
+    supportsMemoryEvent: bool option;
+    supportsArgsCanBeInterpretedByShell: bool option;
+  }
+
+  let enc_t1 =
+    let open Data_encoding in
+    conv
+      ( fun {
+          supportsVariableType;
+          supportsVariablePaging;
+          supportsRunInTerminalRequest;
+          supportsMemoryReferences;
+          supportsProgressreporting;
+          supportsInvalidatedEvent;
+          supportsMemoryEvent;
+          supportsArgsCanBeInterpretedByShell;
+        } -> (
+            supportsVariableType,
+            supportsVariablePaging,
+            supportsRunInTerminalRequest,
+            supportsMemoryReferences,
+            supportsProgressreporting,
+            supportsInvalidatedEvent,
+            supportsMemoryEvent,
+            supportsArgsCanBeInterpretedByShell
+
+          )
+
+      )
+      ( fun (
+          supportsVariableType,
+          supportsVariablePaging,
+          supportsRunInTerminalRequest,
+          supportsMemoryReferences,
+          supportsProgressreporting,
+          supportsInvalidatedEvent,
+          supportsMemoryEvent,
+          supportsArgsCanBeInterpretedByShell
+        ) -> {
+            supportsVariableType;
+            supportsVariablePaging;
+            supportsRunInTerminalRequest;
+            supportsMemoryReferences;
+            supportsProgressreporting;
+            supportsInvalidatedEvent;
+            supportsMemoryEvent;
+            supportsArgsCanBeInterpretedByShell;
+          }
+      )
+      (obj8
+         (opt "supportsVariableType" bool)
+         (opt "supportsVariablePaging" bool)
+         (opt "supportsRunInTerminalRequest" bool)
+         (opt "supportsMemoryReferences" bool)
+         (opt "supportsProgressreporting" bool)
+         (opt "supportsInvalidatedEvent" bool)
+         (opt "supportsMemoryEvent" bool)
+         (opt "supportsArgsCanBeInterpretedByShell" bool)
+      )
+
+  type t = t0 * t1
+
+  let enc =
+    let open Data_encoding in
+    merge_objs enc_t0 enc_t1
+
+  let make
+      ?clientId
+      ?clientName
+      ~adapterId
+      ?locale
+      ~linesStartAt1
+      ~columnsStartAt1
+      ?pathFormat
+      ?supportsVariableType
+      ?supportsVariablePaging
+      ?supportsRunInTerminalRequest
+      ?supportsMemoryReferences
+      ?supportsProgressreporting
+      ?supportsInvalidatedEvent
+      ?supportsMemoryEvent
+      ?supportsArgsCanBeInterpretedByShell
+      () =
+    {
+      clientId;
+      clientName;
+      adapterId;
+      locale;
+      linesStartAt1;
+      columnsStartAt1;
+      pathFormat;
+    }, {
+      supportsVariableType;
+      supportsVariablePaging;
+      supportsRunInTerminalRequest;
+      supportsMemoryReferences;
+      supportsProgressreporting;
+      supportsInvalidatedEvent;
+      supportsMemoryEvent;
+      supportsArgsCanBeInterpretedByShell;
+    }
+
+end
+
+
+module InitializeRequest = struct
+  type args = InitializeRequestArguments.t
+  type cls_t = args Request.cls_t
+
+  class cls (seq:int64) (arguments:args) = object
+    inherit [args] Request.cls seq Initialize arguments
+  end
+
+      let enc = Request.enc InitializeRequestArguments.enc
 
 end
