@@ -150,8 +150,16 @@ let handle_message msg =
 let handle_msg oc msg ic_process oc_process =
   Logs_lwt.info (fun m -> m "Got msg: '%s'" msg) >>= fun _ ->
   match handle_message msg with
-  | InitReq _req -> (
-      Logs_lwt.info (fun m -> m "Got initialize request");
+  | InitReq req -> (
+      let seq = succ req#seq in
+      let request_seq = req#seq in
+      let success = ref true in
+      let command = req#command in
+      let body = Db.Capabilities.make ~supportsTerminateRequest:true () in
+      let resp = new DRs.InitializeResponse.cls seq request_seq !success command body in
+      let resp = construct DRs.InitializeResponse.enc resp |> Defaults.wrap_header in
+      Logs_lwt.info (fun m -> m "\nInit response \n%s\n" resp) >>= fun _ ->
+      Lwt_io.write_line oc resp
     )
   | NextReq req -> (
       let seq = succ req#seq in

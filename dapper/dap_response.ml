@@ -205,3 +205,25 @@ module VariablesResponse = struct
       )
 
 end
+
+
+module InitializeResponse = struct
+
+  type body = Capabilities.t
+
+  type cls_t = body Response.cls_t
+
+  class cls
+      (seq:int)
+      (request_seq:int)
+      (success:bool)
+      (command:Dap_request.Request.t)
+      (body:body) = object
+    inherit [body] Response.cls seq request_seq success command None body
+  end
+
+  let enc =
+    (* let open Data_encoding in *)
+    Response.enc Capabilities.enc
+
+end
