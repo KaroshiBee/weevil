@@ -8,7 +8,7 @@ module ProtocolMessage = struct
     | Event
 
   type t = {
-    seq: int64;
+    seq: int;
     type_: msg;
   }
 
@@ -24,14 +24,14 @@ module ProtocolMessage = struct
       (fun {seq; type_} -> (seq, type_))
       (fun (seq, type_) -> {seq; type_})
       (obj2
-         (req ~description "seq" int64)
+         (req ~description "seq" int31)
          (req ~description:"Message type." "type" msg_e))
 end
 
 module Request = struct
 
   type 'args t = {
-    seq: int64;
+    seq: int;
     type_: ProtocolMessage.msg;
     command: string;
     arguments: 'args option;
@@ -49,7 +49,7 @@ module Request = struct
       (fun {seq; type_; command; arguments} -> (seq, type_, command, arguments))
       (fun (seq, type_, command, arguments) -> {seq; type_; command; arguments})
       (obj4
-         (req "seq" int64)
+         (req "seq" int31)
          (req "type" msg_e)
          (req "command" string)
          (opt "arguments" args))
@@ -59,7 +59,7 @@ end
 module Event = struct
 
   type 'body t = {
-    seq: int64;
+    seq: int;
     type_: ProtocolMessage.msg;
     event: string;
     body: 'body option;
@@ -77,7 +77,7 @@ module Event = struct
       (fun {seq; type_; event; body} -> (seq, type_, event, body))
       (fun (seq, type_, event, body) -> {seq; type_; event; body})
       (obj4
-         (req "seq" int64)
+         (req "seq" int31)
          (req "type" msg_e)
          (req "event" string)
          (opt "body" body))
@@ -87,9 +87,9 @@ end
 module Response = struct
 
   type 'body t = {
-    seq: int64;
+    seq: int;
     type_: ProtocolMessage.msg;
-    request_seq: int64;
+    request_seq: int;
     success: bool;
     command: string;
     message: string option;
@@ -105,9 +105,9 @@ module Response = struct
 
   let response_e body =
     obj7
-      (req "seq" int64)
+      (req "seq" int31)
       (req "type" msg_e)
-      (req "request_seq" int64)
+      (req "request_seq" int31)
       (req "success" bool)
       (req "command" string)
       (opt "message" string)
@@ -122,7 +122,7 @@ end
 
 module Message = struct
   type t = {
-    id: int64;
+    id: int;
     format: string;
     variables: (string * string) list option;
     sendTelemetry: bool option;
@@ -133,7 +133,7 @@ module Message = struct
 
   let msg_e =
     obj7
-      (req "id" int64)
+      (req "id" int31)
       (req "format" string)
       (opt "variables" (list @@ (tup2 string string)))
       (opt "sendTelemetry" bool)
@@ -165,9 +165,9 @@ module Error = struct
 module ErrorResponse = struct
 
   type t = {
-    seq: int64;
+    seq: int;
     type_: ProtocolMessage.msg;
-    request_seq: int64;
+    request_seq: int;
     success: bool;
     command: string;
     message: string option;
@@ -183,9 +183,9 @@ module ErrorResponse = struct
 
   let response_e =
     obj7
-      (req "seq" int64)
+      (req "seq" int31)
       (req "type" msg_e)
-      (req "request_seq" int64)
+      (req "request_seq" int31)
       (req "success" bool)
       (req "command" string)
       (opt "message" string)
@@ -200,7 +200,7 @@ end
 
 module CancelArguments = struct
   type t = {
-    requestId: int64 option;
+    requestId: int option;
     progressId: string option;
   }
 
@@ -209,12 +209,12 @@ module CancelArguments = struct
       (fun {requestId; progressId} -> (requestId, progressId))
       (fun (requestId, progressId) -> {requestId; progressId})
       (obj2
-         (opt "requestId" int64)
+         (opt "requestId" int31)
          (opt "progressId" string))
 
   let e_ =
     obj2
-      (opt "requestId" int64)
+      (opt "requestId" int31)
       (opt "progressId" string)
 end
 

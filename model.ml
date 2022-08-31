@@ -4,7 +4,7 @@ open Alpha_context
 module Weevil_json = struct
 
   type t = {
-    location: int64;
+    location: int;
     gas: string;
     stack: string list;
   }
@@ -15,7 +15,7 @@ module Weevil_json = struct
       (fun {location; gas; stack} -> (location, gas, stack))
       (fun (location, gas, stack) -> {location; gas; stack})
       (obj3
-         (req "location" int64)
+         (req "location" int31)
          (req "gas" string)
          (req "stack" @@ list string)
       )
@@ -66,7 +66,7 @@ module Weevil_record = struct
     let (loc_str, gas_str, expr_str) =
       get_location t, get_gas t, get_expr_str t
     in
-    let location = Int64.of_string loc_str in
+    let location = int_of_string loc_str in
     let gas = gas_str in
     let stack = String.split_on_char ',' expr_str in
     Weevil_json.{location; gas; stack}
@@ -94,7 +94,7 @@ module State = struct
 
   type t = {
     line_number: int;
-    current_seq: int64;
+    current_seq: int;
     stack_frames: Dapper.Dap_base.StackFrame.t list;
     scopes: Dapper.Dap_base.Scope.t list;
     variables: Dapper.Dap_base.Variable_.t list;
@@ -123,4 +123,4 @@ module State = struct
 
 end
 
-let state = Lwd.var (State.make 1 0L)
+let state = Lwd.var (State.make 1 0)

@@ -11,9 +11,9 @@ module ProtocolMessage = struct
       (function | "request" -> Request | "response" -> Response | "event" -> Event | _ -> failwith "Unknown message type")
       Data_encoding.string
 
-  type cls_t = < seq:int64; type_:t >
+  type cls_t = < seq:int; type_:t >
 
-  class cls (seq:int64) (type_:t) = object
+  class cls (seq:int) (type_:t) = object
     method seq = seq
     method type_ = type_
   end
@@ -76,7 +76,7 @@ module Message = struct
 
 
   type t = {
-    id: int64;
+    id: int;
     format: string;
     variables: (string * string) list option;
     sendTelemetry: bool option;
@@ -91,7 +91,7 @@ module Message = struct
       (fun {id; format; variables; sendTelemetry; showUser; url; urlLabel} -> (id, format, variables, sendTelemetry, showUser, url, urlLabel))
       (fun (id, format, variables, sendTelemetry, showUser, url, urlLabel) -> {id; format; variables; sendTelemetry; showUser; url; urlLabel})
       (obj7
-         (req "id" int64)
+         (req "id" int31)
          (req "format" string)
          (opt "variables" @@ list @@ tup2 string string)
          (opt "sendTelemetry" bool)
@@ -155,7 +155,7 @@ module Source = struct
   type 'json t = {
     name: string option;
     path: string option;
-    sourceReference: int64 option;
+    sourceReference: int option;
     presentationHint: hint option;
     origin: string option;
     sources: 'json t list option;
@@ -208,7 +208,7 @@ module Source = struct
           (obj8
              (opt "name" string)
              (opt "path" string)
-             (opt "sourceReference" int64)
+             (opt "sourceReference" int31)
              (opt "presentationHint" hint_enc)
              (opt "origin" string)
              (opt "sources" (list e))
@@ -247,16 +247,16 @@ end
 module Breakpoint = struct
 
   type 'json t = {
-    id: int64 option;
+    id: int option;
     verified: bool;
     message: string option;
     source: 'json Source.t option;
-    line: int64 option;
-    column: int64 option;
-    endLine: int64 option;
-    endColumn: int64 option;
+    line: int option;
+    column: int option;
+    endLine: int option;
+    endColumn: int option;
     instructionReference: string option;
-    offset: int64 option;
+    offset: int option;
   }
 
   let enc =
@@ -311,16 +311,16 @@ module Breakpoint = struct
          }
       )
       (obj10
-         (opt "id" int64)
+         (opt "id" int31)
          (req "verified" bool)
          (opt "message" string)
          (opt "source" @@ Source.enc json)
-         (opt "line" int64)
-         (opt "column" int64)
-         (opt "endLine" int64)
-         (opt "endColumn" int64)
+         (opt "line" int31)
+         (opt "column" int31)
+         (opt "endLine" int31)
+         (opt "endColumn" int31)
          (opt "instructionReference" string)
-         (opt "offset" int64)
+         (opt "offset" int31)
       )
 
 end
@@ -511,7 +511,7 @@ module ColumnDescriptor = struct
     label: string;
     format: string option;
     type_: column_type option;
-    width: int64 option
+    width: int option
   }
 
   let enc =
@@ -548,7 +548,7 @@ module ColumnDescriptor = struct
          (req "label" string)
          (opt "format" string)
          (opt "type" column_type_enc)
-         (opt "width" int64)
+         (opt "width" int31)
       )
 end
 
@@ -1003,10 +1003,10 @@ end
 module StackFrame = struct
 (* TODO rest of optional data *)
   type t = {
-    id: int64;
+    id: int;
     name: string;
-    line: int64;
-    column: int64;
+    line: int;
+    column: int;
   }
 
   let enc =
@@ -1015,10 +1015,10 @@ module StackFrame = struct
       (fun {id; name; line; column} -> (id, name, line, column))
       (fun (id, name, line, column) -> {id; name; line; column})
       (obj4
-         (req "id" int64)
+         (req "id" int31)
          (req "name" string)
-         (req "line" int64)
-         (req "column" int64))
+         (req "line" int31)
+         (req "column" int31))
 
 end
 
@@ -1027,7 +1027,7 @@ module Scope = struct
 (* TODO rest of optional data *)
   type t = {
     name: string;
-    variablesReference: int64;
+    variablesReference: int;
     expensive: bool;
   }
 
@@ -1038,7 +1038,7 @@ module Scope = struct
       (fun (name, variablesReference, expensive) -> {name; variablesReference; expensive})
       (obj3
          (req "name" string)
-         (req "variablesReference" int64)
+         (req "variablesReference" int31)
          (req "expensive" bool))
 
 end
@@ -1049,7 +1049,7 @@ module Variable_ = struct
   type t = {
     name: string;
     value: string;
-    variablesReference: int64;
+    variablesReference: int;
   }
 
   let enc =
@@ -1060,7 +1060,7 @@ module Variable_ = struct
       (obj3
          (req "name" string)
          (req "value" string)
-         (req "variablesReference" int64)
+         (req "variablesReference" int31)
       )
 
 end

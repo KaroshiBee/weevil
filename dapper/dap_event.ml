@@ -74,7 +74,7 @@ module Event = struct
   >
 
   class ['json] cls
-      (seq:int64)
+      (seq:int)
       (event:t)
       (body:'json)
       = object
@@ -95,7 +95,7 @@ module Event = struct
          new cls seq event body)
 
       (obj4
-         (req "seq" int64)
+         (req "seq" int31)
          (req "type" ProtocolMessage.enc_t)
          (req "event" enc_t)
          (req "body" js)
@@ -108,7 +108,7 @@ module InitializedEvent = struct
 
   type cls_t = unit Event.cls_t
 
-  class cls (seq:int64) = object
+  class cls (seq:int) = object
     inherit [unit] Event.cls seq Initialized ()
   end
 
@@ -161,11 +161,11 @@ module StoppedEvent = struct
   type body = {
     reason: reason;
     description: string option;
-    threadId: int64 option;
+    threadId: int option;
     preserveFocusHint: bool option;
     text: string option;
     allThreadsStopped: bool option;
-    hitBreakpointIds: int64 list option;
+    hitBreakpointIds: int list option;
   }
 
   let body ~reason ?description ?threadId ?preserveFocusHint ?text ?allThreadsStopped ?hitBreakpointIds () = {
@@ -180,7 +180,7 @@ module StoppedEvent = struct
 
   type cls_t = body Event.cls_t
 
-  class cls (seq:int64) (body:body) = object
+  class cls (seq:int) (body:body) = object
     inherit [body] Event.cls seq Stopped body
   end
 
@@ -225,11 +225,11 @@ module StoppedEvent = struct
       (obj7
          (req "reason" enc_reason)
          (opt "description" string)
-         (opt "threadId" int64)
+         (opt "threadId" int31)
          (opt "preserveFocusHint" bool)
          (opt "text" string)
          (opt "allThreadsStopped" bool)
-         (opt "hitBreakpointIds" (list int64))
+         (opt "hitBreakpointIds" (list int31))
          )
 
 end
@@ -238,13 +238,13 @@ end
 module ContinuedEvent = struct
 
   type body = {
-    threadId: int64;
+    threadId: int;
     allThreadsContinued: bool option;
   }
 
   type cls_t = body Event.cls_t
 
-  class cls (seq:int64) (body:body) = object
+  class cls (seq:int) (body:body) = object
     inherit [body] Event.cls seq Continued body
   end
 
@@ -255,7 +255,7 @@ module ContinuedEvent = struct
       (fun {threadId; allThreadsContinued} -> (threadId, allThreadsContinued))
       (fun (threadId, allThreadsContinued) -> {threadId; allThreadsContinued})
       (obj2
-         (req "threadId" int64)
+         (req "threadId" int31)
          (opt "allThreadsContinued" bool))
 
 end
@@ -264,12 +264,12 @@ end
 module ExitedEvent = struct
 
   type body = {
-    exitCode: int64;
+    exitCode: int;
   }
 
   type cls_t = body Event.cls_t
 
-  class cls (seq:int64) (body:body) = object
+  class cls (seq:int) (body:body) = object
     inherit [body] Event.cls seq Exited body
   end
 
@@ -280,7 +280,7 @@ module ExitedEvent = struct
       (fun {exitCode} -> exitCode)
       (fun exitCode -> {exitCode})
       (obj1
-         (req "exitCode" int64))
+         (req "exitCode" int31))
 
 end
 
@@ -293,7 +293,7 @@ module TerminatedEvent = struct
 
   type 'json cls_t = 'json body option Event.cls_t
 
-  class ['json] cls (seq:int64) (body:'json body option) = object
+  class ['json] cls (seq:int) (body:'json body option) = object
     inherit ['json body option] Event.cls seq Terminated body
   end
 
@@ -324,12 +324,12 @@ module ThreadEvent = struct
 
   type body = {
     reason: reason;
-    threadId: int64;
+    threadId: int;
   }
 
   type cls_t = body Event.cls_t
 
-  class cls (seq:int64) (body:body) = object
+  class cls (seq:int) (body:body) = object
     inherit [body] Event.cls seq Thread body
   end
 
@@ -341,7 +341,7 @@ module ThreadEvent = struct
       (fun (reason, threadId) -> {reason; threadId})
       (obj2
          (req "reason" enc_reason)
-         (req "threadId" int64))
+         (req "threadId" int31))
 
 end
 
@@ -400,17 +400,17 @@ module OutputEvent = struct
     output: string;
     category: category option;
     group: group option;
-    variablesReference: int64 option;
+    variablesReference: int option;
     source: 'json Source.t option;
-    line: int64 option;
-    column: int64 option;
+    line: int option;
+    column: int option;
     data: 'json option;
   }
 
   type 'json cls_t = 'json body Event.cls_t
 
   class ['json] cls
-      (seq:int64)
+      (seq:int)
       (body:'json body) = object
     inherit ['json body] Event.cls seq Output body
   end
@@ -464,10 +464,10 @@ module OutputEvent = struct
          (req "output" string)
          (opt "category" enc_category)
          (opt "group" enc_group)
-         (opt "variablesReference" int64)
+         (opt "variablesReference" int31)
          (opt "source" (Source.enc json))
-         (opt "line" int64)
-         (opt "column" int64)
+         (opt "line" int31)
+         (opt "column" int31)
          (opt "data" json)
       )
 
@@ -483,7 +483,7 @@ module BreakpointEvent = struct
 
   type 'json cls_t = 'json body Event.cls_t
 
-  class ['json] cls (seq:int64) (body:'json body) = object
+  class ['json] cls (seq:int) (body:'json body) = object
     inherit ['json body] Event.cls seq Breakpoint body
   end
 
@@ -524,7 +524,7 @@ module ModuleEvent = struct
 
   type cls_t = body Event.cls_t
 
-  class cls (seq:int64) (body:body) = object
+  class cls (seq:int) (body:body) = object
     inherit [body] Event.cls seq Module body
   end
 
@@ -565,7 +565,7 @@ module LoadedSourceEvent = struct
 
   type 'json cls_t = 'json body Event.cls_t
 
-  class ['json] cls (seq:int64) (body:'json body) = object
+  class ['json] cls (seq:int) (body:'json body) = object
     inherit ['json body] Event.cls seq LoadedSource body
   end
 
@@ -622,15 +622,15 @@ module ProcessEvent = struct
 
   type body = {
     name: string;
-    systemProcessId: int64 option;
+    systemProcessId: int option;
     isLocalProcess: bool option;
     startMethod: start_method option;
-    pointerSize: int64 option;
+    pointerSize: int option;
   }
 
   type cls_t = body Event.cls_t
 
-  class cls (seq:int64) (body:body) = object
+  class cls (seq:int) (body:body) = object
     inherit [body] Event.cls seq Process body
   end
 
@@ -668,10 +668,10 @@ module ProcessEvent = struct
       )
       (obj5
          (req "name" string)
-         (opt "systemProcessId" int64)
+         (opt "systemProcessId" int31)
          (opt "isLocalProcess" bool)
          (opt "startMethod" start_method_enc)
-         (opt "pointerSize" int64)
+         (opt "pointerSize" int31)
       )
 
 end
@@ -685,7 +685,7 @@ module CapabilitiesEvent = struct
 
   type cls_t = body Event.cls_t
 
-  class cls (seq:int64) (body:body) = object
+  class cls (seq:int) (body:body) = object
     inherit [body] Event.cls seq Capabilities body
   end
 
@@ -707,7 +707,7 @@ module ProgressStartEvent = struct
   type body = {
     progressId: string;
     title: string;
-    requestId: int64 option;
+    requestId: int option;
     cancellable: bool option;
     message: string option;
     percentage: int option;
@@ -715,7 +715,7 @@ module ProgressStartEvent = struct
 
   type cls_t = body Event.cls_t
 
-  class cls (seq:int64) (body:body) = object
+  class cls (seq:int) (body:body) = object
     inherit [body] Event.cls seq ProgressStart body
   end
 
@@ -758,7 +758,7 @@ module ProgressStartEvent = struct
       (obj6
          (req "progressId" string)
          (req "title" string)
-         (opt "requestId" int64)
+         (opt "requestId" int31)
          (opt "cancellable" bool)
          (opt "message" string)
          (opt "percentage" @@ ranged_int 0 100)
@@ -778,7 +778,7 @@ module ProgressUpdateEvent = struct
 
   type cls_t = body Event.cls_t
 
-  class cls (seq:int64) (body:body) = object
+  class cls (seq:int) (body:body) = object
     inherit [body] Event.cls seq ProgressUpdate body
   end
 
@@ -806,7 +806,7 @@ module ProgressEndEvent = struct
 
   type cls_t = body Event.cls_t
 
-  class cls (seq:int64) (body:body) = object
+  class cls (seq:int) (body:body) = object
     inherit [body] Event.cls seq ProgressEnd body
   end
 
@@ -828,14 +828,14 @@ module InvalidatedEvent = struct
 
   type body = {
     areas: InvalidatedAreas.t list option;
-    threadId: int64 option;
-    stackFrameId: int64 option;
+    threadId: int option;
+    stackFrameId: int option;
 
   }
 
   type cls_t = body Event.cls_t
 
-  class cls (seq:int64) (body:body) = object
+  class cls (seq:int) (body:body) = object
     inherit [body] Event.cls seq Invalidated body
   end
 
@@ -847,8 +847,8 @@ module InvalidatedEvent = struct
       (fun (areas, threadId, stackFrameId) -> {areas; threadId; stackFrameId})
       (obj3
          (opt "areas" (list InvalidatedAreas.enc))
-         (opt "threadId" int64)
-         (opt "stackFrameId" int64)
+         (opt "threadId" int31)
+         (opt "stackFrameId" int31)
       )
 
 end
@@ -858,13 +858,13 @@ module MemoryEvent = struct
 
   type body = {
     memoryReference: string;
-    offset: int64;
-    count: int64;
+    offset: int;
+    count: int;
   }
 
   type cls_t = body Event.cls_t
 
-  class cls (seq:int64) (body:body) = object
+  class cls (seq:int) (body:body) = object
     inherit [body] Event.cls seq Memory body
   end
 
@@ -876,8 +876,8 @@ module MemoryEvent = struct
       (fun (memoryReference, offset, count) -> {memoryReference; offset; count})
       (obj3
          (req "memoryReference" string)
-         (req "offset" int64)
-         (req "count" int64)
+         (req "offset" int31)
+         (req "count" int31)
       )
 
 end

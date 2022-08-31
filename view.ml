@@ -24,7 +24,7 @@ module Btn_stackFrames = struct
   let render {old_state; ic; oc} oc_log =
     let btn_text = Printf.sprintf "[+]" in
     let btn_action () =
-      let next_seq = Int64.succ old_state.current_seq in
+      let next_seq = succ old_state.current_seq in
       let args = DRq.StackTraceArguments.{threadId=Defaults._THE_THREAD_ID; startFrame=None; levels=None} in
       let req = new DRq.StackTraceRequest.cls next_seq args in
       let js = Js.construct DRq.StackTraceRequest.enc req |> Defaults.wrap_header in
@@ -53,7 +53,7 @@ module Btn_stackFrames = struct
     in
     let panel =
       List.fold_left (fun acc (sf:Db.StackFrame.t) ->
-          let line = Printf.sprintf "> %s: %d" sf.name (Int64.to_int sf.id) in
+          let line = Printf.sprintf "> %s: %d" sf.name sf.id in
           let ui_line = W.string line in
           ui_line :: acc
         ) [] old_state.stack_frames
@@ -101,7 +101,7 @@ module Btn_scope = struct
     let btn_text = Printf.sprintf "[+]" in
     let btn_action () =
       let _ = old_state.scopes |> List.iter (fun (sc : Db.Scope.t) -> (
-          let next_seq = Int64.succ old_state.current_seq in
+          let next_seq = succ old_state.current_seq in
           let args = DRq.VariablesArguments.{variablesReference=sc.variablesReference;} in
           let req = new DRq.VariablesRequest.cls next_seq args in
           let js = Js.construct DRq.VariablesRequest.enc req |> Defaults.wrap_header in
@@ -165,7 +165,7 @@ module Btn_scopes = struct
   let render {old_state; ic; oc} oc_log =
     let btn_text = Printf.sprintf "[+]" in
     let btn_action () =
-      let next_seq = Int64.succ old_state.current_seq in
+      let next_seq = succ old_state.current_seq in
       let args = DRq.ScopesArguments.{frameId=Defaults._THE_FRAME_ID;} in
       let req = new DRq.ScopesRequest.cls next_seq args in
       let js = Js.construct DRq.ScopesRequest.enc req |> Defaults.wrap_header in
@@ -275,7 +275,7 @@ module Btn_next = struct
     in
     let btn_text_up = Printf.sprintf "[+]" in
     let btn_action_up () =
-      let next_seq = Int64.succ old_state.current_seq in
+      let next_seq = succ old_state.current_seq in
       let args = DRq.NextArguments.{threadId=Defaults._THE_THREAD_ID; singleThread=None; granularity=None} in
       let req = new DRq.NextRequest.cls next_seq args in
       let js = Js.construct DRq.NextRequest.enc req |> Defaults.wrap_header in
@@ -294,7 +294,7 @@ module Btn_next = struct
         Lwt_io.read_line ic >>= fun _stopped_ev ->
         Lwt_io.write_line oc_log _stopped_ev >>= fun _ ->
         (* TODO extract seq number and update state if success=true *)
-        let current_seq = Int64.add next_seq 2L in
+        let current_seq = next_seq + 2 in
         Lwd.set Model.state (Model.State.incr_line_number old_state max_lines current_seq) |> Lwt.return
       )
     in

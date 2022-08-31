@@ -15,7 +15,7 @@ let process log_file_arg listen_address_arg port_arg =
       () =
     let cmd = make_cmd log_file in
     let listen_address = make_address listen_address in
-    Server.svc ~listen_address ~port ~cmd ()
+    Server.svc ~listen_address ~port ~cmd
   in
   p ?log_file_arg ?listen_address_arg ?port_arg ()
 

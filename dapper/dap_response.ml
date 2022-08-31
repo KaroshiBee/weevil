@@ -15,7 +15,7 @@ module Response = struct
 
   type 'json cls_t = <
     ProtocolMessage.cls_t;
-    request_seq:int64;
+    request_seq:int;
     success:bool;
     command:Dap_request.Request.t;
     message:t option;
@@ -23,8 +23,8 @@ module Response = struct
   >
 
   class ['json] cls
-      (seq:int64)
-      (request_seq:int64)
+      (seq:int)
+      (request_seq:int)
       (success:bool)
       (command:Dap_request.Request.t)
       (message:t option)
@@ -50,9 +50,9 @@ module Response = struct
          new cls seq request_seq success command message body)
 
       (obj7
-         (req "seq" int64)
+         (req "seq" int31)
          (req "type" ProtocolMessage.enc_t)
-         (req "request_seq" int64)
+         (req "request_seq" int31)
          (req "success" bool)
          (req "command" Dap_request.Request.enc_t)
          (opt "message" enc_t)
@@ -70,8 +70,8 @@ module ErrorResponse = struct
   type cls_t = body Response.cls_t
 
   class cls
-      (seq:int64)
-      (request_seq:int64)
+      (seq:int)
+      (request_seq:int)
       (success:bool)
       (command:Dap_request.Request.t)
       (body:body) = object
@@ -98,8 +98,8 @@ module MakeEmptyBodyResponse (B:EMPTY_BODY) = struct
   type cls_t = body Response.cls_t
 
   class cls
-      (seq:int64)
-      (request_seq:int64)
+      (seq:int)
+      (request_seq:int)
       (success:bool)
       (command:Dap_request.Request.t) = object
     inherit [body] Response.cls seq request_seq success command None B.body
@@ -119,14 +119,14 @@ module StackTraceResponse = struct
 
   type body = {
     stackFrames: StackFrame.t list;
-    totalFrames: int64 option;
+    totalFrames: int option;
   }
 
   type cls_t = body Response.cls_t
 
   class cls
-      (seq:int64)
-      (request_seq:int64)
+      (seq:int)
+      (request_seq:int)
       (success:bool)
       (command:Dap_request.Request.t)
       (body:body) = object
@@ -141,7 +141,7 @@ module StackTraceResponse = struct
       (fun (stackFrames, totalFrames) -> {stackFrames; totalFrames})
       (obj2
          (req "stackFrames" @@ list StackFrame.enc)
-         (opt "totalFrames" int64))
+         (opt "totalFrames" int31))
 
 end
 
@@ -156,8 +156,8 @@ module ScopesResponse = struct
   type cls_t = body Response.cls_t
 
   class cls
-      (seq:int64)
-      (request_seq:int64)
+      (seq:int)
+      (request_seq:int)
       (success:bool)
       (command:Dap_request.Request.t)
       (body:body) = object
@@ -186,8 +186,8 @@ module VariablesResponse = struct
   type cls_t = body Response.cls_t
 
   class cls
-      (seq:int64)
-      (request_seq:int64)
+      (seq:int)
+      (request_seq:int)
       (success:bool)
       (command:Dap_request.Request.t)
       (body:body) = object

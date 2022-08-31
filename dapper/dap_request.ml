@@ -24,7 +24,7 @@ module Request = struct
   >
 
   class ['json] cls
-      (seq:int64)
+      (seq:int)
       (command:t)
       (arguments:'json)
       = object
@@ -45,7 +45,7 @@ module Request = struct
          new cls seq command arguments)
 
       (obj4
-         (req "seq" int64)
+         (req "seq" int31)
          (req "type" ProtocolMessage.enc_t)
          (req "command" enc_t)
          (req "arguments" js)
@@ -56,7 +56,7 @@ end
 module CancelArguments = struct
 
   type t = {
-    requestId:int64 option;
+    requestId:int option;
     progressId:string option
   }
 
@@ -66,7 +66,7 @@ module CancelArguments = struct
       (fun {requestId; progressId} -> (requestId, progressId))
       (fun (requestId, progressId) -> {requestId; progressId})
       (obj2
-         (opt "requestId" int64)
+         (opt "requestId" int31)
          (opt "progressId" string))
 
 end
@@ -78,7 +78,7 @@ module CancelRequest = struct
 
   type cls_t = args Request.cls_t
 
-  class cls (seq:int64) (arguments:args) = object
+  class cls (seq:int) (arguments:args) = object
     inherit [args] Request.cls seq Cancel arguments
   end
 
@@ -90,7 +90,7 @@ end
 module NextArguments = struct
 
   type t = {
-    threadId: int64;
+    threadId: int;
     singleThread: bool option;
     granularity: SteppingGranularity.t option;
   }
@@ -101,7 +101,7 @@ module NextArguments = struct
       (fun {threadId; singleThread; granularity} -> (threadId, singleThread, granularity))
       (fun (threadId, singleThread, granularity) -> {threadId; singleThread; granularity})
       (obj3
-         (req "threadId" int64)
+         (req "threadId" int31)
          (opt "singleThread" bool)
          (opt "granularity" SteppingGranularity.enc)
       )
@@ -114,7 +114,7 @@ module NextRequest = struct
 
   type cls_t = args Request.cls_t
 
-  class cls (seq:int64) (arguments:args) = object
+  class cls (seq:int) (arguments:args) = object
     inherit [args] Request.cls seq Next arguments
   end
 
@@ -129,9 +129,9 @@ end
 module StackTraceArguments = struct
 
   type t = {
-      threadId: int64;
-      startFrame: int64 option;
-      levels: int64 option;
+      threadId: int;
+      startFrame: int option;
+      levels: int option;
       (*  TODO format:  *)
   }
 
@@ -141,9 +141,9 @@ module StackTraceArguments = struct
       (fun {threadId; startFrame; levels} -> (threadId, startFrame, levels))
       (fun (threadId, startFrame, levels) -> {threadId; startFrame; levels})
       (obj3
-         (req "threadId" int64)
-         (opt "startFrame" int64)
-         (opt "levels" int64)
+         (req "threadId" int31)
+         (opt "startFrame" int31)
+         (opt "levels" int31)
       )
 
 end
@@ -154,7 +154,7 @@ module StackTraceRequest = struct
 
   type cls_t = args Request.cls_t
 
-  class cls (seq:int64) (arguments:args) = object
+  class cls (seq:int) (arguments:args) = object
     inherit [args] Request.cls seq StackTrace arguments
   end
 
@@ -165,7 +165,7 @@ end
 
 module ScopesArguments = struct
   type t = {
-    frameId: int64;
+    frameId: int;
   }
 
   let enc =
@@ -174,7 +174,7 @@ module ScopesArguments = struct
       (fun {frameId} -> frameId)
       (fun frameId -> {frameId})
       (obj1
-         (req "frameId" int64)
+         (req "frameId" int31)
       )
 
 end
@@ -185,7 +185,7 @@ module ScopesRequest = struct
 
   type cls_t = args Request.cls_t
 
-  class cls (seq:int64) (arguments:args) = object
+  class cls (seq:int) (arguments:args) = object
     inherit [args] Request.cls seq Scopes arguments
   end
 
@@ -196,7 +196,7 @@ end
 
 module VariablesArguments = struct
   type t = {
-    variablesReference: int64;
+    variablesReference: int;
   }
 
   let enc =
@@ -205,7 +205,7 @@ module VariablesArguments = struct
       (fun {variablesReference} -> variablesReference)
       (fun variablesReference -> {variablesReference})
       (obj1
-         (req "variablesReference" int64)
+         (req "variablesReference" int31)
       )
 
 end
@@ -216,7 +216,7 @@ module VariablesRequest = struct
 
   type cls_t = args Request.cls_t
 
-  class cls (seq:int64) (arguments:args) = object
+  class cls (seq:int) (arguments:args) = object
     inherit [args] Request.cls seq Variables arguments
   end
 
@@ -227,9 +227,9 @@ end
 
 module InitializeRequestArguments = struct
   type t0 = {
-    clientId: string option;
+    clientID: string option;
     clientName: string option;
-    adapterId: string;
+    adapterID: string;
     locale: string option;
     linesStartAt1: bool;
     columnsStartAt1: bool;
@@ -240,43 +240,43 @@ module InitializeRequestArguments = struct
     let open Data_encoding in
     conv
       ( fun {
-          clientId;
+          clientID;
           clientName;
-          adapterId;
+          adapterID;
           locale;
           linesStartAt1;
           columnsStartAt1;
           pathFormat;
         } -> (
-          clientId,
+          clientID,
           clientName,
-          adapterId,
+          adapterID,
           locale,
           linesStartAt1,
           columnsStartAt1,
           pathFormat
       ))
       ( fun (
-          clientId,
+          clientID,
           clientName,
-          adapterId,
+          adapterID,
           locale,
           linesStartAt1,
           columnsStartAt1,
           pathFormat
       ) -> {
-          clientId;
+          clientID;
           clientName;
-          adapterId;
+          adapterID;
           locale;
           linesStartAt1;
           columnsStartAt1;
           pathFormat;
         })
       (obj7
-          (opt "clientId" string)
+          (opt "clientID" string)
           (opt "clientName" string)
-          (req "adapterId" string)
+          (req "adapterID" string)
           (opt "locale" string)
           (req "linesStartAt1" bool)
           (req "columnsStartAt1" bool)
@@ -357,9 +357,9 @@ module InitializeRequestArguments = struct
     merge_objs enc_t0 enc_t1
 
   let make
-      ?clientId
+      ?clientID
       ?clientName
-      ~adapterId
+      ~adapterID
       ?locale
       ~linesStartAt1
       ~columnsStartAt1
@@ -374,9 +374,9 @@ module InitializeRequestArguments = struct
       ?supportsArgsCanBeInterpretedByShell
       () =
     {
-      clientId;
+      clientID;
       clientName;
-      adapterId;
+      adapterID;
       locale;
       linesStartAt1;
       columnsStartAt1;
@@ -399,7 +399,7 @@ module InitializeRequest = struct
   type args = InitializeRequestArguments.t
   type cls_t = args Request.cls_t
 
-  class cls (seq:int64) (arguments:args) = object
+  class cls (seq:int) (arguments:args) = object
     inherit [args] Request.cls seq Initialize arguments
   end
 
