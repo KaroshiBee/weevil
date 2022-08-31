@@ -10,6 +10,7 @@ type event =
   | AttachReq of DRq.AttachRequest.cls_t
   | ConfigDoneReq of DRq.ConfigurationDoneRequest.cls_t
   | ThreadsReq of DRq.ThreadsRequest.cls_t
+  | ContinueReq of DRq.ContinueRequest.cls_t
   | NextReq of DRq.NextRequest.cls_t
   | StackTrace of DRq.StackTraceRequest.cls_t
   | Scopes of DRq.ScopesRequest.cls_t
@@ -62,6 +63,15 @@ let parse_threads_req js =
     let _ = Logs_lwt.warn (fun m -> m "Not threads request") in
     None
 
+let parse_continue_req js =
+  try
+    let req = destruct DRq.ContinueRequest.enc js in
+    assert(req#command = DRq.Request.Continue);
+    Some (ContinueReq req)
+  with _ ->
+    let _ = Logs_lwt.warn (fun m -> m "Not continue request") in
+    None
+
 let parse_next_req js =
   try
     let req = destruct DRq.NextRequest.enc js in
@@ -103,6 +113,7 @@ let parsers = [
   parse_attach_req;
   parse_configuration_req;
   parse_threads_req;
+  parse_continue_req;
   parse_next_req;
   parse_stacktrace_req;
   parse_scopes_req;
@@ -212,7 +223,6 @@ let handle_msg oc msg ic_process oc_process =
       Lwt_io.write oc resp
     )
   | ConfigDoneReq req -> (
-      (* TODO should really spin up stepper here? *)
       let seq = succ req#seq in
       let request_seq = req#seq in
       let success = ref true in
@@ -224,6 +234,37 @@ let handle_msg oc msg ic_process oc_process =
       let ev = new DEv.StoppedEvent.cls seq body in
       let ev = construct DEv.StoppedEvent.enc ev |> Defaults.wrap_header in
       Logs_lwt.info (fun m -> m "\nConfigurationDone response \n%s\n" resp) >>= fun _ ->
+      Logs_lwt.info (fun m -> m "\nStopped event \n%s\n" ev) >>= fun _ ->
+      Lwt_io.write oc resp >>= fun _ ->
+      Lwt_io.write oc ev
+    )
+  | ContinueReq req -> (
+      let seq = succ req#seq in
+      let request_seq = req#seq in
+      let success = ref true in
+      let command = req#command in
+      let _ =
+        try
+          Printf.fprintf oc_process "step\n"; flush oc_process;
+          Logs_lwt.info (fun m -> m "Got Continue request\n%s\n" msg)
+        with Sys_error _ -> (
+            success := false;
+            (* run out of contract to step through *)
+            try
+              let _ = Unix.close_process (ic_process, oc_process) in ();
+              Logs_lwt.warn (fun m -> m "Process finished: sys error")
+            with Unix.Unix_error _ ->
+              Logs_lwt.warn (fun m -> m "Process finished: unix error")
+          )
+      in
+      let body = DRs.ContinueResponse.{allThreadsContinued=(Some !success)} in
+      let resp = new DRs.ContinueResponse.cls seq request_seq !success command body in
+      let resp = construct DRs.ContinueResponse.enc resp |> Defaults.wrap_header in
+      let body = DEv.StoppedEvent.(body ~reason:Step ~threadId:Defaults._THE_THREAD_ID ()) in
+      let seq = succ seq in
+      let ev = new DEv.StoppedEvent.cls seq body in
+      let ev = construct DEv.StoppedEvent.enc ev |> Defaults.wrap_header in
+      Logs_lwt.info (fun m -> m "\nContinue response \n%s\n" resp) >>= fun _ ->
       Logs_lwt.info (fun m -> m "\nStopped event \n%s\n" ev) >>= fun _ ->
       Lwt_io.write oc resp >>= fun _ ->
       Lwt_io.write oc ev
@@ -269,7 +310,7 @@ let handle_msg oc msg ic_process oc_process =
       let resp = construct DRs.NextResponse.enc resp |> Defaults.wrap_header in
       (* send stopped event too *)
       let seq = succ seq in
-      let body = DEv.StoppedEvent.(body ~reason:Step ()) in
+      let body = DEv.StoppedEvent.(body ~reason:Step ~threadId:Defaults._THE_THREAD_ID()) in
       let ev = new DEv.StoppedEvent.cls seq body in
       let ev = construct DEv.StoppedEvent.enc ev |> Defaults.wrap_header in
       Logs_lwt.info (fun m -> m "\nNext response \n%s\nStopped event\n%s\n" resp ev) >>=
@@ -286,8 +327,9 @@ let handle_msg oc msg ic_process oc_process =
         match read_weevil_log () |> List.rev |> List.hd with
         | None -> []
         | Some wrec ->
-          let loc = Model.Weevil_json.(wrec.location) in
-          [Db.StackFrame.{id=Defaults._THE_FRAME_ID; name=Defaults._THE_FRAME_NAME; line=loc; column=0}]
+          let loc = Model.Weevil_json.relative_loc wrec in
+          let source = Some (Db.Source.make ~name:"example.tz" ~path:"/home/wyn/dev/weevil/example.tz" ()) in
+          [Db.StackFrame.{id=Defaults._THE_FRAME_ID; name=Defaults._THE_FRAME_NAME; source; line=loc; column=0}]
       in
       let totalFrames = Some (List.length stackFrames) in
       let body = DRs.StackTraceResponse.{stackFrames; totalFrames} in

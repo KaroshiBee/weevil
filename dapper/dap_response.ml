@@ -308,3 +308,32 @@ module ThreadsResponse = struct
       )
 
 end
+
+
+module ContinueResponse = struct
+  type body = {
+    allThreadsContinued: bool option;
+  }
+
+  type cls_t = body Response.cls_t
+
+  class cls
+      (seq:int)
+      (request_seq:int)
+      (success:bool)
+      (command:Dap_request.Request.t)
+      (body:body) = object
+    inherit [body] Response.cls seq request_seq success command None body
+  end
+
+  let enc =
+    let open Data_encoding in
+    Response.enc @@
+    conv
+      (fun {allThreadsContinued} -> allThreadsContinued)
+      (fun allThreadsContinued -> {allThreadsContinued})
+      (obj1
+         (opt "allThreadsContinued" bool)
+      )
+
+end

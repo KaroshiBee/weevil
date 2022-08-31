@@ -12,12 +12,13 @@ module Request = struct
     | Attach
     | ConfigurationDone
     | Threads
+    | Continue
 
   let enc_t =
     let open Data_encoding in
     conv
-      (function | Cancel -> "cancel" | Next -> "next" | StackTrace -> "stackTrace" | Scopes -> "scopes" | Variables -> "variables" | Initialize -> "initialize" | Attach -> "attach" | ConfigurationDone -> "configurationDone" | Threads -> "threads")
-      (function | "cancel" -> Cancel | "next" -> Next | "stackTrace" -> StackTrace | "scopes" -> Scopes | "variables" -> Variables | "initialize" -> Initialize | "attach" -> Attach | "configurationDone" -> ConfigurationDone | "threads" -> Threads | _ -> failwith "Unknown request")
+      (function | Cancel -> "cancel" | Next -> "next" | StackTrace -> "stackTrace" | Scopes -> "scopes" | Variables -> "variables" | Initialize -> "initialize" | Attach -> "attach" | ConfigurationDone -> "configurationDone" | Threads -> "threads" | Continue -> "continue")
+      (function | "cancel" -> Cancel | "next" -> Next | "stackTrace" -> StackTrace | "scopes" -> Scopes | "variables" -> Variables | "initialize" -> Initialize | "attach" -> Attach | "configurationDone" -> ConfigurationDone | "threads" -> Threads | "continue" -> Continue | _ -> failwith "Unknown request")
       string
 
   type 'json cls_t = <
@@ -536,4 +537,34 @@ module ThreadsRequest = struct
   end
 
   let enc = Request_noargs.enc
+end
+
+
+module ContinueArguments = struct
+  type t = {
+    threadId: int;
+    singleThread: bool option;
+  }
+
+  let enc =
+    let open Data_encoding in
+    conv
+      (fun {threadId; singleThread} -> (threadId, singleThread))
+      (fun (threadId, singleThread) -> {threadId; singleThread})
+      (obj2
+         (req "threadId" int31)
+         (opt "singleThread" bool))
+end
+
+
+module ContinueRequest = struct
+  type args = ContinueArguments.t
+  type cls_t = args Request.cls_t
+
+  class cls (seq:int) (arguments:args) = object
+    inherit [args] Request.cls seq Continue arguments
+  end
+
+  let enc = Request.enc ContinueArguments.enc
+
 end

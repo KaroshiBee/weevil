@@ -152,18 +152,21 @@ module Source = struct
       (function | "normal" -> Normal | "emphasize" -> Emphasize | "deemphasize" -> Deemphasize | _ -> failwith "Unknown hint")
       string
 
-  type 'json t = {
+  type t = {
     name: string option;
     path: string option;
     sourceReference: int option;
     presentationHint: hint option;
     origin: string option;
-    sources: 'json t list option;
-    adapterData: 'json option;
+    sources: t list option;
+    adapterData: Data_encoding.json option;
     checksums: Checksum.t list option;
   }
 
-  let enc json_enc =
+  let make ?name ?path ?sourceReference ?(presentationHint:hint = Normal) ?origin ?sources ?adapterData ?checksums () =
+    {name; path; sourceReference; presentationHint=Some presentationHint; origin; sources; adapterData; checksums}
+
+  let enc =
     let open Data_encoding in
     mu "t" (fun e ->
         conv
@@ -212,7 +215,7 @@ module Source = struct
              (opt "presentationHint" hint_enc)
              (opt "origin" string)
              (opt "sources" (list e))
-             (opt "adapterData" json_enc)
+             (opt "adapterData" json)
              (opt "checksums" @@ list Checksum.enc)
           )
       )
@@ -246,11 +249,11 @@ end
 
 module Breakpoint = struct
 
-  type 'json t = {
+  type t = {
     id: int option;
     verified: bool;
     message: string option;
-    source: 'json Source.t option;
+    source: Source.t option;
     line: int option;
     column: int option;
     endLine: int option;
@@ -314,7 +317,7 @@ module Breakpoint = struct
          (opt "id" int31)
          (req "verified" bool)
          (opt "message" string)
-         (opt "source" @@ Source.enc json)
+         (opt "source" Source.enc)
          (opt "line" int31)
          (opt "column" int31)
          (opt "endLine" int31)
@@ -1005,6 +1008,7 @@ module StackFrame = struct
   type t = {
     id: int;
     name: string;
+    source: Source.t option;
     line: int;
     column: int;
   }
@@ -1012,11 +1016,12 @@ module StackFrame = struct
   let enc =
     let open Data_encoding in
     conv
-      (fun {id; name; line; column} -> (id, name, line, column))
-      (fun (id, name, line, column) -> {id; name; line; column})
-      (obj4
+      (fun {id; name; source; line; column} -> (id, name, source, line, column))
+      (fun (id, name, source, line, column) -> {id; name; source; line; column})
+      (obj5
          (req "id" int31)
          (req "name" string)
+         (opt "source" Source.enc)
          (req "line" int31)
          (req "column" int31))
 

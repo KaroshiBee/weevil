@@ -401,7 +401,7 @@ module OutputEvent = struct
     category: category option;
     group: group option;
     variablesReference: int option;
-    source: 'json Source.t option;
+    source: Source.t option;
     line: int option;
     column: int option;
     data: 'json option;
@@ -465,7 +465,7 @@ module OutputEvent = struct
          (opt "category" enc_category)
          (opt "group" enc_group)
          (opt "variablesReference" int31)
-         (opt "source" (Source.enc json))
+         (opt "source" Source.enc)
          (opt "line" int31)
          (opt "column" int31)
          (opt "data" json)
@@ -476,15 +476,15 @@ end
 
 module BreakpointEvent = struct
 
-  type 'json body = {
+  type body = {
     reason: Reason.t;
-    breakpoint: 'json Breakpoint.t;
+    breakpoint: Breakpoint.t;
   }
 
-  type 'json cls_t = 'json body Event.cls_t
+  type cls_t = body Event.cls_t
 
-  class ['json] cls (seq:int) (body:'json body) = object
-    inherit ['json body] Event.cls seq Breakpoint body
+  class cls (seq:int) (body:body) = object
+    inherit [body] Event.cls seq Breakpoint body
   end
 
   let enc =
@@ -558,15 +558,15 @@ end
 
 module LoadedSourceEvent = struct
 
-  type 'json body = {
+  type body = {
     reason: Reason.t;
-    source: 'json Source.t;
+    source: Source.t;
   }
 
-  type 'json cls_t = 'json body Event.cls_t
+  type cls_t = body Event.cls_t
 
-  class ['json] cls (seq:int) (body:'json body) = object
-    inherit ['json body] Event.cls seq LoadedSource body
+  class cls (seq:int) (body:body) = object
+    inherit [body] Event.cls seq LoadedSource body
   end
 
   let enc =
@@ -591,7 +591,7 @@ module LoadedSourceEvent = struct
       )
       (obj2
          (req "reason" Reason.enc)
-         (req "source" @@ Source.enc json)
+         (req "source" Source.enc)
       )
 
 end

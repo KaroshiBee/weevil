@@ -9,6 +9,8 @@ module Weevil_json = struct
     stack: string list;
   }
 
+  let relative_loc t = t.location + 3 (* guff at beginning of tz file *)
+
   let enc =
     let open Data_encoding in
     conv
