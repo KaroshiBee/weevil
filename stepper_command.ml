@@ -13,6 +13,7 @@ let test_context () =
 
 let test_stepping contract logger =
   test_context () >>=? fun ctx ->
+  let ctx = Gas.set_limit ctx (Gas_limit_repr.Arith.integral_of_int_exn 100) in
   Wcontract_helpers.run_script
     ~logger
     ctx
