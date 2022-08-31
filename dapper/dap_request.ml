@@ -9,12 +9,13 @@ module Request = struct
     | Scopes
     | Variables
     | Initialize
+    | Attach
 
   let enc_t =
     let open Data_encoding in
     conv
-      (function | Cancel -> "cancel" | Next -> "next" | StackTrace -> "stackTrace" | Scopes -> "scopes" | Variables -> "variables" | Initialize -> "initialize")
-      (function | "cancel" -> Cancel | "next" -> Next | "stackTrace" -> StackTrace | "scopes" -> Scopes | "variables" -> Variables | "initialize" -> Initialize | _ -> failwith "Unknown request")
+      (function | Cancel -> "cancel" | Next -> "next" | StackTrace -> "stackTrace" | Scopes -> "scopes" | Variables -> "variables" | Initialize -> "initialize" | Attach -> "attach")
+      (function | "cancel" -> Cancel | "next" -> Next | "stackTrace" -> StackTrace | "scopes" -> Scopes | "variables" -> Variables | "initialize" -> Initialize | "attach" -> Attach | _ -> failwith "Unknown request")
       string
 
   type 'json cls_t = <
@@ -403,6 +404,74 @@ module InitializeRequest = struct
     inherit [args] Request.cls seq Initialize arguments
   end
 
-      let enc = Request.enc InitializeRequestArguments.enc
+  let enc = Request.enc InitializeRequestArguments.enc
 
+end
+
+
+module AttachRequestArguments = struct
+
+  type t = {
+    type_: string option;
+    request: Request.t option;
+    mode: string option; (* TODO *)
+    name: string option;
+    host: string option;
+    debugServer: int option;
+  }
+
+  let enc =
+    let open Data_encoding in
+    conv
+      (fun {
+         type_;
+         request;
+         mode;
+         name;
+         host;
+         debugServer;
+       } -> (
+           type_,
+           request,
+           mode,
+           name,
+           host,
+           debugServer
+         ))
+      (fun (
+         type_,
+         request,
+         mode,
+         name,
+         host,
+         debugServer
+       ) ->  {
+           type_;
+           request;
+           mode;
+           name;
+           host;
+           debugServer;
+         })
+      (obj6
+         (opt "type" string)
+         (opt "request" Request.enc_t)
+         (opt "mode" string)
+         (opt "name" string)
+         (opt "host" string)
+         (opt "debugServer" int31)
+         )
+
+end
+
+
+module AttachRequest = struct
+  type args = AttachRequestArguments.t
+  type cls_t = args Request.cls_t
+
+  class cls (seq:int) (arguments:args) = object
+    inherit [args] Request.cls seq Attach arguments
+  end
+
+  let enc = Request.enc AttachRequestArguments.enc
 end

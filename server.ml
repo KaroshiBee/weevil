@@ -7,6 +7,7 @@ module Db = Dapper.Dap_base
 
 type event =
   | InitReq of DRq.InitializeRequest.cls_t
+  | AttachReq of DRq.AttachRequest.cls_t
   | NextReq of DRq.NextRequest.cls_t
   | StackTrace of DRq.StackTraceRequest.cls_t
   | Scopes of DRq.ScopesRequest.cls_t
@@ -28,6 +29,15 @@ let parse_initialize_req js =
     let req = destruct DRq.InitializeRequest.enc js in
     assert(req#command = DRq.Request.Initialize);
     Some (InitReq req)
+  with _ ->
+    let _ = Logs_lwt.warn (fun m -> m "Not init request") in
+    None
+
+let parse_attach_req js =
+  try
+    let req = destruct DRq.AttachRequest.enc js in
+    assert(req#command = DRq.Request.Attach);
+    Some (AttachReq req)
   with _ ->
     let _ = Logs_lwt.warn (fun m -> m "Not init request") in
     None
@@ -70,6 +80,7 @@ let parse_variables_req js =
 
 let parsers = [
   parse_initialize_req;
+  parse_attach_req;
   parse_next_req;
   parse_stacktrace_req;
   parse_scopes_req;
@@ -155,11 +166,28 @@ let handle_msg oc msg ic_process oc_process =
       let request_seq = req#seq in
       let success = ref true in
       let command = req#command in
-      let body = Db.Capabilities.make ~supportsTerminateRequest:true () in
+      let body = Db.Capabilities.make ~supportsTerminateRequest:true ~supportsConfigurationDoneRequest:true () in
       let resp = new DRs.InitializeResponse.cls seq request_seq !success command body in
       let resp = construct DRs.InitializeResponse.enc resp |> Defaults.wrap_header in
+      (* send init event too *)
+      let seq = succ seq in
+      let ev = new DEv.InitializedEvent.cls seq in
+      let ev = construct DEv.InitializedEvent.enc ev |> Defaults.wrap_header in
       Logs_lwt.info (fun m -> m "\nInit response \n%s\n" resp) >>= fun _ ->
-      Lwt_io.write_line oc resp
+      Logs_lwt.info (fun m -> m "\nInit event \n%s\n" ev) >>= fun _ ->
+      Lwt_io.write oc resp >>= fun _ ->
+      Lwt_io.write oc ev
+    )
+  | AttachReq req -> (
+      (* TODO should really spin up stepper here? *)
+      let seq = succ req#seq in
+      let request_seq = req#seq in
+      let success = ref true in
+      let command = req#command in
+      let resp = new DRs.AttachResponse.cls seq request_seq !success command None in
+      let resp = construct DRs.AttachResponse.enc resp |> Defaults.wrap_header in
+      Logs_lwt.info (fun m -> m "\nAttach response \n%s\n" resp) >>= fun _ ->
+      Lwt_io.write oc resp
     )
   | NextReq req -> (
       let seq = succ req#seq in
@@ -181,7 +209,7 @@ let handle_msg oc msg ic_process oc_process =
           )
       in
       (* send the response *)
-      let resp = new DRs.NextResponse.cls seq request_seq !success command in
+      let resp = new DRs.NextResponse.cls seq request_seq !success command None in
       let resp = construct DRs.NextResponse.enc resp |> Defaults.wrap_header in
       (* send stopped event too *)
       let seq = succ seq in
@@ -189,8 +217,8 @@ let handle_msg oc msg ic_process oc_process =
       let ev = new DEv.StoppedEvent.cls seq body in
       let ev = construct DEv.StoppedEvent.enc ev |> Defaults.wrap_header in
       Logs_lwt.info (fun m -> m "\nNext response \n%s\nStopped event\n%s\n" resp ev) >>=
-      (fun _ -> Lwt_io.write_line oc resp) >>=
-      (fun _ -> Lwt_io.write_line oc ev)
+      (fun _ -> Lwt_io.write oc resp) >>=
+      (fun _ -> Lwt_io.write oc ev)
     )
   | StackTrace req -> (
       let seq = succ req#seq in
@@ -211,7 +239,7 @@ let handle_msg oc msg ic_process oc_process =
       let resp = construct DRs.StackTraceResponse.enc resp |> Defaults.wrap_header in
       Logs_lwt.info (fun m -> m "Got StackTrace request\n%s\n" msg) >>= fun _ ->
       Logs_lwt.info (fun m -> m "Stack trace response \n%s\n" resp) >>=
-      (fun _ -> Lwt_io.write_line oc resp)
+      (fun _ -> Lwt_io.write oc resp)
     )
   | Scopes req -> (
       (* TODO would need to pull the frameId from req and look up the scopes from that *)
@@ -231,7 +259,7 @@ let handle_msg oc msg ic_process oc_process =
       let resp = construct DRs.ScopesResponse.enc resp |> Defaults.wrap_header in
       Logs_lwt.info (fun m -> m "Got Scopes request\n%s\n" msg) >>= fun _ ->
       Logs_lwt.info (fun m -> m "Scopes response \n%s\n" resp) >>=
-      (fun _ -> Lwt_io.write_line oc resp)
+      (fun _ -> Lwt_io.write oc resp)
     )
   | Variables req -> (
       let seq = succ req#seq in
@@ -256,7 +284,7 @@ let handle_msg oc msg ic_process oc_process =
       let resp = construct DRs.VariablesResponse.enc resp |> Defaults.wrap_header in
       Logs_lwt.info (fun m -> m "Got Variables request\n%s\n" msg) >>= fun _ ->
       Logs_lwt.info (fun m -> m "Variables response \n%s\n" resp) >>=
-      (fun _ -> Lwt_io.write_line oc resp)
+      (fun _ -> Lwt_io.write oc resp)
     )
   | Unknown s -> Logs_lwt.warn (fun m -> m "Unknown '%s'" s)
   | Empty -> Logs_lwt.debug (fun m -> m "Empty")
