@@ -9,6 +9,7 @@ type event =
   | InitReq of DRq.InitializeRequest.cls_t
   | AttachReq of DRq.AttachRequest.cls_t
   | ConfigDoneReq of DRq.ConfigurationDoneRequest.cls_t
+  | ThreadsReq of DRq.ThreadsRequest.cls_t
   | NextReq of DRq.NextRequest.cls_t
   | StackTrace of DRq.StackTraceRequest.cls_t
   | Scopes of DRq.ScopesRequest.cls_t
@@ -52,6 +53,15 @@ let parse_configuration_req js =
     let _ = Logs_lwt.warn (fun m -> m "Not config done request") in
     None
 
+let parse_threads_req js =
+  try
+    let req = destruct DRq.ThreadsRequest.enc js in
+    assert(req#command = DRq.Request.Threads);
+    Some (ThreadsReq req)
+  with _ ->
+    let _ = Logs_lwt.warn (fun m -> m "Not threads request") in
+    None
+
 let parse_next_req js =
   try
     let req = destruct DRq.NextRequest.enc js in
@@ -92,6 +102,7 @@ let parsers = [
   parse_initialize_req;
   parse_attach_req;
   parse_configuration_req;
+  parse_threads_req;
   parse_next_req;
   parse_stacktrace_req;
   parse_scopes_req;
@@ -208,8 +219,31 @@ let handle_msg oc msg ic_process oc_process =
       let command = req#command in
       let resp = new DRs.ConfigurationDoneResponse.cls seq request_seq !success command None in
       let resp = construct DRs.ConfigurationDoneResponse.enc resp |> Defaults.wrap_header in
+      let body = DEv.StoppedEvent.(body ~reason:Entry ~threadId:Defaults._THE_THREAD_ID ()) in
+      let seq = succ seq in
+      let ev = new DEv.StoppedEvent.cls seq body in
+      let ev = construct DEv.StoppedEvent.enc ev |> Defaults.wrap_header in
       Logs_lwt.info (fun m -> m "\nConfigurationDone response \n%s\n" resp) >>= fun _ ->
-      Lwt_io.write oc resp
+      Logs_lwt.info (fun m -> m "\nStopped event \n%s\n" ev) >>= fun _ ->
+      Lwt_io.write oc resp >>= fun _ ->
+      Lwt_io.write oc ev
+    )
+  | ThreadsReq req -> (
+      let seq = succ req#seq in
+      let request_seq = req#seq in
+      let success = true in
+      let command = req#command in
+      let id = Defaults._THE_THREAD_ID in
+      let threads = [
+        Db.Thread.{id; name="main"};
+      ]
+      in
+      let body = DRs.ThreadsResponse.{threads} in
+      let resp = new DRs.ThreadsResponse.cls seq request_seq success command body in
+      let resp = construct DRs.ThreadsResponse.enc resp |> Defaults.wrap_header in
+      Logs_lwt.info (fun m -> m "Got threads request\n%s\n" msg) >>= fun _ ->
+      Logs_lwt.info (fun m -> m "Threads response \n%s\n" resp) >>=
+      (fun _ -> Lwt_io.write oc resp)
     )
   | NextReq req -> (
       let seq = succ req#seq in

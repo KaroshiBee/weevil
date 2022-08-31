@@ -1064,3 +1064,20 @@ module Variable_ = struct
       )
 
 end
+
+
+module Thread = struct
+  type t = {
+    id: int;
+    name: string;
+  }
+
+  let enc =
+    let open Data_encoding in
+    conv
+      (fun {id; name} -> (id, name))
+      (fun (id, name) -> {id; name})
+      (obj2
+         (req "id" int31)
+         (req "name" string))
+end

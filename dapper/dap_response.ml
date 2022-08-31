@@ -279,3 +279,32 @@ end
 
 module AttachResponse = Response_no_body ()
 module ConfigurationDoneResponse = Response_no_body ()
+
+
+module ThreadsResponse = struct
+  type body = {
+    threads: Thread.t list;
+  }
+
+  type cls_t = body Response.cls_t
+
+  class cls
+      (seq:int)
+      (request_seq:int)
+      (success:bool)
+      (command:Dap_request.Request.t)
+      (body:body) = object
+    inherit [body] Response.cls seq request_seq success command None body
+  end
+
+  let enc =
+    let open Data_encoding in
+    Response.enc @@
+    conv
+      (fun {threads} -> threads)
+      (fun threads -> {threads})
+      (obj1
+         (req "threads" @@ list Thread.enc)
+      )
+
+end

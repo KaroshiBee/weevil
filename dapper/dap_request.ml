@@ -11,12 +11,13 @@ module Request = struct
     | Initialize
     | Attach
     | ConfigurationDone
+    | Threads
 
   let enc_t =
     let open Data_encoding in
     conv
-      (function | Cancel -> "cancel" | Next -> "next" | StackTrace -> "stackTrace" | Scopes -> "scopes" | Variables -> "variables" | Initialize -> "initialize" | Attach -> "attach" | ConfigurationDone -> "configurationDone")
-      (function | "cancel" -> Cancel | "next" -> Next | "stackTrace" -> StackTrace | "scopes" -> Scopes | "variables" -> Variables | "initialize" -> Initialize | "attach" -> Attach | "configurationDone" -> ConfigurationDone |_ -> failwith "Unknown request")
+      (function | Cancel -> "cancel" | Next -> "next" | StackTrace -> "stackTrace" | Scopes -> "scopes" | Variables -> "variables" | Initialize -> "initialize" | Attach -> "attach" | ConfigurationDone -> "configurationDone" | Threads -> "threads")
+      (function | "cancel" -> Cancel | "next" -> Next | "stackTrace" -> StackTrace | "scopes" -> Scopes | "variables" -> Variables | "initialize" -> Initialize | "attach" -> Attach | "configurationDone" -> ConfigurationDone | "threads" -> Threads | _ -> failwith "Unknown request")
       string
 
   type 'json cls_t = <
@@ -520,6 +521,18 @@ module ConfigurationDoneRequest = struct
 
   class cls (seq:int) = object
     inherit Request_noargs.cls seq ConfigurationDone
+  end
+
+  let enc = Request_noargs.enc
+end
+
+
+module ThreadsRequest = struct
+
+  type cls_t = Request_noargs.cls_t
+
+  class cls (seq:int) = object
+    inherit Request_noargs.cls seq Threads
   end
 
   let enc = Request_noargs.enc
