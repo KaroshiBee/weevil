@@ -8,6 +8,7 @@ module Db = Dapper.Dap_base
 type event =
   | InitReq of DRq.InitializeRequest.cls_t
   | AttachReq of DRq.AttachRequest.cls_t
+  | ConfigDoneReq of DRq.ConfigurationDoneRequest.cls_t
   | NextReq of DRq.NextRequest.cls_t
   | StackTrace of DRq.StackTraceRequest.cls_t
   | Scopes of DRq.ScopesRequest.cls_t
@@ -39,7 +40,16 @@ let parse_attach_req js =
     assert(req#command = DRq.Request.Attach);
     Some (AttachReq req)
   with _ ->
-    let _ = Logs_lwt.warn (fun m -> m "Not init request") in
+    let _ = Logs_lwt.warn (fun m -> m "Not attach request") in
+    None
+
+let parse_configuration_req js =
+  try
+    let req = destruct DRq.ConfigurationDoneRequest.enc js in
+    assert(req#command = DRq.Request.ConfigurationDone);
+    Some (ConfigDoneReq req)
+  with _ ->
+    let _ = Logs_lwt.warn (fun m -> m "Not config done request") in
     None
 
 let parse_next_req js =
@@ -81,6 +91,7 @@ let parse_variables_req js =
 let parsers = [
   parse_initialize_req;
   parse_attach_req;
+  parse_configuration_req;
   parse_next_req;
   parse_stacktrace_req;
   parse_scopes_req;
@@ -187,6 +198,17 @@ let handle_msg oc msg ic_process oc_process =
       let resp = new DRs.AttachResponse.cls seq request_seq !success command None in
       let resp = construct DRs.AttachResponse.enc resp |> Defaults.wrap_header in
       Logs_lwt.info (fun m -> m "\nAttach response \n%s\n" resp) >>= fun _ ->
+      Lwt_io.write oc resp
+    )
+  | ConfigDoneReq req -> (
+      (* TODO should really spin up stepper here? *)
+      let seq = succ req#seq in
+      let request_seq = req#seq in
+      let success = ref true in
+      let command = req#command in
+      let resp = new DRs.ConfigurationDoneResponse.cls seq request_seq !success command None in
+      let resp = construct DRs.ConfigurationDoneResponse.enc resp |> Defaults.wrap_header in
+      Logs_lwt.info (fun m -> m "\nConfigurationDone response \n%s\n" resp) >>= fun _ ->
       Lwt_io.write oc resp
     )
   | NextReq req -> (

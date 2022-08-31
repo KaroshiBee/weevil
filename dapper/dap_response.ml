@@ -278,3 +278,4 @@ end
 
 
 module AttachResponse = Response_no_body ()
+module ConfigurationDoneResponse = Response_no_body ()

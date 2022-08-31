@@ -10,12 +10,13 @@ module Request = struct
     | Variables
     | Initialize
     | Attach
+    | ConfigurationDone
 
   let enc_t =
     let open Data_encoding in
     conv
-      (function | Cancel -> "cancel" | Next -> "next" | StackTrace -> "stackTrace" | Scopes -> "scopes" | Variables -> "variables" | Initialize -> "initialize" | Attach -> "attach")
-      (function | "cancel" -> Cancel | "next" -> Next | "stackTrace" -> StackTrace | "scopes" -> Scopes | "variables" -> Variables | "initialize" -> Initialize | "attach" -> Attach | _ -> failwith "Unknown request")
+      (function | Cancel -> "cancel" | Next -> "next" | StackTrace -> "stackTrace" | Scopes -> "scopes" | Variables -> "variables" | Initialize -> "initialize" | Attach -> "attach" | ConfigurationDone -> "configurationDone")
+      (function | "cancel" -> Cancel | "next" -> Next | "stackTrace" -> StackTrace | "scopes" -> Scopes | "variables" -> Variables | "initialize" -> Initialize | "attach" -> Attach | "configurationDone" -> ConfigurationDone |_ -> failwith "Unknown request")
       string
 
   type 'json cls_t = <
@@ -50,6 +51,42 @@ module Request = struct
          (req "type" ProtocolMessage.enc_t)
          (req "command" enc_t)
          (req "arguments" js)
+      )
+
+end
+
+module Request_noargs = struct
+
+  type t = Request.t
+
+  type cls_t = <
+    ProtocolMessage.cls_t;
+    command:t;
+  >
+
+  class cls
+      (seq:int)
+      (command:t)
+      = object
+    inherit ProtocolMessage.cls seq Request
+
+    method command = command
+
+  end
+
+  let enc =
+    let open Data_encoding in
+    conv
+      (fun (r : < cls_t >) ->
+         (r#seq, r#type_, r#command) )
+
+      (fun (seq, _, command) ->
+         new cls seq command)
+
+      (obj3
+         (req "seq" int31)
+         (req "type" ProtocolMessage.enc_t)
+         (req "command" Request.enc_t)
       )
 
 end
@@ -474,4 +511,16 @@ module AttachRequest = struct
   end
 
   let enc = Request.enc AttachRequestArguments.enc
+end
+
+
+module ConfigurationDoneRequest = struct
+
+  type cls_t = Request_noargs.cls_t
+
+  class cls (seq:int) = object
+    inherit Request_noargs.cls seq ConfigurationDone
+  end
+
+  let enc = Request_noargs.enc
 end
