@@ -337,3 +337,6 @@ module ContinueResponse = struct
       )
 
 end
+
+
+module DisconnectResponse = Response_no_body ()

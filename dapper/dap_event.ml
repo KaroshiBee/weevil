@@ -287,14 +287,14 @@ end
 
 module TerminatedEvent = struct
 
-  type 'json body = {
-    restart: 'json
+  type body = {
+    restart: Data_encoding.json option
   }
 
-  type 'json cls_t = 'json body option Event.cls_t
+  type cls_t = body Event.cls_t
 
-  class ['json] cls (seq:int) (body:'json body option) = object
-    inherit ['json body option] Event.cls seq Terminated body
+  class cls (seq:int) (body:body) = object
+    inherit [body] Event.cls seq Terminated body
   end
 
   let enc =
@@ -304,7 +304,7 @@ module TerminatedEvent = struct
       (fun {restart} -> restart)
       (fun restart -> {restart})
       (obj1
-         (req "restart" json))
+         (opt "restart" json))
 
 end
 

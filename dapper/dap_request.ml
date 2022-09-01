@@ -13,12 +13,13 @@ module Request = struct
     | ConfigurationDone
     | Threads
     | Continue
+    | Disconnect
 
   let enc_t =
     let open Data_encoding in
     conv
-      (function | Cancel -> "cancel" | Next -> "next" | StackTrace -> "stackTrace" | Scopes -> "scopes" | Variables -> "variables" | Initialize -> "initialize" | Attach -> "attach" | ConfigurationDone -> "configurationDone" | Threads -> "threads" | Continue -> "continue")
-      (function | "cancel" -> Cancel | "next" -> Next | "stackTrace" -> StackTrace | "scopes" -> Scopes | "variables" -> Variables | "initialize" -> Initialize | "attach" -> Attach | "configurationDone" -> ConfigurationDone | "threads" -> Threads | "continue" -> Continue | _ -> failwith "Unknown request")
+      (function | Cancel -> "cancel" | Next -> "next" | StackTrace -> "stackTrace" | Scopes -> "scopes" | Variables -> "variables" | Initialize -> "initialize" | Attach -> "attach" | ConfigurationDone -> "configurationDone" | Threads -> "threads" | Continue -> "continue" | Disconnect -> "disconnect")
+      (function | "cancel" -> Cancel | "next" -> Next | "stackTrace" -> StackTrace | "scopes" -> Scopes | "variables" -> Variables | "initialize" -> Initialize | "attach" -> Attach | "configurationDone" -> ConfigurationDone | "threads" -> Threads | "continue" -> Continue | "disconnect" -> Disconnect | _ -> failwith "Unknown request")
       string
 
   type 'json cls_t = <
@@ -566,5 +567,55 @@ module ContinueRequest = struct
   end
 
   let enc = Request.enc ContinueArguments.enc
+
+end
+
+
+module DisconnectArguments = struct
+  type t = {
+    restart: bool option;
+    terminateDebugee: bool option;
+    suspendDebuggee: bool option;
+  }
+
+  let enc =
+    let open Data_encoding in
+    conv
+      (fun {
+         restart;
+         terminateDebugee;
+         suspendDebuggee;
+       } -> (
+           restart,
+           terminateDebugee,
+           suspendDebuggee
+         ))
+      (fun (
+         restart,
+         terminateDebugee,
+         suspendDebuggee
+       ) -> {
+           restart;
+           terminateDebugee;
+           suspendDebuggee;
+         })
+      (obj3
+         (opt "restart" bool)
+         (opt "terminateDebugee" bool)
+         (opt "suspendDebuggee" bool)
+      )
+
+end
+
+
+module DisconnectRequest = struct
+  type args = DisconnectArguments.t
+  type cls_t = args Request.cls_t
+
+  class cls (seq:int) (arguments:args) = object
+    inherit [args] Request.cls seq Disconnect arguments
+  end
+
+  let enc = Request.enc DisconnectArguments.enc
 
 end

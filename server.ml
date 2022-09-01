@@ -15,6 +15,7 @@ type event =
   | StackTrace of DRq.StackTraceRequest.cls_t
   | Scopes of DRq.ScopesRequest.cls_t
   | Variables of DRq.VariablesRequest.cls_t
+  | DisconnectReq of DRq.DisconnectRequest.cls_t
   | Unknown of string
   | Empty
 
@@ -108,6 +109,15 @@ let parse_variables_req js =
     let _ = Logs_lwt.warn (fun m -> m "Not variables request") in
     None
 
+let parse_disconnect_req js =
+  try
+    let req = destruct DRq.DisconnectRequest.enc js in
+    assert(req#command = DRq.Request.Disconnect);
+    Some (DisconnectReq req)
+  with _ ->
+    let _ = Logs_lwt.warn (fun m -> m "Not disconnect request") in
+    None
+
 let parsers = [
   parse_initialize_req;
   parse_attach_req;
@@ -118,6 +128,7 @@ let parsers = [
   parse_stacktrace_req;
   parse_scopes_req;
   parse_variables_req;
+  parse_disconnect_req;
 ]
 
 let read_line_ i = try Some (input_line i) with End_of_file -> None
@@ -383,6 +394,23 @@ let handle_msg oc msg ic_process oc_process =
       Logs_lwt.info (fun m -> m "Got Variables request\n%s\n" msg) >>= fun _ ->
       Logs_lwt.info (fun m -> m "Variables response \n%s\n" resp) >>=
       (fun _ -> Lwt_io.write oc resp)
+    )
+  | DisconnectReq req -> (
+      let seq = succ req#seq in
+      let request_seq = req#seq in
+      let success = true in
+      let command = req#command in
+      let resp = new DRs.DisconnectResponse.cls seq request_seq success command None in
+      let resp = construct DRs.DisconnectResponse.enc resp |> Defaults.wrap_header in
+      Logs_lwt.info (fun m -> m "Got Disconnect request\n%s\n" msg) >>= fun _ ->
+      Logs_lwt.info (fun m -> m "Disconnect response \n%s\n" resp) >>= fun _ ->
+      Lwt_io.write oc resp >>= fun _ ->
+      let seq = succ seq in
+      let body = DEv.TerminatedEvent.{restart=None} in
+      let ev = new DEv.TerminatedEvent.cls seq body in
+      let ev = construct DEv.TerminatedEvent.enc ev |> Defaults.wrap_header in
+      Logs_lwt.info (fun m -> m "Terminated Event \n%s\n" ev) >>= fun _ ->
+      Lwt_io.write oc ev
     )
   | Unknown s -> Logs_lwt.warn (fun m -> m "Unknown '%s'" s)
   | Empty -> Logs_lwt.debug (fun m -> m "Empty")
