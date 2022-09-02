@@ -1,5 +1,7 @@
 # weevil
 
-A console based, graphical debugger for Michelson
+A debugger for Michelson in OCaml.
 
-Uses [Notty](https://github.com/pqwy/notty) and [Nottui](https://github.com/let-def/lwd/tree/master/lib/nottui-lwt) for the terminal-based UI.
+Hooks straight into the [Octez](https://gitlab.com/tezos/tezos) Michelson interpreter.
+
+Wraps everything up in the [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/overview).
