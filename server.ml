@@ -348,8 +348,8 @@ let handle_msg oc msg oc_process =
       let body = DRs.StackTraceResponse.{stackFrames; totalFrames} in
       let resp = new DRs.StackTraceResponse.cls seq request_seq success command body in
       let resp = construct DRs.StackTraceResponse.enc resp |> Defaults.wrap_header in
-      Logs_lwt.info (fun m -> m "[DAP] Got StackTrace request\n%s\n" msg) >>= fun _ ->
-      Logs_lwt.info (fun m -> m "[DAP] Stack trace response \n%s\n" resp) >>=
+      Logs_lwt.debug (fun m -> m "[DAP] Got StackTrace request\n%s\n" msg) >>= fun _ ->
+      Logs_lwt.debug (fun m -> m "[DAP] Stack trace response \n%s\n" resp) >>=
       (fun _ -> Lwt_io.write oc resp)
     )
   | Scopes req -> (
@@ -461,27 +461,34 @@ let read_weevil_log ln =
       None
   ) else None
 
+let rec step_handler ~ic_process =
+  Lwt_io.read_line_opt ic_process >>= function
+  | Some msg ->
+    Logs_lwt.info (fun m -> m "[STEPPER] got msg from subprocess '%s'" msg) >>= fun _ -> (
+      match read_weevil_log msg with
+      | Some wrec ->
+        recs := wrec :: !recs;
+        Logs_lwt.info (fun m -> m "[STEPPER] got weevil log record from subprocess '%s'" msg)
+      | None -> Lwt.return_unit
+    ) >>= fun _ ->
+    step_handler ~ic_process
+  | None ->
+    Logs_lwt.info (fun m -> m "[STEPPER] subprocess complete")
 
-let rec main_handler ~mode ~content_length (process_full:Lwt_process.process_full) =
+
+
+let main_handler ~mode ~content_length (process_full:Lwt_process.process_full) =
   let p = process_full in
+
   let dap_svc =
     init () >>= fun ctx ->
     serve ~on_exn ~ctx ~mode (dap_handler ~content_length ~oc_process:p#stdin)
   in
 
   let step_svc =
-    Lwt_io.read_line_opt p#stdout >>= function
-    | Some msg ->
-      Logs_lwt.info (fun m -> m "[STEPPER] got msg from subprocess '%s'" msg) >>= fun _ ->
-      let _ = match read_weevil_log msg with
-        | Some wrec ->
-          recs := wrec :: !recs;
-          Logs_lwt.info (fun m -> m "[STEPPER] got weevil log record from subprocess '%s', %d" msg (List.length !recs))
-      | None -> Lwt.return_unit in
-      main_handler ~mode ~content_length p
-    | None ->
-      Logs_lwt.info (fun m -> m "[STEPPER] subprocess complete")
+    step_handler ~ic_process:p#stdout
   in
+
   Lwt.join [dap_svc; step_svc]
 
 
