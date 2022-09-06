@@ -40,6 +40,8 @@ let parse_initialize_req js =
     None
 
 let parse_attach_req js =
+  (* NOTE that AttachRequestArguments can have additional arbitrary attributes ie contract filename,
+     similar with LaunchRequestArguments *)
   try
     let req = destruct DRq.AttachRequest.enc js in
     assert(req#command = DRq.Request.Attach);
@@ -307,7 +309,6 @@ let handle_msg oc msg oc_process =
       let request_seq = req#seq in
       let success = true in
       let command = req#command in
-      (* TODO should be able to arrange so that can read frames from ic_process? *)
       let stackFrames =
         match !recs |> List.hd with
         | None -> []
@@ -422,7 +423,7 @@ let rec dap_handler ~content_length ~oc_process _flow ic oc =
           dap_handler ~content_length ~oc_process _flow ic oc
       | None -> Logs_lwt.info (fun m -> m "[DAP] connection closed"))
 
-let read_weevil_log ln =
+let read_weevil_recs ln =
   if 0 < String.length ln && String.get ln 0 != '#' then (
     match from_string ln with
     | Ok ln ->
@@ -437,7 +438,7 @@ let rec step_handler ~ic_process =
   Lwt_io.read_line_opt ic_process >>= function
   | Some msg ->
     Logs_lwt.info (fun m -> m "[STEPPER] got msg from subprocess '%s'" msg) >>= fun _ -> (
-      match read_weevil_log msg with
+      match read_weevil_recs msg with
       | Some wrec ->
         recs := wrec :: !recs;
         Logs_lwt.info (fun m -> m "[STEPPER] got weevil log record from subprocess '%s'" msg)
@@ -464,8 +465,7 @@ let main_handler ~mode ~content_length (process_full:Lwt_process.process_full) =
   Lwt.join [dap_svc; step_svc]
 
 
-let svc ~listen_address ~port ~cmd =
-  let _c = cmd in
+let svc ~listen_address ~port =
   let () = assert (listen_address = Unix.inet_addr_loopback) in
   let () = Logs.set_reporter (Logs.format_reporter ()) in
   let () = Logs.set_level (Some Logs.Info) in
