@@ -36,7 +36,7 @@ let parse_initialize_req js =
     assert(req#command = DRq.Request.Initialize);
     Some (InitReq req)
   with _ ->
-    let _ = Logs_lwt.warn (fun m -> m "[DAP] Not init request") in
+    let _ = Logs_lwt.debug (fun m -> m "[DAP] Not init request") in
     None
 
 let parse_attach_req js =
@@ -45,7 +45,7 @@ let parse_attach_req js =
     assert(req#command = DRq.Request.Attach);
     Some (AttachReq req)
   with _ ->
-    let _ = Logs_lwt.warn (fun m -> m "[DAP] Not attach request") in
+    let _ = Logs_lwt.debug (fun m -> m "[DAP] Not attach request") in
     None
 
 let parse_configuration_req js =
@@ -54,7 +54,7 @@ let parse_configuration_req js =
     assert(req#command = DRq.Request.ConfigurationDone);
     Some (ConfigDoneReq req)
   with _ ->
-    let _ = Logs_lwt.warn (fun m -> m "[DAP] Not config done request") in
+    let _ = Logs_lwt.debug (fun m -> m "[DAP] Not config done request") in
     None
 
 let parse_threads_req js =
@@ -63,7 +63,7 @@ let parse_threads_req js =
     assert(req#command = DRq.Request.Threads);
     Some (ThreadsReq req)
   with _ ->
-    let _ = Logs_lwt.warn (fun m -> m "[DAP] Not threads request") in
+    let _ = Logs_lwt.debug (fun m -> m "[DAP] Not threads request") in
     None
 
 let parse_continue_req js =
@@ -72,7 +72,7 @@ let parse_continue_req js =
     assert(req#command = DRq.Request.Continue);
     Some (ContinueReq req)
   with _ ->
-    let _ = Logs_lwt.warn (fun m -> m "[DAP] Not continue request") in
+    let _ = Logs_lwt.debug (fun m -> m "[DAP] Not continue request") in
     None
 
 let parse_next_req js =
@@ -81,7 +81,7 @@ let parse_next_req js =
     assert(req#command = DRq.Request.Next);
     Some (NextReq req)
   with _ ->
-    let _ = Logs_lwt.warn (fun m -> m "[DAP] Not next request") in
+    let _ = Logs_lwt.debug (fun m -> m "[DAP] Not next request") in
     None
 
 let parse_stacktrace_req js =
@@ -90,7 +90,7 @@ let parse_stacktrace_req js =
     assert(req#command = DRq.Request.StackTrace);
     Some (StackTrace req)
   with _ ->
-    let _ = Logs_lwt.warn (fun m -> m "[DAP] Not stack trace request") in
+    let _ = Logs_lwt.debug (fun m -> m "[DAP] Not stack trace request") in
     None
 
 let parse_scopes_req js =
@@ -99,7 +99,7 @@ let parse_scopes_req js =
     assert(req#command = DRq.Request.Scopes);
     Some (Scopes req)
   with _ ->
-    let _ = Logs_lwt.warn (fun m -> m "[DAP] Not scopes request") in
+    let _ = Logs_lwt.debug (fun m -> m "[DAP] Not scopes request") in
     None
 
 let parse_variables_req js =
@@ -108,7 +108,7 @@ let parse_variables_req js =
     assert(req#command = DRq.Request.Variables);
     Some (Variables req)
   with _ ->
-    let _ = Logs_lwt.warn (fun m -> m "[DAP] Not variables request") in
+    let _ = Logs_lwt.debug (fun m -> m "[DAP] Not variables request") in
     None
 
 let parse_disconnect_req js =
@@ -117,7 +117,7 @@ let parse_disconnect_req js =
     assert(req#command = DRq.Request.Disconnect);
     Some (DisconnectReq req)
   with _ ->
-    let _ = Logs_lwt.warn (fun m -> m "[DAP] Not disconnect request") in
+    let _ = Logs_lwt.debug (fun m -> m "[DAP] Not disconnect request") in
     None
 
 let parsers = [
@@ -205,7 +205,7 @@ let handle_message msg =
     )
 
 let handle_msg oc msg oc_process =
-  Logs_lwt.info (fun m -> m "[DAP] Got msg: '%s'" msg) >>= fun _ ->
+  Logs_lwt.debug (fun m -> m "[DAP] Got msg: '%s'" msg) >>= fun _ ->
   match handle_message msg with
   | InitReq req -> (
       let seq = succ req#seq in
@@ -219,8 +219,8 @@ let handle_msg oc msg oc_process =
       let seq = succ seq in
       let ev = new DEv.InitializedEvent.cls seq in
       let ev = construct DEv.InitializedEvent.enc ev |> Defaults.wrap_header in
-      Logs_lwt.info (fun m -> m "[DAP] \nInit response \n%s\n" resp) >>= fun _ ->
-      Logs_lwt.info (fun m -> m "[DAP] \nInit event \n%s\n" ev) >>= fun _ ->
+      Logs_lwt.debug (fun m -> m "[DAP] \nInit response \n%s\n" resp) >>= fun _ ->
+      Logs_lwt.debug (fun m -> m "[DAP] \nInit event \n%s\n" ev) >>= fun _ ->
       Lwt_io.write oc resp >>= fun _ ->
       Lwt_io.write oc ev
     )
@@ -232,7 +232,7 @@ let handle_msg oc msg oc_process =
       let command = req#command in
       let resp = new DRs.AttachResponse.cls seq request_seq !success command None in
       let resp = construct DRs.AttachResponse.enc resp |> Defaults.wrap_header in
-      Logs_lwt.info (fun m -> m "[DAP] \nAttach response \n%s\n" resp) >>= fun _ ->
+      Logs_lwt.debug (fun m -> m "[DAP] \nAttach response \n%s\n" resp) >>= fun _ ->
       Lwt_io.write oc resp
     )
   | ConfigDoneReq req -> (
@@ -246,8 +246,8 @@ let handle_msg oc msg oc_process =
       let seq = succ seq in
       let ev = new DEv.StoppedEvent.cls seq body in
       let ev = construct DEv.StoppedEvent.enc ev |> Defaults.wrap_header in
-      Logs_lwt.info (fun m -> m "[DAP] \nConfigurationDone response \n%s\n" resp) >>= fun _ ->
-      Logs_lwt.info (fun m -> m "[DAP] \nStopped event \n%s\n" ev) >>= fun _ ->
+      Logs_lwt.debug (fun m -> m "[DAP] \nConfigurationDone response \n%s\n" resp) >>= fun _ ->
+      Logs_lwt.debug (fun m -> m "[DAP] \nStopped event \n%s\n" ev) >>= fun _ ->
       Lwt_io.write oc resp >>= fun _ ->
       Lwt_io.write oc ev
     )
@@ -259,7 +259,7 @@ let handle_msg oc msg oc_process =
       let _ =
         try
           Lwt_io.write oc_process "step\n" >>= fun _ ->
-          Logs_lwt.info (fun m -> m "[DAP] Got Continue request\n%s\n" msg)
+          Logs_lwt.debug (fun m -> m "[DAP] Got Continue request\n%s\n" msg)
         with Sys_error _ -> (
             success := false;
             (* run out of contract to step through *)
@@ -277,8 +277,8 @@ let handle_msg oc msg oc_process =
       let seq = succ seq in
       let ev = new DEv.StoppedEvent.cls seq body in
       let ev = construct DEv.StoppedEvent.enc ev |> Defaults.wrap_header in
-      Logs_lwt.info (fun m -> m "[DAP] \nContinue response \n%s\n" resp) >>= fun _ ->
-      Logs_lwt.info (fun m -> m "[DAP] \nStopped event \n%s\n" ev) >>= fun _ ->
+      Logs_lwt.debug (fun m -> m "[DAP] \nContinue response \n%s\n" resp) >>= fun _ ->
+      Logs_lwt.debug (fun m -> m "[DAP] \nStopped event \n%s\n" ev) >>= fun _ ->
       Lwt_io.write oc resp >>= fun _ ->
       Lwt_io.write oc ev
     )
@@ -295,8 +295,8 @@ let handle_msg oc msg oc_process =
       let body = DRs.ThreadsResponse.{threads} in
       let resp = new DRs.ThreadsResponse.cls seq request_seq success command body in
       let resp = construct DRs.ThreadsResponse.enc resp |> Defaults.wrap_header in
-      Logs_lwt.info (fun m -> m "[DAP] Got threads request\n%s\n" msg) >>= fun _ ->
-      Logs_lwt.info (fun m -> m "[DAP] Threads response \n%s\n" resp) >>=
+      Logs_lwt.debug (fun m -> m "[DAP] Got threads request\n%s\n" msg) >>= fun _ ->
+      Logs_lwt.debug (fun m -> m "[DAP] Threads response \n%s\n" resp) >>=
       (fun _ -> Lwt_io.write oc resp)
     )
   | NextReq req -> (
@@ -307,7 +307,7 @@ let handle_msg oc msg oc_process =
       let _ =
         try
           Lwt_io.write oc_process "step\n" >>= fun _ ->
-          Logs_lwt.info (fun m -> m "[DAP] Got Next request\n%s\n" msg)
+          Logs_lwt.debug (fun m -> m "[DAP] Got Next request\n%s\n" msg)
         with Sys_error _ -> (
             success := false;
             (* run out of contract to step through *)
@@ -326,7 +326,7 @@ let handle_msg oc msg oc_process =
       let body = DEv.StoppedEvent.(body ~reason:Step ~threadId:Defaults._THE_THREAD_ID()) in
       let ev = new DEv.StoppedEvent.cls seq body in
       let ev = construct DEv.StoppedEvent.enc ev |> Defaults.wrap_header in
-      Logs_lwt.info (fun m -> m "[DAP] \nNext response \n%s\nStopped event\n%s\n" resp ev) >>=
+      Logs_lwt.debug (fun m -> m "[DAP] \nNext response \n%s\nStopped event\n%s\n" resp ev) >>=
       (fun _ -> Lwt_io.write oc resp) >>=
       (fun _ -> Lwt_io.write oc ev)
     )
@@ -368,8 +368,8 @@ let handle_msg oc msg oc_process =
       let body = DRs.ScopesResponse.{scopes} in
       let resp = new DRs.ScopesResponse.cls seq request_seq success command body in
       let resp = construct DRs.ScopesResponse.enc resp |> Defaults.wrap_header in
-      Logs_lwt.info (fun m -> m "[DAP] Got Scopes request\n%s\n" msg) >>= fun _ ->
-      Logs_lwt.info (fun m -> m "[DAP] Scopes response \n%s\n" resp) >>=
+      Logs_lwt.debug (fun m -> m "[DAP] Got Scopes request\n%s\n" msg) >>= fun _ ->
+      Logs_lwt.debug (fun m -> m "[DAP] Scopes response \n%s\n" resp) >>=
       (fun _ -> Lwt_io.write oc resp)
     )
   | Variables req -> (
@@ -393,8 +393,8 @@ let handle_msg oc msg oc_process =
       let body = DRs.VariablesResponse.{variables} in
       let resp = new DRs.VariablesResponse.cls seq request_seq success command body in
       let resp = construct DRs.VariablesResponse.enc resp |> Defaults.wrap_header in
-      Logs_lwt.info (fun m -> m "[DAP] Got Variables request\n%s\n" msg) >>= fun _ ->
-      Logs_lwt.info (fun m -> m "[DAP] Variables response \n%s\n" resp) >>=
+      Logs_lwt.debug (fun m -> m "[DAP] Got Variables request\n%s\n" msg) >>= fun _ ->
+      Logs_lwt.debug (fun m -> m "[DAP] Variables response \n%s\n" resp) >>=
       (fun _ -> Lwt_io.write oc resp)
     )
   | DisconnectReq req -> (
@@ -404,14 +404,14 @@ let handle_msg oc msg oc_process =
       let command = req#command in
       let resp = new DRs.DisconnectResponse.cls seq request_seq success command None in
       let resp = construct DRs.DisconnectResponse.enc resp |> Defaults.wrap_header in
-      Logs_lwt.info (fun m -> m "[DAP] Got Disconnect request\n%s\n" msg) >>= fun _ ->
-      Logs_lwt.info (fun m -> m "[DAP] Disconnect response \n%s\n" resp) >>= fun _ ->
+      Logs_lwt.debug (fun m -> m "[DAP] Got Disconnect request\n%s\n" msg) >>= fun _ ->
+      Logs_lwt.debug (fun m -> m "[DAP] Disconnect response \n%s\n" resp) >>= fun _ ->
       Lwt_io.write oc resp >>= fun _ ->
       let seq = succ seq in
       let body = DEv.TerminatedEvent.{restart=None} in
       let ev = new DEv.TerminatedEvent.cls seq body in
       let ev = construct DEv.TerminatedEvent.enc ev |> Defaults.wrap_header in
-      Logs_lwt.info (fun m -> m "[DAP] Terminated Event \n%s\n" ev) >>= fun _ ->
+      Logs_lwt.debug (fun m -> m "[DAP] Terminated Event \n%s\n" ev) >>= fun _ ->
       Lwt_io.write oc ev
     )
   | Unknown s -> Logs_lwt.warn (fun m -> m "[DAP] Unknown '%s'" s)
@@ -456,7 +456,9 @@ let read_weevil_log ln =
     | Ok ln ->
       let ln = destruct Model.Weevil_json.enc ln in
       Some ln
-    | _ -> None
+    | Error e ->
+      Logs.warn (fun m -> m "Cannot decode '%s': %s" ln e);
+      None
   ) else None
 
 
@@ -472,8 +474,10 @@ let rec main_handler ~mode ~content_length (process_full:Lwt_process.process_ful
     | Some msg ->
       Logs_lwt.info (fun m -> m "[STEPPER] got msg from subprocess '%s'" msg) >>= fun _ ->
       let _ = match read_weevil_log msg with
-      | Some wrec -> recs := wrec :: !recs
-      | None -> () in
+        | Some wrec ->
+          recs := wrec :: !recs;
+          Logs_lwt.info (fun m -> m "[STEPPER] got weevil log record from subprocess '%s', %d" msg (List.length !recs))
+      | None -> Lwt.return_unit in
       main_handler ~mode ~content_length p
     | None ->
       Logs_lwt.info (fun m -> m "[STEPPER] subprocess complete")
