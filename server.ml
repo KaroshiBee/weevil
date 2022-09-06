@@ -5,6 +5,8 @@ module DRs = Dapper.Dap_response
 module DEv = Dapper.Dap_event
 module Db = Dapper.Dap_base
 
+let recs : Model.Weevil_json.t list ref  = ref []
+
 type event =
   | InitReq of DRq.InitializeRequest.cls_t
   | AttachReq of DRq.AttachRequest.cls_t
@@ -34,7 +36,7 @@ let parse_initialize_req js =
     assert(req#command = DRq.Request.Initialize);
     Some (InitReq req)
   with _ ->
-    let _ = Logs_lwt.warn (fun m -> m "Not init request") in
+    let _ = Logs_lwt.warn (fun m -> m "[DAP] Not init request") in
     None
 
 let parse_attach_req js =
@@ -43,7 +45,7 @@ let parse_attach_req js =
     assert(req#command = DRq.Request.Attach);
     Some (AttachReq req)
   with _ ->
-    let _ = Logs_lwt.warn (fun m -> m "Not attach request") in
+    let _ = Logs_lwt.warn (fun m -> m "[DAP] Not attach request") in
     None
 
 let parse_configuration_req js =
@@ -52,7 +54,7 @@ let parse_configuration_req js =
     assert(req#command = DRq.Request.ConfigurationDone);
     Some (ConfigDoneReq req)
   with _ ->
-    let _ = Logs_lwt.warn (fun m -> m "Not config done request") in
+    let _ = Logs_lwt.warn (fun m -> m "[DAP] Not config done request") in
     None
 
 let parse_threads_req js =
@@ -61,7 +63,7 @@ let parse_threads_req js =
     assert(req#command = DRq.Request.Threads);
     Some (ThreadsReq req)
   with _ ->
-    let _ = Logs_lwt.warn (fun m -> m "Not threads request") in
+    let _ = Logs_lwt.warn (fun m -> m "[DAP] Not threads request") in
     None
 
 let parse_continue_req js =
@@ -70,7 +72,7 @@ let parse_continue_req js =
     assert(req#command = DRq.Request.Continue);
     Some (ContinueReq req)
   with _ ->
-    let _ = Logs_lwt.warn (fun m -> m "Not continue request") in
+    let _ = Logs_lwt.warn (fun m -> m "[DAP] Not continue request") in
     None
 
 let parse_next_req js =
@@ -79,7 +81,7 @@ let parse_next_req js =
     assert(req#command = DRq.Request.Next);
     Some (NextReq req)
   with _ ->
-    let _ = Logs_lwt.warn (fun m -> m "Not next request") in
+    let _ = Logs_lwt.warn (fun m -> m "[DAP] Not next request") in
     None
 
 let parse_stacktrace_req js =
@@ -88,7 +90,7 @@ let parse_stacktrace_req js =
     assert(req#command = DRq.Request.StackTrace);
     Some (StackTrace req)
   with _ ->
-    let _ = Logs_lwt.warn (fun m -> m "Not stack trace request") in
+    let _ = Logs_lwt.warn (fun m -> m "[DAP] Not stack trace request") in
     None
 
 let parse_scopes_req js =
@@ -97,7 +99,7 @@ let parse_scopes_req js =
     assert(req#command = DRq.Request.Scopes);
     Some (Scopes req)
   with _ ->
-    let _ = Logs_lwt.warn (fun m -> m "Not scopes request") in
+    let _ = Logs_lwt.warn (fun m -> m "[DAP] Not scopes request") in
     None
 
 let parse_variables_req js =
@@ -106,7 +108,7 @@ let parse_variables_req js =
     assert(req#command = DRq.Request.Variables);
     Some (Variables req)
   with _ ->
-    let _ = Logs_lwt.warn (fun m -> m "Not variables request") in
+    let _ = Logs_lwt.warn (fun m -> m "[DAP] Not variables request") in
     None
 
 let parse_disconnect_req js =
@@ -115,7 +117,7 @@ let parse_disconnect_req js =
     assert(req#command = DRq.Request.Disconnect);
     Some (DisconnectReq req)
   with _ ->
-    let _ = Logs_lwt.warn (fun m -> m "Not disconnect request") in
+    let _ = Logs_lwt.warn (fun m -> m "[DAP] Not disconnect request") in
     None
 
 let parsers = [
@@ -131,33 +133,33 @@ let parsers = [
   parse_disconnect_req;
 ]
 
-let read_line_ i = try Some (input_line i) with End_of_file -> None
-
-let rec lines_from_in_channel i acc =
-  match (read_line_ i) with
-  | None -> List.rev acc
-  | Some s -> lines_from_in_channel i (s :: acc)
-
-let read_log ic_process () =
-  let i = ic_process in (* open_in Defaults._DEFAULT_LOG_FILE in *)
-  try
-    let lns = lines_from_in_channel i [] in
-    close_in i;
-    lns
-  with _ ->
-    close_in_noerr i;
-    []
-
-let read_weevil_log ic_process () =
-  read_log ic_process ()
-  |> List.filter (fun ln -> 0 < String.length ln && String.get ln 0 != '#')
-  |> List.filter_map (fun ln ->
-      from_string ln
-      |> Result.to_option
-    )
-  |> List.map (fun ln ->
-      destruct Model.Weevil_json.enc ln
-    )
+(* let read_line_ i = try Some (input_line i) with End_of_file -> None
+ *
+ * let rec lines_from_in_channel i acc =
+ *   match (read_line_ i) with
+ *   | None -> List.rev acc
+ *   | Some s -> lines_from_in_channel i (s :: acc)
+ *
+ * let read_log ic_process () =
+ *   let i = ic_process in (\* open_in Defaults._DEFAULT_LOG_FILE in *\)
+ *   try
+ *     let lns = lines_from_in_channel i [] in
+ *     close_in i;
+ *     lns
+ *   with _ ->
+ *     close_in_noerr i;
+ *     []
+ *
+ * let read_weevil_log ic_process () =
+ *   read_log ic_process ()
+ *   |> List.filter (fun ln -> 0 < String.length ln && String.get ln 0 != '#')
+ *   |> List.filter_map (fun ln ->
+ *       from_string ln
+ *       |> Result.to_option
+ *     )
+ *   |> List.map (fun ln ->
+ *       destruct Model.Weevil_json.enc ln
+ *     ) *)
 
 let handle_message msg =
   (* let msg = if !content_length > 0 then String.sub msg 0 !content_length else msg in *)
@@ -203,7 +205,7 @@ let handle_message msg =
     )
 
 let handle_msg oc msg oc_process =
-  Logs_lwt.info (fun m -> m "Got msg: '%s'" msg) >>= fun _ ->
+  Logs_lwt.info (fun m -> m "[DAP] Got msg: '%s'" msg) >>= fun _ ->
   match handle_message msg with
   | InitReq req -> (
       let seq = succ req#seq in
@@ -217,8 +219,8 @@ let handle_msg oc msg oc_process =
       let seq = succ seq in
       let ev = new DEv.InitializedEvent.cls seq in
       let ev = construct DEv.InitializedEvent.enc ev |> Defaults.wrap_header in
-      Logs_lwt.info (fun m -> m "\nInit response \n%s\n" resp) >>= fun _ ->
-      Logs_lwt.info (fun m -> m "\nInit event \n%s\n" ev) >>= fun _ ->
+      Logs_lwt.info (fun m -> m "[DAP] \nInit response \n%s\n" resp) >>= fun _ ->
+      Logs_lwt.info (fun m -> m "[DAP] \nInit event \n%s\n" ev) >>= fun _ ->
       Lwt_io.write oc resp >>= fun _ ->
       Lwt_io.write oc ev
     )
@@ -230,7 +232,7 @@ let handle_msg oc msg oc_process =
       let command = req#command in
       let resp = new DRs.AttachResponse.cls seq request_seq !success command None in
       let resp = construct DRs.AttachResponse.enc resp |> Defaults.wrap_header in
-      Logs_lwt.info (fun m -> m "\nAttach response \n%s\n" resp) >>= fun _ ->
+      Logs_lwt.info (fun m -> m "[DAP] \nAttach response \n%s\n" resp) >>= fun _ ->
       Lwt_io.write oc resp
     )
   | ConfigDoneReq req -> (
@@ -244,8 +246,8 @@ let handle_msg oc msg oc_process =
       let seq = succ seq in
       let ev = new DEv.StoppedEvent.cls seq body in
       let ev = construct DEv.StoppedEvent.enc ev |> Defaults.wrap_header in
-      Logs_lwt.info (fun m -> m "\nConfigurationDone response \n%s\n" resp) >>= fun _ ->
-      Logs_lwt.info (fun m -> m "\nStopped event \n%s\n" ev) >>= fun _ ->
+      Logs_lwt.info (fun m -> m "[DAP] \nConfigurationDone response \n%s\n" resp) >>= fun _ ->
+      Logs_lwt.info (fun m -> m "[DAP] \nStopped event \n%s\n" ev) >>= fun _ ->
       Lwt_io.write oc resp >>= fun _ ->
       Lwt_io.write oc ev
     )
@@ -257,15 +259,15 @@ let handle_msg oc msg oc_process =
       let _ =
         try
           Lwt_io.write oc_process "step\n" >>= fun _ ->
-          Logs_lwt.info (fun m -> m "Got Continue request\n%s\n" msg)
+          Logs_lwt.info (fun m -> m "[DAP] Got Continue request\n%s\n" msg)
         with Sys_error _ -> (
             success := false;
             (* run out of contract to step through *)
             try
               (* let _ = Unix.close_process (ic_process, oc_process) in (); *)
-              Logs_lwt.warn (fun m -> m "Process finished: sys error")
+              Logs_lwt.warn (fun m -> m "[DAP] Process finished: sys error")
             with Unix.Unix_error _ ->
-              Logs_lwt.warn (fun m -> m "Process finished: unix error")
+              Logs_lwt.warn (fun m -> m "[DAP] Process finished: unix error")
           )
       in
       let body = DRs.ContinueResponse.{allThreadsContinued=(Some !success)} in
@@ -275,8 +277,8 @@ let handle_msg oc msg oc_process =
       let seq = succ seq in
       let ev = new DEv.StoppedEvent.cls seq body in
       let ev = construct DEv.StoppedEvent.enc ev |> Defaults.wrap_header in
-      Logs_lwt.info (fun m -> m "\nContinue response \n%s\n" resp) >>= fun _ ->
-      Logs_lwt.info (fun m -> m "\nStopped event \n%s\n" ev) >>= fun _ ->
+      Logs_lwt.info (fun m -> m "[DAP] \nContinue response \n%s\n" resp) >>= fun _ ->
+      Logs_lwt.info (fun m -> m "[DAP] \nStopped event \n%s\n" ev) >>= fun _ ->
       Lwt_io.write oc resp >>= fun _ ->
       Lwt_io.write oc ev
     )
@@ -293,8 +295,8 @@ let handle_msg oc msg oc_process =
       let body = DRs.ThreadsResponse.{threads} in
       let resp = new DRs.ThreadsResponse.cls seq request_seq success command body in
       let resp = construct DRs.ThreadsResponse.enc resp |> Defaults.wrap_header in
-      Logs_lwt.info (fun m -> m "Got threads request\n%s\n" msg) >>= fun _ ->
-      Logs_lwt.info (fun m -> m "Threads response \n%s\n" resp) >>=
+      Logs_lwt.info (fun m -> m "[DAP] Got threads request\n%s\n" msg) >>= fun _ ->
+      Logs_lwt.info (fun m -> m "[DAP] Threads response \n%s\n" resp) >>=
       (fun _ -> Lwt_io.write oc resp)
     )
   | NextReq req -> (
@@ -305,15 +307,15 @@ let handle_msg oc msg oc_process =
       let _ =
         try
           Lwt_io.write oc_process "step\n" >>= fun _ ->
-          Logs_lwt.info (fun m -> m "Got Next request\n%s\n" msg)
+          Logs_lwt.info (fun m -> m "[DAP] Got Next request\n%s\n" msg)
         with Sys_error _ -> (
             success := false;
             (* run out of contract to step through *)
             try
               (* let _ = Unix.close_process (ic_process, oc_process) in (); *)
-              Logs_lwt.warn (fun m -> m "Process finished: sys error")
+              Logs_lwt.warn (fun m -> m "[DAP] Process finished: sys error")
             with Unix.Unix_error _ ->
-              Logs_lwt.warn (fun m -> m "Process finished: unix error")
+              Logs_lwt.warn (fun m -> m "[DAP] Process finished: unix error")
           )
       in
       (* send the response *)
@@ -324,7 +326,7 @@ let handle_msg oc msg oc_process =
       let body = DEv.StoppedEvent.(body ~reason:Step ~threadId:Defaults._THE_THREAD_ID()) in
       let ev = new DEv.StoppedEvent.cls seq body in
       let ev = construct DEv.StoppedEvent.enc ev |> Defaults.wrap_header in
-      Logs_lwt.info (fun m -> m "\nNext response \n%s\nStopped event\n%s\n" resp ev) >>=
+      Logs_lwt.info (fun m -> m "[DAP] \nNext response \n%s\nStopped event\n%s\n" resp ev) >>=
       (fun _ -> Lwt_io.write oc resp) >>=
       (fun _ -> Lwt_io.write oc ev)
     )
@@ -334,20 +336,20 @@ let handle_msg oc msg oc_process =
       let success = true in
       let command = req#command in
       (* TODO should be able to arrange so that can read frames from ic_process? *)
-      let stackFrames = [] in
-      (*   match read_weevil_log ic_process () |> List.rev |> List.hd with
-       *   | None -> []
-       *   | Some wrec ->
-       *     let loc = Model.Weevil_json.relative_loc wrec in
-       *     let source = Some (Db.Source.make ~name:"example.tz" ~path:"/home/wyn/dev/weevil/example.tz" ()) in
-       *     [Db.StackFrame.{id=Defaults._THE_FRAME_ID; name=Defaults._THE_FRAME_NAME; source; line=loc; column=0}]
-       * in *)
+      let stackFrames =
+        match !recs |> List.rev |> List.hd with
+        | None -> []
+        | Some wrec ->
+          let loc = Model.Weevil_json.relative_loc wrec in
+          let source = Some (Db.Source.make ~name:"example.tz" ~path:"/home/wyn/dev/weevil/example.tz" ()) in
+          [Db.StackFrame.{id=Defaults._THE_FRAME_ID; name=Defaults._THE_FRAME_NAME; source; line=loc; column=0}]
+      in
       let totalFrames = Some (List.length stackFrames) in
       let body = DRs.StackTraceResponse.{stackFrames; totalFrames} in
       let resp = new DRs.StackTraceResponse.cls seq request_seq success command body in
       let resp = construct DRs.StackTraceResponse.enc resp |> Defaults.wrap_header in
-      Logs_lwt.info (fun m -> m "Got StackTrace request\n%s\n" msg) >>= fun _ ->
-      Logs_lwt.info (fun m -> m "Stack trace response \n%s\n" resp) >>=
+      Logs_lwt.info (fun m -> m "[DAP] Got StackTrace request\n%s\n" msg) >>= fun _ ->
+      Logs_lwt.info (fun m -> m "[DAP] Stack trace response \n%s\n" resp) >>=
       (fun _ -> Lwt_io.write oc resp)
     )
   | Scopes req -> (
@@ -366,8 +368,8 @@ let handle_msg oc msg oc_process =
       let body = DRs.ScopesResponse.{scopes} in
       let resp = new DRs.ScopesResponse.cls seq request_seq success command body in
       let resp = construct DRs.ScopesResponse.enc resp |> Defaults.wrap_header in
-      Logs_lwt.info (fun m -> m "Got Scopes request\n%s\n" msg) >>= fun _ ->
-      Logs_lwt.info (fun m -> m "Scopes response \n%s\n" resp) >>=
+      Logs_lwt.info (fun m -> m "[DAP] Got Scopes request\n%s\n" msg) >>= fun _ ->
+      Logs_lwt.info (fun m -> m "[DAP] Scopes response \n%s\n" resp) >>=
       (fun _ -> Lwt_io.write oc resp)
     )
   | Variables req -> (
@@ -378,11 +380,11 @@ let handle_msg oc msg oc_process =
       let _vref = req#arguments.variablesReference in
       let gas_name, _gas_var = Defaults._THE_GAS_LOCAL in
       let stack_name, _stack_var = Defaults._THE_MICHELSON_STACK_LOCAL in
-      let gas_val, stack_val = "", "" in
-      (*   match read_weevil_log ic_process () |> List.rev |> List.hd with
-       *   | None -> "", ""
-       *   | Some wrec -> Model.Weevil_json.(wrec.gas, String.concat ", " wrec.stack |> Printf.sprintf "[%s]")
-       * in *)
+      let gas_val, stack_val =
+        match !recs |> List.rev |> List.hd with
+        | None -> "", ""
+        | Some wrec -> Model.Weevil_json.(wrec.gas, String.concat ", " wrec.stack |> Printf.sprintf "[%s]")
+      in
       let variables = [
         Db.Variable_.{name=gas_name; value=gas_val; variablesReference=0}; (* 0 here means not structured ie no children? *)
         Db.Variable_.{name=stack_name; value=stack_val; variablesReference=0}; (* 0 here means not structured ie no children? *)
@@ -391,8 +393,8 @@ let handle_msg oc msg oc_process =
       let body = DRs.VariablesResponse.{variables} in
       let resp = new DRs.VariablesResponse.cls seq request_seq success command body in
       let resp = construct DRs.VariablesResponse.enc resp |> Defaults.wrap_header in
-      Logs_lwt.info (fun m -> m "Got Variables request\n%s\n" msg) >>= fun _ ->
-      Logs_lwt.info (fun m -> m "Variables response \n%s\n" resp) >>=
+      Logs_lwt.info (fun m -> m "[DAP] Got Variables request\n%s\n" msg) >>= fun _ ->
+      Logs_lwt.info (fun m -> m "[DAP] Variables response \n%s\n" resp) >>=
       (fun _ -> Lwt_io.write oc resp)
     )
   | DisconnectReq req -> (
@@ -402,18 +404,18 @@ let handle_msg oc msg oc_process =
       let command = req#command in
       let resp = new DRs.DisconnectResponse.cls seq request_seq success command None in
       let resp = construct DRs.DisconnectResponse.enc resp |> Defaults.wrap_header in
-      Logs_lwt.info (fun m -> m "Got Disconnect request\n%s\n" msg) >>= fun _ ->
-      Logs_lwt.info (fun m -> m "Disconnect response \n%s\n" resp) >>= fun _ ->
+      Logs_lwt.info (fun m -> m "[DAP] Got Disconnect request\n%s\n" msg) >>= fun _ ->
+      Logs_lwt.info (fun m -> m "[DAP] Disconnect response \n%s\n" resp) >>= fun _ ->
       Lwt_io.write oc resp >>= fun _ ->
       let seq = succ seq in
       let body = DEv.TerminatedEvent.{restart=None} in
       let ev = new DEv.TerminatedEvent.cls seq body in
       let ev = construct DEv.TerminatedEvent.enc ev |> Defaults.wrap_header in
-      Logs_lwt.info (fun m -> m "Terminated Event \n%s\n" ev) >>= fun _ ->
+      Logs_lwt.info (fun m -> m "[DAP] Terminated Event \n%s\n" ev) >>= fun _ ->
       Lwt_io.write oc ev
     )
-  | Unknown s -> Logs_lwt.warn (fun m -> m "Unknown '%s'" s)
-  | Empty -> Logs_lwt.debug (fun m -> m "Empty")
+  | Unknown s -> Logs_lwt.warn (fun m -> m "[DAP] Unknown '%s'" s)
+  | Empty -> Logs_lwt.debug (fun m -> m "[DAP] Empty")
 
 
 let on_exn exn = Lwt.ignore_result @@ Logs_lwt.err (fun m -> m "%s" @@ Printexc.to_string exn)
@@ -423,16 +425,16 @@ type content_length = int option
 let rec dap_handler ~content_length ~oc_process _flow ic oc =
   match content_length with
   | Some count ->
-      Logs_lwt.info (fun m -> m "got count %d" count) >>= fun _ ->
+      Logs_lwt.info (fun m -> m "[DAP] got count %d" count) >>= fun _ ->
       (* \r\n throw away *)
       Lwt_io.read ~count:2 ic >>= fun header_break ->
       assert (header_break = "\r\n") |> Lwt.return >>= fun _ ->
       Lwt_io.read ~count ic >>= fun msg ->
-      Logs_lwt.info (fun m -> m "Got message '%s'" msg) >>= fun _ ->
+      Logs_lwt.info (fun m -> m "[DAP] Got message '%s'" msg) >>= fun _ ->
       handle_msg oc msg oc_process >>= fun _ ->
       dap_handler ~content_length:None ~oc_process _flow ic oc
   | None -> (
-      Logs_lwt.info (fun m -> m "no content length yet") >>= fun _ ->
+      Logs_lwt.info (fun m -> m "[DAP] no content length yet") >>= fun _ ->
       Lwt_io.read_line_opt ic >>= function
       | Some msg ->
           let rgx = Str.regexp_string Defaults._HEADER_FIELD in
@@ -446,7 +448,17 @@ let rec dap_handler ~content_length ~oc_process _flow ic oc =
             else None
           in
           dap_handler ~content_length ~oc_process _flow ic oc
-      | None -> Logs_lwt.info (fun m -> m "connection closed"))
+      | None -> Logs_lwt.info (fun m -> m "[DAP] connection closed"))
+
+let read_weevil_log ln =
+  if 0 < String.length ln && String.get ln 0 != '#' then (
+    match from_string ln with
+    | Ok ln ->
+      let ln = destruct Model.Weevil_json.enc ln in
+      Some ln
+    | _ -> None
+  ) else None
+
 
 let rec main_handler ~mode ~content_length (process_full:Lwt_process.process_full) =
   let p = process_full in
@@ -458,10 +470,13 @@ let rec main_handler ~mode ~content_length (process_full:Lwt_process.process_ful
   let step_svc =
     Lwt_io.read_line_opt p#stdout >>= function
     | Some msg ->
-      Logs_lwt.info (fun m -> m "got msg from subprocess '%s'" msg) >>= fun _ ->
+      Logs_lwt.info (fun m -> m "[STEPPER] got msg from subprocess '%s'" msg) >>= fun _ ->
+      let _ = match read_weevil_log msg with
+      | Some wrec -> recs := wrec :: !recs
+      | None -> () in
       main_handler ~mode ~content_length p
     | None ->
-      Logs_lwt.info (fun m -> m "subprocess complete")
+      Logs_lwt.info (fun m -> m "[STEPPER] subprocess complete")
   in
   Lwt.join [dap_svc; step_svc]
 
