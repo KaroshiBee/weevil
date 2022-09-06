@@ -337,7 +337,7 @@ let handle_msg oc msg oc_process =
       let command = req#command in
       (* TODO should be able to arrange so that can read frames from ic_process? *)
       let stackFrames =
-        match !recs |> List.rev |> List.hd with
+        match !recs |> List.hd with
         | None -> []
         | Some wrec ->
           let loc = Model.Weevil_json.relative_loc wrec in
@@ -381,7 +381,7 @@ let handle_msg oc msg oc_process =
       let gas_name, _gas_var = Defaults._THE_GAS_LOCAL in
       let stack_name, _stack_var = Defaults._THE_MICHELSON_STACK_LOCAL in
       let gas_val, stack_val =
-        match !recs |> List.rev |> List.hd with
+        match !recs |> List.hd with
         | None -> "", ""
         | Some wrec -> Model.Weevil_json.(wrec.gas, String.concat ", " wrec.stack |> Printf.sprintf "[%s]")
       in
