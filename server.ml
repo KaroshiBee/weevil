@@ -138,8 +138,8 @@ let rec lines_from_in_channel i acc =
   | None -> List.rev acc
   | Some s -> lines_from_in_channel i (s :: acc)
 
-let read_log () =
-  let i = open_in Defaults._DEFAULT_LOG_FILE in
+let read_log ic_process () =
+  let i = ic_process in (* open_in Defaults._DEFAULT_LOG_FILE in *)
   try
     let lns = lines_from_in_channel i [] in
     close_in i;
@@ -148,8 +148,8 @@ let read_log () =
     close_in_noerr i;
     []
 
-let read_weevil_log () =
-  read_log ()
+let read_weevil_log ic_process () =
+  read_log ic_process ()
   |> List.filter (fun ln -> 0 < String.length ln && String.get ln 0 != '#')
   |> List.filter_map (fun ln ->
       from_string ln
@@ -202,7 +202,7 @@ let handle_message msg =
         Unknown s
     )
 
-let handle_msg oc msg ic_process oc_process =
+let handle_msg oc msg oc_process =
   Logs_lwt.info (fun m -> m "Got msg: '%s'" msg) >>= fun _ ->
   match handle_message msg with
   | InitReq req -> (
@@ -256,13 +256,13 @@ let handle_msg oc msg ic_process oc_process =
       let command = req#command in
       let _ =
         try
-          Printf.fprintf oc_process "step\n"; flush oc_process;
+          Lwt_io.write oc_process "step\n" >>= fun _ ->
           Logs_lwt.info (fun m -> m "Got Continue request\n%s\n" msg)
         with Sys_error _ -> (
             success := false;
             (* run out of contract to step through *)
             try
-              let _ = Unix.close_process (ic_process, oc_process) in ();
+              (* let _ = Unix.close_process (ic_process, oc_process) in (); *)
               Logs_lwt.warn (fun m -> m "Process finished: sys error")
             with Unix.Unix_error _ ->
               Logs_lwt.warn (fun m -> m "Process finished: unix error")
@@ -304,13 +304,13 @@ let handle_msg oc msg ic_process oc_process =
       let command = req#command in
       let _ =
         try
-          Printf.fprintf oc_process "step\n"; flush oc_process;
+          Lwt_io.write oc_process "step\n" >>= fun _ ->
           Logs_lwt.info (fun m -> m "Got Next request\n%s\n" msg)
         with Sys_error _ -> (
             success := false;
             (* run out of contract to step through *)
             try
-              let _ = Unix.close_process (ic_process, oc_process) in ();
+              (* let _ = Unix.close_process (ic_process, oc_process) in (); *)
               Logs_lwt.warn (fun m -> m "Process finished: sys error")
             with Unix.Unix_error _ ->
               Logs_lwt.warn (fun m -> m "Process finished: unix error")
@@ -334,14 +334,14 @@ let handle_msg oc msg ic_process oc_process =
       let success = true in
       let command = req#command in
       (* TODO should be able to arrange so that can read frames from ic_process? *)
-      let stackFrames =
-        match read_weevil_log () |> List.rev |> List.hd with
-        | None -> []
-        | Some wrec ->
-          let loc = Model.Weevil_json.relative_loc wrec in
-          let source = Some (Db.Source.make ~name:"example.tz" ~path:"/home/wyn/dev/weevil/example.tz" ()) in
-          [Db.StackFrame.{id=Defaults._THE_FRAME_ID; name=Defaults._THE_FRAME_NAME; source; line=loc; column=0}]
-      in
+      let stackFrames = [] in
+      (*   match read_weevil_log ic_process () |> List.rev |> List.hd with
+       *   | None -> []
+       *   | Some wrec ->
+       *     let loc = Model.Weevil_json.relative_loc wrec in
+       *     let source = Some (Db.Source.make ~name:"example.tz" ~path:"/home/wyn/dev/weevil/example.tz" ()) in
+       *     [Db.StackFrame.{id=Defaults._THE_FRAME_ID; name=Defaults._THE_FRAME_NAME; source; line=loc; column=0}]
+       * in *)
       let totalFrames = Some (List.length stackFrames) in
       let body = DRs.StackTraceResponse.{stackFrames; totalFrames} in
       let resp = new DRs.StackTraceResponse.cls seq request_seq success command body in
@@ -378,11 +378,11 @@ let handle_msg oc msg ic_process oc_process =
       let _vref = req#arguments.variablesReference in
       let gas_name, _gas_var = Defaults._THE_GAS_LOCAL in
       let stack_name, _stack_var = Defaults._THE_MICHELSON_STACK_LOCAL in
-      let gas_val, stack_val =
-        match read_weevil_log () |> List.rev |> List.hd with
-        | None -> "", ""
-        | Some wrec -> Model.Weevil_json.(wrec.gas, String.concat ", " wrec.stack |> Printf.sprintf "[%s]")
-      in
+      let gas_val, stack_val = "", "" in
+      (*   match read_weevil_log ic_process () |> List.rev |> List.hd with
+       *   | None -> "", ""
+       *   | Some wrec -> Model.Weevil_json.(wrec.gas, String.concat ", " wrec.stack |> Printf.sprintf "[%s]")
+       * in *)
       let variables = [
         Db.Variable_.{name=gas_name; value=gas_val; variablesReference=0}; (* 0 here means not structured ie no children? *)
         Db.Variable_.{name=stack_name; value=stack_val; variablesReference=0}; (* 0 here means not structured ie no children? *)
@@ -420,7 +420,7 @@ let on_exn exn = Lwt.ignore_result @@ Logs_lwt.err (fun m -> m "%s" @@ Printexc.
 
 type content_length = int option
 
-let rec main_handler ~content_length ~ic_process ~oc_process _flow ic oc =
+let rec dap_handler ~content_length ~oc_process _flow ic oc =
   match content_length with
   | Some count ->
       Logs_lwt.info (fun m -> m "got count %d" count) >>= fun _ ->
@@ -429,8 +429,8 @@ let rec main_handler ~content_length ~ic_process ~oc_process _flow ic oc =
       assert (header_break = "\r\n") |> Lwt.return >>= fun _ ->
       Lwt_io.read ~count ic >>= fun msg ->
       Logs_lwt.info (fun m -> m "Got message '%s'" msg) >>= fun _ ->
-      handle_msg oc msg ic_process oc_process >>= fun _ ->
-      main_handler ~content_length:None ~ic_process ~oc_process _flow ic oc
+      handle_msg oc msg oc_process >>= fun _ ->
+      dap_handler ~content_length:None ~oc_process _flow ic oc
   | None -> (
       Logs_lwt.info (fun m -> m "no content length yet") >>= fun _ ->
       Lwt_io.read_line_opt ic >>= function
@@ -445,19 +445,37 @@ let rec main_handler ~content_length ~ic_process ~oc_process _flow ic oc =
               | _ -> None
             else None
           in
-          main_handler ~content_length ~ic_process ~oc_process _flow ic oc
+          dap_handler ~content_length ~oc_process _flow ic oc
       | None -> Logs_lwt.info (fun m -> m "connection closed"))
 
+let rec main_handler ~mode ~content_length (process_full:Lwt_process.process_full) =
+  let p = process_full in
+  let dap_svc =
+    init () >>= fun ctx ->
+    serve ~on_exn ~ctx ~mode (dap_handler ~content_length ~oc_process:p#stdin)
+  in
+
+  let step_svc =
+    Lwt_io.read_line_opt p#stdout >>= function
+    | Some msg ->
+      Logs_lwt.info (fun m -> m "got msg from subprocess '%s'" msg) >>= fun _ ->
+      main_handler ~mode ~content_length p
+    | None ->
+      Logs_lwt.info (fun m -> m "subprocess complete")
+  in
+  Lwt.join [dap_svc; step_svc]
+
+
 let svc ~listen_address ~port ~cmd =
+  let _c = cmd in
   let () = assert (listen_address = Unix.inet_addr_loopback) in
   let () = Logs.set_reporter (Logs.format_reporter ()) in
   let () = Logs.set_level (Some Logs.Info) in
   let mode = `TCP (`Port port) in
   let content_length = None in
-  let ic_process, oc_process = Unix.open_process cmd in
-  let dap_svc =
-    init () >>= fun ctx ->
-    serve ~on_exn ~ctx ~mode (main_handler ~content_length ~ic_process ~oc_process) >|= (fun _ -> `Ok ())
-
+  let cmd = ("", [|"dune"; "exec"; "--"; "./main.exe"; "stepper"|]) in
+  let the_svc = Lwt_process.with_process_full cmd (main_handler ~mode ~content_length) >|= fun _ ->
+    `Ok ()
   in
-  Lwt_main.run dap_svc
+
+  Lwt_main.run the_svc

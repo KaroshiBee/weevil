@@ -118,9 +118,9 @@ let process log_file_arg =
   | None -> Defaults._DEFAULT_LOG_FILE
   | Some log_file -> log_file
   in
-  let oc = open_out log_file in
+  let _oc = open_out log_file in
 
-  let logger = Traced_interpreter.trace_logger oc () in
+  let logger = Traced_interpreter.trace_logger stdout () in
 
   let stepper =
     test_stepping Defaults._THE_CONTRACT logger >|= (fun _ -> `Ok ()) in
