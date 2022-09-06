@@ -329,9 +329,14 @@ let split_out_code contract =
    pass contract code from command line and on to stepper
 
 *)
+let _THE_CONTRACT =
+  "{parameter unit;storage unit;code {DROP; PUSH mutez 250; \
+   PUSH nat 2; MUL; PUSH mutez 100; ADD; DROP; UNIT; NIL operation; PAIR}}"
+
+
 let ui_main (ic:Lwt_io.input_channel) (oc:Lwt_io.output_channel) (oc_log:Lwt_io.output_channel) =
   let$ st = Lwd.get Model.state in
-  let lines = split_out_code Defaults._THE_CONTRACT in
+  let lines = split_out_code _THE_CONTRACT in
   let trace = [||] in
   let instr = W.printf "Mouse CLICK [-] or [+] to go back or forward resp.\nPress ALT-q to quit\n\n" in
   let step_btn = Btn_next.make st lines trace ic oc in

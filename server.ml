@@ -133,34 +133,6 @@ let parsers = [
   parse_disconnect_req;
 ]
 
-(* let read_line_ i = try Some (input_line i) with End_of_file -> None
- *
- * let rec lines_from_in_channel i acc =
- *   match (read_line_ i) with
- *   | None -> List.rev acc
- *   | Some s -> lines_from_in_channel i (s :: acc)
- *
- * let read_log ic_process () =
- *   let i = ic_process in (\* open_in Defaults._DEFAULT_LOG_FILE in *\)
- *   try
- *     let lns = lines_from_in_channel i [] in
- *     close_in i;
- *     lns
- *   with _ ->
- *     close_in_noerr i;
- *     []
- *
- * let read_weevil_log ic_process () =
- *   read_log ic_process ()
- *   |> List.filter (fun ln -> 0 < String.length ln && String.get ln 0 != '#')
- *   |> List.filter_map (fun ln ->
- *       from_string ln
- *       |> Result.to_option
- *     )
- *   |> List.map (fun ln ->
- *       destruct Model.Weevil_json.enc ln
- *     ) *)
-
 let handle_message msg =
   (* let msg = if !content_length > 0 then String.sub msg 0 !content_length else msg in *)
   match msg with
@@ -499,7 +471,7 @@ let svc ~listen_address ~port ~cmd =
   let () = Logs.set_level (Some Logs.Info) in
   let mode = `TCP (`Port port) in
   let content_length = None in
-  let cmd = ("", [|"dune"; "exec"; "--"; "./main.exe"; "stepper"|]) in
+  let cmd = ("", [|"dune"; "exec"; "--"; "./main.exe"; "stepper"; "example.tz"|]) in
   let the_svc = Lwt_process.with_process_full cmd (main_handler ~mode ~content_length) >|= fun _ ->
     `Ok ()
   in
