@@ -38,7 +38,7 @@ module Traced_interpreter = struct
         * ('a, 's) Script_typed_ir.stack_ty
         -> log_element
 
-  let unparse_stack ctxt (stack, stack_ty) =
+  let unparse_stack ~oc ctxt (stack, stack_ty) =
     (* We drop the gas limit as this function is only used for debugging/errors. *)
     (* let ctxt = Gas.set_unlimited ctxt in *)
     let rec unparse_stack :
@@ -47,6 +47,11 @@ module Traced_interpreter = struct
       (Script.expr * string option) list Environment.Error_monad.tzresult Lwt.t = function
       | (Bot_t, (EmptyCell, EmptyCell)) -> return_nil
       | (Item_t (ty, rest_ty, annot), (v, rest)) ->
+        let _ = match ty with
+        | Ticket_t (_cty, _thing) ->
+          Printf.(fprintf oc "\n# GOT TICKET TY\n"; flush oc)
+        | _ -> ()
+        in
         Script_ir_translator.unparse_data
           ctxt
           Readable
@@ -65,9 +70,9 @@ module Traced_interpreter = struct
     in
     unparse_stack (stack_ty, stack)
 
-  let unparse_log (Log (ctxt, loc, stack, stack_ty)) =
+  let unparse_log ~oc (Log (ctxt, loc, stack, stack_ty)) =
     (* trace Cannot_serialize_log (unparse_stack ctxt (stack, stack_ty)) *)
-    (unparse_stack ctxt (stack, stack_ty))
+    (unparse_stack ~oc ctxt (stack, stack_ty))
     >>=? fun stack -> return (loc, Gas.level ctxt, stack)
 
   let trace_logger oc () : Script_typed_ir.logger =
@@ -87,7 +92,7 @@ module Traced_interpreter = struct
       let loc = List.length !log in
       Printf.(fprintf oc "# log_exit @ location %d, line %d\n" loc_ loc; flush oc);
       let l = Log (ctxt, loc_, stack, sty) in
-      let _ = unparse_log l
+      let _ = unparse_log ~oc l
         >>=? fun (_loc, gas, expr) ->
         return @@ Model.Weevil_record.make loc gas expr
         >>=? fun wrec ->
@@ -105,7 +110,7 @@ module Traced_interpreter = struct
       Printf.(fprintf oc "# log_control\n"; flush oc);
     in
     let get_log () =
-      List.map_es unparse_log !log
+      List.map_es (unparse_log ~oc) !log
       >>=? fun res -> return (Some (List.rev res))
     in
     {log_exit; log_entry; log_interp; get_log; log_control}
