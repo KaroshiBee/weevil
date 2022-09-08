@@ -9,7 +9,9 @@ module Weevil_json = struct
     stack: string list;
   }
 
-  let relative_loc t = t.location + 3 (* guff at beginning of tz file *)
+  let relative_loc t =
+    let i = t.location + 3 (* guff at beginning of tz file *) in
+    if i > 21 then i+2 else i
 
   let enc =
     let open Data_encoding in
@@ -63,9 +65,6 @@ module Weevil_record = struct
       |> Str.replace_first r {|\1|}
       |> Defaults._replace "\n" ""
       |> Str.global_replace spaces " "
-
-      (* |> Defaults._replace "(Some (Pair (Pair " "(Some (Ticket "
-       * |> Defaults._replace "(Pair \"tz1^[a-zA-Z0-9]+" "(Ticket \"tz1.." *)
     else
       s
 

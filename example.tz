@@ -18,7 +18,13 @@ PUSH nat 7;
 PAIR;
 SWAP;
 SPLIT_TICKET;
-DROP;
-UNIT;
-NIL operation; PAIR}
-}
+IF_NONE
+    {PUSH string "tickets cannot be split";
+    FAILWITH}
+{UNPAIR;
+ DROP;
+ DROP;
+ UNIT;
+ NIL operation;
+ PAIR}
+}}
