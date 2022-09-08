@@ -44,13 +44,20 @@ module Traced_interpreter = struct
     let rec unparse_stack :
       type a s.
       (a, s) Script_typed_ir.stack_ty * (a * s) ->
-      (Script.expr * string option) list Environment.Error_monad.tzresult Lwt.t = function
+      (Script.expr * string option * bool) list Environment.Error_monad.tzresult Lwt.t = function
       | (Bot_t, (EmptyCell, EmptyCell)) -> return_nil
       | (Item_t (ty, rest_ty, annot), (v, rest)) ->
-        let _ = match ty with
-        | Ticket_t (_cty, _thing) ->
-          Printf.(fprintf oc "\n# GOT TICKET TY\n"; flush oc)
-        | _ -> ()
+        let is_ticket = match ty with
+        | Ticket_t (Pair_key (_l, _r, _), _meta) ->
+          Printf.(fprintf oc "\n# GOT TICKET TY\n"; flush oc);
+          true
+        | Option_t (Pair_t (
+            (Ticket_t (Pair_key (_l, _r, _), _meta), _, _),
+            (Ticket_t (Pair_key (_l', _r', _), _meta'), _, _),
+            _), _) ->
+          Printf.(fprintf oc "\n# GOT SPLIT TICKET TY\n"; flush oc);
+          true
+        | _ -> false
         in
         Script_ir_translator.unparse_data
           ctxt
@@ -66,7 +73,7 @@ module Traced_interpreter = struct
           | _ -> assert false
         in
         let data = Micheline.strip_locations data in
-        (data, annot) :: rest
+        (data, annot, is_ticket) :: rest
     in
     unparse_stack (stack_ty, stack)
 
@@ -111,7 +118,13 @@ module Traced_interpreter = struct
     in
     let get_log () =
       List.map_es (unparse_log ~oc) !log
-      >>=? fun res -> return (Some (List.rev res))
+      >>=? fun res ->
+      let res = res
+      |> List.map (fun (loc, gas, exprs) ->
+          let exprs = exprs
+                      |> List.map (fun (e, a, _) -> (e, a)) in (loc, gas, exprs))
+      in
+      return (Some (List.rev res))
     in
     {log_exit; log_entry; log_interp; get_log; log_control}
 

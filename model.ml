@@ -31,7 +31,7 @@ module Weevil_record = struct
   type t = {
     script_location: Script.location;
     gas: Gas.t;
-    expressions: (Script.expr * string option) list;
+    expressions: (Script.expr * string option * bool) list;
   }
 
   let make script_location gas expressions : t =
@@ -48,20 +48,27 @@ module Weevil_record = struct
   let get_location t =
     Format.sprintf "%d" t.script_location
 
-  let _expr_to_string expr =
-    Format.asprintf
+  let _expr_to_string expr is_ticket =
+    let s = Format.asprintf
       "%a"
       Michelson_v1_printer.print_expr
       expr
+    in
+    if is_ticket then
+      s
+      |> Defaults._replace "(Some (Pair (Pair " "(Some (Ticket "
+      |> Defaults._replace "(Pair \"tz1" "(Ticket \"tz1"
+    else
+      s
 
   let get_expr_str ?(sep=", ") t =
     t.expressions
-    |> List.map (fun (expr, _) -> _expr_to_string expr)
+    |> List.map (fun (expr, _, is_ticket) -> _expr_to_string expr is_ticket)
     |> String.concat sep
 
   let get_annotations ?(sep=", ")t =
     t.expressions
-    |> List.map (fun (_expr, s_opt) -> Option.value ~default:"NOT ANNOTATED" s_opt)
+    |> List.map (fun (_expr, s_opt, _) -> Option.value ~default:"NOT ANNOTATED" s_opt)
     |> String.concat sep
 
   let to_weevil_json t =
@@ -82,7 +89,10 @@ module Weevil_trace = struct
 
   let of_execution_trace (execution_trace : Script_typed_ir.execution_trace) : t =
     execution_trace
-    |> List.map (fun (loc, gas, exprs) -> Weevil_record.make loc gas exprs)
+    |> List.map (fun (loc, gas, exprs) ->
+        let exprs = (exprs |> List.map (fun (e, a) -> (e, a, false))) in
+        Weevil_record.make loc gas exprs
+      )
     |> Array.of_list
 
   let get_safe t i =
