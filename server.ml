@@ -361,7 +361,7 @@ let handle_msg oc msg oc_process =
       let variables = [
         [Db.Variable_.{name=gas_name; value=gas_val; variablesReference=0}]; (* 0 here means not structured ie no children? *)
         [Db.Variable_.{name=stack_name; value=""; variablesReference=0}]; (* 0 here means not structured ie no children? *)
-        stack_val |> List.mapi (fun i sv -> Db.Variable_.{name=Printf.sprintf "  %d:" i; value=sv; variablesReference=0})
+        stack_val |> List.mapi (fun i sv -> Db.Variable_.{name=Printf.sprintf "%d:" i; value=String.trim sv; variablesReference=0})
       ] |> List.concat
       in
       let body = DRs.VariablesResponse.{variables} in

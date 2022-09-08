@@ -54,10 +54,18 @@ module Weevil_record = struct
       Michelson_v1_printer.print_expr
       expr
     in
+    Logs.info (fun m -> m "%s" s);
     if is_ticket then
-      s
-      |> Defaults._replace "(Some (Pair (Pair " "(Some (Ticket "
-      |> Defaults._replace "(Pair \"tz1" "(Ticket \"tz1"
+      let spaces = Str.regexp {| +|} in
+      let tkt = Str.regexp {|(Pair "tz1.+"|} in
+      let r = Str.regexp {|(Pair "tz1.+" "\(.+\)")|} in
+      Str.replace_first tkt {|(Ticket "tz1.."|} s
+      |> Str.replace_first r {|\1|}
+      |> Defaults._replace "\n" ""
+      |> Str.global_replace spaces " "
+
+      (* |> Defaults._replace "(Some (Pair (Pair " "(Some (Ticket "
+       * |> Defaults._replace "(Pair \"tz1^[a-zA-Z0-9]+" "(Ticket \"tz1.." *)
     else
       s
 
