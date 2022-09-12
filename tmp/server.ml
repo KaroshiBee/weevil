@@ -1,5 +1,7 @@
 open Conduit_lwt_unix
-open Data_encoding.Json
+open Data_encoding__.Json
+open Lwt
+
 module DRq = Dapper.Dap_request
 module DRs = Dapper.Dap_response
 module DEv = Dapper.Dap_event

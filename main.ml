@@ -1,6 +1,6 @@
 let commands = [
-  Stepper_command.cmd;
-  Service_command.cmd;
+  (* Stepper_command.cmd; *)
+  (* Service_command.cmd; *)
 ]
 
 let term =
@@ -8,7 +8,7 @@ let term =
   ret (const (`Help (`Pager, None)))
 
 let info =
-  let version = Tezos_version.Bin_version.version_string in
+  let version = "1.0" in (* Tezos_version.Bin_version.version_string in *)
   Cmdliner.Cmd.info
     ~doc:"The Tezos Weevil tool"
     ~version
@@ -19,3 +19,9 @@ let main_cmd =
 
 let () =
   exit (Cmdliner.Cmd.eval main_cmd)
+
+
+let () =
+  print_endline "hello world";
+  let _f = Data_encoding.Json.to_string in
+  ()

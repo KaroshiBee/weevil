@@ -99,4 +99,4 @@ let run_script ?logger ctx ?(step_constants = default_step_constants) contract
     ~entrypoint
     ~parameter:parameter_expr
     ~internal:false
-  >>=?? fun res -> return res
+  >>=?? fun res -> Result.return res |> Lwt.return

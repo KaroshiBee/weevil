@@ -1,3 +1,5 @@
+open Data_encoding__.Json
+
 let _DEFAULT_LOG_FILE = "weevil_stepper.log"
 let _DEFAULT_LISTEN_ADDRESS = "loopback"
 let _DEFAULT_PORT = 9000
@@ -17,7 +19,7 @@ let _HEADER_FIELD = "Content-Length: "
 let _HEADER_TOKEN = "\r\n\r\n"
 
 let wrap_header js =
-  let open Data_encoding.Json in
+  (* let open Data_encoding.Json in *)
   let s = js
   |> to_string
   |> _replace "\n" ""

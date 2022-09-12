@@ -1,9 +1,8 @@
 open Protocol
 open Alpha_context
-(* open Error_monad_operators *)
+open Error_monad_operators
 module DRq = Dapper.Dap_request
 module DRs = Dapper.Dap_response
-
 
 
 let test_context () =

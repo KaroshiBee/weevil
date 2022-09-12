@@ -1,42 +1,45 @@
-(env
- (static
-  (flags
-   (:standard -ccopt -static))))
+; (env
+;  (static
+;   (flags
+;    (:standard -ccopt -static))))
 
 (executables
- (names main weevil)
+ (names main)
  (libraries
-  tezos-base
-  tezos-base.unix
-  tezos-micheline
-  tezos-protocol-environment
-  tezos-protocol-012-Psithaca
-  tezos-client-012-Psithaca
-  tezos-stdlib-unix
-  tezos-012-Psithaca-test-helpers
-  notty
-  notty.unix
-  notty.lwt
-  nottui
-  nottui-lwt
-  mwt
-  dapper
-  data-encoding)
- (flags
-  (:standard
-   -linkall
-   -open
-   Tezos_base__TzPervasives
-   -open
-   Tezos_micheline
-   -open
-   Tezos_protocol_012_Psithaca
-   -open
-   Tezos_012_Psithaca_test_helpers
-   -open
-   Tezos_protocol_environment_012_Psithaca
-   -open
-   Tezos_client_012_Psithaca
-   -open
-   Tezos_stdlib_unix)))
-
+  ; tezos-base
+  ; tezos-base.unix
+  ; tezos-micheline
+  ; tezos-protocol-environment
+  ; tezos-stdlib-unix
+  ; tezos-protocol-012-Psithaca
+  ; tezos-client-012-Psithaca
+  ; tezos-012-Psithaca-test-helpers
+  lwt
+  conduit-lwt-unix
+  data-encoding
+  cmdliner
+  ; notty
+  ; notty.unix
+  ; notty.lwt
+  ; nottui
+  ; nottui-lwt
+  ; mwt
+  dapper)
+ ; (flags
+ ;  (:standard
+ ;   -linkall
+ ;   -open
+ ;   Tezos_base__TzPervasives
+ ;   -open
+ ;   Tezos_micheline
+ ;   -open
+ ;   Tezos_protocol_012_Psithaca
+ ;   -open
+ ;   Tezos_012_Psithaca_test_helpers
+ ;   -open
+ ;   Tezos_protocol_environment_012_Psithaca
+ ;   -open
+ ;   Tezos_client_012_Psithaca
+ ;   -open
+ ;   Tezos_stdlib_unix))
+)
