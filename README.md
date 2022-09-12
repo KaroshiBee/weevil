@@ -8,8 +8,7 @@ Wraps everything up in the [Debug Adapter Protocol](https://microsoft.github.io/
 
 Pretty early-stage; here's a demo of work so far:
 
+![weevil-demo](https://user-images.githubusercontent.com/411653/189655933-4a4ceb7a-21a5-4b0c-a5c1-59fc53e568e4.gif)
 
-
-![weevil-demo](https://user-images.githubusercontent.com/411653/188131604-3e519092-2091-47da-945f-96e9db3246c6.gif)
 
 ``
