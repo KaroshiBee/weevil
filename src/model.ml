@@ -1,8 +1,6 @@
-open Tezos_protocol_014_PtKathma
-open Protocol
-open Alpha_context
-open Tezos_client_014_PtKathma
-
+module P = Protocol
+module A = P.Alpha_context
+module PP = Tezos_client_014_PtKathma.Michelson_v1_printer
 
 module Weevil_json = struct
 
@@ -34,9 +32,9 @@ end
 module Weevil_record = struct
 
   type t = {
-    script_location: Script.location;
-    gas: Gas.t;
-    expressions: (Script.expr * string option * bool) list;
+    script_location: A.Script.location;
+    gas: A.Gas.t;
+    expressions: (A.Script.expr * string option * bool) list;
   }
 
   let make script_location gas expressions : t =
@@ -48,7 +46,7 @@ module Weevil_record = struct
 
 
   let get_gas t =
-    Format.asprintf "%a" Gas.pp t.gas
+    Format.asprintf "%a" A.Gas.pp t.gas
 
   let get_location t =
     Format.sprintf "%d" t.script_location
@@ -56,7 +54,7 @@ module Weevil_record = struct
   let _expr_to_string expr is_ticket =
     let s = Format.asprintf
       "%a"
-      Michelson_v1_printer.print_expr
+      PP.print_expr
       expr
     in
     Logs.info (fun m -> m "%s" s);
@@ -97,7 +95,7 @@ module Weevil_trace = struct
 
   type t = Weevil_record.t array
 
-  let of_execution_trace (execution_trace : Script_typed_ir.execution_trace) : t =
+  let of_execution_trace (execution_trace : P.Script_typed_ir.execution_trace) : t =
     execution_trace
     |> List.map (fun (loc, gas, exprs) ->
         let exprs = (exprs |> List.map (fun e -> (e, None, false))) in
@@ -112,37 +110,3 @@ module Weevil_trace = struct
 end
 
 
-(* module State = struct *)
-
-(*   type t = { *)
-(*     line_number: int; *)
-(*     current_seq: int; *)
-(*     stack_frames: Dapper.Dap_base.StackFrame.t list; *)
-(*     scopes: Dapper.Dap_base.Scope.t list; *)
-(*     variables: Dapper.Dap_base.Variable_.t list; *)
-(*   } *)
-
-(*   let make line_number current_seq = *)
-(*     { *)
-(*       line_number; *)
-(*       current_seq; *)
-(*       stack_frames=[]; *)
-(*       scopes=[]; *)
-(*       variables=[]; *)
-(*     } *)
-
-(*   let incr_line_number t max_lines current_seq = *)
-(*     let line_number = min max_lines (t.line_number + 1) |> max 0 in *)
-(*     {t with line_number; current_seq} *)
-
-(*   let decr_line_number t max_lines = *)
-(*     let line_number = min max_lines (t.line_number - 1) |> max 0 in *)
-(*     {t with line_number} *)
-
-(*   (\* let add_message t message = *)
-(*    *   let messages = message :: t.messages in *)
-(*    *   {t with messages} *\) *)
-
-(* end *)
-
-(* let state = Lwd.var (State.make 1 0) *)

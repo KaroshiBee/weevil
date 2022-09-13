@@ -7,22 +7,10 @@ dev-repo: "git+https://TODO.git"
 license: "MIT"
 depends: [
   "dune" { >= "2.9" }
-  "lwt"
   "tezos-base"
   "tezos-stdlib-unix"
   "tezos-014-PtKathma-test-helpers"
   "tezos-protocol-014-PtKathma"
-  # "tezos-clic"
-  # "tezos-012-Psithaca-test-helpers"
-  # "notty"
-  # "nottui"
-  # "nottui-lwt"
-  # "mwt"
-  "data-encoding"
-  "conduit"
-  "conduit-lwt"
-  "conduit-lwt-unix"
-  "cmdliner"
 ]
 build: [
   ["dune" "build" "-p" name "-j" jobs]

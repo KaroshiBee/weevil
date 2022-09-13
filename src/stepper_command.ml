@@ -1,15 +1,50 @@
-open Tezos_014_PtKathma_test_helpers
-open Tezos_base.TzPervasives
-open Tezos_base.TzPervasives.Error_monad.Legacy_monad_globals
-open Tezos_protocol_014_PtKathma
-open Tezos_micheline
+module P = Protocol
+module Ctx = P.Alpha_context
+module E = Error_monad_operators
 
-open Protocol
-open Alpha_context
-(* open Error_monad_operators *)
-(* module DRq = Dapper.Dap_request *)
-(* module DRs = Dapper.Dap_response *)
+let fake_KT1 =
+  P.Contract_hash.of_b58check_exn "KT1FAKEFAKEFAKEFAKEFAKEFAKEFAKGGSE2x"
 
+let default_self = fake_KT1
+
+let default_source = Ctx.Contract.Implicit Signature.Public_key_hash.zero
+
+let default_step_constants =
+  P.Script_interpreter.
+    {
+      source = default_source;
+      payer = default_source;
+      self = default_self;
+      amount = Ctx.Tez.zero;
+      balance = Ctx.Tez.zero;
+      chain_id = Chain_id.zero;
+      now = P.Script_timestamp.of_zint Z.zero;
+      level = P.Script_int.zero_n;
+    }
+
+(** Helper function that parses and types a script, its initial storage and
+   parameters from strings. It then executes the typed script with the storage
+   and parameter and returns the result. *)
+let run_script ?logger ctx ?(step_constants = default_step_constants) contract
+    ?(entrypoint = Ctx.Entrypoint.default) ~storage ~parameter () =
+  let contract_expr = Expr.from_string contract in
+  let storage_expr = Expr.from_string storage in
+  let parameter_expr = Expr.from_string parameter in
+  let script =
+    Ctx.Script.{code = lazy_expr contract_expr; storage = lazy_expr storage_expr}
+  in E.(
+      P.Script_interpreter.execute
+        ?logger
+        ctx
+        Readable
+        step_constants
+        ~script
+        ~cached_script:None
+        ~entrypoint
+        ~parameter:parameter_expr
+        ~internal:false
+      >>=?? fun res -> Result.return res |> Lwt.return
+    )
 
 
 let test_context () =
@@ -19,8 +54,8 @@ let test_context () =
 
 let test_stepping contract logger =
   test_context () >>=? fun ctx ->
-  let ctx = Gas.set_limit ctx (Gas.Arith.integral_of_int_exn 100) in
-  Wcontract_helpers.run_script
+  let ctx = Ctx.Gas.set_limit ctx (Ctx.Gas.Arith.integral_of_int_exn 100) in
+  run_script
     ~logger
     ctx
     contract
@@ -38,10 +73,10 @@ let test_stepping contract logger =
 module Traced_interpreter = struct
   type log_element =
     | Log :
-        context
-        * Script.location
+        Ctx.context
+        * Ctx.Script.location
         * ('a * 's)
-        * ('a, 's) Script_typed_ir.stack_ty
+        * ('a, 's) P.Script_typed_ir.stack_ty
         -> log_element
 
   let unparse_stack ~oc ctxt (stack, stack_ty) =
@@ -49,8 +84,8 @@ module Traced_interpreter = struct
     (* let ctxt = Gas.set_unlimited ctxt in *)
     let rec unparse_stack :
       type a s.
-      (a, s) Script_typed_ir.stack_ty * (a * s) ->
-      (Script.expr * string option * bool) list Environment.Error_monad.tzresult Lwt.t = function
+      (a, s) P.Script_typed_ir.stack_ty * (a * s) ->
+      (Ctx.Script.expr * string option * bool) list Environment.Error_monad.tzresult Lwt.t = function
       | (Bot_t, (EmptyCell, EmptyCell)) -> return_nil
       | (Item_t  (ty, rest_ty), (v, rest)) ->
         let is_ticket = match ty with
@@ -65,7 +100,7 @@ module Traced_interpreter = struct
           true
         | _ -> false
         in
-        Script_ir_translator.unparse_data
+        P.Script_ir_translator.unparse_data
           ctxt
           Readable
           ty
@@ -86,9 +121,9 @@ module Traced_interpreter = struct
   let unparse_log ~oc (Log (ctxt, loc, stack, stack_ty)) =
     (* trace Cannot_serialize_log (unparse_stack ctxt (stack, stack_ty)) *)
     (unparse_stack ~oc ctxt (stack, stack_ty))
-    >>=? fun stack -> return (loc, Gas.level ctxt, stack)
+    >>=? fun stack -> return (loc, Ctx.Gas.level ctxt, stack)
 
-  let trace_logger oc () : Script_typed_ir.logger =
+  let trace_logger oc () : P.Script_typed_ir.logger =
     let log : log_element list ref = ref [] in
     let log_interp _ ctxt loc sty stack =
       Printf.(fprintf oc "\n# log_interp @ location %d\n" loc; flush oc);
