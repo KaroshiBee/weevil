@@ -1,5 +1,5 @@
 module P = Protocol
-module A = P.Alpha_context
+module Ctx = P.Alpha_context
 module PP = Tezos_client_014_PtKathma.Michelson_v1_printer
 
 module Weevil_json = struct
@@ -32,9 +32,9 @@ end
 module Weevil_record = struct
 
   type t = {
-    script_location: A.Script.location;
-    gas: A.Gas.t;
-    expressions: (A.Script.expr * string option * bool) list;
+    script_location: Ctx.Script.location;
+    gas: Ctx.Gas.t;
+    expressions: (Ctx.Script.expr * string option * bool) list;
   }
 
   let make script_location gas expressions : t =
@@ -46,7 +46,7 @@ module Weevil_record = struct
 
 
   let get_gas t =
-    Format.asprintf "%a" A.Gas.pp t.gas
+    Format.asprintf "%a" Ctx.Gas.pp t.gas
 
   let get_location t =
     Format.sprintf "%d" t.script_location
