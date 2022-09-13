@@ -8,8 +8,10 @@ license: "MIT"
 depends: [
   "dune" { >= "2.9" }
   "lwt"
-  # "tezos-base"
-  # "tezos-stdlib-unix"
+  "tezos-base"
+  "tezos-stdlib-unix"
+  "tezos-014-PtKathma-test-helpers"
+  "tezos-protocol-014-PtKathma"
   # "tezos-clic"
   # "tezos-012-Psithaca-test-helpers"
   # "notty"

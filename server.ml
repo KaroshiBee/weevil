@@ -1,5 +1,5 @@
 open Conduit_lwt_unix
-open Data_encoding__.Json
+open Data_encoding.Json
 open Lwt
 
 module DRq = Dapper.Dap_request
@@ -312,7 +312,7 @@ let handle_msg oc msg oc_process =
       let success = true in
       let command = req#command in
       let stackFrames =
-        match !recs |> List.hd with
+        match List.nth_opt !recs 0 with
         | None -> []
         | Some wrec ->
           let loc = Model.Weevil_json.relative_loc wrec in
@@ -356,7 +356,7 @@ let handle_msg oc msg oc_process =
       let gas_name, _gas_var = Defaults._THE_GAS_LOCAL in
       let stack_name, _stack_var = Defaults._THE_MICHELSON_STACK_LOCAL in
       let gas_val, stack_val =
-        match !recs |> List.hd with
+        match List.nth_opt !recs 0 with
         | None -> "", []
         | Some wrec -> Model.Weevil_json.(wrec.gas, wrec.stack)
       in

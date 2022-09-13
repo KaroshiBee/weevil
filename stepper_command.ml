@@ -1,18 +1,25 @@
+open Tezos_014_PtKathma_test_helpers
+open Tezos_base.TzPervasives
+open Tezos_base.TzPervasives.Error_monad.Legacy_monad_globals
+open Tezos_protocol_014_PtKathma
+open Tezos_micheline
+
 open Protocol
 open Alpha_context
-open Error_monad_operators
-module DRq = Dapper.Dap_request
-module DRs = Dapper.Dap_response
+(* open Error_monad_operators *)
+(* module DRq = Dapper.Dap_request *)
+(* module DRs = Dapper.Dap_response *)
+
 
 
 let test_context () =
-  Context.init 3 >>=? fun (b, _cs) ->
+  Context.init3 () >>=? fun (b, _cs) ->
   Incremental.begin_construction b >>=? fun v ->
   return (Incremental.alpha_ctxt v)
 
 let test_stepping contract logger =
   test_context () >>=? fun ctx ->
-  let ctx = Gas.set_limit ctx (Gas_limit_repr.Arith.integral_of_int_exn 100) in
+  let ctx = Gas.set_limit ctx (Gas.Arith.integral_of_int_exn 100) in
   Wcontract_helpers.run_script
     ~logger
     ctx
@@ -45,15 +52,15 @@ module Traced_interpreter = struct
       (a, s) Script_typed_ir.stack_ty * (a * s) ->
       (Script.expr * string option * bool) list Environment.Error_monad.tzresult Lwt.t = function
       | (Bot_t, (EmptyCell, EmptyCell)) -> return_nil
-      | (Item_t (ty, rest_ty, annot), (v, rest)) ->
+      | (Item_t  (ty, rest_ty), (v, rest)) ->
         let is_ticket = match ty with
-        | Ticket_t (Pair_key (_l, _r, _), _meta) ->
+        | Ticket_t (Pair_t (_l, _r, _, _), _meta) ->
           Printf.(fprintf oc "\n# GOT TICKET TY\n"; flush oc);
           true
         | Option_t (Pair_t (
-            (Ticket_t (Pair_key (_l, _r, _), _meta), _, _),
-            (Ticket_t (Pair_key (_l', _r', _), _meta'), _, _),
-            _), _) ->
+            (Ticket_t (Pair_t (_l, _r, _, _), _meta)),
+            (Ticket_t (Pair_t (_l', _r', _, _), _meta')),
+            _, _), _, _) ->
           Printf.(fprintf oc "\n# GOT SPLIT TICKET TY\n"; flush oc);
           true
         | _ -> false
@@ -65,12 +72,12 @@ module Traced_interpreter = struct
           v
         >>=? fun (data, _ctxt) ->
         unparse_stack (rest_ty, rest) >|=? fun rest ->
-        let annot =
-          match Script_ir_annot.unparse_var_annot annot with
-          | [] -> None
-          | [a] -> Some a
-          | _ -> assert false
-        in
+        let annot = None in
+        (*   match Script_ir_annot.unparse_var_annot annot with *)
+        (*   | [] -> None *)
+        (*   | [a] -> Some a *)
+        (*   | _ -> assert false *)
+        (* in *)
         let data = Micheline.strip_locations data in
         (data, annot, is_ticket) :: rest
     in
@@ -121,7 +128,7 @@ module Traced_interpreter = struct
       let res = res
       |> List.map (fun (loc, gas, exprs) ->
           let exprs = exprs
-                      |> List.map (fun (e, a, _) -> (e, a)) in (loc, gas, exprs))
+                      |> List.map (fun (e, _, _) -> e) in (loc, gas, exprs))
       in
       return (Some (List.rev res))
     in

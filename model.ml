@@ -1,5 +1,8 @@
+open Tezos_protocol_014_PtKathma
 open Protocol
 open Alpha_context
+open Tezos_client_014_PtKathma
+
 
 module Weevil_json = struct
 
@@ -97,7 +100,7 @@ module Weevil_trace = struct
   let of_execution_trace (execution_trace : Script_typed_ir.execution_trace) : t =
     execution_trace
     |> List.map (fun (loc, gas, exprs) ->
-        let exprs = (exprs |> List.map (fun (e, a) -> (e, a, false))) in
+        let exprs = (exprs |> List.map (fun e -> (e, None, false))) in
         Weevil_record.make loc gas exprs
       )
     |> Array.of_list
@@ -109,37 +112,37 @@ module Weevil_trace = struct
 end
 
 
-module State = struct
+(* module State = struct *)
 
-  type t = {
-    line_number: int;
-    current_seq: int;
-    stack_frames: Dapper.Dap_base.StackFrame.t list;
-    scopes: Dapper.Dap_base.Scope.t list;
-    variables: Dapper.Dap_base.Variable_.t list;
-  }
+(*   type t = { *)
+(*     line_number: int; *)
+(*     current_seq: int; *)
+(*     stack_frames: Dapper.Dap_base.StackFrame.t list; *)
+(*     scopes: Dapper.Dap_base.Scope.t list; *)
+(*     variables: Dapper.Dap_base.Variable_.t list; *)
+(*   } *)
 
-  let make line_number current_seq =
-    {
-      line_number;
-      current_seq;
-      stack_frames=[];
-      scopes=[];
-      variables=[];
-    }
+(*   let make line_number current_seq = *)
+(*     { *)
+(*       line_number; *)
+(*       current_seq; *)
+(*       stack_frames=[]; *)
+(*       scopes=[]; *)
+(*       variables=[]; *)
+(*     } *)
 
-  let incr_line_number t max_lines current_seq =
-    let line_number = min max_lines (t.line_number + 1) |> max 0 in
-    {t with line_number; current_seq}
+(*   let incr_line_number t max_lines current_seq = *)
+(*     let line_number = min max_lines (t.line_number + 1) |> max 0 in *)
+(*     {t with line_number; current_seq} *)
 
-  let decr_line_number t max_lines =
-    let line_number = min max_lines (t.line_number - 1) |> max 0 in
-    {t with line_number}
+(*   let decr_line_number t max_lines = *)
+(*     let line_number = min max_lines (t.line_number - 1) |> max 0 in *)
+(*     {t with line_number} *)
 
-  (* let add_message t message =
-   *   let messages = message :: t.messages in
-   *   {t with messages} *)
+(*   (\* let add_message t message = *)
+(*    *   let messages = message :: t.messages in *)
+(*    *   {t with messages} *\) *)
 
-end
+(* end *)
 
-let state = Lwd.var (State.make 1 0)
+(* let state = Lwd.var (State.make 1 0) *)

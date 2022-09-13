@@ -6,18 +6,18 @@
 (executables
  (names main)
  (libraries
-  ; tezos-base
-  ; tezos-base.unix
-  ; tezos-micheline
-  ; tezos-protocol-environment
-  ; tezos-stdlib-unix
-  ; tezos-protocol-012-Psithaca
-  ; tezos-client-012-Psithaca
-  ; tezos-012-Psithaca-test-helpers
+  tezos-base
+  tezos-base.unix
+  tezos-micheline
+  tezos-protocol-environment
+  tezos-stdlib-unix
+  tezos-protocol-014-PtKathma
+  tezos-014-PtKathma-test-helpers
   lwt
   conduit-lwt-unix
   data-encoding
   cmdliner
+  str
   ; notty
   ; notty.unix
   ; notty.lwt
@@ -30,16 +30,17 @@
  ;   -linkall
  ;   -open
  ;   Tezos_base__TzPervasives
- ;   -open
+ ;  -open
  ;   Tezos_micheline
  ;   -open
- ;   Tezos_protocol_012_Psithaca
+ ;   Tezos_protocol_014_PtKathma
  ;   -open
- ;   Tezos_012_Psithaca_test_helpers
+ ;   Tezos_014_PtKathma_test_helpers
+   ; -open
+   ; Tezos_protocol_environment_014_PtKathma
  ;   -open
- ;   Tezos_protocol_environment_012_Psithaca
- ;   -open
- ;   Tezos_client_012_Psithaca
+ ;   Tezos_client_014_PtKathma
  ;   -open
  ;   Tezos_stdlib_unix))
+ ; ))
 )

@@ -22,57 +22,29 @@
 (* DEALINGS IN THE SOFTWARE.                                                 *)
 (*                                                                           *)
 (*****************************************************************************)
+open Tezos_base.TzPervasives
+open Tezos_protocol_014_PtKathma
+open Tezos_014_PtKathma_test_helpers
 
 open Protocol
 open Alpha_context
 open Error_monad_operators
 
-(* (\** Initializes 2 addresses to do only operations plus one that will be
- *     used to bake. *\)
- * let init () =
- *   Context.init ~consensus_threshold:0 3 >|=? fun (b, contracts) ->
- *   let (src0, src1, src2) =
- *     match contracts with
- *     | src0 :: src1 :: src2 :: _ -> (src0, src1, src2)
- *     | _ -> assert false
- *   in
- *   let baker =
- *     match Alpha_context.Contract.is_implicit src0 with
- *     | Some v -> v
- *     | None -> assert false
- *   in
- *   (b, baker, src1, src2)
- *
- * (\** Returns a block in which the contract is originated. *\)
- * let originate_contract file storage src b baker =
- *   let load_file f =
- *     let ic = open_in f in
- *     let res = really_input_string ic (in_channel_length ic) in
- *     close_in ic ;
- *     res
- *   in
- *   let contract_string = load_file file in
- *   let code = Expr.toplevel_from_string contract_string in
- *   let storage = Expr.from_string storage in
- *   let script =
- *     Alpha_context.Script.{code = lazy_expr code; storage = lazy_expr storage}
- *   in
- *   Op.origination (B b) src ~fee:(Test_tez.of_int 10) ~script
- *   >>=? fun (operation, dst) ->
- *   Incremental.begin_construction ~policy:Block.(By_account baker) b
- *   >>=? fun incr ->
- *   Incremental.add_operation incr operation >>=? fun incr ->
- *   Incremental.finalize_block incr >|=? fun b -> (dst, b) *)
+let fake_KT1 =
+  Contract_hash.of_b58check_exn "KT1FAKEFAKEFAKEFAKEFAKEFAKEFAKGGSE2x"
 
-let default_source = Contract.implicit_contract Signature.Public_key_hash.zero
+let default_self = fake_KT1
+
+let default_source = Contract.Implicit Signature.Public_key_hash.zero
 
 let default_step_constants =
   Script_interpreter.
     {
       source = default_source;
       payer = default_source;
-      self = default_source;
+      self = default_self;
       amount = Tez.zero;
+      balance = Tez.zero;
       chain_id = Chain_id.zero;
       now = Script_timestamp.of_zint Z.zero;
       level = Script_int.zero_n;
@@ -82,7 +54,7 @@ let default_step_constants =
    parameters from strings. It then executes the typed script with the storage
    and parameter and returns the result. *)
 let run_script ?logger ctx ?(step_constants = default_step_constants) contract
-    ?(entrypoint = "default") ~storage ~parameter () =
+    ?(entrypoint = Entrypoint.default) ~storage ~parameter () =
   let contract_expr = Expr.from_string contract in
   let storage_expr = Expr.from_string storage in
   let parameter_expr = Expr.from_string parameter in
