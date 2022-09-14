@@ -18,7 +18,9 @@
   data-encoding
   cmdliner
   str
-  dapper)
+  dapper
+  dapper_gen
+ )
  (flags
   (:standard
    -linkall
