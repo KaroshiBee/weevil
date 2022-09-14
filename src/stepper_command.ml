@@ -29,6 +29,7 @@ let process contract_file_arg =
   let logger = Stepper.Traced_interpreter.trace_logger stdout () in
 
   let stepper =
+    let open Tezos_base.TzPervasives.Error_monad.Legacy_monad_globals in
     Stepper.test_stepping contract_text logger >|= (fun _ -> `Ok ()) in
 
   Lwt_main.run stepper

@@ -1,13 +1,18 @@
+(* Tezos_protocol_014_PtKathma opened globally gives the Protocol import *)
 module P = Protocol
 module Ctx = P.Alpha_context
-module E = Error_monad_operators
+(* Tezos_014_PtKathma_test_helpers gives Error_monad_operators, Context, Incremental, Expr *)
+module M = Tezos_micheline
+module Tz = Tezos_base.TzPervasives
+open Tz.Error_monad.Legacy_monad_globals (* other bind infix operators *)
+
 
 let fake_KT1 =
   P.Contract_hash.of_b58check_exn "KT1FAKEFAKEFAKEFAKEFAKEFAKEFAKGGSE2x"
 
 let default_self = fake_KT1
 
-let default_source = Ctx.Contract.Implicit Signature.Public_key_hash.zero
+let default_source = Ctx.Contract.Implicit Tz.Signature.Public_key_hash.zero
 
 let default_step_constants =
   P.Script_interpreter.
@@ -17,10 +22,12 @@ let default_step_constants =
       self = default_self;
       amount = Ctx.Tez.zero;
       balance = Ctx.Tez.zero;
-      chain_id = Chain_id.zero;
+      chain_id = Tz.Chain_id.zero;
       now = P.Script_timestamp.of_zint Z.zero;
       level = P.Script_int.zero_n;
     }
+
+let (>>=??) = Error_monad_operators.(>>=??)
 
 (** Helper function that parses and types a script, its initial storage and
    parameters from strings. It then executes the typed script with the storage
@@ -32,19 +39,19 @@ let run_script ?logger ctx ?(step_constants = default_step_constants) contract
   let parameter_expr = Expr.from_string parameter in
   let script =
     Ctx.Script.{code = lazy_expr contract_expr; storage = lazy_expr storage_expr}
-  in E.(
-      P.Script_interpreter.execute
-        ?logger
-        ctx
-        Readable
-        step_constants
-        ~script
-        ~cached_script:None
-        ~entrypoint
-        ~parameter:parameter_expr
-        ~internal:false
-      >>=?? fun res -> Result.return res |> Lwt.return
-    )
+  in
+  P.Script_interpreter.execute
+    ?logger
+    ctx
+    Readable
+    step_constants
+    ~script
+    ~cached_script:None
+    ~entrypoint
+    ~parameter:parameter_expr
+    ~internal:false
+  >>=?? fun res -> Tz.Result.return res |> Lwt.return
+
 
 
 let test_context () =
@@ -66,7 +73,7 @@ let test_stepping contract logger =
   | Ok _ ->
     return_unit
   | Error errs ->
-    let ss = Format.asprintf "Unexpected error: %a" Error_monad.pp_print_trace errs in
+    let ss = Format.asprintf "Unexpected error: %a" Tz.Error_monad.pp_print_trace errs in
     Lwt.bind (Lwt_io.printl ss) (fun _ -> return_unit)
 
 
@@ -113,7 +120,7 @@ module Traced_interpreter = struct
         (*   | [a] -> Some a *)
         (*   | _ -> assert false *)
         (* in *)
-        let data = Micheline.strip_locations data in
+        let data = M.Micheline.strip_locations data in
         (data, annot, is_ticket) :: rest
     in
     unparse_stack (stack_ty, stack)
@@ -158,7 +165,7 @@ module Traced_interpreter = struct
       Printf.(fprintf oc "# log_control\n"; flush oc);
     in
     let get_log () =
-      List.map_es (unparse_log ~oc) !log
+      Tz.List.map_es (unparse_log ~oc) !log
       >>=? fun res ->
       let res = res
       |> List.map (fun (loc, gas, exprs) ->
