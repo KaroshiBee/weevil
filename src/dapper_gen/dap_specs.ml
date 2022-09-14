@@ -19,11 +19,38 @@ let root_path ~(path:Q.path) =
 
 module Obj_spec = struct
 
+  (*
+     module Obj_name = struct
+
+     type t = {
+       field[0].safe_name: field[0].type_;
+       field[1].safe_name: field[1].type_ option (if not field[1].required) ;
+       etc...
+     }
+
+     let make ~field[0].safe_name ?field[1].safe_name etc... () =
+     { field[0].safe_name; field[1].safe_name; etc...}
+
+     let enc =
+     conv
+     (fun {...} -> (...))
+     (fun (...) -> {...})
+     (objN
+       (req field[0].dirty_name field[0].enc)
+       (opt field[1].dirty_name field[1].enc)
+       etc...
+     )
+     end
+
+     NOTES
+     if its a big object then need to plit into a tuple of obj10's
+     if it is cyclic then need to use the fixpoint encoder
+ *)
   type field = {
-    safe_name:string;
-    dirty_name: string;
-    type_:string;
-    enc_: string;
+    safe_name:string; (* for being a record name in ocaml *)
+    dirty_name: string; (* what it gets written back to json field as *)
+    type_:string; (* the ocaml type *)
+    enc_: string; (* the encoding function name *)
     required:bool;
   }
 

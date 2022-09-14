@@ -11,7 +11,10 @@ module D = Hashtbl.Make (struct
 end)
 
 module Names = struct
-  type el = {path : Q.path; desc : string}
+  type el = {
+    path : Q.path;
+    desc : string;
+  }
 
   type t = el list
 
@@ -65,7 +68,11 @@ module Dfs = struct
 
   let _MSG = "/definitions/FAKE/protocol_message_type"
 
-  type t = {names : Names.t; visited : Visited.t; specs : Sp.t D.t}
+  type t = {
+    names : Names.t;
+    visited : Visited.t;
+    specs : Sp.t D.t;
+    }
 
   let rec process_definition t ~schema_js ~path =
     (* this will be a *Request/*Response/*Event/Object top level definition
@@ -113,8 +120,9 @@ module Dfs = struct
           "process element under '%s'"
           (Q.json_pointer_of_path ~wildcards:true path)) ;
     let enums = el.enum |> Option.value ~default:[] in
-    let enums =
-      enums |> List.map Json_repr.from_any |> List.map Ezjsonm.decode_string_exn
+    let enums = enums
+                |> List.map Json_repr.from_any
+                |> List.map Ezjsonm.decode_string_exn
     in
     let n = List.length enums in
     (* it is an enum of some sort *)
