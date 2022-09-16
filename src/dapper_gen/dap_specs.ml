@@ -1,6 +1,5 @@
 module Q = Json_query
 
-
 let _unweird_name ?(capitalize=false) name =
   let n = match (String.lowercase_ascii name) with
   | "type" | "module" | "lazy" -> Printf.sprintf "%s_" name
@@ -16,6 +15,27 @@ let root_path ~(path:Q.path) =
   match path with
   | (`Field "definitions") :: (`Field f) :: _ -> [(`Field "definitions"); (`Field f)]
   | _ -> []
+
+
+module Field_spec = struct
+  type t = {
+    safe_name:string; (* for being a record name in ocaml *)
+    dirty_name: string; (* what it gets written back to json field as *)
+    type_:string; (* the ocaml type *)
+    enc_: string; (* the encoding function name *)
+    required:bool;
+  } [@@deriving show]
+
+  let make ~dirty_name ~required ?(type_="") ?(enc_="") () =
+    let safe_name = _unweird_name dirty_name in
+    {
+      safe_name;
+      dirty_name;
+      type_;
+      enc_;
+      required;
+    }
+end
 
 module Obj_spec = struct
 
@@ -46,19 +66,12 @@ module Obj_spec = struct
      if its a big object then need to plit into a tuple of obj10's
      if it is cyclic then need to use the fixpoint encoder
  *)
-  type field = {
-    safe_name:string; (* for being a record name in ocaml *)
-    dirty_name: string; (* what it gets written back to json field as *)
-    type_:string; (* the ocaml type *)
-    enc_: string; (* the encoding function name *)
-    required:bool;
-  }
 
   type t = {
-    path: Q.path;
-    fields: field list;
+    path: Q.path; [@printer Q.print_path_as_json_pointer]
+    fields: Field_spec.t list;
     is_cyclic: bool;
-  }
+  } [@@deriving show]
 
   let of_path ~path ?(fields=[]) ?(is_cyclic=false) () =
     {path; fields; is_cyclic}
@@ -74,12 +87,12 @@ module Enum_spec = struct
   type enum_val = {
     safe_name: string;
     dirty_name: string;
-  }
+  } [@@deriving show]
 
   type t = {
-    path: Q.path;
+    path: Q.path; [@printer Q.print_path_as_json_pointer]
     enums: enum_val list;
-  }
+  } [@@deriving show]
 
   let of_path ~path ?(dirty_names=[]) () =
     let enums =
@@ -127,22 +140,12 @@ module Enum_spec = struct
 
 end
 
-let is_special_definition ~path =
-  let pth = Array.of_list path in
-  let n = Array.length pth in
-  if n = 2 && pth.(0) = `Field "definitions" then
-    match pth.(1) with
-    | `Field "ProtocolMessage" | `Field "Request" | `Field "Event" | `Field "Response" -> true
-    | _ -> false
-  else
-    false
-
 module Req_spec = struct
   type t = {
-    path: Q.path;
+    path: Q.path; [@printer Q.print_path_as_json_pointer]
     command: string;
     args: Obj_spec.t option;
-  }
+  } [@@deriving show]
 
   exception Not_request of string
 
@@ -175,11 +178,11 @@ end
 
 module Resp_spec = struct
   type t = {
-    path: Q.path;
+    path: Q.path; [@printer Q.print_path_as_json_pointer]
     command: string;
     body: Obj_spec.t option;
     message: Obj_spec.t option;
-  }
+  } [@@deriving show]
 
   exception Not_response of string
 
@@ -223,10 +226,10 @@ end
 
 module Event_spec = struct
   type t = {
-    path: Q.path;
+    path: Q.path; [@printer Q.print_path_as_json_pointer]
     event: string;
     body: Obj_spec.t option;
-  }
+  } [@@deriving show]
 
   exception Not_event of string
 
@@ -255,6 +258,16 @@ module Event_spec = struct
 
 end
 
+let is_special_definition ~path =
+  let pth = Array.of_list path in
+  let n = Array.length pth in
+  if n = 2 && pth.(0) = `Field "definitions" then
+    match pth.(1) with
+    | `Field "ProtocolMessage" | `Field "Request" | `Field "Event" | `Field "Response" -> true
+    | _ -> false
+  else
+    false
+
 
 type t =
   | Request of Req_spec.t
@@ -262,7 +275,8 @@ type t =
   | Event of Event_spec.t
   | Object of Obj_spec.t
   | Enum of Enum_spec.t
-
+  | Field of Field_spec.t
+  [@@deriving show]
 
 let make ~path ?dirty_names () =
   match dirty_names with
@@ -272,3 +286,5 @@ let make ~path ?dirty_names () =
     try let specs = Resp_spec.of_path_exn ~path () in Response specs with Resp_spec.Not_response _ ->
     try let specs = Event_spec.of_path_exn ~path () in Event specs with Event_spec.Not_event _ ->
       let specs = Obj_spec.of_path ~path () in Object specs
+
+let to_string = show

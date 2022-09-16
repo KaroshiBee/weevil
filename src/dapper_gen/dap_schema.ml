@@ -87,7 +87,7 @@ module Dfs = struct
     Logs.debug (fun m -> m "process dfn start: '%s'" dfn) ;
     let t =
       if Sp.is_special_definition ~path then (
-        Logs.debug (fun m -> m "ignore special case: '%s'" dfn) ;
+        Logs.debug (fun m -> m "special case: '%s'" dfn) ;
         t)
       else
         (* check is valid name by finding the definition *)
@@ -100,6 +100,7 @@ module Dfs = struct
         if did_add then (
           Logs.debug (fun m -> m "visiting: '%s'" dfn) ;
           let spec = Sp.make ~path () in
+          Logs.debug (fun m -> m "replacing spec for %s with %s" dfn (Sp.to_string spec)) ;
           D.replace t.specs dfn spec ;
           let t = process_element {t with visited} ~schema_js ~path element in
           let visited = Visited.assert_and_close_visited t.visited ~path in
@@ -177,6 +178,7 @@ module Dfs = struct
       in
       let parent_pth = Sp.root_path ~path in
       let parent_ky = Q.json_pointer_of_path parent_pth in
+      Logs.debug (fun m -> m "lokking for parent '%s' of %s" parent_ky dfn);
       let parent = D.find t.specs parent_ky in
       (* should be there *)
       let new_parent =
@@ -190,10 +192,13 @@ module Dfs = struct
             in
             Sp.Request spec
         | (Sp.Response spec, Some obj_specs) ->
+            Logs.debug (fun m -> m "response type");
             let spec =
               Sp.Resp_spec.(
-                if is_body_for spec ~obj_specs then
+                if is_body_for spec ~obj_specs then (
+                  Logs.debug (fun m -> m "replacing body spec");
                   set_body spec ~body:obj_specs
+                )
                 else if is_message_for spec ~obj_specs then
                   set_message spec ~message:obj_specs
                 else spec)
@@ -207,8 +212,9 @@ module Dfs = struct
                 else spec)
             in
             Sp.Event spec
-        | (p, _) -> Logs.info (fun m -> m "TODO Couldnt find %s or %s" parent_ky dfn);  p
+        | (p, _) -> Logs.warn (fun m -> m "TODO Couldnt find parent %s or child %s" parent_ky dfn);  p
       in
+      Logs.debug (fun m -> m "replacing parent key %s with new parent %s" parent_ky (Sp.to_string new_parent));
       D.replace t.specs parent_ky new_parent ;
       process_kind t ~schema_js ~path el.kind
 
@@ -525,3 +531,4 @@ module Dfs = struct
            {t with names; visited = acc.visited})
          t
 end
+

@@ -4,7 +4,7 @@
 ;    (:standard -ccopt -static))))
 
 (executables
- (names main)
+ (names main dapgen)
  (libraries
   tezos-base
   tezos-base.unix

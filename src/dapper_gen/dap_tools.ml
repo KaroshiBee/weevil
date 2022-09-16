@@ -216,9 +216,9 @@ module RenderObjects = struct
 end
 
 
-let () =
-  Logs.set_reporter (Logs.format_reporter ());
-  Logs.set_level (Some Logs.Info);
+(* let () = *)
+(*   Logs.set_reporter (Logs.format_reporter ()); *)
+(*   Logs.set_level (Some Logs.Info); *)
   (* let schema_js = Ezjsonm.from_channel @@ open_in "../schema/debugAdapterProtocol-1.56.X.json" in
    * let t = D.make ~schema_js in
    * let io = open_out "test1.ml" in
