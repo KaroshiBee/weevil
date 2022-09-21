@@ -185,35 +185,35 @@ module Dfs = struct
       (* should be there *)
       let new_parent =
         match (parent, child) with
-        | (Sp.Request spec, Some obj_specs) ->
-            let spec =
-              Sp.Req_spec.(
-                if is_arguments_for spec ~obj_specs then
-                  set_args spec ~args:obj_specs
-                else spec)
-            in
-            Sp.Request spec
-        | (Sp.Response spec, Some obj_specs) ->
-            Logs.debug (fun m -> m "response type");
-            let spec =
-              Sp.Resp_spec.(
-                if is_body_for spec ~obj_specs then (
-                  Logs.debug (fun m -> m "replacing body spec");
-                  set_body spec ~body:obj_specs
-                )
-                else if is_message_for spec ~obj_specs then
-                  set_message spec ~message:obj_specs
-                else spec)
-            in
-            Sp.Response spec
-        | (Sp.Event spec, Some obj_specs) ->
-            let spec =
-              Sp.Event_spec.(
-                if is_body_for spec ~obj_specs then
-                  set_body spec ~body:obj_specs
-                else spec)
-            in
-            Sp.Event spec
+        (* | (Sp.Request spec, Some obj_specs) -> *)
+        (*     let spec = *)
+        (*       Sp.Req_spec.( *)
+        (*         if is_arguments_for spec ~obj_specs then *)
+        (*           set_args spec ~args:obj_specs *)
+        (*         else spec) *)
+        (*     in *)
+        (*     Sp.Request spec *)
+        (* | (Sp.Response spec, Some obj_specs) -> *)
+        (*     Logs.debug (fun m -> m "response type"); *)
+        (*     let spec = *)
+        (*       Sp.Resp_spec.( *)
+        (*         if is_body_for spec ~obj_specs then ( *)
+        (*           Logs.debug (fun m -> m "replacing body spec"); *)
+        (*           set_body spec ~body:obj_specs *)
+        (*         ) *)
+        (*         else if is_message_for spec ~obj_specs then *)
+        (*           set_message spec ~message:obj_specs *)
+        (*         else spec) *)
+        (*     in *)
+        (*     Sp.Response spec *)
+        (* | (Sp.Event spec, Some obj_specs) -> *)
+        (*     let spec = *)
+        (*       Sp.Event_spec.( *)
+        (*         if is_body_for spec ~obj_specs then *)
+        (*           set_body spec ~body:obj_specs *)
+        (*         else spec) *)
+        (*     in *)
+        (*     Sp.Event spec *)
         | (p, _) -> Logs.warn (fun m -> m "TODO Couldnt find parent %s or child %s" parent_ky dfn);  p
       in
       Logs.debug (fun m -> m "replacing parent key %s with new parent %s" parent_ky (Sp.to_string new_parent));

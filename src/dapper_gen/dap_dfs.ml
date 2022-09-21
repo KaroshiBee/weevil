@@ -69,7 +69,7 @@ module Dfs = struct
           match t.nodes with
           | Sp.Object spec :: nodes ->
             Logs.debug (fun m -> m "adding definition '%s' to finished pile" dfn) ;
-            (* TODO may need to promote the object into Req/Resp/Event type *)
+            (* TODO may now need to promote the object into Req/Resp/Event type *)
             {t with nodes; finished=(Sp.Object spec :: t.finished)}
           | _ -> t
         )
@@ -261,6 +261,7 @@ module Dfs = struct
           if is_cyclic then t
           else (
             let t' = process_definition t ~schema_js ~path:ref_path in
+            (* TODO get Message bit from ref_path *)
             _set_field_type t' "Message.t" "Message.enc"
           )
         in

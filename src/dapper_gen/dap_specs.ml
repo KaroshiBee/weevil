@@ -300,9 +300,6 @@ let is_special_definition ~path =
 
 
 type t =
-  | Request of Req_spec.t
-  | Response of Resp_spec.t
-  | Event of Event_spec.t
   | Object of Obj_spec.t
   | Enum of Enum_spec.t
   | Field of Field_spec.t
@@ -312,9 +309,6 @@ let make ~dirty_name ~path ?dirty_names () =
   match dirty_names with
   | Some dirty_names -> Enum (Enum_spec.of_path ~dirty_name ~path ~dirty_names ())
   | None ->
-    try let specs = Req_spec.of_path_exn ~dirty_name ~path () in Request specs with Req_spec.Not_request _ ->
-    try let specs = Resp_spec.of_path_exn ~dirty_name ~path () in Response specs with Resp_spec.Not_response _ ->
-    try let specs = Event_spec.of_path_exn ~dirty_name ~path () in Event specs with Event_spec.Not_event _ ->
       let specs = Obj_spec.of_path ~dirty_name ~path () in Object specs
 
 let to_string = show
