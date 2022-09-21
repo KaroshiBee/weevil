@@ -68,13 +68,16 @@ module Obj_spec = struct
  *)
 
   type t = {
+    safe_name:string; (* for being a record name in ocaml *)
+    dirty_name: string; (* what it gets written back to json field as *)
     path: Q.path; [@printer Q.print_path_as_json_pointer]
     fields: Field_spec.t list;
     is_cyclic: bool;
   } [@@deriving show]
 
-  let of_path ~path ?(fields=[]) ?(is_cyclic=false) () =
-    {path; fields; is_cyclic}
+  let of_path ~dirty_name ~path ?(fields=[]) ?(is_cyclic=false) () =
+    let safe_name = _unweird_name dirty_name in
+    {safe_name; dirty_name; path; fields; is_cyclic}
 
   let is_big t =
     List.length t.fields > 10
@@ -90,11 +93,14 @@ module Enum_spec = struct
   } [@@deriving show]
 
   type t = {
+    safe_name:string; (* for being a record name in ocaml *)
+    dirty_name: string; (* what it gets written back to json field as *)
     path: Q.path; [@printer Q.print_path_as_json_pointer]
     enums: enum_val list;
   } [@@deriving show]
 
-  let of_path ~path ?(dirty_names=[]) () =
+  let of_path ~dirty_name ~path ?(dirty_names=[]) () =
+    let safe_name = _unweird_name dirty_name in
     let enums =
       dirty_names
       |> List.map (fun dirty_name ->
@@ -102,7 +108,7 @@ module Enum_spec = struct
           {safe_name; dirty_name}
         )
     in
-    {path; enums}
+    {safe_name; dirty_name; path; enums}
 
   let set_enums t ~dirty_names =
     let enums =
@@ -114,14 +120,14 @@ module Enum_spec = struct
     in
     {t with enums}
 
-  let append_enum  t ~dirty_name =
+  let append_enum t ~dirty_name =
     let safe_name = _unweird_name ~capitalize:true dirty_name in
     {t with enums={safe_name; dirty_name}::t.enums}
 
-  let append_enums  t ~enums =
+  let append_enums t ~enums =
     let dirty_names = List.concat [
-          List.map (fun nm -> nm.dirty_name) enums;
-          List.map (fun nm -> nm.dirty_name) t.enums
+          List.map (fun (nm:enum_val) -> nm.dirty_name) enums;
+          List.map (fun (nm:enum_val) -> nm.dirty_name) t.enums
         ] in
     set_enums t ~dirty_names
 
@@ -142,6 +148,8 @@ end
 
 module Req_spec = struct
   type t = {
+    safe_name:string; (* for being a record name in ocaml *)
+    dirty_name: string; (* what it gets written back to json field as *)
     path: Q.path; [@printer Q.print_path_as_json_pointer]
     command: string;
     args: Obj_spec.t option;
@@ -149,7 +157,8 @@ module Req_spec = struct
 
   exception Not_request of string
 
-  let of_path_exn ~path ?args () =
+  let of_path_exn ~dirty_name ~path ?args () =
+    let safe_name = _unweird_name dirty_name in
     match path with
     | (`Field "definitions") :: (`Field v) :: [] ->
           let command =
@@ -157,7 +166,7 @@ module Req_spec = struct
             | Some (enum_str, "") -> enum_str
             | _ -> raise @@ Not_request (Q.json_pointer_of_path path)
           in
-          {path; command; args}
+          {safe_name; dirty_name; path; command; args}
     | _ -> raise @@ Not_request (Q.json_pointer_of_path path)
 
   let set_args t ~args =
@@ -178,6 +187,8 @@ end
 
 module Resp_spec = struct
   type t = {
+    safe_name:string; (* for being a record name in ocaml *)
+    dirty_name: string; (* what it gets written back to json field as *)
     path: Q.path; [@printer Q.print_path_as_json_pointer]
     command: string;
     body: Obj_spec.t option;
@@ -186,7 +197,8 @@ module Resp_spec = struct
 
   exception Not_response of string
 
-  let of_path_exn ~path ?body ?message () =
+  let of_path_exn ~dirty_name ~path ?body ?message () =
+    let safe_name = _unweird_name dirty_name in
     match path with
     | (`Field "definitions") :: (`Field v) :: [] ->
           let command =
@@ -194,7 +206,7 @@ module Resp_spec = struct
             | Some (enum_str, "") -> enum_str
             | _ -> raise @@ Not_response (Q.json_pointer_of_path path)
           in
-          {path; command; body; message}
+          {safe_name; dirty_name; path; command; body; message}
     | _ -> raise @@ Not_response (Q.json_pointer_of_path path)
 
   let set_body t ~body =
@@ -226,6 +238,8 @@ end
 
 module Event_spec = struct
   type t = {
+    safe_name:string; (* for being a record name in ocaml *)
+    dirty_name: string; (* what it gets written back to json field as *)
     path: Q.path; [@printer Q.print_path_as_json_pointer]
     event: string;
     body: Obj_spec.t option;
@@ -233,7 +247,8 @@ module Event_spec = struct
 
   exception Not_event of string
 
-  let of_path_exn ~path ?body () =
+  let of_path_exn ~dirty_name ~path ?body () =
+    let safe_name = _unweird_name dirty_name in
     match path with
     | (`Field "definitions") :: (`Field v) :: [] ->
           let event =
@@ -241,7 +256,7 @@ module Event_spec = struct
             | Some (enum_str, "") -> enum_str
             | _ -> raise @@ Not_event (Q.json_pointer_of_path path)
           in
-          {path; event; body}
+          {safe_name; dirty_name; path; event; body}
     | _ -> raise @@ Not_event (Q.json_pointer_of_path path)
 
   let set_body t ~body =
@@ -257,6 +272,21 @@ module Event_spec = struct
     | _ -> false
 
 end
+
+let rec strip_path ~path =
+  match path with
+  | `Field "allOf" :: `Index _ :: rest
+  | `Field "oneOf" :: `Index _ :: rest
+  | `Field "anyOf" :: `Index _ :: rest
+  | `Field "not" :: `Index _ :: rest
+  | `Field "properties" :: rest ->
+    strip_path ~path:rest
+  | `Field fname :: rest -> fname :: (strip_path ~path:rest)
+  | [] -> []
+  | _ -> assert false
+
+let dirty_name ~path =
+  Some (List.hd @@ List.rev @@ strip_path ~path)
 
 let is_special_definition ~path =
   let pth = Array.of_list path in
@@ -278,13 +308,13 @@ type t =
   | Field of Field_spec.t
   [@@deriving show]
 
-let make ~path ?dirty_names () =
+let make ~dirty_name ~path ?dirty_names () =
   match dirty_names with
-  | Some dirty_names -> Enum (Enum_spec.of_path ~path ~dirty_names ())
+  | Some dirty_names -> Enum (Enum_spec.of_path ~dirty_name ~path ~dirty_names ())
   | None ->
-    try let specs = Req_spec.of_path_exn ~path () in Request specs with Req_spec.Not_request _ ->
-    try let specs = Resp_spec.of_path_exn ~path () in Response specs with Resp_spec.Not_response _ ->
-    try let specs = Event_spec.of_path_exn ~path () in Event specs with Event_spec.Not_event _ ->
-      let specs = Obj_spec.of_path ~path () in Object specs
+    try let specs = Req_spec.of_path_exn ~dirty_name ~path () in Request specs with Req_spec.Not_request _ ->
+    try let specs = Resp_spec.of_path_exn ~dirty_name ~path () in Response specs with Resp_spec.Not_response _ ->
+    try let specs = Event_spec.of_path_exn ~dirty_name ~path () in Event specs with Event_spec.Not_event _ ->
+      let specs = Obj_spec.of_path ~dirty_name ~path () in Object specs
 
 let to_string = show

@@ -17,11 +17,11 @@ end
 
 
 module Dfs = struct
-  let _CMD = "/definitions/FAKE/command" (* fake Command enum path *)
+  (* let _CMD = "/definitions/FAKE/command" (\* fake Command enum path *\) *)
 
-  let _EV = "/definitions/FAKE/event" (* fake Event enum path *)
+  (* let _EV = "/definitions/FAKE/event" (\* fake Event enum path *\) *)
 
-  let _MSG = "/definitions/FAKE/protocol_message_type"
+  (* let _MSG = "/definitions/FAKE/protocol_message_type" *)
 
 
   type t = {
@@ -30,10 +30,9 @@ module Dfs = struct
     finished: Sp.t list;
   } [@@deriving show]
 
-  let _set_field_type t type_ =
+  let _set_field_type t type_ enc_ =
       match t.nodes with
       | Sp.Field field_spec :: nodes ->
-        let enc_ = type_ in
         let field = Sp.Field_spec.{field_spec with type_; enc_} in
         let nodes = (Sp.Field field) :: nodes in
         {t with nodes}
@@ -67,7 +66,12 @@ module Dfs = struct
           let t = process_element t ~schema_js ~path element in
           Hashtbl.replace t.visited dfn Finished;
           Logs.debug (fun m -> m "finished: '%s'" dfn) ;
-          t
+          match t.nodes with
+          | Sp.Object spec :: nodes ->
+            Logs.debug (fun m -> m "adding definition '%s' to finished pile" dfn) ;
+            (* TODO may need to promote the object into Req/Resp/Event type *)
+            {t with nodes; finished=(Sp.Object spec :: t.finished)}
+          | _ -> t
         )
         else (
           Logs.debug (fun m -> m "already visiting/visited: '%s'" dfn) ;
@@ -93,7 +97,7 @@ module Dfs = struct
               "process object with 0 properties under '%s'"
               (Q.json_pointer_of_path ~wildcards:true path)) ;
         (* TODO things like Message.variables have additionalProperties *)
-        _set_field_type t "empty_object"
+        _set_field_type t "empty_object" "any"
 
     | Object
         {
@@ -113,40 +117,54 @@ module Dfs = struct
         assert (Option.is_some additional_properties) ;
         let n = List.length properties in
         let m = List.length t.nodes in
-        let spec = Sp.make ~path () in
-        let nodes = spec :: t.nodes in
-        Logs.debug (fun m -> m "got spec for %s with %s" (Q.json_pointer_of_path path) (Sp.show spec)) ;
-        Logs.debug (fun m ->
-            m
-              "process object with %d properties under '%s'"
-              n (Q.json_pointer_of_path ~wildcards:true path)) ;
-        let t = properties
-                |> List.fold_left
-                  (fun t_acc (pname, ty, required, _extra) ->
-                     Logs.debug (fun m ->
-                         m
-                           "process property '%s' under '%s'"
-                           pname
-                           (Q.json_pointer_of_path ~wildcards:true path)) ;
-                     let new_path =
-                       path @ [`Field "properties"; `Field pname]
-                     in
-                     let new_spec = Sp.Field (Sp.Field_spec.make ~dirty_name:pname ~required ()) in
-                     let new_nodes =  new_spec :: t_acc.nodes in
-                     let t' = process_element {t_acc with nodes=new_nodes} ~schema_js ~path:new_path ty in
-                     Hashtbl.replace_seq t_acc.visited (Hashtbl.to_seq t'.visited) ;
-                     {t' with visited = t_acc.visited}
-                  ) {t with nodes} in
-        assert (List.length t.nodes >= m+n) ;
-        (* now pop off the n-top of the node list and make the object spec *)
-        let arr = Array.of_list t.nodes in
-        let fields = Array.sub arr 0 n |> Array.to_list |> List.map (fun f -> match f with | Sp.Field spec -> spec | s ->  failwith (Printf.sprintf "Expected field, got %s" (Sp.show s))) in
-        let nodes = Array.sub arr n (Array.length arr - n) |> Array.to_list in
-        match nodes with
-        | Sp.Object spec :: nodes ->
-          let finished = Sp.(Object Obj_spec.{spec with fields} ) :: t.finished in
-          {t with nodes; finished}
-        | _ -> t
+        match Sp.dirty_name ~path with
+        | Some dirty_name -> (
+            let spec = Sp.make ~dirty_name ~path () in
+            let nodes = spec :: t.nodes in
+            Logs.debug (fun m -> m "got spec for %s with %s" (Q.json_pointer_of_path path) (Sp.show spec)) ;
+            Logs.debug (fun m ->
+                m
+                  "process object with %d properties under '%s'"
+                  n (Q.json_pointer_of_path ~wildcards:true path)) ;
+            let t = properties
+                    |> List.fold_left
+                      (fun t_acc (pname, ty, required, _extra) ->
+                         Logs.debug (fun m ->
+                             m
+                               "process property '%s' under '%s'"
+                               pname
+                               (Q.json_pointer_of_path ~wildcards:true path)) ;
+                         let new_path =
+                           path @ [`Field "properties"; `Field pname]
+                         in
+                         let new_spec = Sp.Field (Sp.Field_spec.make ~dirty_name:pname ~required ()) in
+                         let new_nodes =  new_spec :: t_acc.nodes in
+                         let t' = process_element {t_acc with nodes=new_nodes} ~schema_js ~path:new_path ty in
+                         Hashtbl.replace_seq t_acc.visited (Hashtbl.to_seq t'.visited) ;
+                         {t' with visited = t_acc.visited}
+                      ) {t with nodes} in
+            assert (List.length t.nodes >= m+n) ;
+            (* need to filter out initial objects, these are objects that have been inline-defined *)
+            let t =
+              match t.nodes with
+              | Object _ as obj :: nodes ->
+                Logs.debug (fun m -> m "adding inline object at '%s' to finished pile" @@ Q.json_pointer_of_path path) ;
+                {t with nodes; finished=obj :: t.finished}
+              | _ -> t
+            in
+            (* now pop off the n-top Fields of the node list and make the object spec *)
+            let arr = Array.of_list t.nodes in
+            Logs.debug (fun m -> m "n:%d, t:%s" n @@ show t);
+            let fields = Array.sub arr 0 n |> Array.to_list |> List.map (fun f ->
+                match f with | Sp.Field spec -> spec | s ->  failwith (Printf.sprintf "reading %d items, expected field, got %s" n (Sp.show s))) in
+            match Array.sub arr n (Array.length arr - n) |> Array.to_list with
+            | Sp.Object spec :: nodes' ->
+              Logs.debug (fun m -> m "adding %d fields to object at '%s'" n @@ Q.json_pointer_of_path path) ;
+              let nodes = Sp.(Object Obj_spec.{spec with fields} ) :: nodes' in
+              {t with nodes; }
+            | _ -> Logs.warn (fun m -> m "Couldnt find final object spec from path '%s'" @@ Q.json_pointer_of_path path); t
+          )
+        | None -> Logs.warn (fun m -> m "Couldnt make dirty name from path '%s'" @@ Q.json_pointer_of_path path); t
       )
     | Array (_, _) -> failwith "TODO array"
     | Monomorphic_array _ -> failwith "TODO marray"
@@ -178,6 +196,7 @@ module Dfs = struct
                   "process combination allOf with %d elements under '%s'"
                   (List.length elements)
                   (Q.json_pointer_of_path ~wildcards:true path)) ;
+            (* Logs.debug (fun m -> m "nodes before allOf: %s" @@ show t); *)
             let (_, t) =
               elements
               |> List.fold_left
@@ -188,6 +207,7 @@ module Dfs = struct
                      (i + 1, {t' with visited = t_acc.visited}))
                    (0, t)
             in
+            (* Logs.debug (fun m -> m "nodes after allOf: %s" @@ show t); *)
 
             (* (\* make an all_of thingy after filter out Request/Response/Event/ProtocolMessage refs  *\)
              * let nts =
@@ -236,28 +256,31 @@ module Dfs = struct
         let is_cyclic = false
         in
 
+        (* Logs.debug (fun m -> m "nodes before def_ref '%s': %s" ref_path_str @@ show t); *)
         let t =
           if is_cyclic then t
-          else
+          else (
             let t' = process_definition t ~schema_js ~path:ref_path in
-            _set_field_type t' "Message.t"
+            _set_field_type t' "Message.t" "Message.enc"
+          )
         in
+        (* Logs.debug (fun m -> m "nodes after def_ref '%s': %s" ref_path_str @@ show t); *)
         t
 
     | Id_ref _ -> failwith "TODO Id_ref"
     | Ext_ref _ -> failwith "TODO Ext_ref"
     | String _ ->
       Logs.debug (fun m -> m "String");
-      _set_field_type t "string"
+      _set_field_type t "string" "string"
     | Integer _ ->
       Logs.debug (fun m -> m "Int");
-      _set_field_type t "int"
+      _set_field_type t "int" "int32"
     | Number _ ->
       Logs.debug (fun m -> m "Number");
-      _set_field_type t "int"
+      _set_field_type t "int" "int32"
     | Boolean ->
       Logs.debug (fun m -> m "Bool");
-      _set_field_type t "bool"
+      _set_field_type t "bool" "bool"
     | Null -> failwith "TODO Null"
     | Any -> failwith "TODO Any"
     | Dummy -> failwith "TODO Dummy"

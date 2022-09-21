@@ -83,6 +83,7 @@ module Dfs = struct
        with the notion that some objects might get rewritten as enums
     *)
     let dfn = Q.json_pointer_of_path path in
+    let dirty_name = Sp.dirty_name ~path |> Option.get in
 
     Logs.debug (fun m -> m "process dfn start: '%s'" dfn) ;
     let t =
@@ -99,7 +100,7 @@ module Dfs = struct
         in
         if did_add then (
           Logs.debug (fun m -> m "visiting: '%s'" dfn) ;
-          let spec = Sp.make ~path () in
+          let spec = Sp.make ~dirty_name ~path () in
           Logs.debug (fun m -> m "replacing spec for %s with %s" dfn (Sp.to_string spec)) ;
           D.replace t.specs dfn spec ;
           let t = process_element {t with visited} ~schema_js ~path element in
@@ -116,6 +117,7 @@ module Dfs = struct
   and process_element t ~schema_js ~path el =
     (* can get proper enums here, still need to qry for _enums *)
     let dfn = Q.json_pointer_of_path path in
+    let dirty_name = Sp.dirty_name ~path |> Option.get in
     Logs.debug (fun m ->
         m
           "process element under '%s'"
@@ -133,7 +135,7 @@ module Dfs = struct
             "element under '%s' has enum [%s]"
             (Q.json_pointer_of_path ~wildcards:true path)
             (enums |> String.concat ", ")) ;
-      let enum_spec = Sp.Enum_spec.of_path ~path ~dirty_names:enums () in
+      let enum_spec = Sp.Enum_spec.of_path ~dirty_name ~path ~dirty_names:enums () in
       let ky =
         match
           (Sp.Enum_spec.is_command enum_spec, Sp.Enum_spec.is_event enum_spec)
@@ -166,7 +168,7 @@ module Dfs = struct
          .../arguments on Request
       *)
       let _ = if not @@ D.mem t.specs dfn then
-        let vl = Sp.Object (Sp.Obj_spec.of_path ~path ()) in
+        let vl = Sp.Object (Sp.Obj_spec.of_path ~dirty_name ~path ()) in
         D.replace t.specs dfn vl
         else
           ()
