@@ -51,6 +51,16 @@ module Dfs = struct
         {t with nodes}
       | _ -> t
 
+  let _wrap_field_type t ~wrap =
+      match t.nodes with
+        | Sp.Field field_spec :: nodes ->
+          let type_ = field_spec.type_ ^ " " ^ wrap in
+          let enc_ = wrap ^ " " ^ field_spec.enc_ in
+          let field = Sp.Field_spec.{field_spec with type_; enc_} in
+          let nodes = (Sp.Field field) :: nodes in
+          {t with nodes}
+        | _ -> t
+
   let rec _make_module_name = function
     | `Field "definitions" :: rest
     | `Field "allOf" :: rest
@@ -167,13 +177,12 @@ module Dfs = struct
           max_properties;
           schema_dependencies;
           property_dependencies;
-        } -> (
-        assert (0 = List.length pattern_properties) ;
-        assert (0 = List.length schema_dependencies) ;
-        assert (0 = List.length property_dependencies) ;
-        assert (0 = min_properties) ;
-        assert (Option.is_none max_properties) ;
-        assert (Option.is_some additional_properties) ;
+        } when (0 = List.length pattern_properties &&
+                0 = List.length schema_dependencies &&
+                0 = List.length property_dependencies &&
+                0 = min_properties &&
+                Option.is_none max_properties &&
+                Option.is_some additional_properties) -> (
         let n = List.length properties in
         let m = List.length t.nodes in
         match Sp.dirty_name ~path with
@@ -208,28 +217,19 @@ module Dfs = struct
           )
         | None -> Logs.warn (fun m -> m "Couldnt make dirty name from path '%s'" @@ Q.json_pointer_of_path path); t
       )
+    | Object _ -> failwith "TODO object"
     | Array (_, _) -> failwith "TODO array"
+    | Monomorphic_array (element, {min_items; max_items; unique_items; additional_items})
+        when (0 = min_items &&
+              Option.is_none max_items &&
+              not unique_items &&
+              Option.is_none additional_items) ->
+        let dfn = Q.json_pointer_of_path path in
+        Logs.debug (fun m -> m "process mono-morphic array under '%s'" dfn) ;
+        let new_path = path @ [`Field "items"] in
+        let t = process_element t ~path:new_path element in
+        _wrap_field_type t ~wrap:"list"
     | Monomorphic_array _ -> failwith "TODO marray"
-        (* (element, {min_items; max_items; unique_items; additional_items}) -> *)
-        (* assert (0 = min_items) ; *)
-        (* assert (Option.is_none max_items) ; *)
-        (* assert (not unique_items) ; *)
-        (* assert (Option.is_none additional_items) ; *)
-        (* Logs.debug (fun m -> *)
-        (*     m *)
-        (*       "process mono-morphic array under '%s'" *)
-        (*       (Q.json_pointer_of_path ~wildcards:true path)) ; *)
-        (* let new_path = path @ [`Field "items"] in *)
-        (* let t = process_element t ~schema_js ~path:new_path element in *)
-        (* (\* TODO should now be able to make the array specs *\) *)
-        (* (\* let field_name = ModuleName.of_path ~path in *)
-        (*  * let inner_type = ModuleName.of_path ~path:new_path in *)
-        (*  * let leaf = LeafNodes.(`Array {field_name; inner_type}) in *)
-        (*  * add_leaf_node t ~path ~leaf; *\) *)
-        (* let names = *)
-        (*   Names.add_sorted_module_name t.names ~path ~desc:"array items" *)
-        (* in *)
-        (* {t with names} *)
     | Combine (c, elements) -> (
         match c with
         | All_of ->
