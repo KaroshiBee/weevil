@@ -230,6 +230,29 @@ module Dfs = struct
         let t = process_element t ~path:new_path element in
         _wrap_field_type t ~wrap:"list"
     | Monomorphic_array _ -> failwith "TODO marray"
+    | Combine (All_of, [dref; el])
+        when dref.kind = Def_ref [`Field "definitions"; `Field "Request"] ->
+        Logs.debug (fun m -> m "process request under '%s'" (Q.json_pointer_of_path ~wildcards:true path)) ;
+        let new_path = path @ [`Field "allOf"; `Index 1] in
+        let t' = process_element t ~path:new_path el in
+        Hashtbl.replace_seq t.visited (Hashtbl.to_seq t'.visited) ;
+        (* TODO convert top element into request *)
+        t'
+    | Combine (All_of, [dref; el])
+        when dref.kind = Def_ref [`Field "definitions"; `Field "Event"] ->
+        Logs.debug (fun m -> m "process event under '%s'" (Q.json_pointer_of_path ~wildcards:true path)) ;
+        let new_path = path @ [`Field "allOf"; `Index 1] in
+        let t' = process_element t ~path:new_path el in
+        Hashtbl.replace_seq t.visited (Hashtbl.to_seq t'.visited) ;
+        t'
+    | Combine (All_of, [dref; el])
+        when dref.kind = Def_ref [`Field "definitions"; `Field "Response"] ->
+        Logs.debug (fun m -> m "process response under '%s'" (Q.json_pointer_of_path ~wildcards:true path)) ;
+        let new_path = path @ [`Field "allOf"; `Index 1] in
+        let t' = process_element t ~path:new_path el in
+        Hashtbl.replace_seq t.visited (Hashtbl.to_seq t'.visited) ;
+        t'
+
     | Combine (c, elements) -> (
         match c with
         | All_of ->
