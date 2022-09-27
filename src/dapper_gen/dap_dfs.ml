@@ -16,6 +16,18 @@ module Visited = struct
 end
 
 
+module Finished = struct
+
+  type t = (string, Sp.t) Hashtbl.t
+
+  let pp ppf values =
+    Hashtbl.iter (fun ky vl ->
+        Format.fprintf ppf "@[<1>%s: %s@]@." ky (Sp.show vl)
+          )
+      values
+end
+
+
 module Dfs = struct
   (* let _CMD = "/definitions/FAKE/command" (\* fake Command enum path *\) *)
 
@@ -27,7 +39,8 @@ module Dfs = struct
   type t = {
     nodes: Sp.t list;
     visited: Visited.t;
-    finished: Sp.t list;
+    finished: Finished.t;
+    schema_js: Json_repr.ezjsonm; [@printer Json_repr.pp (module Json_repr.Ezjsonm)]
   } [@@deriving show]
 
   let _set_field_type t type_ enc_ =
@@ -38,8 +51,27 @@ module Dfs = struct
         {t with nodes}
       | _ -> t
 
+  let rec _make_module_name = function
+    | `Field "definitions" :: rest
+    | `Field "allOf" :: rest
+    | `Field "anyOf" :: rest
+    | `Field "oneOf" :: rest
+    | `Field "not" :: rest
+    | `Field "properties" :: rest
+    | `Index _ :: rest
+    | `Next :: rest
+    | `Star :: rest
+      -> _make_module_name rest
+    | `Field f :: rest -> (
+      match _make_module_name rest with
+      | "" -> f
+      | s -> Printf.sprintf "%s_%s" f s
+    )
+    | [] -> ""
 
-  let rec process_definition t ~schema_js ~path =
+
+
+  let rec process_definition t ~path =
     (* this will be a *Request/*Response/*Event/Object top level definition
        will want to ignore base class ProtocolMessage, Request, Response, Event types
        as they are handled with the functors in Dap_t
@@ -48,29 +80,31 @@ module Dfs = struct
        with the notion that some objects might get rewritten as enums
     *)
     let dfn = Q.json_pointer_of_path path in
+    let module_name = _make_module_name path in
 
-    Logs.debug (fun m -> m "process dfn start: '%s'" dfn) ;
+    Logs.debug (fun m -> m "process dfn start: '%s', '%s'" dfn module_name) ;
     let t =
       if Sp.is_special_definition ~path then (
         Logs.debug (fun m -> m "special case: '%s'" dfn) ;
         t)
       else
         (* check is valid name by finding the definition *)
-        let schema = Json_schema.of_json schema_js in
+        let schema = Json_schema.of_json t.schema_js in
         let element = S.find_definition dfn schema in
         (* if added new one then recurse too *)
         let has_visited = Hashtbl.mem t.visited dfn in
         if (not has_visited) then (
           Logs.debug (fun m -> m "visiting: '%s'" dfn) ;
           Hashtbl.add t.visited dfn Started;
-          let t = process_element t ~schema_js ~path element in
+          let t = process_element t ~path element in
           Hashtbl.replace t.visited dfn Finished;
           Logs.debug (fun m -> m "finished: '%s'" dfn) ;
           match t.nodes with
-          | Sp.Object spec :: nodes ->
-            Logs.debug (fun m -> m "adding definition '%s' to finished pile" dfn) ;
+          | Sp.Object _ as ospec :: nodes ->
+            Logs.debug (fun m -> m "adding definition '%s' to finished pile with module name '%s'" dfn module_name) ;
             (* TODO may now need to promote the object into Req/Resp/Event type *)
-            {t with nodes; finished=(Sp.Object spec :: t.finished)}
+            Hashtbl.add t.finished module_name ospec;
+            {t with nodes}
           | _ -> t
         )
         else (
@@ -81,16 +115,41 @@ module Dfs = struct
     Logs.debug (fun m -> m "process dfn end: '%s'" dfn) ;
     t
 
-  and process_element t ~schema_js ~path el =
+  and process_element t ~path el =
     (* TODO can get proper enums here, still need to qry for _enums *)
     Logs.debug (fun m ->
         m
           "process element under '%s'"
           (Q.json_pointer_of_path ~wildcards:true path)) ;
-    process_kind t ~schema_js ~path el.kind
+    process_kind t ~path el.kind
 
+  and process_properties t ~path properties =
+    let n = List.length properties in
+    let dfn = Q.json_pointer_of_path path in
+    Logs.debug (fun m -> m "process object with %d properties under '%s'" n dfn);
+    properties
+    |> List.fold_left
+      (fun t_acc (pname, el, required, _extra) ->
+         Logs.debug (fun m -> m "process property '%s' under '%s'" pname dfn);
+         let new_path =
+           path @ [`Field "properties"; `Field pname]
+         in
+         let module_name = _make_module_name new_path in
+         let new_spec = Sp.Field (Sp.Field_spec.make
+                                    ~path:new_path
+                                    ~dirty_name:pname
+                                    ~required
+                                    ~type_:(module_name^".t")
+                                    ~enc_:(module_name^".enc")
+                                    ()
+                                 ) in
+         let new_nodes =  new_spec :: t_acc.nodes in
+         let t' = process_element {t_acc with nodes=new_nodes} ~path:new_path el in
+         Hashtbl.replace_seq t_acc.visited (Hashtbl.to_seq t'.visited) ;
+         {t' with visited = t_acc.visited}
+      ) t
 
-  and process_kind t ~schema_js ~path = function
+  and process_kind t ~path = function
     | Object o when (List.length o.properties) = 0 ->
         Logs.debug (fun m ->
             m
@@ -119,37 +178,20 @@ module Dfs = struct
         let m = List.length t.nodes in
         match Sp.dirty_name ~path with
         | Some dirty_name -> (
+            let dfn = Q.json_pointer_of_path path in
             let spec = Sp.make ~dirty_name ~path () in
+            Logs.debug (fun m -> m "got spec for %s with %s" dfn (Sp.show spec)) ;
             let nodes = spec :: t.nodes in
-            Logs.debug (fun m -> m "got spec for %s with %s" (Q.json_pointer_of_path path) (Sp.show spec)) ;
-            Logs.debug (fun m ->
-                m
-                  "process object with %d properties under '%s'"
-                  n (Q.json_pointer_of_path ~wildcards:true path)) ;
-            let t = properties
-                    |> List.fold_left
-                      (fun t_acc (pname, ty, required, _extra) ->
-                         Logs.debug (fun m ->
-                             m
-                               "process property '%s' under '%s'"
-                               pname
-                               (Q.json_pointer_of_path ~wildcards:true path)) ;
-                         let new_path =
-                           path @ [`Field "properties"; `Field pname]
-                         in
-                         let new_spec = Sp.Field (Sp.Field_spec.make ~dirty_name:pname ~required ()) in
-                         let new_nodes =  new_spec :: t_acc.nodes in
-                         let t' = process_element {t_acc with nodes=new_nodes} ~schema_js ~path:new_path ty in
-                         Hashtbl.replace_seq t_acc.visited (Hashtbl.to_seq t'.visited) ;
-                         {t' with visited = t_acc.visited}
-                      ) {t with nodes} in
+            let t = process_properties {t with nodes} ~path properties in
             assert (List.length t.nodes >= m+n) ;
             (* need to filter out initial objects, these are objects that have been inline-defined *)
             let t =
               match t.nodes with
-              | Object _ as obj :: nodes ->
-                Logs.debug (fun m -> m "adding inline object at '%s' to finished pile" @@ Q.json_pointer_of_path path) ;
-                {t with nodes; finished=obj :: t.finished}
+              | Sp.Object obj :: nodes ->
+                let module_name = _make_module_name obj.path in
+                Logs.debug (fun m -> m "adding inline object at '%s' to finished pile with module name '%s'" dfn module_name) ;
+                Hashtbl.add t.finished module_name (Object obj);
+                {t with nodes}
               | _ -> t
             in
             (* now pop off the n-top Fields of the node list and make the object spec *)
@@ -202,7 +244,7 @@ module Dfs = struct
               |> List.fold_left
                    (fun (i, t_acc) el ->
                      let new_path = path @ [`Field "allOf"; `Index i] in
-                     let t' = process_element t_acc ~schema_js ~path:new_path el in
+                     let t' = process_element t_acc ~path:new_path el in
                      Hashtbl.replace_seq t_acc.visited (Hashtbl.to_seq t'.visited) ;
                      (i + 1, {t' with visited = t_acc.visited}))
                    (0, t)
@@ -260,9 +302,10 @@ module Dfs = struct
         let t =
           if is_cyclic then t
           else (
-            let t' = process_definition t ~schema_js ~path:ref_path in
-            (* TODO get Message bit from ref_path *)
-            _set_field_type t' "Message.t" "Message.enc"
+            let t' = process_definition t ~path:ref_path in
+            (* get typename from ref_path *)
+            let ref_type_name = _make_module_name ref_path in
+            _set_field_type t' (ref_type_name^".t") (ref_type_name^".enc")
           )
         in
         (* Logs.debug (fun m -> m "nodes after def_ref '%s': %s" ref_path_str @@ show t); *)
@@ -291,7 +334,7 @@ module Dfs = struct
       | `O fields -> fields |> List.map (fun (nm, _) -> nm)
       | _ -> []
     in
-    let empty = {nodes = []; visited = Hashtbl.create 500; finished = []} in
+    let empty = {nodes = []; visited = Hashtbl.create 500; finished = Hashtbl.create 500; schema_js} in
     (* NOTE know all /definitions/ are objects and are the only top-level things *)
     let ns = Q.query [`Field "definitions"] schema_js |> names in
     Logs.info (fun m -> m "\n\nprocessing '%d' names" @@ List.length ns) ;
@@ -299,7 +342,7 @@ module Dfs = struct
     |> List.fold_left
          (fun t_acc nm ->
            let path = [`Field "definitions"; `Field nm] in
-           let t = process_definition t_acc ~schema_js ~path in
+           let t = process_definition t_acc ~path in
            Hashtbl.replace_seq t_acc.visited (Hashtbl.to_seq t.visited) ;
            {t with visited = t_acc.visited})
          empty

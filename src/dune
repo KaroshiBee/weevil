@@ -5,6 +5,7 @@
 
 (executables
  (names main dapgen)
+ (modes byte native)
  (libraries
   tezos-base
   tezos-base.unix

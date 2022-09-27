@@ -21,16 +21,18 @@ module Field_spec = struct
   type t = {
     safe_name:string; (* for being a record name in ocaml *)
     dirty_name: string; (* what it gets written back to json field as *)
+    path: Q.path; [@printer Q.print_path_as_json_pointer]
     type_:string; (* the ocaml type *)
     enc_: string; (* the encoding function name *)
     required:bool;
   } [@@deriving show]
 
-  let make ~dirty_name ~required ?(type_="") ?(enc_="") () =
+  let make ~path ~dirty_name ~required ?(type_="") ?(enc_="") () =
     let safe_name = _unweird_name dirty_name in
     {
       safe_name;
       dirty_name;
+      path;
       type_;
       enc_;
       required;
