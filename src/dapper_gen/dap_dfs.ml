@@ -403,3 +403,61 @@ module Dfs = struct
 
 
 end
+
+
+module RenderObjectField = struct
+
+  type t = Sp.Field_spec.t
+
+  let render_t (t:t) =
+    Printf.sprintf "%s: %s%s;" t.safe_name t.type_ (if t.required then "" else " option")
+
+  let render_enc (t:t) =
+    Printf.sprintf "(%s \"%s\" %s)" (if t.required then "req" else "opt") t.dirty_name t.enc_
+
+end
+
+module RenderObject = struct
+
+  type t = Sp.Obj_spec.t
+
+  let render (t:t) ~name =
+    let t_str =
+      let lns = t.fields |> List.map RenderObjectField.render_t |> String.concat "\n" in
+      Printf.sprintf "type t = { %s }" lns
+    in
+    let enc_obj_str =
+      let lns = t.fields |> List.map RenderObjectField.render_enc |> String.concat "\n" in
+      Printf.sprintf "(obj%d\n%s)\n" (List.length t.fields) lns
+    in
+    let rec_str =
+      let ss = t.fields |> List.map (fun (f:Sp.Field_spec.t) -> f.safe_name) |> String.concat "; " in
+      Printf.sprintf "{%s}" ss
+    in
+    let tup_str =
+      let ss = t.fields |> List.map (fun (f:Sp.Field_spec.t) -> f.dirty_name) |> String.concat "; " in
+      if List.length t.fields = 1 then Printf.sprintf "%s" ss else Printf.sprintf "(%s)" ss
+    in
+    let enc_str = Printf.sprintf
+        "let enc = \n \
+         let open Data_encoding in \n \
+         conv \n \
+         (fun %s -> %s)\n \
+         (fun %s -> %s)\n \
+         %s" rec_str tup_str tup_str rec_str enc_obj_str
+    in
+    Printf.sprintf "module %s = struct \n%s\n \n%s\n\nend\n" name t_str enc_str
+
+    (* TODO cyclic objects and large objects *)
+
+
+end
+
+
+module Render = struct
+
+  type t = Finished.t
+
+
+
+end
