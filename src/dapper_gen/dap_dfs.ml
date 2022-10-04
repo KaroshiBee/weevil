@@ -58,7 +58,7 @@ module Dfs = struct
       match t.nodes with
         | Sp.Field field_spec :: nodes ->
           let type_ = field_spec.type_ ^ " " ^ wrap in
-          let enc_ = wrap ^ " " ^ field_spec.enc_ in
+          let enc_ = "(" ^ wrap ^ " " ^ field_spec.enc_ ^ ")" in
           let field = Sp.Field_spec.{field_spec with type_; enc_} in
           let nodes = (Sp.Field field) :: nodes in
           {t with nodes}
@@ -170,7 +170,7 @@ module Dfs = struct
               "process object with 0 properties under '%s'"
               (Q.json_pointer_of_path ~wildcards:true path)) ;
         (* TODO things like Message.variables have additionalProperties *)
-        _set_field_type t "Empty_object" "empty_object" "any"
+        _set_field_type t "" "Data_encoding.json" "json"
 
     | Object
         {
@@ -419,6 +419,9 @@ module RenderObjectField = struct
   let render_enc (t:t) =
     Printf.sprintf "(%s \"%s\" %s)" (if t.required then "req" else "opt") t.dirty_name t.enc_
 
+  let render_arg (t:t) =
+    Printf.sprintf "%s%s" (if t.required then "~" else "?") t.safe_name
+
 end
 
 module type RenderT = sig
@@ -448,9 +451,13 @@ module RenderObject : RenderT = struct
       Printf.sprintf "{%s}" ss
     in
     let tup_str =
-      let ss = t.fields |> List.map (fun (f:Sp.Field_spec.t) -> f.dirty_name) |> String.concat "; " in
+      let ss = t.fields |> List.map (fun (f:Sp.Field_spec.t) -> f.dirty_name) |> String.concat ", " in
       if List.length t.fields = 1 then Printf.sprintf "%s" ss else Printf.sprintf "(%s)" ss
     in
+    let args_str =
+      t.fields |> List.map RenderObjectField.render_arg |> String.concat " "
+    in
+
     let enc_str = Printf.sprintf
         "let enc = \n \
          let open Data_encoding in \n \
@@ -459,7 +466,10 @@ module RenderObject : RenderT = struct
          (fun %s -> %s)\n \
          %s" rec_str tup_str tup_str rec_str enc_obj_str
     in
-    Printf.sprintf "module %s = struct \n%s\n \n%s\n\nend\n" name t_str enc_str
+    let make_str = Printf.sprintf
+        "let make %s () = \n%s" args_str rec_str
+    in
+    Printf.sprintf "module %s = struct \n%s\n \n%s\n \n%s\n \nend\n" name t_str enc_str make_str
 
     (* TODO cyclic objects and large objects >10 fields *)
 
@@ -520,7 +530,16 @@ module RenderResponse : RenderT = struct
         _EMPTY_OBJECT
     | _ -> assert false
 
-
-
-
 end
+
+
+let test () =
+  let schema_js = Ezjsonm.from_channel @@ open_in "./schema/errorResponse.json" in
+  let dfs = Dfs.make ~schema_js in
+  Dfs.ordering dfs |> List.map (fun name ->
+      let o = match (Hashtbl.find dfs.finished name) with | Sp.Object obj -> obj | _ -> assert false in
+      try
+        RenderResponse.(of_obj_spec o |> render ~name)
+      with _ ->
+        RenderObject.(of_obj_spec o |> render ~name)
+      ) |> String.concat "\n\n"

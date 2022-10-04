@@ -65,7 +65,8 @@ module RequestDummy = struct
   let make ~seq:_  ~arguments:_ () = failwith "Dummy"
 end
 
-module MakeRequest (C:CMD) (ARGS:ENC0) : (REQUEST with type args := ARGS.t) = struct
+module MakeRequest (C:CMD) (ARGS:ENC0) : (REQUEST with type args = ARGS.t) = struct
+  type args = ARGS.t
   type t = {
     seq : int64;
     type_ : D.ProtocolMessage_type.t;
@@ -123,7 +124,8 @@ module RequestOptDummy = struct
 end
 
 
-module MakeRequest_optionalArgs (C:CMD) (ARGS:ENC0) : (REQUEST_OPTIONAL_ARGS with type args := ARGS.t) = struct
+module MakeRequest_optionalArgs (C:CMD) (ARGS:ENC0) : (REQUEST_OPTIONAL_ARGS with type args = ARGS.t) = struct
+  type args = ARGS.t
   type t = {
     seq : int64;
     type_ : D.ProtocolMessage_type.t;
@@ -189,7 +191,8 @@ module ResponseDummy = struct
   let make ~seq:_ ~request_seq:_ ~success:_ ?message:_ ~body:_ () = failwith "Dummy"
 end
 
-module MakeResponse (C:CMD) (B:ENC0) : (RESPONSE with type body := B.t) = struct
+module MakeResponse (C:CMD) (B:ENC0) : (RESPONSE with type body = B.t) = struct
+  type body = B.t
   type t = {
     seq : int64;
     type_ : D.ProtocolMessage_type.t;
@@ -265,7 +268,8 @@ module ResponseOptDummy = struct
   let make ~seq:_ ~request_seq:_ ~success:_ ?message:_ ?body:_ () = failwith "Dummy"
 end
 
-module MakeResponse_optionalBody (C:CMD) (B:ENC0) : (RESPONSE_OPTIONAL_BODY with type body := B.t) = struct
+module MakeResponse_optionalBody (C:CMD) (B:ENC0) : (RESPONSE_OPTIONAL_BODY with type body = B.t) = struct
+  type body = B.t
   type t = {
     seq : int64;
     type_ : D.ProtocolMessage_type.t;
@@ -340,7 +344,8 @@ module EventDummy = struct
   let make ~seq:_ ~body:_ () = failwith "Dummy"
 end
 
-module MakeEvent (E:EV) (B:ENC0) : (EVENT with type body := B.t) = struct
+module MakeEvent (E:EV) (B:ENC0) : (EVENT with type body = B.t) = struct
+  type body = B.t
   type t = {
     seq : int64;
     type_ : D.ProtocolMessage_type.t;
@@ -399,7 +404,8 @@ module EventOptDummy = struct
   let make ~seq:_ ?body:_ () = failwith "Dummy"
 end
 
-module MakeEvent_optionalBody (E:EV) (B:ENC0) : (EVENT_OPTIONAL_BODY with type body := B.t) = struct
+module MakeEvent_optionalBody (E:EV) (B:ENC0) : (EVENT_OPTIONAL_BODY with type body = B.t) = struct
+  type body = B.t
   type t = {
     seq : int64;
     type_ : D.ProtocolMessage_type.t;
