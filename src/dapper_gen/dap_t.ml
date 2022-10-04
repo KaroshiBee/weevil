@@ -456,10 +456,10 @@ end
 (* Main functor for constructing flows of request/response pairings
 along with events that may be raised or Errors that could be returned *)
 module MakeJSFlow
+    (ERR:RESPONSE) (* this one first so can curry it away *)
     (REQ:REQUEST) (REQ_OPT:REQUEST_OPTIONAL_ARGS)
     (RESP:RESPONSE) (RESP_OPT:RESPONSE_OPTIONAL_BODY)
     (EV:EVENT) (EV_OPT:EVENT_OPTIONAL_BODY)
-    (ERR:RESPONSE)
   : (FLOW with type
       input := string and type
       request := [ `Request of REQ.t | `RequestOpt of REQ_OPT.t ] and type
@@ -530,10 +530,9 @@ module MakeJSFlow
 
      end
 
-module M = MakeJSFlow
+module M = MakeJSFlow (ResponseDummy)
     (RequestDummy) (RequestOptDummy)
     (ResponseDummy) (ResponseOptDummy)
     (EventDummy) (EventOptDummy)
-    (ResponseDummy)
 let f = M.destruct_request
 let g = M.construct_events
