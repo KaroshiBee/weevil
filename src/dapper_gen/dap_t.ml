@@ -51,7 +51,13 @@ module type REQUEST = sig
   val make : seq:int64 -> arguments:args -> unit -> t
 end
 
-type dummy = unit
+type dummy
+let enc_dummy =
+  let open Data_encoding in
+  conv
+    (fun _ -> failwith "Dummy")
+    (fun _ -> failwith "Dummy")
+    (constant "dummy")
 
 module RequestDummy = struct
   type args = dummy
@@ -61,7 +67,7 @@ module RequestDummy = struct
   let command _ = failwith "Dummy"
   let arguments _ = failwith "Dummy"
 
-  let enc = Data_encoding.null
+  let enc = enc_dummy
   let make ~seq:_  ~arguments:_ () = failwith "Dummy"
 end
 
@@ -119,7 +125,7 @@ module RequestOptDummy = struct
   let command _ = failwith "Dummy"
   let arguments _ = failwith "Dummy"
 
-  let enc = Data_encoding.null
+  let enc = enc_dummy
   let make ~seq:_  ?arguments:_ () = failwith "Dummy"
 end
 
@@ -187,7 +193,7 @@ module ResponseDummy = struct
   let message _ = failwith "Dummy"
   let body _ = failwith "Dummy"
 
-  let enc = Data_encoding.null
+  let enc = enc_dummy
   let make ~seq:_ ~request_seq:_ ~success:_ ?message:_ ~body:_ () = failwith "Dummy"
 end
 
@@ -264,7 +270,7 @@ module ResponseOptDummy = struct
   let message _ = failwith "Dummy"
   let body _ = failwith "Dummy"
 
-  let enc = Data_encoding.null
+  let enc = enc_dummy
   let make ~seq:_ ~request_seq:_ ~success:_ ?message:_ ?body:_ () = failwith "Dummy"
 end
 
@@ -340,7 +346,7 @@ module EventDummy = struct
   let event _ = failwith "Dummy"
   let body _ = failwith "Dummy"
 
-  let enc = Data_encoding.null
+  let enc = enc_dummy
   let make ~seq:_ ~body:_ () = failwith "Dummy"
 end
 
@@ -400,7 +406,7 @@ module EventOptDummy = struct
   let event _ = failwith "Dummy"
   let body _ = failwith "Dummy"
 
-  let enc = Data_encoding.null
+  let enc = enc_dummy
   let make ~seq:_ ?body:_ () = failwith "Dummy"
 end
 
