@@ -37,11 +37,14 @@ module Dfs = struct
 
 
   type t = {
+    schema_js: Json_repr.ezjsonm; [@printer Json_repr.pp (module Json_repr.Ezjsonm)]
     nodes: Sp.t list;
+    ordering: string list;
     visited: Visited.t;
     finished: Finished.t;
-    schema_js: Json_repr.ezjsonm; [@printer Json_repr.pp (module Json_repr.Ezjsonm)]
   } [@@deriving show]
+
+  let ordering t = t.ordering |> List.rev
 
   let _set_field_type t module_name type_ enc_ =
       match t.nodes with
@@ -112,9 +115,9 @@ module Dfs = struct
           match t.nodes with
           | Sp.Object _ as ospec :: nodes ->
             Logs.debug (fun m -> m "adding definition '%s' to finished pile with module name '%s'" dfn module_name) ;
-            (* TODO may now need to promote the object into Req/Resp/Event type *)
+            let ordering = module_name :: t.ordering in
             Hashtbl.add t.finished module_name ospec;
-            {t with nodes}
+            {t with nodes; ordering}
           | _ -> t
         )
         else (
@@ -200,8 +203,9 @@ module Dfs = struct
               | Sp.Object obj :: nodes ->
                 let module_name = _make_module_name obj.path in
                 Logs.debug (fun m -> m "adding inline object at '%s' to finished pile with module name '%s'" dfn module_name) ;
+                let ordering = module_name :: t.ordering in
                 Hashtbl.add t.finished module_name (Object obj);
-                {t with nodes}
+                {t with nodes; ordering}
               | _ -> t
             in
             (* now pop off the n-top Fields of the node list and make the object spec *)
