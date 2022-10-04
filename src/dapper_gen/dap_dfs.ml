@@ -463,9 +463,28 @@ module RenderObject : RenderT = struct
 
 end
 
+module CommandHelper = struct
 
-let _COMMAND = "Command"
-let _EVENT = "Event"
+  let _COMMAND = "Command"
+
+  let strip_command name ~on =
+    match Stringext.cut name ~on with
+    | Some (enum_str, "") -> Printf.sprintf "struct let command=%s.%s end" _COMMAND enum_str
+    | _ -> assert false
+
+end
+
+module EventHelper = struct
+
+  let _EVENT = "Event"
+
+  let strip_event name =
+    match Stringext.cut name ~on:"Event" with
+    | Some (enum_str, "") -> Printf.sprintf "struct let event=%s.%s end" _EVENT enum_str
+    | _ -> assert false
+
+end
+
 let _EMPTY_OBJECT = "EmptyObject"
 
 
@@ -475,30 +494,26 @@ module RenderResponse : RenderT = struct
 
   let of_obj_spec spec = spec
 
-  let _command type_ =
-    match Stringext.cut type_ ~on:"Response" with
-    | Some (enum_str, "") -> Printf.sprintf "struct let command=%s.%s end" _COMMAND enum_str
-    | _ -> assert false
-
   let render (t:t) ~name =
+    let command = CommandHelper.strip_command name ~on:"Response" in
     match t.fields with
     | [body] -> if body.required then
       Printf.sprintf
-        "module %s = MakeRequest (%s) (%s)"
+        "module %s = MakeResponse (%s) (%s)"
         name
-        (_command name)
+        command
         body.module_name
       else
       Printf.sprintf
-        "module %s = MakeRequest_optionalArgs (%s) (%s)"
+        "module %s = MakeResponse_optionalArgs (%s) (%s)"
         name
-        (_command name)
+        command
         body.module_name
     | [] ->
       Printf.sprintf
-        "module %s = MakeRequest_optionalArgs (%s) (%s)"
+        "module %s = MakeResponse_optionalArgs (%s) (%s)"
         name
-        (_command name)
+        command
         _EMPTY_OBJECT
     | _ -> assert false
 

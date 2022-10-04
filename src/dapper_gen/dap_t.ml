@@ -51,19 +51,17 @@ module type REQUEST = sig
   val make : seq:int64 -> arguments:args -> unit -> t
 end
 
-(* NOTE sometimes args has a schema but it is optional *)
-module type REQUEST_OPTIONAL_ARGS = sig
-  type args
-  type t
-  val seq : t -> int64
-  val type_ : t -> D.ProtocolMessage_type.t
-  val command : t -> D.Command.t
-  val arguments : t -> args option
+module RequestDummy = struct
+  type args = unit
+  type t = unit
+  let seq _ = failwith "Dummy"
+  let type_ _ =  failwith "Dummy"
+  let command _ = failwith "Dummy"
+  let arguments _ = failwith "Dummy"
 
-  val enc : t Data_encoding.encoding
-  val make : seq:int64 -> ?arguments:args -> unit -> t
+  let enc = failwith "Dummy"
+  let make ~seq:_  ~arguments:_ () = failwith "Dummy"
 end
-
 
 module MakeRequest (C:CMD) (ARGS:ENC0) : (REQUEST with type args := ARGS.t) = struct
   type t = {
@@ -96,6 +94,32 @@ module MakeRequest (C:CMD) (ARGS:ENC0) : (REQUEST with type args := ARGS.t) = st
     {seq; type_; command; arguments}
 
 end
+
+(* NOTE sometimes args has a schema but it is optional *)
+module type REQUEST_OPTIONAL_ARGS = sig
+  type args
+  type t
+  val seq : t -> int64
+  val type_ : t -> D.ProtocolMessage_type.t
+  val command : t -> D.Command.t
+  val arguments : t -> args option
+
+  val enc : t Data_encoding.encoding
+  val make : seq:int64 -> ?arguments:args -> unit -> t
+end
+
+module RequestOptDummy = struct
+  type args = unit
+  type t = unit
+  let seq _ = failwith "Dummy"
+  let type_ _ =  failwith "Dummy"
+  let command _ = failwith "Dummy"
+  let arguments _ = failwith "Dummy"
+
+  let enc = failwith "Dummy"
+  let make ~seq:_  ?arguments:_ () = failwith "Dummy"
+end
+
 
 module MakeRequest_optionalArgs (C:CMD) (ARGS:ENC0) : (REQUEST_OPTIONAL_ARGS with type args := ARGS.t) = struct
   type t = {
@@ -147,22 +171,20 @@ module type RESPONSE = sig
 
 end
 
-(* NOTE sometimes body has a schema but it is optional *)
-module type RESPONSE_OPTIONAL_BODY = sig
-  type body
-  type t
+module ResponseDummy = struct
+  type body = unit
+  type t = unit
 
-  val seq : t -> int64
-  val type_ : t -> D.ProtocolMessage_type.t
-  val request_seq : t -> int64
-  val success : t -> bool
-  val command : t -> D.Command.t
-  val message : t -> string option
-  val body : t -> body option
+  let seq _ = failwith "Dummy"
+  let type_ _ = failwith "Dummy"
+  let request_seq _ = failwith "Dummy"
+  let success _ = failwith "Dummy"
+  let command _ = failwith "Dummy"
+  let message _ = failwith "Dummy"
+  let body _ = failwith "Dummy"
 
-  val enc : t Data_encoding.encoding
-  val make : seq:int64 -> request_seq:int64 -> success:bool -> ?message:string -> ?body:body -> unit -> t
-
+  let enc = failwith "Dummy"
+  let make ~seq:_ ~request_seq:_ ~success:_ ?message:_ ~body:_ () = failwith "Dummy"
 end
 
 module MakeResponse (C:CMD) (B:ENC0) : (RESPONSE with type body := B.t) = struct
@@ -205,6 +227,40 @@ module MakeResponse (C:CMD) (B:ENC0) : (RESPONSE with type body := B.t) = struct
     let command = C.command in
     {seq; type_; request_seq; success; command; message; body}
 
+end
+
+(* NOTE sometimes body has a schema but it is optional *)
+module type RESPONSE_OPTIONAL_BODY = sig
+  type body
+  type t
+
+  val seq : t -> int64
+  val type_ : t -> D.ProtocolMessage_type.t
+  val request_seq : t -> int64
+  val success : t -> bool
+  val command : t -> D.Command.t
+  val message : t -> string option
+  val body : t -> body option
+
+  val enc : t Data_encoding.encoding
+  val make : seq:int64 -> request_seq:int64 -> success:bool -> ?message:string -> ?body:body -> unit -> t
+
+end
+
+module ResponseOptDummy = struct
+  type body = unit
+  type t = unit
+
+  let seq _ = failwith "Dummy"
+  let type_ _ = failwith "Dummy"
+  let request_seq _ = failwith "Dummy"
+  let success _ = failwith "Dummy"
+  let command _ = failwith "Dummy"
+  let message _ = failwith "Dummy"
+  let body _ = failwith "Dummy"
+
+  let enc = failwith "Dummy"
+  let make ~seq:_ ~request_seq:_ ~success:_ ?message:_ ?body:_ () = failwith "Dummy"
 end
 
 module MakeResponse_optionalBody (C:CMD) (B:ENC0) : (RESPONSE_OPTIONAL_BODY with type body := B.t) = struct
@@ -269,19 +325,17 @@ module type EVENT = sig
 
 end
 
-(* NOTE sometimes event schema have optional body  *)
-module type EVENT_OPTIONAL_BODY = sig
-  type body
-  type t
+module EventDummy = struct
+  type body = unit
+  type t = unit
 
-  val seq : t -> int64
-  val type_ : t -> D.ProtocolMessage_type.t
-  val event : t -> D.Event.t
-  val body : t -> body option
+  let seq _ = failwith "Dummy"
+  let type_ _ = failwith "Dummy"
+  let event _ = failwith "Dummy"
+  let body _ = failwith "Dummy"
 
-  val enc : t Data_encoding.encoding
-  val make : seq:int64 -> ?body:body -> unit -> t
-
+  let enc = failwith "Dummy"
+  let make ~seq:_ ~body:_ () = failwith "Dummy"
 end
 
 module MakeEvent (E:EV) (B:ENC0) : (EVENT with type body := B.t) = struct
@@ -315,6 +369,34 @@ module MakeEvent (E:EV) (B:ENC0) : (EVENT with type body := B.t) = struct
 
 end
 
+(* NOTE sometimes event schema have optional body  *)
+module type EVENT_OPTIONAL_BODY = sig
+  type body
+  type t
+
+  val seq : t -> int64
+  val type_ : t -> D.ProtocolMessage_type.t
+  val event : t -> D.Event.t
+  val body : t -> body option
+
+  val enc : t Data_encoding.encoding
+  val make : seq:int64 -> ?body:body -> unit -> t
+
+end
+
+module EventOptDummy = struct
+  type body = unit
+  type t = unit
+
+  let seq _ = failwith "Dummy"
+  let type_ _ = failwith "Dummy"
+  let event _ = failwith "Dummy"
+  let body _ = failwith "Dummy"
+
+  let enc = failwith "Dummy"
+  let make ~seq:_ ?body:_ () = failwith "Dummy"
+end
+
 module MakeEvent_optionalBody (E:EV) (B:ENC0) : (EVENT_OPTIONAL_BODY with type body := B.t) = struct
   type t = {
     seq : int64;
@@ -346,4 +428,92 @@ module MakeEvent_optionalBody (E:EV) (B:ENC0) : (EVENT_OPTIONAL_BODY with type b
 
 end
 
+module type FLOW = sig
+  type input
+  type request
+  type response
+  type event
 
+  (* val make : request:request -> response:response -> ?events:event list -> unit -> t *)
+  val destruct_request : input -> request
+  val construct_response : response -> input
+  val construct_events : event list -> input
+
+end
+
+module MakeJSFlow
+    (REQ:REQUEST) (REQ_OPT:REQUEST_OPTIONAL_ARGS)
+    (RESP:RESPONSE) (RESP_OPT:RESPONSE_OPTIONAL_BODY)
+    (EV:EVENT) (EV_OPT:EVENT_OPTIONAL_BODY)
+  : (FLOW with type
+      input := string and type
+      request := [ `Request of REQ.t | `RequestOpt of REQ_OPT.t ] and type
+      response := [ `Response of RESP.t | `ResponseOpt of RESP_OPT.t ] and type
+      event := [ `Event of EV.t | `EventOpt of EV_OPT.t ]
+    )
+     = struct
+
+  module JS = Data_encoding.Json
+
+  let _HEADER_FIELD = "Content-Length: "
+  let _HEADER_TOKEN = "\r\n\r\n"
+
+  let _replace input output =
+    Str.global_replace (Str.regexp_string input) output
+
+  let wrap_header js =
+    let s = js
+            |> JS.to_string
+            |> _replace "\n" ""
+    in
+    let n = String.length s in
+    Printf.sprintf "%s%d%s%s" _HEADER_FIELD n _HEADER_TOKEN s
+
+  (* type t = { *)
+  (*   request:request; *)
+  (*   response:response; *)
+  (*   events:event list; *)
+
+  (* } *)
+
+  (* let make ~request ~response ?(events=[]) () = { *)
+  (*   request; response; events *)
+  (* } *)
+
+  let destruct_request msg =
+      match JS.from_string msg with
+      | Ok js -> (
+          (* TODO nice to be able to check this in types *)
+          try
+            let r = JS.destruct REQ.enc js in `Request r
+          with _ ->
+            let r = JS.destruct REQ_OPT.enc js in `RequestOpt r
+        )
+      | Error err ->
+        (* TODO be better *)
+        failwith err
+
+  let construct_response = function
+    (* TODO wrap header, inc seq number somewhere central *)
+    | `Response r -> JS.construct RESP.enc r |> wrap_header
+    | `ResponseOpt r -> JS.construct RESP_OPT.enc r |> wrap_header
+
+  let construct_events events =
+    (* TODO wrap header, inc seq number somewhere central *)
+    events |> List.map (fun ev ->
+        match ev with
+        | `Event ev -> JS.construct EV.enc ev |> wrap_header
+        | `EventOpt ev -> JS.construct EV_OPT.enc ev |> wrap_header
+    ) |> String.concat ""
+
+
+
+
+     end
+
+module M = MakeJSFlow
+  (RequestDummy) (RequestOptDummy)
+    (ResponseDummy) (ResponseOptDummy)
+    (EventDummy) (EventOptDummy)
+let f = M.destruct_request
+let g = M.construct_events

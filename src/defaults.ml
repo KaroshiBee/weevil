@@ -25,11 +25,11 @@ let wrap_header js =
   let n = String.length s in
   Printf.sprintf "%s%d%s%s" _HEADER_FIELD n _HEADER_TOKEN s
 
-let strip_header s =
-  let rgx = Str.regexp_string _HEADER_TOKEN in
-  match Str.bounded_split rgx s 2 with
-  | [] -> Error (Printf.sprintf "No header in %s" s)
-  | _ :: js -> Ok (String.concat "" js)
+(* let strip_header s = *)
+(*   let rgx = Str.regexp_string _HEADER_TOKEN in *)
+(*   match Str.bounded_split rgx s 2 with *)
+(*   | [] -> Error (Printf.sprintf "No header in %s" s) *)
+(*   | _ :: js -> Ok (String.concat "" js) *)
 
 
 let contains s1 s2 =
