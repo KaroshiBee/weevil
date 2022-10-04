@@ -43,10 +43,10 @@ module Dfs = struct
     schema_js: Json_repr.ezjsonm; [@printer Json_repr.pp (module Json_repr.Ezjsonm)]
   } [@@deriving show]
 
-  let _set_field_type t type_ enc_ =
+  let _set_field_type t module_name type_ enc_ =
       match t.nodes with
       | Sp.Field field_spec :: nodes ->
-        let field = Sp.Field_spec.{field_spec with type_; enc_} in
+        let field = Sp.Field_spec.{field_spec with module_name; type_; enc_} in
         let nodes = (Sp.Field field) :: nodes in
         {t with nodes}
       | _ -> t
@@ -149,6 +149,7 @@ module Dfs = struct
                                     ~path:new_path
                                     ~dirty_name:pname
                                     ~required
+                                    ~module_name
                                     ~type_:(module_name^".t")
                                     ~enc_:(module_name^".enc")
                                     ()
@@ -166,7 +167,7 @@ module Dfs = struct
               "process object with 0 properties under '%s'"
               (Q.json_pointer_of_path ~wildcards:true path)) ;
         (* TODO things like Message.variables have additionalProperties *)
-        _set_field_type t "empty_object" "any"
+        _set_field_type t "Empty_object" "empty_object" "any"
 
     | Object
         {
@@ -328,7 +329,7 @@ module Dfs = struct
             let t' = process_definition t ~path:ref_path in
             (* get typename from ref_path *)
             let ref_type_name = _make_module_name ref_path in
-            _set_field_type t' (ref_type_name^".t") (ref_type_name^".enc")
+            _set_field_type t' ref_type_name (ref_type_name^".t") (ref_type_name^".enc")
           )
         in
         (* Logs.debug (fun m -> m "nodes after def_ref '%s': %s" ref_path_str @@ show t); *)
@@ -338,16 +339,16 @@ module Dfs = struct
     | Ext_ref _ -> failwith "TODO Ext_ref"
     | String _ ->
       Logs.debug (fun m -> m "String");
-      _set_field_type t "string" "string"
+      _set_field_type t "" "string" "string"
     | Integer _ ->
       Logs.debug (fun m -> m "Int");
-      _set_field_type t "int" "int32"
+      _set_field_type t "" "int" "int31"
     | Number _ ->
       Logs.debug (fun m -> m "Number");
-      _set_field_type t "int" "int32"
+      _set_field_type t "" "int" "int31"
     | Boolean ->
       Logs.debug (fun m -> m "Bool");
-      _set_field_type t "bool" "bool"
+      _set_field_type t "" "bool" "bool"
     | Null -> failwith "TODO Null"
     | Any -> failwith "TODO Any"
     | Dummy -> failwith "TODO Dummy"
@@ -417,9 +418,18 @@ module RenderObjectField = struct
 
 end
 
-module RenderObject = struct
+module type RenderT = sig
+  type t
+  val of_obj_spec : Sp.Obj_spec.t -> t
+  val render : t -> name:string -> string
+
+end
+
+module RenderObject : RenderT = struct
 
   type t = Sp.Obj_spec.t
+
+  let of_obj_spec spec = spec
 
   let render (t:t) ~name =
     let t_str =
@@ -448,15 +458,50 @@ module RenderObject = struct
     in
     Printf.sprintf "module %s = struct \n%s\n \n%s\n\nend\n" name t_str enc_str
 
-    (* TODO cyclic objects and large objects *)
+    (* TODO cyclic objects and large objects >10 fields *)
 
 
 end
 
 
-module Render = struct
+let _COMMAND = "Command"
+let _EVENT = "Event"
+let _EMPTY_OBJECT = "EmptyObject"
 
-  type t = Finished.t
+
+module RenderResponse : RenderT = struct
+
+  type t = Sp.Obj_spec.t
+
+  let of_obj_spec spec = spec
+
+  let _command type_ =
+    match Stringext.cut type_ ~on:"Response" with
+    | Some (enum_str, "") -> Printf.sprintf "struct let command=%s.%s end" _COMMAND enum_str
+    | _ -> assert false
+
+  let render (t:t) ~name =
+    match t.fields with
+    | [body] -> if body.required then
+      Printf.sprintf
+        "module %s = MakeRequest (%s) (%s)"
+        name
+        (_command name)
+        body.module_name
+      else
+      Printf.sprintf
+        "module %s = MakeRequest_optionalArgs (%s) (%s)"
+        name
+        (_command name)
+        body.module_name
+    | [] ->
+      Printf.sprintf
+        "module %s = MakeRequest_optionalArgs (%s) (%s)"
+        name
+        (_command name)
+        _EMPTY_OBJECT
+    | _ -> assert false
+
 
 
 
