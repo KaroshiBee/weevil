@@ -441,23 +441,31 @@ module type FLOW = sig
   type request
   type response
   type event
+  type err_response
+
 
   (* val make : request:request -> response:response -> ?events:event list -> unit -> t *)
   val destruct_request : input -> request
   val construct_response : response -> input
   val construct_events : event list -> input
+  val construct_error : err_response -> input
+
 
 end
 
+(* Main functor for constructing flows of request/response pairings
+along with events that may be raised or Errors that could be returned *)
 module MakeJSFlow
     (REQ:REQUEST) (REQ_OPT:REQUEST_OPTIONAL_ARGS)
     (RESP:RESPONSE) (RESP_OPT:RESPONSE_OPTIONAL_BODY)
     (EV:EVENT) (EV_OPT:EVENT_OPTIONAL_BODY)
+    (ERR:RESPONSE)
   : (FLOW with type
       input := string and type
       request := [ `Request of REQ.t | `RequestOpt of REQ_OPT.t ] and type
       response := [ `Response of RESP.t | `ResponseOpt of RESP_OPT.t ] and type
-      event := [ `Event of EV.t | `EventOpt of EV_OPT.t ]
+      event := [ `Event of EV.t | `EventOpt of EV_OPT.t ] and type
+      err_response := ERR.t
     )
      = struct
 
@@ -512,7 +520,10 @@ module MakeJSFlow
         match ev with
         | `Event ev -> JS.construct EV.enc ev |> wrap_header
         | `EventOpt ev -> JS.construct EV_OPT.enc ev |> wrap_header
-    ) |> String.concat ""
+      ) |> String.concat ""
+
+  let construct_error err =
+    JS.construct ERR.enc err |> wrap_header
 
 
 
@@ -523,5 +534,6 @@ module M = MakeJSFlow
     (RequestDummy) (RequestOptDummy)
     (ResponseDummy) (ResponseOptDummy)
     (EventDummy) (EventOptDummy)
+    (ResponseDummy)
 let f = M.destruct_request
 let g = M.construct_events
