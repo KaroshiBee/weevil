@@ -51,15 +51,17 @@ module type REQUEST = sig
   val make : seq:int64 -> arguments:args -> unit -> t
 end
 
+type dummy = unit
+
 module RequestDummy = struct
-  type args = unit
-  type t = unit
+  type args = dummy
+  type t = dummy
   let seq _ = failwith "Dummy"
   let type_ _ =  failwith "Dummy"
   let command _ = failwith "Dummy"
   let arguments _ = failwith "Dummy"
 
-  let enc = failwith "Dummy"
+  let enc = Data_encoding.null
   let make ~seq:_  ~arguments:_ () = failwith "Dummy"
 end
 
@@ -109,14 +111,14 @@ module type REQUEST_OPTIONAL_ARGS = sig
 end
 
 module RequestOptDummy = struct
-  type args = unit
-  type t = unit
+  type args = dummy
+  type t = dummy
   let seq _ = failwith "Dummy"
   let type_ _ =  failwith "Dummy"
   let command _ = failwith "Dummy"
   let arguments _ = failwith "Dummy"
 
-  let enc = failwith "Dummy"
+  let enc = Data_encoding.null
   let make ~seq:_  ?arguments:_ () = failwith "Dummy"
 end
 
@@ -172,8 +174,8 @@ module type RESPONSE = sig
 end
 
 module ResponseDummy = struct
-  type body = unit
-  type t = unit
+  type body = dummy
+  type t = dummy
 
   let seq _ = failwith "Dummy"
   let type_ _ = failwith "Dummy"
@@ -183,7 +185,7 @@ module ResponseDummy = struct
   let message _ = failwith "Dummy"
   let body _ = failwith "Dummy"
 
-  let enc = failwith "Dummy"
+  let enc = Data_encoding.null
   let make ~seq:_ ~request_seq:_ ~success:_ ?message:_ ~body:_ () = failwith "Dummy"
 end
 
@@ -248,8 +250,8 @@ module type RESPONSE_OPTIONAL_BODY = sig
 end
 
 module ResponseOptDummy = struct
-  type body = unit
-  type t = unit
+  type body = dummy
+  type t = dummy
 
   let seq _ = failwith "Dummy"
   let type_ _ = failwith "Dummy"
@@ -259,7 +261,7 @@ module ResponseOptDummy = struct
   let message _ = failwith "Dummy"
   let body _ = failwith "Dummy"
 
-  let enc = failwith "Dummy"
+  let enc = Data_encoding.null
   let make ~seq:_ ~request_seq:_ ~success:_ ?message:_ ?body:_ () = failwith "Dummy"
 end
 
@@ -326,15 +328,15 @@ module type EVENT = sig
 end
 
 module EventDummy = struct
-  type body = unit
-  type t = unit
+  type body = dummy
+  type t = dummy
 
   let seq _ = failwith "Dummy"
   let type_ _ = failwith "Dummy"
   let event _ = failwith "Dummy"
   let body _ = failwith "Dummy"
 
-  let enc = failwith "Dummy"
+  let enc = Data_encoding.null
   let make ~seq:_ ~body:_ () = failwith "Dummy"
 end
 
@@ -385,15 +387,15 @@ module type EVENT_OPTIONAL_BODY = sig
 end
 
 module EventOptDummy = struct
-  type body = unit
-  type t = unit
+  type body = dummy
+  type t = dummy
 
   let seq _ = failwith "Dummy"
   let type_ _ = failwith "Dummy"
   let event _ = failwith "Dummy"
   let body _ = failwith "Dummy"
 
-  let enc = failwith "Dummy"
+  let enc = Data_encoding.null
   let make ~seq:_ ?body:_ () = failwith "Dummy"
 end
 
@@ -512,7 +514,7 @@ module MakeJSFlow
      end
 
 module M = MakeJSFlow
-  (RequestDummy) (RequestOptDummy)
+    (RequestDummy) (RequestOptDummy)
     (ResponseDummy) (ResponseOptDummy)
     (EventDummy) (EventOptDummy)
 let f = M.destruct_request

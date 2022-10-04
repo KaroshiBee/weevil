@@ -241,7 +241,6 @@ module Dfs = struct
         let new_path = path @ [`Field "allOf"; `Index 1] in
         let t' = process_element t ~path:new_path el in
         Hashtbl.replace_seq t.visited (Hashtbl.to_seq t'.visited) ;
-        (* TODO convert top element into request *)
         t'
     | Combine (All_of, [dref; el])
         when dref.kind = Def_ref [`Field "definitions"; `Field "Event"] ->
@@ -362,7 +361,7 @@ module Dfs = struct
       | `O fields -> fields |> List.map (fun (nm, _) -> nm)
       | _ -> []
     in
-    let empty = {nodes = []; visited = Hashtbl.create 500; finished = Hashtbl.create 500; schema_js} in
+    let empty = {schema_js; nodes = []; ordering = []; visited = Hashtbl.create 500; finished = Hashtbl.create 500} in
     (* NOTE know all /definitions/ are objects and are the only top-level things *)
     let ns = Q.query [`Field "definitions"] schema_js |> names in
     Logs.info (fun m -> m "\n\nprocessing '%d' names" @@ List.length ns) ;

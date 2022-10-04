@@ -1,6 +1,6 @@
 (library
  (name dapper_gen)
- (libraries data-encoding logs ppx_expect)
+ (libraries data-encoding logs ppx_expect str)
  (inline_tests)
   (preprocess (pps ppx_deriving.show ppx_expect))
 )

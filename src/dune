@@ -18,7 +18,6 @@
   conduit-lwt-unix
   data-encoding
   cmdliner
-  str
   dapper
   dapper_gen
  )
