@@ -568,3 +568,40 @@ module RenderResponse : RenderT = struct
     | _ -> assert false
 
 end
+
+module RenderEvent : RenderT = struct
+
+  type t = Sp.Obj_spec.t
+
+  let of_obj_spec spec = spec
+
+  let render (t:t) ~name =
+    let event = EventHelper.strip_event name in
+    match t.fields with
+    | [body; _ev] when body.required ->
+      Printf.sprintf
+        "module %s = MakeEvent (%s) (%s)"
+        name
+        event
+        body.module_name
+    | [body; _ev] ->
+      Printf.sprintf
+        "module %s = MakeEvent_optionalBody (%s) (%s)"
+        name
+        event
+        body.module_name
+    | [_ev] ->
+      Printf.sprintf
+        "module %s = MakeEvent_optionalBody (%s) (%s)"
+        name
+        event
+        _EMPTY_OBJECT
+    | [] ->
+      Printf.sprintf
+        "module %s = MakeEvent_optionalBody (%s) (%s)"
+        name
+        event
+        _EMPTY_OBJECT
+    | _ -> assert false
+
+end

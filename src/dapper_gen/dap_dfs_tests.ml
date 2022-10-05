@@ -103,3 +103,50 @@ let%expect_test "Check CancelRequest example" =
 
 
     module CancelRequest = MakeRequest_optionalArgs (struct let command=Command.Cancel end) (CancelArguments) |}]
+
+
+let%expect_test "Check StoppedEvent example" =
+  let schema_js = Ezjsonm.from_channel @@ open_in "data/stoppedEvent.json" in
+  let dfs = Dfs.make ~schema_js in
+  let actual =
+    Dfs.ordering dfs |> List.map (fun name ->
+      let o = match (Hashtbl.find dfs.finished name) with | Sp.Object obj -> obj | _ -> assert false in
+      try
+        RenderEvent.(of_obj_spec o |> render ~name)
+      with _ ->
+        RenderObject.(of_obj_spec o |> render ~name)
+      ) |> String.concat "\n\n"
+  in
+  Printf.printf "%s" actual;
+  [%expect {|
+    module StoppedEvent_body = struct
+    type t = { hitBreakpointIds: int list option;
+    allThreadsStopped: bool option;
+    text: string option;
+    preserveFocusHint: bool option;
+    threadId: int option;
+    description: string option;
+    reason: string; }
+
+    let enc =
+     let open Data_encoding in
+     conv
+     (fun {hitBreakpointIds; allThreadsStopped; text; preserveFocusHint; threadId; description; reason} -> (hitBreakpointIds, allThreadsStopped, text, preserveFocusHint, threadId, description, reason))
+     (fun (hitBreakpointIds, allThreadsStopped, text, preserveFocusHint, threadId, description, reason) -> {hitBreakpointIds; allThreadsStopped; text; preserveFocusHint; threadId; description; reason})
+     (obj7
+    (opt "hitBreakpointIds" (list int31))
+    (opt "allThreadsStopped" bool)
+    (opt "text" string)
+    (opt "preserveFocusHint" bool)
+    (opt "threadId" int31)
+    (opt "description" string)
+    (req "reason" string))
+
+
+    let make ?hitBreakpointIds ?allThreadsStopped ?text ?preserveFocusHint ?threadId ?description ~reason () =
+    {hitBreakpointIds; allThreadsStopped; text; preserveFocusHint; threadId; description; reason}
+
+    end
+
+
+    module StoppedEvent = MakeEvent (struct let event=Event.Stopped end) (StoppedEvent_body) |}]
