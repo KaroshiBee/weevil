@@ -146,7 +146,7 @@ module Dfs = struct
     t
 
   and process_element t ~path el =
-    (* can get proper enums here, still need to qry for _enums *)
+    (* can get proper enums here, still need to qry for _enums c.f. string handler *)
     let dfn = Q.json_pointer_of_path path in
     let module_name = _make_module_name path in
     let dirty_name = Sp.dirty_name ~path |> Option.get in
@@ -382,7 +382,7 @@ module Dfs = struct
     | Id_ref _ -> failwith "TODO Id_ref"
     | Ext_ref _ -> failwith "TODO Ext_ref"
     | String _ -> (
-      (* NOTE if its an _enum set then parse as Enum because
+      (* NOTE if its an _enum set then parse as Enum(suggested=true) because
          the _enum fields arent picked up by Json_schema module
          and so using Json_schema.to_json wont work.
          Have to use Ezjsonm.decode_string to read the raw json and then query that.
@@ -396,7 +396,7 @@ module Dfs = struct
             let dirty_names =
               List.map Ezjsonm.decode_string_exn names
             in
-            Some (Sp.Enum_spec.of_path ~dirty_name:module_name ~path:enum_path ~dirty_names ())
+            Some (Sp.Enum_spec.of_path ~dirty_name:module_name ~path:enum_path ~dirty_names ~suggested:true())
           | _ -> None
         with _ -> None
       in
@@ -441,38 +441,6 @@ module Dfs = struct
            {t with visited = t_acc.visited})
          empty
 
-  (* let process t = *)
-  (*   let wksp : (string * Sp.Obj_spec.t) list ref = ref [] in *)
-  (*   let rec aux = function *)
-  (*     | Leaf (Value leaf_specs) :: Prop (Object prop_specs) :: tl -> *)
-  (*       Logs.debug (fun m -> m "\n\nprocessing leaf '%s' and prop '%s'" (Sp.show_value leaf_specs) (Sp.Obj_spec.show prop_specs)) ; *)
-  (*       wksp := (Sp.show_value leaf_specs, prop_specs) :: !wksp; *)
-  (*       aux tl *)
-  (*     | Leaf (Object leaf_specs) :: Prop (Object prop_specs) :: tl -> *)
-  (*       Logs.debug (fun m -> m "\n\nprocessing leaf '%s' and prop '%s'" (Sp.Obj_spec.show leaf_specs) (Sp.Obj_spec.show prop_specs)) ; *)
-  (*       wksp := ("any", prop_specs) :: !wksp; *)
-  (*       aux tl *)
-  (*     | Node (Sp.Object specs) :: tl -> *)
-  (*       Logs.debug (fun m -> m "\n\nprocessing '%s'" @@ Sp.Obj_spec.show specs) ; *)
-  (*       let fields = !wksp *)
-  (*           |> List.map (fun (leaf, prop) -> *)
-  (*                        let pth = List.rev Sp.Obj_spec.(prop.path) in *)
-  (*                        let dirty_name = match List.hd pth with `Field nm -> nm | _ -> "unknown" in *)
-  (*                        let safe_name = Sp._unweird_name dirty_name in *)
-  (*                        let type_ = leaf in *)
-  (*                        let enc_ = type_ in *)
-  (*                        let required = true in *)
-  (*                        Sp.Obj_spec.{dirty_name; safe_name; type_; enc_; required} *)
-  (*                      ) in *)
-  (*       wksp := []; *)
-  (*       {specs with fields} :: aux tl *)
-
-  (*     | _ -> [] *)
-  (*   in *)
-  (*   let nodes = aux t.nodes in *)
-  (*   nodes *)
-
-
 end
 
 
@@ -493,16 +461,19 @@ module RenderEnum : (RenderT with type spec := Sp.Enum_spec.t) = struct
   let render (t:t) ~name =
     let t_str =
       let lns = t.enums |> List.map (fun (e:Sp.Enum_spec.enum_val) -> e.safe_name) |> String.concat " | " in
+      let lns = if t.suggested then lns ^ " | Other of string" else lns in
       Printf.sprintf "type t = %s " lns
     in
 
     let enc_t_s =
       let lns = t.enums |> List.map (fun (e:Sp.Enum_spec.enum_val) -> Printf.sprintf "%s -> \"%s\"" e.safe_name e.dirty_name) in
+      let lns = if t.suggested then lns @ ["Other s -> s"] else lns in
       String.concat " | " lns
     in
     let enc_s_t =
       let lns = t.enums |> List.map (fun (e:Sp.Enum_spec.enum_val) -> Printf.sprintf "\"%s\" -> %s" e.dirty_name e.safe_name) in
-      String.concat " | " (lns @ [Printf.sprintf "_ -> failwith \"%s\"" name])
+      let lns = if t.suggested then lns @ ["_ as s -> Other s"] else lns @ [Printf.sprintf "_ -> failwith \"%s\"" name] in
+      String.concat " | " lns
     in
     let enc_str = Printf.sprintf
         "let enc = \n \

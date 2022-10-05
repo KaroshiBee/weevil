@@ -101,9 +101,10 @@ module Enum_spec = struct
     dirty_name: string; (* what it gets written back to json field as *)
     path: Q.path; [@printer Q.print_path_as_json_pointer]
     enums: enum_val list;
+    suggested: bool;
   } [@@deriving show]
 
-  let of_path ~dirty_name ~path ?(dirty_names=[]) () =
+  let of_path ~dirty_name ~path ?(dirty_names=[]) ?(suggested=false) () =
     let safe_name = _unweird_name dirty_name in
     let enums =
       dirty_names
@@ -112,7 +113,7 @@ module Enum_spec = struct
           {safe_name; dirty_name}
         )
     in
-    {safe_name; dirty_name; path; enums}
+    {safe_name; dirty_name; path; enums; suggested}
 
   let set_enums t ~dirty_names =
     let enums =
