@@ -501,6 +501,37 @@ end
 let _EMPTY_OBJECT = "EmptyObject"
 
 
+module RenderRequest : RenderT = struct
+
+  type t = Sp.Obj_spec.t
+
+  let of_obj_spec spec = spec
+
+  let render (t:t) ~name =
+    let command = CommandHelper.strip_command name ~on:"Request" in
+    match t.fields with
+    | [args; _cmd] -> if args.required then
+      Printf.sprintf
+        "module %s = MakeRequest (%s) (%s)"
+        name
+        command
+        args.module_name
+      else
+      Printf.sprintf
+        "module %s = MakeRequest_optionalArgs (%s) (%s)"
+        name
+        command
+        args.module_name
+    | [] ->
+      Printf.sprintf
+        "module %s = MakeRequest_optionalArgs (%s) (%s)"
+        name
+        command
+        _EMPTY_OBJECT
+    | _ -> assert false
+
+end
+
 module RenderResponse : RenderT = struct
 
   type t = Sp.Obj_spec.t
@@ -518,28 +549,16 @@ module RenderResponse : RenderT = struct
         body.module_name
       else
       Printf.sprintf
-        "module %s = MakeResponse_optionalArgs (%s) (%s)"
+        "module %s = MakeResponse_optionalBody (%s) (%s)"
         name
         command
         body.module_name
     | [] ->
       Printf.sprintf
-        "module %s = MakeResponse_optionalArgs (%s) (%s)"
+        "module %s = MakeResponse_optionalBody (%s) (%s)"
         name
         command
         _EMPTY_OBJECT
     | _ -> assert false
 
 end
-
-
-let test () =
-  let schema_js = Ezjsonm.from_channel @@ open_in "./schema/errorResponse.json" in
-  let dfs = Dfs.make ~schema_js in
-  Dfs.ordering dfs |> List.map (fun name ->
-      let o = match (Hashtbl.find dfs.finished name) with | Sp.Object obj -> obj | _ -> assert false in
-      try
-        RenderResponse.(of_obj_spec o |> render ~name)
-      with _ ->
-        RenderObject.(of_obj_spec o |> render ~name)
-      ) |> String.concat "\n\n"
