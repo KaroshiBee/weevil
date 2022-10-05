@@ -2,6 +2,28 @@ module Sp = Dap_specs
 module Q = Json_query
 module S = Json_schema
 
+module CommandHelper = struct
+
+  let _COMMAND = "Command"
+
+  let strip_command name ~on =
+    match Stringext.cut name ~on with
+    | Some (enum_str, "") -> Printf.sprintf "struct let command=%s.%s end" _COMMAND enum_str
+    | _ -> assert false
+
+end
+
+module EventHelper = struct
+
+  let _EVENT = "Event"
+
+  let strip_event name =
+    match Stringext.cut name ~on:"Event" with
+    | Some (enum_str, "") -> Printf.sprintf "struct let event=%s.%s end" _EVENT enum_str
+    | _ -> assert false
+
+end
+
 module Visited = struct
 
   type status = | Started | Finished | Unknown [@@deriving show]
@@ -29,12 +51,6 @@ end
 
 
 module Dfs = struct
-  (* let _CMD = "/definitions/FAKE/command" (\* fake Command enum path *\) *)
-
-  (* let _EV = "/definitions/FAKE/event" (\* fake Event enum path *\) *)
-
-  (* let _MSG = "/definitions/FAKE/protocol_message_type" *)
-
 
   type t = {
     schema_js: Json_repr.ezjsonm; [@printer Json_repr.pp (module Json_repr.Ezjsonm)]
@@ -71,6 +87,7 @@ module Dfs = struct
     | `Field "oneOf" :: rest
     | `Field "not" :: rest
     | `Field "properties" :: rest
+    | `Field "_enum" :: rest
     | `Index _ :: rest
     | `Next :: rest
     | `Star :: rest
@@ -129,12 +146,36 @@ module Dfs = struct
     t
 
   and process_element t ~path el =
-    (* TODO can get proper enums here, still need to qry for _enums *)
-    Logs.debug (fun m ->
-        m
-          "process element under '%s'"
-          (Q.json_pointer_of_path ~wildcards:true path)) ;
-    process_kind t ~path el.kind
+    (* can get proper enums here, still need to qry for _enums *)
+    let dfn = Q.json_pointer_of_path path in
+    let module_name = _make_module_name path in
+    let dirty_name = Sp.dirty_name ~path |> Option.get in
+    Logs.debug (fun m -> m "process element under '%s'" dfn);
+    let enums = el.enum |> Option.value ~default:[] in
+    let enums = enums
+      |> List.map Json_repr.from_any
+      |> List.map Ezjsonm.decode_string_exn
+    in
+    let n = List.length enums in
+    (* it is an enum of some sort *)
+    if n > 1 then (
+      Logs.debug (fun m -> m "element under '%s' has enum [%s]" dfn (enums |> String.concat ", ")) ;
+      let enum_spec = Sp.Enum_spec.of_path ~dirty_name ~path ~dirty_names:enums () in
+      (* let module_name = *)
+      (*   match *)
+      (*     (Sp.Enum_spec.is_command enum_spec, Sp.Enum_spec.is_event enum_spec) *)
+      (*   with *)
+      (*   | (true, false) -> CommandHelper._COMMAND (\* TODO add as extra field to existing *\) *)
+      (*   | (false, true) -> EventHelper._EVENT (\* TODO add as extra field to existing *\) *)
+      (*   | (_, _) -> module_name *)
+      (* in *)
+      let ordering = module_name :: t.ordering in
+      Hashtbl.add t.finished module_name (Sp.Enum enum_spec);
+      {t with ordering}
+    ) else (
+      Logs.debug (fun m -> m "process element under '%s'" dfn) ;
+      process_kind t ~path el.kind
+    )
 
   and process_properties t ~path properties =
     let n = List.length properties in
@@ -340,9 +381,35 @@ module Dfs = struct
 
     | Id_ref _ -> failwith "TODO Id_ref"
     | Ext_ref _ -> failwith "TODO Ext_ref"
-    | String _ ->
-      Logs.debug (fun m -> m "String");
-      _set_field_type t "" "string" "string"
+    | String _ -> (
+      (* NOTE if its an _enum set then parse as Enum because
+         the _enum fields arent picked up by Json_schema module
+         and so using Json_schema.to_json wont work.
+         Have to use Ezjsonm.decode_string to read the raw json and then query that.
+      *)
+      let enum_path = path @ [`Field "_enum"] in
+      let module_name = _make_module_name enum_path in
+      let enum =
+        try
+          match Q.query enum_path t.schema_js with
+          | `A names ->
+            let dirty_names =
+              List.map Ezjsonm.decode_string_exn names
+            in
+            Some (Sp.Enum_spec.of_path ~dirty_name:module_name ~path:enum_path ~dirty_names ())
+          | _ -> None
+        with _ -> None
+      in
+      match enum with
+      | Some enum ->
+        Logs.debug (fun m -> m "inlined Enum");
+        Hashtbl.add t.finished module_name (Sp.Enum enum);
+        let ordering = module_name :: t.ordering in
+        _set_field_type {t with ordering} module_name (module_name^".t") (module_name^".enc")
+      | None ->
+        Logs.debug (fun m -> m "String");
+        _set_field_type t "" "string" "string"
+    )
     | Integer _ ->
       Logs.debug (fun m -> m "Int");
       _set_field_type t "" "int" "int31"
@@ -409,6 +476,47 @@ module Dfs = struct
 end
 
 
+module type RenderT = sig
+  type spec
+  type t
+  val of_spec : spec -> t
+  val render : t -> name:string -> string
+
+end
+
+module RenderEnum : (RenderT with type spec := Sp.Enum_spec.t) = struct
+
+  type t = Sp.Enum_spec.t
+
+  let of_spec spec = spec
+
+  let render (t:t) ~name =
+    let t_str =
+      let lns = t.enums |> List.map (fun (e:Sp.Enum_spec.enum_val) -> e.safe_name) |> String.concat " | " in
+      Printf.sprintf "type t = %s " lns
+    in
+
+    let enc_t_s =
+      let lns = t.enums |> List.map (fun (e:Sp.Enum_spec.enum_val) -> Printf.sprintf "%s -> \"%s\"" e.safe_name e.dirty_name) in
+      String.concat " | " lns
+    in
+    let enc_s_t =
+      let lns = t.enums |> List.map (fun (e:Sp.Enum_spec.enum_val) -> Printf.sprintf "\"%s\" -> %s" e.dirty_name e.safe_name) in
+      String.concat " | " (lns @ [Printf.sprintf "_ -> failwith \"%s\"" name])
+    in
+    let enc_str = Printf.sprintf
+        "let enc = \n \
+         let open Data_encoding in \n \
+         conv \n \
+         (function %s)\n \
+         (function %s)\n \
+         string" enc_t_s enc_s_t
+    in
+    Printf.sprintf "module %s = struct \n%s\n \n%s\n \nend\n" name t_str enc_str
+
+
+end
+
 module RenderObjectField = struct
 
   type t = Sp.Field_spec.t
@@ -424,18 +532,11 @@ module RenderObjectField = struct
 
 end
 
-module type RenderT = sig
-  type t
-  val of_obj_spec : Sp.Obj_spec.t -> t
-  val render : t -> name:string -> string
-
-end
-
-module RenderObject : RenderT = struct
+module RenderObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
 
   type t = Sp.Obj_spec.t
 
-  let of_obj_spec spec = spec
+  let of_spec spec = spec
 
   let render (t:t) ~name =
     let t_str =
@@ -476,36 +577,14 @@ module RenderObject : RenderT = struct
 
 end
 
-module CommandHelper = struct
-
-  let _COMMAND = "Command"
-
-  let strip_command name ~on =
-    match Stringext.cut name ~on with
-    | Some (enum_str, "") -> Printf.sprintf "struct let command=%s.%s end" _COMMAND enum_str
-    | _ -> assert false
-
-end
-
-module EventHelper = struct
-
-  let _EVENT = "Event"
-
-  let strip_event name =
-    match Stringext.cut name ~on:"Event" with
-    | Some (enum_str, "") -> Printf.sprintf "struct let event=%s.%s end" _EVENT enum_str
-    | _ -> assert false
-
-end
-
 let _EMPTY_OBJECT = "EmptyObject"
 
 
-module RenderRequest : RenderT = struct
+module RenderRequest : (RenderT with type spec := Sp.Obj_spec.t) = struct
 
   type t = Sp.Obj_spec.t
 
-  let of_obj_spec spec = spec
+  let of_spec spec = spec
 
   let render (t:t) ~name =
     let command = CommandHelper.strip_command name ~on:"Request" in
@@ -538,11 +617,11 @@ module RenderRequest : RenderT = struct
 
 end
 
-module RenderResponse : RenderT = struct
+module RenderResponse : (RenderT with type spec := Sp.Obj_spec.t) = struct
 
   type t = Sp.Obj_spec.t
 
-  let of_obj_spec spec = spec
+  let of_spec spec = spec
 
   let render (t:t) ~name =
     let command = CommandHelper.strip_command name ~on:"Response" in
@@ -569,11 +648,11 @@ module RenderResponse : RenderT = struct
 
 end
 
-module RenderEvent : RenderT = struct
+module RenderEvent : (RenderT with type spec := Sp.Obj_spec.t) = struct
 
   type t = Sp.Obj_spec.t
 
-  let of_obj_spec spec = spec
+  let of_spec spec = spec
 
   let render (t:t) ~name =
     let event = EventHelper.strip_event name in

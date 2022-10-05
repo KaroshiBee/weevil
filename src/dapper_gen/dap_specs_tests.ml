@@ -1,59 +1,5 @@
 open Dap_specs
 
-let%expect_test "Check Req" =
-  let path = [`Field "definitions"; `Field "CancelRequest"] in
-  let x = Req_spec.of_path_exn ~dirty_name:"CancelRequest" ~path () in
-
-  Printf.printf "%s" (Q.json_pointer_of_path x.path);
-  [%expect {| /definitions/CancelRequest |}];
-
-  Printf.printf "%s" x.command;
-  [%expect {| Cancel |}];
-
-  let path = Q.path_of_json_pointer "/definitions/ErrorResponse/allOf/0" in
-  try
-    let _ = Req_spec.of_path_exn ~dirty_name:"ErrorResponse" ~path () in ()
-  with Req_spec.Not_request err ->
-    Printf.printf "%s" err;
-  [%expect {| /definitions/ErrorResponse/allOf/0 |}]
-
-
-
-let%expect_test "Check Resp" =
-  let path = [`Field "definitions"; `Field "CancelResponse"] in
-  let x = Resp_spec.of_path_exn ~dirty_name:"CancelResponse" ~path () in
-
-  Printf.printf "%s" (Q.json_pointer_of_path x.path);
-  [%expect {| /definitions/CancelResponse |}];
-
-  Printf.printf "%s" x.command;
-  [%expect {| Cancel |}];
-
-  let path = Q.path_of_json_pointer "/definitions/ErrorResponse/allOf/0" in
-  try
-    let _ = Resp_spec.of_path_exn ~dirty_name:"ErrorResponse"  ~path () in ()
-  with Resp_spec.Not_response err ->
-    Printf.printf "%s" err;
-  [%expect {| /definitions/ErrorResponse/allOf/0 |}]
-
-
-let%expect_test "Check Event" =
-  let path = [`Field "definitions"; `Field "CancelEvent"] in
-  let x = Event_spec.of_path_exn ~dirty_name:"CancelEvent" ~path () in
-
-  Printf.printf "%s" (Q.json_pointer_of_path x.path);
-  [%expect {| /definitions/CancelEvent |}];
-
-  Printf.printf "%s" x.event;
-  [%expect {| Cancel |}];
-
-  let path = Q.path_of_json_pointer "/definitions/ErrorResponse/allOf/0" in
-  try
-    let _ = Event_spec.of_path_exn ~dirty_name:"ErrorResponse" ~path () in ()
-  with Event_spec.Not_event err ->
-    Printf.printf "%s" err;
-  [%expect {| /definitions/ErrorResponse/allOf/0 |}]
-
 
 let%expect_test "Check obj" =
   let path = Q.path_of_json_pointer "/definitions/ErrorResponse/allOf/0" in

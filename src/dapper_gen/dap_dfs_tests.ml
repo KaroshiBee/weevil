@@ -7,9 +7,9 @@ let%expect_test "Check ErrorResponse example" =
     Dfs.ordering dfs |> List.map (fun name ->
       let o = match (Hashtbl.find dfs.finished name) with | Sp.Object obj -> obj | _ -> assert false in
       try
-        RenderResponse.(of_obj_spec o |> render ~name)
+        RenderResponse.(of_spec o |> render ~name)
       with _ ->
-        RenderObject.(of_obj_spec o |> render ~name)
+        RenderObject.(of_spec o |> render ~name)
       ) |> String.concat "\n\n"
   in
   Printf.printf "%s" actual;
@@ -75,9 +75,9 @@ let%expect_test "Check CancelRequest example" =
     Dfs.ordering dfs |> List.map (fun name ->
       let o = match (Hashtbl.find dfs.finished name) with | Sp.Object obj -> obj | _ -> assert false in
       try
-        RenderRequest.(of_obj_spec o |> render ~name)
+        RenderRequest.(of_spec o |> render ~name)
       with _ ->
-        RenderObject.(of_obj_spec o |> render ~name)
+        RenderObject.(of_spec o |> render ~name)
       ) |> String.concat "\n\n"
   in
   Printf.printf "%s" actual;
@@ -110,15 +110,34 @@ let%expect_test "Check StoppedEvent example" =
   let dfs = Dfs.make ~schema_js in
   let actual =
     Dfs.ordering dfs |> List.map (fun name ->
-      let o = match (Hashtbl.find dfs.finished name) with | Sp.Object obj -> obj | _ -> assert false in
-      try
-        RenderEvent.(of_obj_spec o |> render ~name)
-      with _ ->
-        RenderObject.(of_obj_spec o |> render ~name)
+        match (Hashtbl.find dfs.finished name) with
+        | Sp.Object o -> (
+          try
+            RenderEvent.(of_spec o |> render ~name)
+          with _ ->
+            RenderObject.(of_spec o |> render ~name)
+        )
+        | Sp.Enum e -> (
+            RenderEnum.(of_spec e |> render ~name)
+        )
+        | _ -> assert false
       ) |> String.concat "\n\n"
   in
   Printf.printf "%s" actual;
   [%expect {|
+    module StoppedEvent_body_reason = struct
+    type t = Step | Breakpoint | Exception | Pause | Entry | Goto | Function_breakpoint | Data_breakpoint | Instruction_breakpoint
+
+    let enc =
+     let open Data_encoding in
+     conv
+     (function Step -> "step" | Breakpoint -> "breakpoint" | Exception -> "exception" | Pause -> "pause" | Entry -> "entry" | Goto -> "goto" | Function_breakpoint -> "function breakpoint" | Data_breakpoint -> "data breakpoint" | Instruction_breakpoint -> "instruction breakpoint")
+     (function "step" -> Step | "breakpoint" -> Breakpoint | "exception" -> Exception | "pause" -> Pause | "entry" -> Entry | "goto" -> Goto | "function breakpoint" -> Function_breakpoint | "data breakpoint" -> Data_breakpoint | "instruction breakpoint" -> Instruction_breakpoint | _ -> failwith "StoppedEvent_body_reason")
+     string
+
+    end
+
+
     module StoppedEvent_body = struct
     type t = { hitBreakpointIds: int list option;
     allThreadsStopped: bool option;
@@ -126,7 +145,7 @@ let%expect_test "Check StoppedEvent example" =
     preserveFocusHint: bool option;
     threadId: int option;
     description: string option;
-    reason: string; }
+    reason: StoppedEvent_body_reason.t; }
 
     let enc =
      let open Data_encoding in
@@ -140,7 +159,7 @@ let%expect_test "Check StoppedEvent example" =
     (opt "preserveFocusHint" bool)
     (opt "threadId" int31)
     (opt "description" string)
-    (req "reason" string))
+    (req "reason" StoppedEvent_body_reason.enc))
 
 
     let make ?hitBreakpointIds ?allThreadsStopped ?text ?preserveFocusHint ?threadId ?description ~reason () =
