@@ -1,7 +1,7 @@
 open Dap_dfs
 
 let%expect_test "Check ErrorResponse example" =
-  let schema_js = Ezjsonm.from_channel @@ open_in "../../schema/errorResponse.json" in
+  let schema_js = Ezjsonm.from_channel @@ open_in "data/errorResponse.json" in
   let dfs = Dfs.make ~schema_js in
   let actual =
     Dfs.ordering dfs |> List.map (fun name ->
@@ -69,7 +69,7 @@ let%expect_test "Check ErrorResponse example" =
 
 
 let%expect_test "Check CancelRequest example" =
-  let schema_js = Ezjsonm.from_channel @@ open_in "../../schema/cancelRequest.json" in
+  let schema_js = Ezjsonm.from_channel @@ open_in "data/cancelRequest.json" in
   let dfs = Dfs.make ~schema_js in
   let actual =
     Dfs.ordering dfs |> List.map (fun name ->

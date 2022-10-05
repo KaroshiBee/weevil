@@ -510,18 +510,24 @@ module RenderRequest : RenderT = struct
   let render (t:t) ~name =
     let command = CommandHelper.strip_command name ~on:"Request" in
     match t.fields with
-    | [args; _cmd] -> if args.required then
+    | [args; _cmd] when args.required ->
       Printf.sprintf
         "module %s = MakeRequest (%s) (%s)"
         name
         command
         args.module_name
-      else
+    | [args; _cmd] ->
       Printf.sprintf
         "module %s = MakeRequest_optionalArgs (%s) (%s)"
         name
         command
         args.module_name
+    | [_cmd] ->
+      Printf.sprintf
+        "module %s = MakeRequest_optionalArgs (%s) (%s)"
+        name
+        command
+        _EMPTY_OBJECT
     | [] ->
       Printf.sprintf
         "module %s = MakeRequest_optionalArgs (%s) (%s)"
@@ -541,13 +547,13 @@ module RenderResponse : RenderT = struct
   let render (t:t) ~name =
     let command = CommandHelper.strip_command name ~on:"Response" in
     match t.fields with
-    | [body] -> if body.required then
+    | [body] when body.required ->
       Printf.sprintf
         "module %s = MakeResponse (%s) (%s)"
         name
         command
         body.module_name
-      else
+    | [body] ->
       Printf.sprintf
         "module %s = MakeResponse_optionalBody (%s) (%s)"
         name
