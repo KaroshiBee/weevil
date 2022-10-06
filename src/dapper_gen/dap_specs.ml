@@ -182,6 +182,9 @@ type t =
   | Object of Obj_spec.t
   | Enum of Enum_spec.t
   | Field of Field_spec.t
+  | Request of Obj_spec.t
+  | Response of Obj_spec.t
+  | Event of Obj_spec.t
   [@@deriving show]
 
 let make ~dirty_name ~path ?dirty_names () =

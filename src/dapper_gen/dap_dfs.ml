@@ -2,24 +2,30 @@ module Sp = Dap_specs
 module Q = Json_query
 module S = Json_schema
 
+module ProtocolMessageTypeHelper = struct
+
+  let module_name = "ProtocolMessage_type"
+
+end
+
 module CommandHelper = struct
 
-  let _COMMAND = "Command"
+  let module_name = "Command"
 
   let strip_command name ~on =
     match Stringext.cut name ~on with
-    | Some (enum_str, "") -> Printf.sprintf "struct let command=%s.%s end" _COMMAND enum_str
+    | Some (enum_str, "") -> Printf.sprintf "struct let command=%s.%s end" module_name enum_str
     | _ -> assert false
 
 end
 
 module EventHelper = struct
 
-  let _EVENT = "Event"
+  let module_name = "Event"
 
   let strip_event name =
     match Stringext.cut name ~on:"Event" with
-    | Some (enum_str, "") -> Printf.sprintf "struct let event=%s.%s end" _EVENT enum_str
+    | Some (enum_str, "") -> Printf.sprintf "struct let event=%s.%s end" module_name enum_str
     | _ -> assert false
 
 end
@@ -54,13 +60,16 @@ module Dfs = struct
 
   type t = {
     schema_js: Json_repr.ezjsonm; [@printer Json_repr.pp (module Json_repr.Ezjsonm)]
+    protocol_message_type_enum: Sp.Enum_spec.t;
+    command_enum: Sp.Enum_spec.t;
+    event_enum: Sp.Enum_spec.t;
     nodes: Sp.t list;
     ordering: string list;
     visited: Visited.t;
     finished: Finished.t;
   } [@@deriving show]
 
-  let ordering t = t.ordering |> List.rev
+  let ordering t = ProtocolMessageTypeHelper.module_name :: CommandHelper.module_name :: EventHelper.module_name :: (t.ordering |> List.rev)
 
   let _set_field_type t module_name type_ enc_ =
       match t.nodes with
@@ -130,10 +139,13 @@ module Dfs = struct
           Hashtbl.replace t.visited dfn Finished;
           Logs.debug (fun m -> m "finished: '%s'" dfn) ;
           match t.nodes with
-          | Sp.Object _ as ospec :: nodes ->
+          | (Sp.Object _ as spec) :: nodes
+          | (Sp.Request _ as spec) :: nodes
+          | (Sp.Response _ as spec) :: nodes
+          | (Sp.Event _ as spec) :: nodes ->
             Logs.debug (fun m -> m "adding definition '%s' to finished pile with module name '%s'" dfn module_name) ;
             let ordering = module_name :: t.ordering in
-            Hashtbl.add t.finished module_name ospec;
+            Hashtbl.add t.finished module_name spec;
             {t with nodes; ordering}
           | _ -> t
         )
@@ -145,35 +157,55 @@ module Dfs = struct
     Logs.debug (fun m -> m "process dfn end: '%s'" dfn) ;
     t
 
-  and process_element t ~path el =
-    (* can get proper enums here, still need to qry for _enums c.f. string handler *)
+  and process_enums t ~path =
     let dfn = Q.json_pointer_of_path path in
     let module_name = _make_module_name path in
-    let dirty_name = Sp.dirty_name ~path |> Option.get in
+    let _aux dirty_names =
+      let enum_spec = Sp.Enum_spec.of_path ~dirty_name:module_name ~path ~dirty_names () in
+      let ordering = module_name :: t.ordering in
+      Hashtbl.add t.finished module_name (Sp.Enum enum_spec);
+      {t with ordering}
+    in
+    function
+    | [dirty_name] as dirty_names -> (
+      Logs.debug (fun m -> m "element under '%s' has enum [%s]" dfn dirty_name);
+      let enum_spec = Sp.Enum_spec.of_path ~dirty_name:module_name ~path ~dirty_names () in
+      match
+        (Sp.Enum_spec.is_command enum_spec, Sp.Enum_spec.is_event enum_spec)
+      with
+      | (true, false) ->
+        Logs.debug (fun m -> m "element under '%s' has command enum [%s]" dfn dirty_name);
+        let command_enum = t.command_enum |> Sp.Enum_spec.append_enum ~dirty_name in
+        {t with command_enum}
+      | (false, true) ->
+        Logs.debug (fun m -> m "element under '%s' has event enum [%s]" dfn dirty_name);
+        let event_enum = t.event_enum |> Sp.Enum_spec.append_enum ~dirty_name in
+        {t with event_enum}
+      | (_, _) ->
+        Logs.debug (fun m -> m "element under '%s' has single enum field [%s]" dfn dirty_name);
+        _aux dirty_names
+    )
+    | (_ :: _rest) as dirty_names ->
+      Logs.debug (fun m -> m "element under '%s' has enum [%s]" dfn (dirty_names |> String.concat ", ")) ;
+      _aux dirty_names
+    | _ -> t
+
+  and process_element t ~path el =
+    (* can get proper enums here, still need to qry for _enums c.f. string handler below *)
+    let dfn = Q.json_pointer_of_path path in
     Logs.debug (fun m -> m "process element under '%s'" dfn);
-    let enums = el.enum |> Option.value ~default:[] in
-    let enums = enums
+    let enums = el.enum
+      |> Option.value ~default:[]
       |> List.map Json_repr.from_any
       |> List.map Ezjsonm.decode_string_exn
     in
     let n = List.length enums in
     (* it is an enum of some sort *)
-    if n > 1 then (
-      Logs.debug (fun m -> m "element under '%s' has enum [%s]" dfn (enums |> String.concat ", ")) ;
-      let enum_spec = Sp.Enum_spec.of_path ~dirty_name ~path ~dirty_names:enums () in
-      (* let module_name = *)
-      (*   match *)
-      (*     (Sp.Enum_spec.is_command enum_spec, Sp.Enum_spec.is_event enum_spec) *)
-      (*   with *)
-      (*   | (true, false) -> CommandHelper._COMMAND (\* TODO add as extra field to existing *\) *)
-      (*   | (false, true) -> EventHelper._EVENT (\* TODO add as extra field to existing *\) *)
-      (*   | (_, _) -> module_name *)
-      (* in *)
-      let ordering = module_name :: t.ordering in
-      Hashtbl.add t.finished module_name (Sp.Enum enum_spec);
-      {t with ordering}
+    if n > 0 then (
+      Logs.debug (fun m -> m "element enum element under '%s'" dfn);
+      process_enums t ~path enums
     ) else (
-      Logs.debug (fun m -> m "process element under '%s'" dfn) ;
+      Logs.debug (fun m -> m "process element kind under '%s'" dfn) ;
       process_kind t ~path el.kind
     )
 
@@ -277,27 +309,43 @@ module Dfs = struct
         _wrap_field_type t ~wrap:"list"
     | Monomorphic_array _ -> failwith "TODO marray"
     | Combine (All_of, [dref; el])
-        when dref.kind = Def_ref [`Field "definitions"; `Field "Request"] ->
+        when dref.kind = Def_ref [`Field "definitions"; `Field "Request"] -> (
         Logs.debug (fun m -> m "process request under '%s'" (Q.json_pointer_of_path ~wildcards:true path)) ;
         let new_path = path @ [`Field "allOf"; `Index 1] in
         let t' = process_element t ~path:new_path el in
         Hashtbl.replace_seq t.visited (Hashtbl.to_seq t'.visited) ;
-        t'
+        match t'.nodes with
+        | Sp.Object specs :: rest ->
+          let nodes = Sp.Request specs :: rest in
+          {t' with nodes}
+        | _ -> t'
+      )
     | Combine (All_of, [dref; el])
-        when dref.kind = Def_ref [`Field "definitions"; `Field "Event"] ->
+        when dref.kind = Def_ref [`Field "definitions"; `Field "Event"] -> (
         Logs.debug (fun m -> m "process event under '%s'" (Q.json_pointer_of_path ~wildcards:true path)) ;
+        Logs.info (fun m -> m "all_of event BEFORE %s" @@ show t);
         let new_path = path @ [`Field "allOf"; `Index 1] in
         let t' = process_element t ~path:new_path el in
         Hashtbl.replace_seq t.visited (Hashtbl.to_seq t'.visited) ;
-        t'
+        Logs.info (fun m -> m "all_of event AFTER %s" @@ show t');
+        match t'.nodes with
+        | Sp.Object specs :: rest ->
+          let nodes = Sp.Event specs :: rest in
+          {t' with nodes}
+        | _ -> t'
+      )
     | Combine (All_of, [dref; el])
-        when dref.kind = Def_ref [`Field "definitions"; `Field "Response"] ->
+        when dref.kind = Def_ref [`Field "definitions"; `Field "Response"] -> (
         Logs.debug (fun m -> m "process response under '%s'" (Q.json_pointer_of_path ~wildcards:true path)) ;
         let new_path = path @ [`Field "allOf"; `Index 1] in
         let t' = process_element t ~path:new_path el in
         Hashtbl.replace_seq t.visited (Hashtbl.to_seq t'.visited) ;
-        t'
-
+        match t'.nodes with
+        | Sp.Object specs :: rest ->
+          let nodes = Sp.Response specs :: rest in
+          {t' with nodes}
+        | _ -> t'
+      )
     | Combine (c, elements) -> (
         match c with
         | All_of ->
@@ -385,7 +433,7 @@ module Dfs = struct
       (* NOTE if its an _enum set then parse as Enum(suggested=true) because
          the _enum fields arent picked up by Json_schema module
          and so using Json_schema.to_json wont work.
-         Have to use Ezjsonm.decode_string to read the raw json and then query that.
+         Have to use Ezjsonm.decode_string to read the raw json and then use that.
       *)
       let enum_path = path @ [`Field "_enum"] in
       let module_name = _make_module_name enum_path in
@@ -428,7 +476,32 @@ module Dfs = struct
       | `O fields -> fields |> List.map (fun (nm, _) -> nm)
       | _ -> []
     in
-    let empty = {schema_js; nodes = []; ordering = []; visited = Hashtbl.create 500; finished = Hashtbl.create 500} in
+    let empty = {
+      schema_js;
+      protocol_message_type_enum =
+        Sp.Enum_spec.of_path
+          ~dirty_name:ProtocolMessageTypeHelper.module_name
+          ~path:[]
+          ~dirty_names:["request"; "response"; "event"]
+          ();
+      command_enum =
+        Sp.Enum_spec.of_path
+          ~dirty_name:CommandHelper.module_name
+          ~path:[]
+          ~dirty_names:["error"]
+          ();
+      event_enum =
+        Sp.Enum_spec.of_path
+          ~dirty_name:EventHelper.module_name
+          ~path:[]
+          ~dirty_names:[]
+          ();
+      nodes = [];
+      ordering = [];
+      visited = Hashtbl.create 500;
+      finished = Hashtbl.create 500
+    }
+    in
     (* NOTE know all /definitions/ are objects and are the only top-level things *)
     let ns = Q.query [`Field "definitions"] schema_js |> names in
     Logs.info (fun m -> m "\n\nprocessing '%d' names" @@ List.length ns) ;
@@ -655,3 +728,28 @@ module RenderEvent : (RenderT with type spec := Sp.Obj_spec.t) = struct
     | _ -> assert false
 
 end
+
+
+let render (dfs:Dfs.t) =
+  let ss =
+    Dfs.ordering dfs |> List.map (fun name ->
+      match (Hashtbl.find_opt dfs.finished name) with
+      | Some (Sp.Request o) ->
+        RenderRequest.(of_spec o |> render ~name)
+      | Some (Sp.Response o) ->
+        RenderResponse.(of_spec o |> render ~name)
+      | Some (Sp.Event o) ->
+        RenderEvent.(of_spec o |> render ~name)
+      | Some (Sp.Object o) ->
+        RenderObject.(of_spec o |> render ~name)
+      | Some (Sp.Enum e) ->
+        RenderEnum.(of_spec e |> render ~name)
+      | None ->
+        if name = ProtocolMessageTypeHelper.module_name then RenderEnum.(of_spec dfs.protocol_message_type_enum |> render ~name)
+        else if name = CommandHelper.module_name then RenderEnum.(of_spec dfs.command_enum |> render ~name)
+        else if name = EventHelper.module_name then RenderEnum.(of_spec dfs.event_enum |> render ~name)
+        else assert false
+      | _ -> assert false
+      ) |> String.concat "\n\n"
+  in
+  Printf.sprintf "open Dap_t\n\n%s" ss

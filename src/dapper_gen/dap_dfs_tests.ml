@@ -3,17 +3,50 @@ open Dap_dfs
 let%expect_test "Check ErrorResponse example" =
   let schema_js = Ezjsonm.from_channel @@ open_in "data/errorResponse.json" in
   let dfs = Dfs.make ~schema_js in
-  let actual =
-    Dfs.ordering dfs |> List.map (fun name ->
-      let o = match (Hashtbl.find dfs.finished name) with | Sp.Object obj -> obj | _ -> assert false in
-      try
-        RenderResponse.(of_spec o |> render ~name)
-      with _ ->
-        RenderObject.(of_spec o |> render ~name)
-      ) |> String.concat "\n\n"
-  in
+  let actual = render dfs in
   Printf.printf "%s" actual;
   [%expect {|
+    open Dap_t
+
+    module ProtocolMessage_type = struct
+    type t = Request | Response | Event
+
+    let enc =
+     let open Data_encoding in
+     conv
+     (function Request -> "request" | Response -> "response" | Event -> "event")
+     (function "request" -> Request | "response" -> Response | "event" -> Event | _ -> failwith "ProtocolMessage_type")
+     string
+
+    end
+
+
+    module Command = struct
+    type t = Error
+
+    let enc =
+     let open Data_encoding in
+     conv
+     (function Error -> "error")
+     (function "error" -> Error | _ -> failwith "Command")
+     string
+
+    end
+
+
+    module Event = struct
+    type t =
+
+    let enc =
+     let open Data_encoding in
+     conv
+     (function )
+     (function _ -> failwith "Event")
+     string
+
+    end
+
+
     module Message = struct
     type t = { lines: int list option;
     urlLabel: string option;
@@ -67,21 +100,53 @@ let%expect_test "Check ErrorResponse example" =
     module ErrorResponse = MakeResponse (struct let command=Command.Error end) (ErrorResponse_body) |}]
 
 
-
 let%expect_test "Check CancelRequest example" =
   let schema_js = Ezjsonm.from_channel @@ open_in "data/cancelRequest.json" in
   let dfs = Dfs.make ~schema_js in
-  let actual =
-    Dfs.ordering dfs |> List.map (fun name ->
-      let o = match (Hashtbl.find dfs.finished name) with | Sp.Object obj -> obj | _ -> assert false in
-      try
-        RenderRequest.(of_spec o |> render ~name)
-      with _ ->
-        RenderObject.(of_spec o |> render ~name)
-      ) |> String.concat "\n\n"
-  in
+  let actual = render dfs in
   Printf.printf "%s" actual;
   [%expect {|
+    open Dap_t
+
+    module ProtocolMessage_type = struct
+    type t = Request | Response | Event
+
+    let enc =
+     let open Data_encoding in
+     conv
+     (function Request -> "request" | Response -> "response" | Event -> "event")
+     (function "request" -> Request | "response" -> Response | "event" -> Event | _ -> failwith "ProtocolMessage_type")
+     string
+
+    end
+
+
+    module Command = struct
+    type t = Cancel | Error
+
+    let enc =
+     let open Data_encoding in
+     conv
+     (function Cancel -> "cancel" | Error -> "error")
+     (function "cancel" -> Cancel | "error" -> Error | _ -> failwith "Command")
+     string
+
+    end
+
+
+    module Event = struct
+    type t =
+
+    let enc =
+     let open Data_encoding in
+     conv
+     (function )
+     (function _ -> failwith "Event")
+     string
+
+    end
+
+
     module CancelArguments = struct
     type t = { progressId: string option;
     requestId: int option; }
@@ -108,23 +173,50 @@ let%expect_test "Check CancelRequest example" =
 let%expect_test "Check StoppedEvent example" =
   let schema_js = Ezjsonm.from_channel @@ open_in "data/stoppedEvent.json" in
   let dfs = Dfs.make ~schema_js in
-  let actual =
-    Dfs.ordering dfs |> List.map (fun name ->
-        match (Hashtbl.find dfs.finished name) with
-        | Sp.Object o -> (
-          try
-            RenderEvent.(of_spec o |> render ~name)
-          with _ ->
-            RenderObject.(of_spec o |> render ~name)
-        )
-        | Sp.Enum e -> (
-            RenderEnum.(of_spec e |> render ~name)
-        )
-        | _ -> assert false
-      ) |> String.concat "\n\n"
-  in
+  let actual = render dfs in
   Printf.printf "%s" actual;
   [%expect {|
+    open Dap_t
+
+    module ProtocolMessage_type = struct
+    type t = Request | Response | Event
+
+    let enc =
+     let open Data_encoding in
+     conv
+     (function Request -> "request" | Response -> "response" | Event -> "event")
+     (function "request" -> Request | "response" -> Response | "event" -> Event | _ -> failwith "ProtocolMessage_type")
+     string
+
+    end
+
+
+    module Command = struct
+    type t = Error
+
+    let enc =
+     let open Data_encoding in
+     conv
+     (function Error -> "error")
+     (function "error" -> Error | _ -> failwith "Command")
+     string
+
+    end
+
+
+    module Event = struct
+    type t = Stopped
+
+    let enc =
+     let open Data_encoding in
+     conv
+     (function Stopped -> "stopped")
+     (function "stopped" -> Stopped | _ -> failwith "Event")
+     string
+
+    end
+
+
     module StoppedEvent_body_reason = struct
     type t = Step | Breakpoint | Exception | Pause | Entry | Goto | Function_breakpoint | Data_breakpoint | Instruction_breakpoint | Other of string
 
