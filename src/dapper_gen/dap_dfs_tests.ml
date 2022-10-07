@@ -84,7 +84,13 @@ let%expect_test "Check ErrorResponse example" =
     end
 
 
-    module ErrorResponse = MakeResponse (struct let command=Command.Error end) (ErrorResponse_body)
+    module ErrorResponseMessage = MakeResponse (struct type t = Command.t let value=Command.Error let enc = Command.enc end)
+
+    type request =
+
+
+    type response =
+    | ErrorResponse of ErrorResponse_body.t ErrorResponseMessage.t
 
     type event = |}]
 
@@ -143,7 +149,13 @@ let%expect_test "Check CancelRequest example" =
     end
 
 
-    module CancelRequest = MakeRequest_optionalArgs (struct let command=Command.Cancel end) (CancelArguments)
+    module CancelRequestMessage = MakeRequest_optionalArgs (struct type t = Command.t let value=Command.Cancel let enc = Command.enc end)
+
+    type request =
+    | CancelRequest of CancelArguments.t CancelRequestMessage.t
+
+    type response =
+
 
     type event = |}]
 
@@ -225,7 +237,13 @@ let%expect_test "Check StoppedEvent example" =
     end
 
 
-    module StoppedEventMessage = EventReq (struct type t = Event.t let value=Event.Stopped let enc = Event.enc end)
+    module StoppedEventMessage = MakeEvent (struct type t = Event.t let value=Event.Stopped let enc = Event.enc end)
+
+    type request =
+
+
+    type response =
+
 
     type event =
     | StoppedEvent of StoppedEvent_body.t StoppedEventMessage.t |}]
