@@ -327,16 +327,11 @@ end = struct
 
 end
 
-module M = MakeEvent_optionalBody (struct type t = ProtocolMessage_type.t let value = ProtocolMessage_type.Event let enc = ProtocolMessage_type.enc end)
-type t = | EventExample of int M.t
-
-
 
 module type SEQUENCED = sig
   type a
-  type b
-  type ('a, 'b) t
-  val incr : (a, b) t -> (a, b) t
+  type 'a t
+  val incr : a t -> a t
 end
 
 module Flow (Request:SEQUENCED) (Response:SEQUENCED) = struct
@@ -344,8 +339,8 @@ module Flow (Request:SEQUENCED) (Response:SEQUENCED) = struct
   module JS = Data_encoding.Json
 
   type ('request, 'response, 'event, 'error, 'cancel) t = {
-    request: ('request, 'response) Request.t Data_encoding.t;
-    response: ('request, 'response) Response.t Data_encoding.t;
+    request: 'request Request.t Data_encoding.t;
+    response: 'response Response.t Data_encoding.t;
     events: 'event list;
     on_error: (unit -> 'error) option;
     on_cancel: (unit -> 'cancel) option;

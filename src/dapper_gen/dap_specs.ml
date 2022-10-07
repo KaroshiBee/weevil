@@ -11,12 +11,6 @@ let _unweird_name ?(capitalize=false) name =
   |> (fun s -> if capitalize then String.capitalize_ascii s else s)
 
 
-let root_path ~(path:Q.path) =
-  match path with
-  | (`Field "definitions") :: (`Field f) :: _ -> [(`Field "definitions"); (`Field f)]
-  | _ -> []
-
-
 module Field_spec = struct
   type t = {
     safe_name:string; (* for being a record name in ocaml *)

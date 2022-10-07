@@ -8,9 +8,6 @@ let%expect_test "Check obj" =
   Printf.printf "%s" (Q.json_pointer_of_path x.path);
   [%expect {| /definitions/ErrorResponse/allOf/0 |}];
 
-  Printf.printf "%s" (Q.json_pointer_of_path (root_path ~path:x.path));
-  [%expect {| /definitions/ErrorResponse |}];
-
   Printf.printf "%b" (Obj_spec.is_big x);
   [%expect {| false |}]
 
