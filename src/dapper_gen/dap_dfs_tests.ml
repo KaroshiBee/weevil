@@ -8,19 +8,6 @@ let%expect_test "Check ErrorResponse example" =
   [%expect {|
     open Dap_t
 
-    module ProtocolMessage_type = struct
-    type t = Request | Response | Event
-
-    let enc =
-     let open Data_encoding in
-     conv
-     (function Request -> "request" | Response -> "response" | Event -> "event")
-     (function "request" -> Request | "response" -> Response | "event" -> Event | _ -> failwith "ProtocolMessage_type")
-     string
-
-    end
-
-
     module Command = struct
     type t = Error
 
@@ -97,7 +84,9 @@ let%expect_test "Check ErrorResponse example" =
     end
 
 
-    module ErrorResponse = MakeResponse (struct let command=Command.Error end) (ErrorResponse_body) |}]
+    module ErrorResponse = MakeResponse (struct let command=Command.Error end) (ErrorResponse_body)
+
+    type event = |}]
 
 
 let%expect_test "Check CancelRequest example" =
@@ -107,19 +96,6 @@ let%expect_test "Check CancelRequest example" =
   Printf.printf "%s" actual;
   [%expect {|
     open Dap_t
-
-    module ProtocolMessage_type = struct
-    type t = Request | Response | Event
-
-    let enc =
-     let open Data_encoding in
-     conv
-     (function Request -> "request" | Response -> "response" | Event -> "event")
-     (function "request" -> Request | "response" -> Response | "event" -> Event | _ -> failwith "ProtocolMessage_type")
-     string
-
-    end
-
 
     module Command = struct
     type t = Cancel | Error
@@ -167,7 +143,9 @@ let%expect_test "Check CancelRequest example" =
     end
 
 
-    module CancelRequest = MakeRequest_optionalArgs (struct let command=Command.Cancel end) (CancelArguments) |}]
+    module CancelRequest = MakeRequest_optionalArgs (struct let command=Command.Cancel end) (CancelArguments)
+
+    type event = |}]
 
 
 let%expect_test "Check StoppedEvent example" =
@@ -177,19 +155,6 @@ let%expect_test "Check StoppedEvent example" =
   Printf.printf "%s" actual;
   [%expect {|
     open Dap_t
-
-    module ProtocolMessage_type = struct
-    type t = Request | Response | Event
-
-    let enc =
-     let open Data_encoding in
-     conv
-     (function Request -> "request" | Response -> "response" | Event -> "event")
-     (function "request" -> Request | "response" -> Response | "event" -> Event | _ -> failwith "ProtocolMessage_type")
-     string
-
-    end
-
 
     module Command = struct
     type t = Error
@@ -260,4 +225,7 @@ let%expect_test "Check StoppedEvent example" =
     end
 
 
-    module StoppedEvent = MakeEvent (struct let event=Event.Stopped end) (StoppedEvent_body) |}]
+    module StoppedEventMessage = EventReq (struct type t = Event.t let value=Event.Stopped let enc = Event.enc end)
+
+    type event =
+    | StoppedEvent of StoppedEvent_body.t StoppedEventMessage.t |}]

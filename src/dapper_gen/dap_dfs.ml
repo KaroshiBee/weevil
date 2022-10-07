@@ -2,12 +2,6 @@ module Sp = Dap_specs
 module Q = Json_query
 module S = Json_schema
 
-module ProtocolMessageTypeHelper = struct
-
-  let module_name = "ProtocolMessage_type"
-
-end
-
 module CommandHelper = struct
 
   let module_name = "Command"
@@ -25,7 +19,7 @@ module EventHelper = struct
 
   let strip_event name =
     match Stringext.cut name ~on:"Event" with
-    | Some (enum_str, "") -> Printf.sprintf "struct let event=%s.%s end" module_name enum_str
+    | Some (enum_str, "") -> Printf.sprintf "struct type t = %s.t let value=%s.%s let enc = %s.enc end" module_name module_name enum_str module_name
     | _ -> assert false
 
 end
@@ -60,7 +54,6 @@ module Dfs = struct
 
   type t = {
     schema_js: Json_repr.ezjsonm; [@printer Json_repr.pp (module Json_repr.Ezjsonm)]
-    protocol_message_type_enum: Sp.Enum_spec.t;
     command_enum: Sp.Enum_spec.t;
     event_enum: Sp.Enum_spec.t;
     nodes: Sp.t list;
@@ -69,7 +62,7 @@ module Dfs = struct
     finished: Finished.t;
   } [@@deriving show]
 
-  let ordering t = ProtocolMessageTypeHelper.module_name :: CommandHelper.module_name :: EventHelper.module_name :: (t.ordering |> List.rev)
+  let ordering t = CommandHelper.module_name :: EventHelper.module_name :: (t.ordering |> List.rev)
 
   let _set_field_type t module_name type_ enc_ =
       match t.nodes with
@@ -478,12 +471,6 @@ module Dfs = struct
     in
     let empty = {
       schema_js;
-      protocol_message_type_enum =
-        Sp.Enum_spec.of_path
-          ~dirty_name:ProtocolMessageTypeHelper.module_name
-          ~path:[]
-          ~dirty_names:["request"; "response"; "event"]
-          ();
       command_enum =
         Sp.Enum_spec.of_path
           ~dirty_name:CommandHelper.module_name
@@ -521,7 +508,7 @@ module type RenderT = sig
   type spec
   type t
   val of_spec : spec -> t
-  val render : t -> name:string -> string
+  val render : t -> name:string -> string*string
 
 end
 
@@ -556,7 +543,7 @@ module RenderEnum : (RenderT with type spec := Sp.Enum_spec.t) = struct
          (function %s)\n \
          string" enc_t_s enc_s_t
     in
-    Printf.sprintf "module %s = struct \n%s\n \n%s\n \nend\n" name t_str enc_str
+    Printf.sprintf "module %s = struct \n%s\n \n%s\n \nend\n" name t_str enc_str, ""
 
 
 end
@@ -614,7 +601,7 @@ module RenderObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
     let make_str = Printf.sprintf
         "let make %s () = \n%s" args_str rec_str
     in
-    Printf.sprintf "module %s = struct \n%s\n \n%s\n \n%s\n \nend\n" name t_str enc_str make_str
+    Printf.sprintf "module %s = struct \n%s\n \n%s\n \n%s\n \nend\n" name t_str enc_str make_str, ""
 
     (* TODO cyclic objects and large objects >10 fields *)
 
@@ -638,25 +625,25 @@ module RenderRequest : (RenderT with type spec := Sp.Obj_spec.t) = struct
         "module %s = MakeRequest (%s) (%s)"
         name
         command
-        args.module_name
+        args.module_name, ""
     | [args; _cmd] ->
       Printf.sprintf
         "module %s = MakeRequest_optionalArgs (%s) (%s)"
         name
         command
-        args.module_name
+        args.module_name, ""
     | [_cmd] ->
       Printf.sprintf
         "module %s = MakeRequest_optionalArgs (%s) (%s)"
         name
         command
-        _EMPTY_OBJECT
+        _EMPTY_OBJECT, ""
     | [] ->
       Printf.sprintf
         "module %s = MakeRequest_optionalArgs (%s) (%s)"
         name
         command
-        _EMPTY_OBJECT
+        _EMPTY_OBJECT, ""
     | _ -> assert false
 
 end
@@ -675,19 +662,19 @@ module RenderResponse : (RenderT with type spec := Sp.Obj_spec.t) = struct
         "module %s = MakeResponse (%s) (%s)"
         name
         command
-        body.module_name
+        body.module_name, ""
     | [body] ->
       Printf.sprintf
         "module %s = MakeResponse_optionalBody (%s) (%s)"
         name
         command
-        body.module_name
+        body.module_name, ""
     | [] ->
       Printf.sprintf
         "module %s = MakeResponse_optionalBody (%s) (%s)"
         name
         command
-        _EMPTY_OBJECT
+        _EMPTY_OBJECT, ""
     | _ -> assert false
 
 end
@@ -703,53 +690,78 @@ module RenderEvent : (RenderT with type spec := Sp.Obj_spec.t) = struct
     match t.fields with
     | [body; _ev] when body.required ->
       Printf.sprintf
-        "module %s = MakeEvent (%s) (%s)"
+        "module %sMessage = EventReq (%s)"
         name
         event
+      ,
+      Printf.sprintf
+        "| %s of %s.t %sMessage.t"
+        name
         body.module_name
+        name
+
     | [body; _ev] ->
       Printf.sprintf
-        "module %s = MakeEvent_optionalBody (%s) (%s)"
+        "module %sMessage = EventOpt (%s)"
         name
         event
+      ,
+      Printf.sprintf
+        "| %s of %s.t %sMessage.t"
+        name
         body.module_name
+        name
+
     | [_ev] ->
       Printf.sprintf
-        "module %s = MakeEvent_optionalBody (%s) (%s)"
+        "module %sMessage = EventOpt (%s)"
         name
         event
-        _EMPTY_OBJECT
-    | [] ->
+      ,
       Printf.sprintf
-        "module %s = MakeEvent_optionalBody (%s) (%s)"
+        "| %s of %s.t %sMessage.t"
         name
-        event
         _EMPTY_OBJECT
+        name
+
     | _ -> assert false
 
 end
 
 
 let render (dfs:Dfs.t) =
-  let ss =
-    Dfs.ordering dfs |> List.map (fun name ->
+  let modstrs = ref [] in
+  let eventstrs = ref [] in
+  let _ =
+    Dfs.ordering dfs
+      |> List.iter (fun name ->
       match (Hashtbl.find_opt dfs.finished name) with
       | Some (Sp.Request o) ->
-        RenderRequest.(of_spec o |> render ~name)
+        let modstr, _other = RenderRequest.(of_spec o |> render ~name) in
+        modstrs := modstr :: !modstrs;
       | Some (Sp.Response o) ->
-        RenderResponse.(of_spec o |> render ~name)
+        let modstr, _other = RenderResponse.(of_spec o |> render ~name) in
+        modstrs := modstr :: !modstrs
       | Some (Sp.Event o) ->
-        RenderEvent.(of_spec o |> render ~name)
+        let modstr, tystr = RenderEvent.(of_spec o |> render ~name) in
+        modstrs := modstr :: !modstrs; eventstrs := tystr :: !eventstrs
       | Some (Sp.Object o) ->
-        RenderObject.(of_spec o |> render ~name)
+        let modstr, _other = RenderObject.(of_spec o |> render ~name) in
+        modstrs := modstr :: !modstrs
       | Some (Sp.Enum e) ->
-        RenderEnum.(of_spec e |> render ~name)
+        let modstr, _other = RenderEnum.(of_spec e |> render ~name) in
+        modstrs := modstr :: !modstrs
       | None ->
-        if name = ProtocolMessageTypeHelper.module_name then RenderEnum.(of_spec dfs.protocol_message_type_enum |> render ~name)
-        else if name = CommandHelper.module_name then RenderEnum.(of_spec dfs.command_enum |> render ~name)
-        else if name = EventHelper.module_name then RenderEnum.(of_spec dfs.event_enum |> render ~name)
+        if name = CommandHelper.module_name then
+          let modstr, _ = RenderEnum.(of_spec dfs.command_enum |> render ~name) in
+          modstrs := modstr :: !modstrs
+        else if name = EventHelper.module_name then
+          let modstr, _ = RenderEnum.(of_spec dfs.event_enum |> render ~name) in
+          modstrs := modstr :: !modstrs
         else assert false
       | _ -> assert false
-      ) |> String.concat "\n\n"
+      )
   in
-  Printf.sprintf "open Dap_t\n\n%s" ss
+  let s1 = String.concat "\n\n" (!modstrs |> List.rev) in
+  let s2 = String.concat "\n" (!eventstrs |> List.rev) in
+  Printf.sprintf "open Dap_t\n\n%s\n\ntype event = \n%s\n\n" s1 s2

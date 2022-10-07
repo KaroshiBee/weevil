@@ -30,11 +30,20 @@ module ProtocolMessage_type = struct
 
 end
 
+module type ENC0 = sig
+  type t
+  val value : t
+  val enc : t Data_encoding.t
+end
+
 (* NOTE in the following we parameterise over command/event and args/body types
    because these are auto-generated from schema json *)
-module Request : sig
+(* NOTE we also put a unit on the end of all make functions sigs because
+   the opt versions require ?fields and we believe conformity in the api is useful *)
+module RequestReq : sig
   type ('command, 'args) t
   val seq : ('command, 'args) t -> int
+  val incr : ('command, 'args) t -> ('command, 'args) t
   val type_ : ('command, 'args) t -> ProtocolMessage_type.t
   val command : ('command, 'args) t -> 'command
   val arguments : ('command, 'args) t -> 'args
@@ -50,6 +59,7 @@ end = struct
   }
 
   let seq t = t.seq
+  let incr t = {t with seq=succ @@ seq t}
   let type_ t = t.type_
   let command t = t.command
   let arguments t = t.arguments
@@ -76,6 +86,7 @@ end
 module RequestOpt : sig
   type ('command, 'args) t
   val seq : ('command, 'args) t -> int
+  val incr : ('command, 'args) t -> ('command, 'args) t
   val type_ : ('command, 'args) t -> ProtocolMessage_type.t
   val command : ('command, 'args) t -> 'command
   val arguments : ('command, 'args) t -> 'args option
@@ -91,6 +102,7 @@ end = struct
   }
 
   let seq t = t.seq
+  let incr t = {t with seq=succ @@ seq t}
   let type_ t = t.type_
   let command t = t.command
   let arguments t = t.arguments
@@ -115,9 +127,10 @@ end
 
 
 
-module Response : sig
+module ResponseReq : sig
   type ('command, 'body) t
   val seq : ('command, 'body) t -> int
+  val incr : ('command, 'body) t -> ('command, 'body) t
   val type_ : ('command, 'body) t -> ProtocolMessage_type.t
   val request_seq : ('command, 'body) t -> int
   val success : ('command, 'body) t -> bool
@@ -139,6 +152,7 @@ end  = struct
   }
 
   let seq t = t. seq
+  let incr t = {t with seq=succ @@ seq t}
   let type_ t = t.type_
   let request_seq t = t.request_seq
   let success t = t.success
@@ -172,6 +186,7 @@ end
 module ResponseOpt : sig
   type ('command, 'body) t
   val seq : ('command, 'body) t -> int
+  val incr : ('command, 'body) t -> ('command, 'body) t
   val type_ : ('command, 'body) t -> ProtocolMessage_type.t
   val request_seq : ('command, 'body) t -> int
   val success : ('command, 'body) t -> bool
@@ -193,6 +208,7 @@ end  = struct
   }
 
   let seq t = t. seq
+  let incr t = {t with seq=succ @@ seq t}
   let type_ t = t.type_
   let request_seq t = t.request_seq
   let success t = t.success
@@ -222,30 +238,31 @@ end  = struct
 
 end
 
-
-module Event : sig
-  type ('event, 'body) t
-  val seq : ('event, 'body) t -> int
-  val type_ : ('event, 'body) t -> ProtocolMessage_type.t
-  val event : ('event, 'body) t -> 'event
-  val body : ('event, 'body) t -> 'body
-  val enc : 'event Data_encoding.t -> 'body Data_encoding.t -> ('event, 'body) t Data_encoding.t
-  val make : seq:int -> event:'event -> body:'body -> unit -> ('event, 'body) t
+module EventReq (Ev:ENC0) : sig
+  type 'body t
+  val seq : 'body t -> int
+  val incr : 'body t -> 'body t
+  val type_ : 'body t -> ProtocolMessage_type.t
+  val event : 'body t -> Ev.t
+  val body : 'body t -> 'body
+  val enc : 'body Data_encoding.t -> 'body t Data_encoding.t
+  val make : seq:int -> body:'body -> unit -> 'body t
 end = struct
 
-  type ('event, 'body) t = {
+  type 'body t = {
     seq : int;
     type_ : ProtocolMessage_type.t;
-    event : 'event;
+    event : Ev.t;
     body : 'body;
   }
 
   let seq t = t.seq
+  let incr t = {t with seq=succ @@ seq t}
   let type_ t = t.type_
   let event t = t.event
   let body t = t.body
 
-  let enc event body =
+  let enc body =
     let open Data_encoding in
     conv
       (fun {seq; type_; event; body} -> (seq, type_, event, body))
@@ -253,39 +270,42 @@ end = struct
       (obj4
          (req "seq" int31)
          (req "type" ProtocolMessage_type.enc)
-         (req "event" event)
+         (req "event" Ev.enc)
          (req "body" body))
 
-  let make ~seq ~event ~body () =
+  let make ~seq ~body () =
     let type_ = ProtocolMessage_type.Event in
+    let event = Ev.value in
     {seq; type_; event; body}
 
 end
 
 
-module EventOpt : sig
-  type ('event, 'body) t
-  val seq : ('event, 'body) t -> int
-  val type_ : ('event, 'body) t -> ProtocolMessage_type.t
-  val event : ('event, 'body) t -> 'event
-  val body : ('event, 'body) t -> 'body option
-  val enc : 'event Data_encoding.t -> 'body Data_encoding.t -> ('event, 'body) t Data_encoding.t
-  val make : seq:int -> event:'event -> ?body:'body -> unit -> ('event, 'body) t
+module EventOpt (Ev:ENC0) : sig
+  type 'body t
+  val seq : 'body t -> int
+  val incr : 'body t -> 'body t
+  val type_ : 'body t -> ProtocolMessage_type.t
+  val event : 'body t -> Ev.t
+  val body : 'body t -> 'body option
+  val enc : 'body Data_encoding.t -> 'body t Data_encoding.t
+  val make : seq:int -> ?body:'body -> unit -> 'body t
 end = struct
 
-  type ('event, 'body) t = {
+  type 'body t = {
     seq : int;
     type_ : ProtocolMessage_type.t;
-    event : 'event;
+    event : Ev.t;
     body : 'body option;
   }
 
   let seq t = t.seq
+  let incr t = {t with seq=succ @@ seq t}
   let type_ t = t.type_
   let event t = t.event
   let body t = t.body
 
-  let enc event body =
+  let enc body =
     let open Data_encoding in
     conv
       (fun {seq; type_; event; body} -> (seq, type_, event, body))
@@ -293,90 +313,77 @@ end = struct
       (obj4
          (req "seq" int31)
          (req "type" ProtocolMessage_type.enc)
-         (req "event" event)
+         (req "event" Ev.enc)
          (opt "body" body))
 
-  let make ~seq ~event ?body () =
+  let make ~seq ?body () =
     let type_ = ProtocolMessage_type.Event in
+    let event = Ev.value in
     {seq; type_; event; body}
 
 end
 
-
-
-(* (\* Main functor for constructing flows of request/response pairings *)
-(* along with events that may be raised or Errors that could be returned *\) *)
-(* module MakeJSFlow *)
-(*     (ERR:RESPONSE) (\* this one first so can curry it away *\) *)
-(*     (REQ:REQUEST) (REQ_OPT:REQUEST_OPTIONAL_ARGS) *)
-(*     (RESP:RESPONSE) (RESP_OPT:RESPONSE_OPTIONAL_BODY) *)
-(*     (EV:EVENT) (EV_OPT:EVENT_OPTIONAL_BODY) *)
-(*   : (FLOW with type *)
-(*       input := string and type *)
-(*       request := [ `Request of REQ.t | `RequestOpt of REQ_OPT.t ] and type *)
-(*       response := [ `Response of RESP.t | `ResponseOpt of RESP_OPT.t ] and type *)
-(*       event := [ `Event of EV.t | `EventOpt of EV_OPT.t ] and type *)
-(*       err_response := ERR.t *)
-(*     ) *)
-(*      = struct *)
-
-(*   module JS = Data_encoding.Json *)
-
-(*   let _HEADER_FIELD = "Content-Length: " *)
-(*   let _HEADER_TOKEN = "\r\n\r\n" *)
-
-(*   let _replace input output = *)
-(*     Str.global_replace (Str.regexp_string input) output *)
-
-(*   let wrap_header js = *)
-(*     let s = js *)
-(*             |> JS.to_string *)
-(*             |> _replace "\n" "" *)
-(*     in *)
-(*     let n = String.length s in *)
-(*     Printf.sprintf "%s%d%s%s" _HEADER_FIELD n _HEADER_TOKEN s *)
-
-(*   (\* type t = { *\) *)
-(*   (\*   request:request; *\) *)
-(*   (\*   response:response; *\) *)
-(*   (\*   events:event list; *\) *)
-
-(*   (\* } *\) *)
-
-(*   (\* let make ~request ~response ?(events=[]) () = { *\) *)
-(*   (\*   request; response; events *\) *)
-(*   (\* } *\) *)
-
-(*   let destruct_request msg = *)
-(*       match JS.from_string msg with *)
-(*       | Ok js -> ( *)
-(*           (\* TODO nice to be able to check this in types *\) *)
-(*           try *)
-(*             let r = JS.destruct REQ.enc js in `Request r *)
-(*           with _ -> *)
-(*             let r = JS.destruct REQ_OPT.enc js in `RequestOpt r *)
-(*         ) *)
-(*       | Error err -> *)
-(*         (\* TODO be better *\) *)
-(*         failwith err *)
-
-(*   let construct_response = function *)
-(*     (\* TODO wrap header, inc seq number somewhere central *\) *)
-(*     | `Response r -> JS.construct RESP.enc r |> wrap_header *)
-(*     | `ResponseOpt r -> JS.construct RESP_OPT.enc r |> wrap_header *)
-
-(*   let construct_events events = *)
-(*     (\* TODO wrap header, inc seq number somewhere central *\) *)
-(*     events |> List.map (fun ev -> *)
-(*         match ev with *)
-(*         | `Event ev -> JS.construct EV.enc ev |> wrap_header *)
-(*         | `EventOpt ev -> JS.construct EV_OPT.enc ev |> wrap_header *)
-(*       ) |> String.concat "" *)
-
-(*   let construct_error err = *)
-(*     JS.construct ERR.enc err |> wrap_header *)
+module M = EventOpt (struct type t = ProtocolMessage_type.t let value = ProtocolMessage_type.Event let enc = ProtocolMessage_type.enc end)
+type t = | EventExample of int M.t
 
 
 
+module type SEQUENCED = sig
+  type a
+  type b
+  type ('a, 'b) t
+  val incr : (a, b) t -> (a, b) t
+end
 
-(*      end *)
+module Flow (Request:SEQUENCED) (Response:SEQUENCED) = struct
+
+  module JS = Data_encoding.Json
+
+  type ('request, 'response, 'event, 'error, 'cancel) t = {
+    request: ('request, 'response) Request.t Data_encoding.t;
+    response: ('request, 'response) Response.t Data_encoding.t;
+    events: 'event list;
+    on_error: (unit -> 'error) option;
+    on_cancel: (unit -> 'cancel) option;
+  }
+
+  let make ?on_error ?on_cancel ?(events=[]) request response = {
+      request; response; events; on_error; on_cancel
+    }
+
+  let _HEADER_FIELD = "Content-Length: "
+  let _HEADER_TOKEN = "\r\n\r\n"
+
+  let _replace input output =
+    Str.global_replace (Str.regexp_string input) output
+
+  let wrap_header js =
+    let s = js
+            |> JS.to_string
+            |> _replace "\n" ""
+    in
+    let n = String.length s in
+    Printf.sprintf "%s%d%s%s" _HEADER_FIELD n _HEADER_TOKEN s
+
+  let destruct_request t msg =
+      match JS.from_string msg with
+      | Ok js -> (
+          try
+            Ok (JS.destruct t.request js)
+          with _ as err ->
+            Logs.err (fun m -> m "Cannot parse json '%s' as request: '%s'" msg @@ Printexc.to_string err);
+            Error (Printexc.to_string err)
+        )
+      | Error err ->
+        Logs.err (fun m -> m "Cannot parse json '%s': '%s'" msg err);
+        (* TODO should return an error response *)
+        Error err
+
+
+  let construct_response t response =
+    let r = Response.incr response in
+    JS.construct t.response r |> wrap_header
+
+
+end
+
