@@ -64,7 +64,8 @@ module Dfs = struct
 
   let ordering t = CommandHelper.module_name :: EventHelper.module_name :: (t.ordering |> List.rev)
 
-  let _set_field_type t module_name type_ enc_ =
+  let _set_field_type t module_name = function
+    | (type_, enc_) ->
       match t.nodes with
       | Sp.Field field_spec :: nodes ->
         let field = Sp.Field_spec.{field_spec with module_name; type_; enc_} in
@@ -87,6 +88,19 @@ module Dfs = struct
       let nodes = Sp.Field field :: nodes in
       {t with nodes}
     | _ -> t
+
+  let _set_nullable_field_type _t _module_name = function
+    | (_type_, _enc_) ->
+      failwith "TODO"
+
+  let _set_variant_field_type _t _module_name _type_encs =
+    failwith "TODO"
+
+  let _set_nullable_field_dict_type _t _module_name _type_encs =
+    failwith "TODO"
+
+  let _set_field_dict_type _t _module_name _type_encs =
+    failwith "TODO"
 
   let rec _make_module_name = function
     | `Field "definitions" :: rest
@@ -236,14 +250,27 @@ module Dfs = struct
       ) t
 
   and process_kind t ~path = function
-    | Object o when (List.length o.properties) = 0 ->
+    | Object o when (List.length o.properties) = 0 -> (
         Logs.debug (fun m ->
             m
               "process object with 0 properties under '%s'"
               (Q.json_pointer_of_path ~wildcards:true path)) ;
-        (* TODO things like Message.variables have additionalProperties *)
-        _set_field_type t "" "Data_encoding.json" "json"
-
+        (* NOTE things like Message.variables have additionalProperties,
+           they are used for specifying dicts of strings,
+           sometimes dicts of nullable strings *)
+        match o.additional_properties with
+        | Some _el -> (
+            let type_path = path @ [`Field "additionalProperties"] in
+            match Q.query type_path t.schema_js with
+            | `A [`String "string";
+                  `String "null"] ->
+              _set_nullable_field_dict_type t "" ("string", "string")
+            | `A [`String "string"] ->
+              _set_field_dict_type t "" ("string", "string")
+            | _ -> failwith "TODO more general additionalProperties"
+          )
+        | None -> _set_field_type t "" ("Data_encoding.json", "json")
+      )
     | Object
         {
           properties;
@@ -312,6 +339,8 @@ module Dfs = struct
         let t = process_element t ~path:new_path element in
         _set_seq t
     | Monomorphic_array _ -> failwith "TODO marray"
+
+    (* NOTE the only All_of uses are for Request/Response/Event s *)
     | Combine (All_of, [dref; el])
         when dref.kind = Def_ref [`Field "definitions"; `Field "Request"] -> (
         Logs.debug (fun m -> m "process request under '%s'" (Q.json_pointer_of_path ~wildcards:true path)) ;
@@ -327,11 +356,11 @@ module Dfs = struct
     | Combine (All_of, [dref; el])
         when dref.kind = Def_ref [`Field "definitions"; `Field "Event"] -> (
         Logs.debug (fun m -> m "process event under '%s'" (Q.json_pointer_of_path ~wildcards:true path)) ;
-        Logs.info (fun m -> m "all_of event BEFORE %s" @@ show t);
+        Logs.debug (fun m -> m "all_of event BEFORE %s" @@ show t);
         let new_path = path @ [`Field "allOf"; `Index 1] in
         let t' = process_element t ~path:new_path el in
         Hashtbl.replace_seq t.visited (Hashtbl.to_seq t'.visited) ;
-        Logs.info (fun m -> m "all_of event AFTER %s" @@ show t');
+        Logs.debug (fun m -> m "all_of event AFTER %s" @@ show t');
         match t'.nodes with
         | Sp.Object specs :: rest ->
           let nodes = Sp.Event specs :: rest in
@@ -350,64 +379,39 @@ module Dfs = struct
           {t' with nodes}
         | _ -> t'
       )
-    | Combine (c, elements) -> (
-        match c with
-        | All_of ->
-            Logs.debug (fun m ->
-                m
-                  "process combination allOf with %d elements under '%s'"
-                  (List.length elements)
-                  (Q.json_pointer_of_path ~wildcards:true path)) ;
-            (* Logs.debug (fun m -> m "nodes before allOf: %s" @@ show t); *)
-            let (_, t) =
-              elements
-              |> List.fold_left
-                   (fun (i, t_acc) el ->
-                     let new_path = path @ [`Field "allOf"; `Index i] in
-                     let t' = process_element t_acc ~path:new_path el in
-                     Hashtbl.replace_seq t_acc.visited (Hashtbl.to_seq t'.visited) ;
-                     (i + 1, {t' with visited = t_acc.visited}))
-                   (0, t)
-            in
-            (* Logs.debug (fun m -> m "nodes after allOf: %s" @@ show t); *)
+    | Combine (Any_of, elements) -> (
+        (* NOTE there arent any explicit Any_of declared,
+           all uses are implicit with 'type': [thing, thing, thing]
+           also the seven element form (array, boolean, int, null, ...)
+           pops up a lot and is taken to mean any json value.
+           Otherwise only have instances of [string, null] and [integer, string],
+           can add generalities later if nec *)
+        let path_field = "type" in
+        Logs.debug (fun m -> m "process combination '%s' with %d elements under '%s'" path_field (List.length elements) (Q.json_pointer_of_path ~wildcards:true path)) ;
+        let type_path = path @ [`Field path_field] in
+        (* type path should be present *)
+        match Q.query type_path t.schema_js with
+        | `A
+            [`String "array";
+             `String "boolean";
+             `String "integer";
+             `String "null";
+             `String "number";
+             `String "object";
+             `String "string"] ->
+          _set_field_type t "" ("Data_encoding.json", "json")
+        | `A [`String "string";
+              `String "null"] ->
+          _set_nullable_field_type t "" ("string", "string")
+        | `A [`String "integer";
+              `String "string"] ->
+          _set_variant_field_type t "" [("int", "int31"); ("string", "string")]
+        | _ -> failwith "TODO more general Any_of"
+      )
+    | Combine (One_of, _elements) -> failwith "TODO One_of"
 
-            (* (\* make an all_of thingy after filter out Request/Response/Event/ProtocolMessage refs  *\)
-             * let nts =
-             *   elements
-             *   |> List.mapi (fun i _el ->
-             *       let new_path = path @ [`Field "allOf"; `Index i] in
-             *       let field_name = ModuleName.of_path ~path in
-             *       let field_type = ModuleName.of_path ~path:new_path in
-             *       ({field_name; field_type} : LeafNodes.name_type_specs)
-             *     )
-             * in
-             * let leaf, desc =
-             *   try
-             *     let leaf_spec = EventSpec.of_path_exn ~path in
-             *     let leaf = `Event leaf_spec in
-             *     (leaf, "event")
-             *   with _ ->
-             *     try
-             *       let leaf_spec = ResponseSpec.of_path_exn ~path in
-             *       let leaf = `Response leaf_spec in
-             *       (leaf, "response")
-             *     with _ ->
-             *       try
-             *         let leaf_spec = RequestSpec.of_path_exn ~path in
-             *         let leaf = `Request leaf_spec in
-             *         (leaf, "request")
-             *       with _ ->
-             *         `AllOf nts, "allof"
-             * in
-             *   add_leaf_node t ~path ~leaf; *)
-            t
-        | One_of -> failwith "TODO OneOf"
-        | Any_of -> failwith "TODO AnyOf"
-        | Not ->
-            failwith
-              (Printf.sprintf
-                 "TODO combinator NOT @ %s"
-                 (Q.json_pointer_of_path ~wildcards:true path)))
+    | Combine _ -> failwith "TODO other combinators"
+
     | Def_ref ref_path ->
         let ref_path_str = Q.json_pointer_of_path ref_path in
         Logs.debug (fun m ->
@@ -430,7 +434,7 @@ module Dfs = struct
             let t' = process_definition t ~path:ref_path in
             (* get typename from ref_path *)
             let ref_type_name = _make_module_name ref_path in
-            _set_field_type t' ref_type_name (ref_type_name^".t") (ref_type_name^".enc")
+            _set_field_type t' ref_type_name (ref_type_name^".t", ref_type_name^".enc")
           )
         in
         (* Logs.debug (fun m -> m "nodes after def_ref '%s': %s" ref_path_str @@ show t); *)
@@ -462,22 +466,22 @@ module Dfs = struct
         Logs.debug (fun m -> m "inlined Enum");
         Hashtbl.add t.finished module_name (Sp.Enum enum);
         let ordering = module_name :: t.ordering in
-        _set_field_type {t with ordering} module_name (module_name^".t") (module_name^".enc")
+        _set_field_type {t with ordering} module_name (module_name^".t", module_name^".enc")
       | None ->
         Logs.debug (fun m -> m "String");
-        _set_field_type t "" "string" "string"
+        _set_field_type t "" ("string", "string")
     )
     | Integer _ ->
       Logs.debug (fun m -> m "Int");
-      _set_field_type t "" "int" "int31"
+      _set_field_type t "" ("int", "int31")
     | Number _ ->
       Logs.debug (fun m -> m "Number");
-      _set_field_type t "" "int" "int31"
+      _set_field_type t "" ("int", "int31")
     | Boolean ->
       Logs.debug (fun m -> m "Bool");
-      _set_field_type t "" "bool" "bool"
+      _set_field_type t "" ("bool", "bool")
     | Null -> failwith "TODO Null"
-    | Any -> failwith "TODO Any"
+    | Any -> failwith @@ Printf.sprintf "TODO Any '%s'" @@ Q.json_pointer_of_path path
     | Dummy -> failwith "TODO Dummy"
 
   let make ~schema_js =
@@ -598,38 +602,14 @@ module RenderObjectField = struct
 end
 
 
-
-
-(* example cyclic *)
-(* module ExceptionDetails = struct *)
-(*   type t = { *)
-(*     typeName: string; *)
-(*     innerException: t list option; } *)
-
-(*   let enc = *)
-(*     let open Data_encoding in *)
-(*     mu "ExceptionDetails.t" *)
-(*       (fun e -> *)
-(*          conv *)
-(*            (fun {typeName; innerException} -> (typeName, innerException)) *)
-(*            (fun (typeName, innerException) -> {typeName; innerException}) *)
-(*            (obj2 *)
-(*               (req "typeName" string) *)
-(*               (opt "innerException" @@ list e)) *)
-(*       ) *)
-
-
-(*   let make ~typeName ?innerException () = *)
-(*     {typeName; innerException} *)
-
-(* end *)
-
-
 module RenderObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
 
   type t = Sp.Obj_spec.t
 
-  let of_spec spec = spec
+  let of_spec = function
+    | Sp.Obj_spec.{fields; _} as spec when 10 >= List.length fields ->
+      spec
+    | _ -> failwith "Use RenderLargeObject"
 
   let render (t:t) ~name =
     let t_str =
@@ -678,8 +658,97 @@ module RenderObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
     in
     Printf.sprintf "module %s = struct \n%s\n \n%s\n \n%s\n \nend\n" name t_str enc_str make_str, ""
 
-  (* TODO cyclic objects and large objects >10 fields *)
+end
 
+
+module RenderLargeObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
+  (* NOTE objects with more than 10 fields need to be built with merge_obj *)
+
+  type t = {
+    spec: Sp.Obj_spec.t;
+    ngroups: int;
+    nleftover: int;
+  }
+
+  let of_spec = function
+    | Sp.Obj_spec.{fields; is_cyclic; _} as spec when 10 < List.length fields ->
+      if is_cyclic then failwith "TODO cyclic big objects" else (
+        let n = List.length fields in
+        let ngroups = n / 10 in
+        let nleftover = n mod 10 in
+        {spec; ngroups; nleftover}
+      )
+    | _ -> failwith "Use RenderObject"
+
+  let render {spec; ngroups; nleftover} ~name =
+    let fields_arr = Array.of_list spec.fields in
+    let n = Array.length fields_arr in
+    assert (nleftover + (ngroups * 10) = n);
+
+    let modstrs =
+      let ss =
+        List.init ngroups succ
+        |> List.fold_left (fun acc i ->
+            let i = 10 * (i-1) in
+            let fields = Array.sub fields_arr i 10 |> Array.to_list in
+            let dirty_name = Printf.sprintf "%s_%d" spec.safe_name i in
+            let spec = Sp.Obj_spec.of_path ~dirty_name ~path:[] ~fields () in
+            let name = Printf.sprintf "%s_%d" name i in
+            let modstr, _ = RenderObject.(of_spec spec |> render ~name) in
+            (name, modstr, fields) :: acc
+          ) [] in
+
+      (* leftover fields *)
+      let i = 10 * ngroups in
+      let fields = Array.sub fields_arr i nleftover |> Array.to_list in
+      let dirty_name = Printf.sprintf "%s_%d" spec.safe_name i in
+      let spec = Sp.Obj_spec.of_path ~dirty_name ~path:[] ~fields () in
+      let name = Printf.sprintf "%s_%d" name i in
+      let modstr, _ = RenderObject.(of_spec spec |> render ~name) in
+      List.rev @@ (name, modstr, fields) :: ss
+    in
+    let internal_mods = modstrs |> List.map (fun (_, modstr, _) -> modstr) |> String.concat "\n\n" in
+
+    let rec aux_brkts ~sep = function
+      | x :: [y] -> Printf.sprintf "(%s %s %s)" x sep y
+      | ln :: rest ->
+        let lns = aux_brkts ~sep rest in
+        Printf.sprintf "(%s %s %s)" ln sep lns
+      | [] -> ""
+    in
+    let t_str =
+      Printf.sprintf "type t = %s" @@ aux_brkts ~sep:"*" (modstrs |> List.map (fun (nm, _, _) -> nm^".t"))
+    in
+    let enc_str =
+      let rec aux = function
+        | x :: [y] -> Printf.sprintf "merge_objs %s %s" x y
+        | ln :: rest ->
+          let lns = aux rest in
+          Printf.sprintf "merge_objs %s @@ %s" ln lns
+        | [] -> ""
+      in
+      let ln = aux (modstrs |> List.map (fun (nm, _, _) -> nm^".enc")) in
+      Printf.sprintf
+          "let enc = \n \
+           let open Data_encoding in \n \
+           %s" ln
+    in
+    let args_str =
+      spec.fields |> List.map RenderObjectField.render_arg |> String.concat " "
+    in
+    let rec_str =
+      let ss =
+        modstrs |> List.mapi (fun i (nm, _, fields) ->
+            let fields = fields |> List.map RenderObjectField.render_arg |> String.concat " " in
+            Printf.sprintf "let t%d = %s.make %s () in" i nm fields
+          ) |> String.concat "\n\n" in
+      let tt = aux_brkts ~sep:"," (modstrs |> List.mapi (fun i _ -> Printf.sprintf "t%d" i)) in
+      Printf.sprintf "%s\n\n%s" ss tt
+    in
+    let make_str = Printf.sprintf
+        "let make %s () = \n%s" args_str rec_str
+    in
+    Printf.sprintf "module %s = struct \n%s\n \n%s\n \n%s\n \n%s\n \nend\n" name internal_mods t_str enc_str make_str, ""
 
 end
 
@@ -853,6 +922,9 @@ let render (dfs:Dfs.t) =
       | Some (Sp.Event o) ->
         let modstr, tystr = RenderEvent.(of_spec o |> render ~name) in
         modstrs := modstr :: !modstrs; eventstrs := tystr :: !eventstrs
+      | Some (Sp.Object o) when List.length o.fields > 10 ->
+        let modstr, _other = RenderLargeObject.(of_spec o |> render ~name) in
+        modstrs := modstr :: !modstrs
       | Some (Sp.Object o) ->
         let modstr, _other = RenderObject.(of_spec o |> render ~name) in
         modstrs := modstr :: !modstrs

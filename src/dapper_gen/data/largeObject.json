@@ -1,0 +1,163 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Debug Adapter Protocol",
+  "description": "The Debug Adapter Protocol defines the protocol used between an editor or IDE and a debugger or runtime.",
+  "type": "object",
+
+  "definitions": {
+    "Capabilities": {
+      "type": "object",
+      "title": "Types",
+      "description": "Information about the capabilities of a debug adapter.",
+      "properties": {
+        "supportsConfigurationDoneRequest": {
+          "type": "boolean",
+          "description": "The debug adapter supports the 'configurationDone' request."
+        },
+        "supportsFunctionBreakpoints": {
+          "type": "boolean",
+          "description": "The debug adapter supports function breakpoints."
+        },
+        "supportsConditionalBreakpoints": {
+          "type": "boolean",
+          "description": "The debug adapter supports conditional breakpoints."
+        },
+        "supportsHitConditionalBreakpoints": {
+          "type": "boolean",
+          "description": "The debug adapter supports breakpoints that break execution after a specified number of hits."
+        },
+        "supportsEvaluateForHovers": {
+          "type": "boolean",
+          "description": "The debug adapter supports a (side effect free) evaluate request for data hovers."
+        },
+        "supportsStepBack": {
+          "type": "boolean",
+          "description": "The debug adapter supports stepping back via the 'stepBack' and 'reverseContinue' requests."
+        },
+        "supportsSetVariable": {
+          "type": "boolean",
+          "description": "The debug adapter supports setting a variable to a value."
+        },
+        "supportsRestartFrame": {
+          "type": "boolean",
+          "description": "The debug adapter supports restarting a frame."
+        },
+        "supportsGotoTargetsRequest": {
+          "type": "boolean",
+          "description": "The debug adapter supports the 'gotoTargets' request."
+        },
+        "supportsStepInTargetsRequest": {
+          "type": "boolean",
+          "description": "The debug adapter supports the 'stepInTargets' request."
+        },
+        "supportsCompletionsRequest": {
+          "type": "boolean",
+          "description": "The debug adapter supports the 'completions' request."
+        },
+        "completionTriggerCharacters": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "The set of characters that should trigger completion in a REPL. If not specified, the UI should assume the '.' character."
+        },
+        "supportsModulesRequest": {
+          "type": "boolean",
+          "description": "The debug adapter supports the 'modules' request."
+        },
+        "supportsRestartRequest": {
+          "type": "boolean",
+          "description": "The debug adapter supports the 'restart' request. In this case a client should not implement 'restart' by terminating and relaunching the adapter but by calling the RestartRequest."
+        },
+        "supportsExceptionOptions": {
+          "type": "boolean",
+          "description": "The debug adapter supports 'exceptionOptions' on the setExceptionBreakpoints request."
+        },
+        "supportsValueFormattingOptions": {
+          "type": "boolean",
+          "description": "The debug adapter supports a 'format' attribute on the stackTraceRequest, variablesRequest, and evaluateRequest."
+        },
+        "supportsExceptionInfoRequest": {
+          "type": "boolean",
+          "description": "The debug adapter supports the 'exceptionInfo' request."
+        },
+        "supportTerminateDebuggee": {
+          "type": "boolean",
+          "description": "The debug adapter supports the 'terminateDebuggee' attribute on the 'disconnect' request."
+        },
+        "supportSuspendDebuggee": {
+          "type": "boolean",
+          "description": "The debug adapter supports the 'suspendDebuggee' attribute on the 'disconnect' request."
+        },
+        "supportsDelayedStackTraceLoading": {
+          "type": "boolean",
+          "description": "The debug adapter supports the delayed loading of parts of the stack, which requires that both the 'startFrame' and 'levels' arguments and an optional 'totalFrames' result of the 'StackTrace' request are supported."
+        },
+        "supportsLoadedSourcesRequest": {
+          "type": "boolean",
+          "description": "The debug adapter supports the 'loadedSources' request."
+        },
+        "supportsLogPoints": {
+          "type": "boolean",
+          "description": "The debug adapter supports logpoints by interpreting the 'logMessage' attribute of the SourceBreakpoint."
+        },
+        "supportsTerminateThreadsRequest": {
+          "type": "boolean",
+          "description": "The debug adapter supports the 'terminateThreads' request."
+        },
+        "supportsSetExpression": {
+          "type": "boolean",
+          "description": "The debug adapter supports the 'setExpression' request."
+        },
+        "supportsTerminateRequest": {
+          "type": "boolean",
+          "description": "The debug adapter supports the 'terminate' request."
+        },
+        "supportsDataBreakpoints": {
+          "type": "boolean",
+          "description": "The debug adapter supports data breakpoints."
+        },
+        "supportsReadMemoryRequest": {
+          "type": "boolean",
+          "description": "The debug adapter supports the 'readMemory' request."
+        },
+        "supportsWriteMemoryRequest": {
+          "type": "boolean",
+          "description": "The debug adapter supports the 'writeMemory' request."
+        },
+        "supportsDisassembleRequest": {
+          "type": "boolean",
+          "description": "The debug adapter supports the 'disassemble' request."
+        },
+        "supportsCancelRequest": {
+          "type": "boolean",
+          "description": "The debug adapter supports the 'cancel' request."
+        },
+        "supportsBreakpointLocationsRequest": {
+          "type": "boolean",
+          "description": "The debug adapter supports the 'breakpointLocations' request."
+        },
+        "supportsClipboardContext": {
+          "type": "boolean",
+          "description": "The debug adapter supports the 'clipboard' context value in the 'evaluate' request."
+        },
+        "supportsSteppingGranularity": {
+          "type": "boolean",
+          "description": "The debug adapter supports stepping granularities (argument 'granularity') for the stepping requests."
+        },
+        "supportsInstructionBreakpoints": {
+          "type": "boolean",
+          "description": "The debug adapter supports adding breakpoints based on instruction references."
+        },
+        "supportsExceptionFilterOptions": {
+          "type": "boolean",
+          "description": "The debug adapter supports 'filterOptions' as an argument on the 'setExceptionBreakpoints' request."
+        },
+        "supportsSingleThreadExecutionRequests": {
+          "type": "boolean",
+          "description": "The debug adapter supports the 'singleThread' property on the execution requests ('continue', 'next', 'stepIn', 'stepOut', 'reverseContinue', 'stepBack')."
+        }
+      }
+    }
+  }
+}
