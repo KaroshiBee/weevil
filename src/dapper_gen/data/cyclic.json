@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Debug Adapter Protocol",
+  "description": "The Debug Adapter Protocol defines the protocol used between an editor or IDE and a debugger or runtime.",
+  "type": "object",
+
+  "definitions": {
+
+    "ExceptionDetails": {
+      "type": "object",
+      "description": "Detailed information about an exception that has occurred.",
+      "properties": {
+        "message": {
+          "type": "string",
+          "description": "Message contained in the exception."
+        },
+        "typeName": {
+          "type": "string",
+          "description": "Short type name of the exception object."
+        },
+        "fullTypeName": {
+          "type": "string",
+          "description": "Fully-qualified type name of the exception object."
+        },
+        "evaluateName": {
+          "type": "string",
+          "description": "Optional expression that can be evaluated in the current scope to obtain the exception object."
+        },
+        "stackTrace": {
+          "type": "string",
+          "description": "Stack trace at the time the exception was thrown."
+        },
+        "innerException": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ExceptionDetails"
+          },
+          "description": "Details of the exception contained by this exception, if any."
+        }
+      }
+    }
+  }
+}

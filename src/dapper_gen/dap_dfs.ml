@@ -6,7 +6,7 @@ module CommandHelper = struct
 
   let module_name = "Command"
 
-  let strip_command name ~on =
+  let struct_decl_str name ~on =
     match Stringext.cut name ~on with
     | Some (enum_str, "") -> Printf.sprintf "struct type t = %s.t let value=%s.%s let enc = %s.enc end" module_name module_name enum_str module_name
     | _ -> assert false
@@ -17,7 +17,7 @@ module EventHelper = struct
 
   let module_name = "Event"
 
-  let strip_event name =
+  let struct_decl_str name =
     match Stringext.cut name ~on:"Event" with
     | Some (enum_str, "") -> Printf.sprintf "struct type t = %s.t let value=%s.%s let enc = %s.enc end" module_name module_name enum_str module_name
     | _ -> assert false
@@ -72,15 +72,21 @@ module Dfs = struct
         {t with nodes}
       | _ -> t
 
-  let _wrap_field_type t ~wrap =
-      match t.nodes with
-        | Sp.Field field_spec :: nodes ->
-          let type_ = field_spec.type_ ^ " " ^ wrap in
-          let enc_ = "(" ^ wrap ^ " " ^ field_spec.enc_ ^ ")" in
-          let field = Sp.Field_spec.{field_spec with type_; enc_} in
-          let nodes = (Sp.Field field) :: nodes in
-          {t with nodes}
-        | _ -> t
+  let _set_seq t =
+    match t.nodes with
+    | Sp.Field field_spec :: nodes ->
+      let field = Sp.Field_spec.{field_spec with seq = true} in
+      let nodes = Sp.Field field :: nodes in
+      {t with nodes}
+    | _ -> t
+
+  let _set_cyclic t =
+    match t.nodes with
+    | Sp.Field field_spec :: nodes ->
+      let field = Sp.Field_spec.{field_spec with cyclic = true} in
+      let nodes = Sp.Field field :: nodes in
+      {t with nodes}
+    | _ -> t
 
   let rec _make_module_name = function
     | `Field "definitions" :: rest
@@ -278,11 +284,16 @@ module Dfs = struct
             let arr = Array.of_list t.nodes in
             Logs.debug (fun m -> m "n:%d, t:%s" n @@ show t);
             let fields = Array.sub arr 0 n |> Array.to_list |> List.map (fun f ->
-                match f with | Sp.Field spec -> spec | s ->  failwith (Printf.sprintf "reading %d items, expected field, got %s" n (Sp.show s))) in
+                match f with
+                | Sp.Field spec -> spec
+                | s ->  failwith (Printf.sprintf "reading %d items, expected field, got %s" n (Sp.show s))
+              ) |> List.rev
+            in
             match Array.sub arr n (Array.length arr - n) |> Array.to_list with
             | Sp.Object spec :: nodes' ->
               Logs.debug (fun m -> m "adding %d fields to object at '%s'" n @@ Q.json_pointer_of_path path) ;
-              let nodes = Sp.(Object Obj_spec.{spec with fields} ) :: nodes' in
+              let is_cyclic = List.exists (fun (f:Sp.Field_spec.t) -> f.cyclic) fields in
+              let nodes = Sp.(Object Obj_spec.{spec with fields; is_cyclic} ) :: nodes' in
               {t with nodes; }
             | _ -> Logs.warn (fun m -> m "Couldnt find final object spec from path '%s'" @@ Q.json_pointer_of_path path); t
           )
@@ -299,7 +310,7 @@ module Dfs = struct
         Logs.debug (fun m -> m "process mono-morphic array under '%s'" dfn) ;
         let new_path = path @ [`Field "items"] in
         let t = process_element t ~path:new_path element in
-        _wrap_field_type t ~wrap:"list"
+        _set_seq t
     | Monomorphic_array _ -> failwith "TODO marray"
     | Combine (All_of, [dref; el])
         when dref.kind = Def_ref [`Field "definitions"; `Field "Request"] -> (
@@ -404,12 +415,17 @@ module Dfs = struct
               "Dependencies - def_ref: path '%s', ref_path: '%s'"
               (Q.json_pointer_of_path path)
               ref_path_str) ;
-        let is_cyclic = false
+        let is_cyclic =
+          match Hashtbl.find_opt t.visited ref_path_str with
+          | Some Started -> true
+          | _ -> false
         in
 
         (* Logs.debug (fun m -> m "nodes before def_ref '%s': %s" ref_path_str @@ show t); *)
         let t =
-          if is_cyclic then t
+          if is_cyclic then (
+            _set_cyclic t
+          )
           else (
             let t' = process_definition t ~path:ref_path in
             (* get typename from ref_path *)
@@ -552,16 +568,62 @@ module RenderObjectField = struct
 
   type t = Sp.Field_spec.t
 
-  let render_t (t:t) =
-    Printf.sprintf "%s: %s%s;" t.safe_name t.type_ (if t.required then "" else " option")
+  let typ_str ~required ~seq type_ =
+    let s = Printf.sprintf (if seq then "%s list" else "%s") type_ in
+    Printf.sprintf (if required then "%s" else "%s option") s
 
-  let render_enc (t:t) =
-    Printf.sprintf "(%s \"%s\" %s)" (if t.required then "req" else "opt") t.dirty_name t.enc_
+  let req_enc_str ~required = if required then "req" else "opt"
+  let seq_enc_str ~seq name = if seq then Printf.sprintf "(list %s)" name else name
+
+  let render_t = function
+    (* for the type t decl
+       NOTE if it is cyclic field then hardcode type name to 't' *)
+    | Sp.Field_spec.{ safe_name; type_; required; cyclic; seq; _ } when not cyclic ->
+      Printf.sprintf "%s: %s;" safe_name @@ typ_str ~required ~seq type_
+    | Sp.Field_spec.{ safe_name; required; seq; _ } ->
+      Printf.sprintf "%s: %s;" safe_name @@ typ_str ~required ~seq "t"
+
+  let render_enc = function
+    (* for the encoding function
+       NOTE if it is a cyclic field then hardcode the enc name to 'e' *)
+    | Sp.Field_spec.{ dirty_name; enc_; required; cyclic; seq; _ } when not cyclic ->
+      Printf.sprintf "(%s \"%s\" %s)" (req_enc_str ~required) dirty_name (seq_enc_str ~seq enc_)
+    | Sp.Field_spec.{ dirty_name; required; seq; _ } ->
+      Printf.sprintf "(%s \"%s\" %s)" (req_enc_str ~required) dirty_name (seq_enc_str ~seq "e")
 
   let render_arg (t:t) =
+    (* for the make function *)
     Printf.sprintf "%s%s" (if t.required then "~" else "?") t.safe_name
 
 end
+
+
+
+
+(* example cyclic *)
+(* module ExceptionDetails = struct *)
+(*   type t = { *)
+(*     typeName: string; *)
+(*     innerException: t list option; } *)
+
+(*   let enc = *)
+(*     let open Data_encoding in *)
+(*     mu "ExceptionDetails.t" *)
+(*       (fun e -> *)
+(*          conv *)
+(*            (fun {typeName; innerException} -> (typeName, innerException)) *)
+(*            (fun (typeName, innerException) -> {typeName; innerException}) *)
+(*            (obj2 *)
+(*               (req "typeName" string) *)
+(*               (opt "innerException" @@ list e)) *)
+(*       ) *)
+
+
+(*   let make ~typeName ?innerException () = *)
+(*     {typeName; innerException} *)
+
+(* end *)
+
 
 module RenderObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
 
@@ -590,20 +652,33 @@ module RenderObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
       t.fields |> List.map RenderObjectField.render_arg |> String.concat " "
     in
 
-    let enc_str = Printf.sprintf
-        "let enc = \n \
-         let open Data_encoding in \n \
+    let enc_str =
+      let fmt = if t.is_cyclic then
+          Printf.sprintf
+            "let enc = \n \
+             let open Data_encoding in \n \
+             mu \"%s.t\" \n \
+             ( fun e -> \n \
+             conv \n \
+             (fun %s -> %s)\n \
+             (fun %s -> %s)\n \
+             %s)"
+          else Printf.sprintf
+            "let enc = \n \
+             let open Data_encoding in \n \
+             (* %s.t *)
          conv \n \
-         (fun %s -> %s)\n \
-         (fun %s -> %s)\n \
-         %s" rec_str tup_str tup_str rec_str enc_obj_str
+             (fun %s -> %s)\n \
+             (fun %s -> %s)\n \
+             %s" in
+      fmt name rec_str tup_str tup_str rec_str enc_obj_str
     in
     let make_str = Printf.sprintf
         "let make %s () = \n%s" args_str rec_str
     in
     Printf.sprintf "module %s = struct \n%s\n \n%s\n \n%s\n \nend\n" name t_str enc_str make_str, ""
 
-    (* TODO cyclic objects and large objects >10 fields *)
+  (* TODO cyclic objects and large objects >10 fields *)
 
 
 end
@@ -618,7 +693,7 @@ module RenderRequest : (RenderT with type spec := Sp.Obj_spec.t) = struct
   let of_spec spec = spec
 
   let render (t:t) ~name =
-    let command = CommandHelper.strip_command name ~on:"Request" in
+    let command = CommandHelper.struct_decl_str name ~on:"Request" in
     match t.fields with
     | [args; _cmd] when args.required ->
       Printf.sprintf
@@ -632,7 +707,7 @@ module RenderRequest : (RenderT with type spec := Sp.Obj_spec.t) = struct
         args.module_name
         name
 
-    | [args; _cmd] ->
+    | [args; _cmd] when not args.required ->
       Printf.sprintf
         "module %sMessage = MakeRequest_optionalArgs (%s)"
         name
@@ -667,7 +742,7 @@ module RenderResponse : (RenderT with type spec := Sp.Obj_spec.t) = struct
   let of_spec spec = spec
 
   let render (t:t) ~name =
-    let command = CommandHelper.strip_command name ~on:"Response" in
+    let command = CommandHelper.struct_decl_str name ~on:"Response" in
     match t.fields with
     | [body] when body.required ->
       Printf.sprintf
@@ -681,7 +756,7 @@ module RenderResponse : (RenderT with type spec := Sp.Obj_spec.t) = struct
         body.module_name
         name
 
-    | [body] ->
+    | [body] when not body.required ->
       Printf.sprintf
         "module %sMessage = MakeResponse_optionalBody (%s)"
         name
@@ -717,7 +792,7 @@ module RenderEvent : (RenderT with type spec := Sp.Obj_spec.t) = struct
   let of_spec spec = spec
 
   let render (t:t) ~name =
-    let event = EventHelper.strip_event name in
+    let event = EventHelper.struct_decl_str name in
     match t.fields with
     | [body; _ev] when body.required ->
       Printf.sprintf
@@ -731,7 +806,7 @@ module RenderEvent : (RenderT with type spec := Sp.Obj_spec.t) = struct
         body.module_name
         name
 
-    | [body; _ev] ->
+    | [body; _ev] when not body.required ->
       Printf.sprintf
         "module %sMessage = MakeEvent_optionalBody (%s)"
         name
@@ -802,3 +877,5 @@ let render (dfs:Dfs.t) =
   Printf.sprintf
     "open Dap_t\n\n%s\n\ntype request = \n%s\n\ntype response = \n%s\n\ntype event = \n%s\n\n"
     smods sreqs sresps sevents
+
+

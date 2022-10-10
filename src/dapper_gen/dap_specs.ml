@@ -20,9 +20,11 @@ module Field_spec = struct
     type_:string; (* the ocaml type *)
     enc_: string; (* the encoding function name *)
     required:bool;
+    cyclic: bool;
+    seq: bool;
   } [@@deriving show]
 
-  let make ~path ~dirty_name ~required ?(module_name="") ?(type_="") ?(enc_="") () =
+  let make ~path ~dirty_name ~required ?(module_name="") ?(type_="") ?(enc_="") ?(cyclic=false) ?(seq=false) () =
     let safe_name = _unweird_name dirty_name in
     {
       safe_name;
@@ -32,6 +34,8 @@ module Field_spec = struct
       type_;
       enc_;
       required;
+      cyclic;
+      seq;
     }
 end
 
