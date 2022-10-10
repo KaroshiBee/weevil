@@ -1,100 +1,100 @@
 open Dap_dfs
 
-let%expect_test "Check ErrorResponse example" =
-  let schema_js = Ezjsonm.from_channel @@ open_in "data/errorResponse.json" in
-  let dfs = Dfs.make ~schema_js in
-  let actual = render dfs in
-  Printf.printf "%s" actual;
-  [%expect {|
-    open Dap_t
+(* let%expect_test "Check ErrorResponse example" = *)
+(*   let schema_js = Ezjsonm.from_channel @@ open_in "data/errorResponse.json" in *)
+(*   let dfs = Dfs.make ~schema_js in *)
+(*   let actual = render dfs in *)
+(*   Printf.printf "%s" actual; *)
+(*   [%expect {| *)
+(*     open Dap_t *)
 
-    module Command = struct
-    type t = Error
+(*     module Command = struct *)
+(*     type t = Error *)
 
-    let enc =
-     let open Data_encoding in
-     conv
-     (function Error -> "error")
-     (function "error" -> Error | _ -> failwith "Command")
-     string
+(*     let enc = *)
+(*      let open Data_encoding in *)
+(*      conv *)
+(*      (function Error -> "error") *)
+(*      (function "error" -> Error | _ -> failwith "Command") *)
+(*      string *)
 
-    end
-
-
-    module Event = struct
-    type t =
-
-    let enc =
-     let open Data_encoding in
-     conv
-     (function )
-     (function _ -> failwith "Event")
-     string
-
-    end
+(*     end *)
 
 
-    module Message = struct
-    type t = { id: int;
-    format: string;
-    variables: Data_encoding.json option;
-    sendTelemetry: bool option;
-    showUser: bool option;
-    url: string option;
-    urlLabel: string option;
-    lines: int list option; }
+(*     module Event = struct *)
+(*     type t = *)
 
-    let enc =
-     let open Data_encoding in
-     (* Message.t *)
-             conv
-     (fun {id; format; variables; sendTelemetry; showUser; url; urlLabel; lines} -> (id, format, variables, sendTelemetry, showUser, url, urlLabel, lines))
-     (fun (id, format, variables, sendTelemetry, showUser, url, urlLabel, lines) -> {id; format; variables; sendTelemetry; showUser; url; urlLabel; lines})
-     (obj8
-    (req "id" int31)
-    (req "format" string)
-    (opt "variables" json)
-    (opt "sendTelemetry" bool)
-    (opt "showUser" bool)
-    (opt "url" string)
-    (opt "urlLabel" string)
-    (opt "lines" (list int31)))
+(*     let enc = *)
+(*      let open Data_encoding in *)
+(*      conv *)
+(*      (function ) *)
+(*      (function _ -> failwith "Event") *)
+(*      string *)
+
+(*     end *)
 
 
-    let make ~id ~format ?variables ?sendTelemetry ?showUser ?url ?urlLabel ?lines () =
-    {id; format; variables; sendTelemetry; showUser; url; urlLabel; lines}
+(*     module Message = struct *)
+(*     type t = { id: int; *)
+(*     format: string; *)
+(*     variables: Data_encoding.json option; *)
+(*     sendTelemetry: bool option; *)
+(*     showUser: bool option; *)
+(*     url: string option; *)
+(*     urlLabel: string option; *)
+(*     lines: int list option; } *)
 
-    end
-
-
-    module ErrorResponse_body = struct
-    type t = { error: Message.t option; }
-
-    let enc =
-     let open Data_encoding in
-     (* ErrorResponse_body.t *)
-             conv
-     (fun {error} -> error)
-     (fun error -> {error})
-     (obj1
-    (opt "error" Message.enc))
-
-
-    let make ?error () =
-    {error}
-
-    end
-
-
-    module ErrorResponseMessage = MakeResponse (struct type t = Command.t let value=Command.Error let enc = Command.enc end)
-
-    type request =
+(*     let enc = *)
+(*      let open Data_encoding in *)
+(*      (\* Message.t *\) *)
+(*              conv *)
+(*      (fun {id; format; variables; sendTelemetry; showUser; url; urlLabel; lines} -> (id, format, variables, sendTelemetry, showUser, url, urlLabel, lines)) *)
+(*      (fun (id, format, variables, sendTelemetry, showUser, url, urlLabel, lines) -> {id; format; variables; sendTelemetry; showUser; url; urlLabel; lines}) *)
+(*      (obj8 *)
+(*     (req "id" int31) *)
+(*     (req "format" string) *)
+(*     (opt "variables" json) *)
+(*     (opt "sendTelemetry" bool) *)
+(*     (opt "showUser" bool) *)
+(*     (opt "url" string) *)
+(*     (opt "urlLabel" string) *)
+(*     (opt "lines" (list int31))) *)
 
 
-    type response =
-    | ErrorResponse of ErrorResponse_body.t ErrorResponseMessage.t
+(*     let make ~id ~format ?variables ?sendTelemetry ?showUser ?url ?urlLabel ?lines () = *)
+(*     {id; format; variables; sendTelemetry; showUser; url; urlLabel; lines} *)
 
-    type event = |}]
+(*     end *)
+
+
+(*     module ErrorResponse_body = struct *)
+(*     type t = { error: Message.t option; } *)
+
+(*     let enc = *)
+(*      let open Data_encoding in *)
+(*      (\* ErrorResponse_body.t *\) *)
+(*              conv *)
+(*      (fun {error} -> error) *)
+(*      (fun error -> {error}) *)
+(*      (obj1 *)
+(*     (opt "error" Message.enc)) *)
+
+
+(*     let make ?error () = *)
+(*     {error} *)
+
+(*     end *)
+
+
+(*     module ErrorResponseMessage = MakeResponse (struct type t = Command.t let value=Command.Error let enc = Command.enc end) *)
+
+(*     type request = *)
+
+
+(*     type response = *)
+(*     | ErrorResponse of ErrorResponse_body.t ErrorResponseMessage.t *)
+
+(*     type event = |}] *)
 
 
 let%expect_test "Check CancelRequest example" =
