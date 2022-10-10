@@ -91,16 +91,16 @@ module Dfs = struct
 
   let _set_nullable_field_type _t _module_name = function
     | (_type_, _enc_) ->
-      failwith "TODO"
+      failwith "TODO _set_nullable_field_type"
 
   let _set_variant_field_type _t _module_name _type_encs =
-    failwith "TODO"
+    failwith "TODO _set_variant_field_type"
 
   let _set_nullable_field_dict_type _t _module_name _type_encs =
-    failwith "TODO"
+    failwith "TODO _set_nullable_field_dict_type"
 
   let _set_field_dict_type _t _module_name _type_encs =
-    failwith "TODO"
+    failwith "TODO _set_field_dict_type"
 
   let rec _make_module_name = function
     | `Field "definitions" :: rest
@@ -260,12 +260,12 @@ module Dfs = struct
            sometimes dicts of nullable strings *)
         match o.additional_properties with
         | Some _el -> (
-            let type_path = path @ [`Field "additionalProperties"] in
+            let type_path = path @ [`Field "additionalProperties"; `Field "type"] in
             match Q.query type_path t.schema_js with
             | `A [`String "string";
                   `String "null"] ->
               _set_nullable_field_dict_type t "" ("string", "string")
-            | `A [`String "string"] ->
+            | `String "string" ->
               _set_field_dict_type t "" ("string", "string")
             | _ -> failwith "TODO more general additionalProperties"
           )
@@ -296,7 +296,7 @@ module Dfs = struct
             let nodes = spec :: t.nodes in
             let t = process_properties {t with nodes} ~path properties in
             assert (List.length t.nodes >= m+n) ;
-            (* need to filter out initial objects, these are objects that have been inline-defined *)
+            (* TODO need to filter out all initial objects, these are objects that have been inline-defined *)
             let t =
               match t.nodes with
               | Sp.Object obj :: nodes ->

@@ -1,328 +1,328 @@
 open Dap_dfs
 
-(* let%expect_test "Check ErrorResponse example" = *)
-(*   let schema_js = Ezjsonm.from_channel @@ open_in "data/errorResponse.json" in *)
-(*   let dfs = Dfs.make ~schema_js in *)
-(*   let actual = render dfs in *)
-(*   Printf.printf "%s" actual; *)
-(*   [%expect {| *)
-(*     open Dap_t *)
+let%expect_test "Check ErrorResponse example" =
+  let schema_js = Ezjsonm.from_channel @@ open_in "data/errorResponse.json" in
+  let dfs = Dfs.make ~schema_js in
+  let actual = render dfs in
+  Printf.printf "%s" actual;
+  [%expect {|
+    open Dap_t
 
-(*     module Command = struct *)
-(*     type t = Error *)
+    module Command = struct
+    type t = Error
 
-(*     let enc = *)
-(*      let open Data_encoding in *)
-(*      conv *)
-(*      (function Error -> "error") *)
-(*      (function "error" -> Error | _ -> failwith "Command") *)
-(*      string *)
+    let enc =
+     let open Data_encoding in
+     conv
+     (function Error -> "error")
+     (function "error" -> Error | _ -> failwith "Command")
+     string
 
-(*     end *)
+    end
 
 
-(*     module Event = struct *)
-(*     type t = *)
+    module Event = struct
+    type t =
 
-(*     let enc = *)
-(*      let open Data_encoding in *)
-(*      conv *)
-(*      (function ) *)
-(*      (function _ -> failwith "Event") *)
-(*      string *)
+    let enc =
+     let open Data_encoding in
+     conv
+     (function )
+     (function _ -> failwith "Event")
+     string
 
-(*     end *)
+    end
 
 
-(*     module Message = struct *)
-(*     type t = { id: int; *)
-(*     format: string; *)
-(*     variables: Data_encoding.json option; *)
-(*     sendTelemetry: bool option; *)
-(*     showUser: bool option; *)
-(*     url: string option; *)
-(*     urlLabel: string option; *)
-(*     lines: int list option; } *)
+    module Message = struct
+    type t = { id: int;
+    format: string;
+    variables: Data_encoding.json option;
+    sendTelemetry: bool option;
+    showUser: bool option;
+    url: string option;
+    urlLabel: string option;
+    lines: int list option; }
 
-(*     let enc = *)
-(*      let open Data_encoding in *)
-(*      (\* Message.t *\) *)
-(*              conv *)
-(*      (fun {id; format; variables; sendTelemetry; showUser; url; urlLabel; lines} -> (id, format, variables, sendTelemetry, showUser, url, urlLabel, lines)) *)
-(*      (fun (id, format, variables, sendTelemetry, showUser, url, urlLabel, lines) -> {id; format; variables; sendTelemetry; showUser; url; urlLabel; lines}) *)
-(*      (obj8 *)
-(*     (req "id" int31) *)
-(*     (req "format" string) *)
-(*     (opt "variables" json) *)
-(*     (opt "sendTelemetry" bool) *)
-(*     (opt "showUser" bool) *)
-(*     (opt "url" string) *)
-(*     (opt "urlLabel" string) *)
-(*     (opt "lines" (list int31))) *)
+    let enc =
+     let open Data_encoding in
+     (* Message.t *)
+             conv
+     (fun {id; format; variables; sendTelemetry; showUser; url; urlLabel; lines} -> (id, format, variables, sendTelemetry, showUser, url, urlLabel, lines))
+     (fun (id, format, variables, sendTelemetry, showUser, url, urlLabel, lines) -> {id; format; variables; sendTelemetry; showUser; url; urlLabel; lines})
+     (obj8
+    (req "id" int31)
+    (req "format" string)
+    (opt "variables" json)
+    (opt "sendTelemetry" bool)
+    (opt "showUser" bool)
+    (opt "url" string)
+    (opt "urlLabel" string)
+    (opt "lines" (list int31)))
 
 
-(*     let make ~id ~format ?variables ?sendTelemetry ?showUser ?url ?urlLabel ?lines () = *)
-(*     {id; format; variables; sendTelemetry; showUser; url; urlLabel; lines} *)
+    let make ~id ~format ?variables ?sendTelemetry ?showUser ?url ?urlLabel ?lines () =
+    {id; format; variables; sendTelemetry; showUser; url; urlLabel; lines}
 
-(*     end *)
+    end
 
 
-(*     module ErrorResponse_body = struct *)
-(*     type t = { error: Message.t option; } *)
+    module ErrorResponse_body = struct
+    type t = { error: Message.t option; }
 
-(*     let enc = *)
-(*      let open Data_encoding in *)
-(*      (\* ErrorResponse_body.t *\) *)
-(*              conv *)
-(*      (fun {error} -> error) *)
-(*      (fun error -> {error}) *)
-(*      (obj1 *)
-(*     (opt "error" Message.enc)) *)
+    let enc =
+     let open Data_encoding in
+     (* ErrorResponse_body.t *)
+             conv
+     (fun {error} -> error)
+     (fun error -> {error})
+     (obj1
+    (opt "error" Message.enc))
 
 
-(*     let make ?error () = *)
-(*     {error} *)
+    let make ?error () =
+    {error}
 
-(*     end *)
+    end
 
 
-(*     module ErrorResponseMessage = MakeResponse (struct type t = Command.t let value=Command.Error let enc = Command.enc end) *)
+    module ErrorResponseMessage = MakeResponse (struct type t = Command.t let value=Command.Error let enc = Command.enc end)
 
-(*     type request = *)
+    type request =
 
 
-(*     type response = *)
-(*     | ErrorResponse of ErrorResponse_body.t ErrorResponseMessage.t *)
+    type response =
+    | ErrorResponse of ErrorResponse_body.t ErrorResponseMessage.t
 
-(*     type event = |}] *)
+    type event = |}]
 
 
-(* let%expect_test "Check CancelRequest example" = *)
-(*   let schema_js = Ezjsonm.from_channel @@ open_in "data/cancelRequest.json" in *)
-(*   let dfs = Dfs.make ~schema_js in *)
-(*   let actual = render dfs in *)
-(*   Printf.printf "%s" actual; *)
-(*   [%expect {| *)
-(*     open Dap_t *)
+let%expect_test "Check CancelRequest example" =
+  let schema_js = Ezjsonm.from_channel @@ open_in "data/cancelRequest.json" in
+  let dfs = Dfs.make ~schema_js in
+  let actual = render dfs in
+  Printf.printf "%s" actual;
+  [%expect {|
+    open Dap_t
 
-(*     module Command = struct *)
-(*     type t = Cancel | Error *)
+    module Command = struct
+    type t = Cancel | Error
 
-(*     let enc = *)
-(*      let open Data_encoding in *)
-(*      conv *)
-(*      (function Cancel -> "cancel" | Error -> "error") *)
-(*      (function "cancel" -> Cancel | "error" -> Error | _ -> failwith "Command") *)
-(*      string *)
+    let enc =
+     let open Data_encoding in
+     conv
+     (function Cancel -> "cancel" | Error -> "error")
+     (function "cancel" -> Cancel | "error" -> Error | _ -> failwith "Command")
+     string
 
-(*     end *)
+    end
 
 
-(*     module Event = struct *)
-(*     type t = *)
+    module Event = struct
+    type t =
 
-(*     let enc = *)
-(*      let open Data_encoding in *)
-(*      conv *)
-(*      (function ) *)
-(*      (function _ -> failwith "Event") *)
-(*      string *)
+    let enc =
+     let open Data_encoding in
+     conv
+     (function )
+     (function _ -> failwith "Event")
+     string
 
-(*     end *)
+    end
 
 
-(*     module CancelArguments = struct *)
-(*     type t = { requestId: int option; *)
-(*     progressId: string option; } *)
+    module CancelArguments = struct
+    type t = { requestId: int option;
+    progressId: string option; }
 
-(*     let enc = *)
-(*      let open Data_encoding in *)
-(*      (\* CancelArguments.t *\) *)
-(*              conv *)
-(*      (fun {requestId; progressId} -> (requestId, progressId)) *)
-(*      (fun (requestId, progressId) -> {requestId; progressId}) *)
-(*      (obj2 *)
-(*     (opt "requestId" int31) *)
-(*     (opt "progressId" string)) *)
+    let enc =
+     let open Data_encoding in
+     (* CancelArguments.t *)
+             conv
+     (fun {requestId; progressId} -> (requestId, progressId))
+     (fun (requestId, progressId) -> {requestId; progressId})
+     (obj2
+    (opt "requestId" int31)
+    (opt "progressId" string))
 
 
-(*     let make ?requestId ?progressId () = *)
-(*     {requestId; progressId} *)
+    let make ?requestId ?progressId () =
+    {requestId; progressId}
 
-(*     end *)
+    end
 
 
-(*     module CancelRequestMessage = MakeRequest (struct type t = Command.t let value=Command.Cancel let enc = Command.enc end) *)
+    module CancelRequestMessage = MakeRequest (struct type t = Command.t let value=Command.Cancel let enc = Command.enc end)
 
-(*     type request = *)
-(*     | CancelRequest of CancelRequest_command.t CancelRequestMessage.t *)
+    type request =
+    | CancelRequest of CancelRequest_command.t CancelRequestMessage.t
 
-(*     type response = *)
+    type response =
 
 
-(*     type event = |}] *)
+    type event = |}]
 
 
-(* let%expect_test "Check StoppedEvent example" = *)
-(*   let schema_js = Ezjsonm.from_channel @@ open_in "data/stoppedEvent.json" in *)
-(*   let dfs = Dfs.make ~schema_js in *)
-(*   let actual = render dfs in *)
-(*   Printf.printf "%s" actual; *)
-(*   [%expect {| *)
-(*     open Dap_t *)
+let%expect_test "Check StoppedEvent example" =
+  let schema_js = Ezjsonm.from_channel @@ open_in "data/stoppedEvent.json" in
+  let dfs = Dfs.make ~schema_js in
+  let actual = render dfs in
+  Printf.printf "%s" actual;
+  [%expect {|
+    open Dap_t
 
-(*     module Command = struct *)
-(*     type t = Error *)
+    module Command = struct
+    type t = Error
 
-(*     let enc = *)
-(*      let open Data_encoding in *)
-(*      conv *)
-(*      (function Error -> "error") *)
-(*      (function "error" -> Error | _ -> failwith "Command") *)
-(*      string *)
+    let enc =
+     let open Data_encoding in
+     conv
+     (function Error -> "error")
+     (function "error" -> Error | _ -> failwith "Command")
+     string
 
-(*     end *)
+    end
 
 
-(*     module Event = struct *)
-(*     type t = Stopped *)
+    module Event = struct
+    type t = Stopped
 
-(*     let enc = *)
-(*      let open Data_encoding in *)
-(*      conv *)
-(*      (function Stopped -> "stopped") *)
-(*      (function "stopped" -> Stopped | _ -> failwith "Event") *)
-(*      string *)
+    let enc =
+     let open Data_encoding in
+     conv
+     (function Stopped -> "stopped")
+     (function "stopped" -> Stopped | _ -> failwith "Event")
+     string
 
-(*     end *)
+    end
 
 
-(*     module StoppedEvent_body_reason = struct *)
-(*     type t = Step | Breakpoint | Exception | Pause | Entry | Goto | Function_breakpoint | Data_breakpoint | Instruction_breakpoint | Other of string *)
+    module StoppedEvent_body_reason = struct
+    type t = Step | Breakpoint | Exception | Pause | Entry | Goto | Function_breakpoint | Data_breakpoint | Instruction_breakpoint | Other of string
 
-(*     let enc = *)
-(*      let open Data_encoding in *)
-(*      conv *)
-(*      (function Step -> "step" | Breakpoint -> "breakpoint" | Exception -> "exception" | Pause -> "pause" | Entry -> "entry" | Goto -> "goto" | Function_breakpoint -> "function breakpoint" | Data_breakpoint -> "data breakpoint" | Instruction_breakpoint -> "instruction breakpoint" | Other s -> s) *)
-(*      (function "step" -> Step | "breakpoint" -> Breakpoint | "exception" -> Exception | "pause" -> Pause | "entry" -> Entry | "goto" -> Goto | "function breakpoint" -> Function_breakpoint | "data breakpoint" -> Data_breakpoint | "instruction breakpoint" -> Instruction_breakpoint | _ as s -> Other s) *)
-(*      string *)
+    let enc =
+     let open Data_encoding in
+     conv
+     (function Step -> "step" | Breakpoint -> "breakpoint" | Exception -> "exception" | Pause -> "pause" | Entry -> "entry" | Goto -> "goto" | Function_breakpoint -> "function breakpoint" | Data_breakpoint -> "data breakpoint" | Instruction_breakpoint -> "instruction breakpoint" | Other s -> s)
+     (function "step" -> Step | "breakpoint" -> Breakpoint | "exception" -> Exception | "pause" -> Pause | "entry" -> Entry | "goto" -> Goto | "function breakpoint" -> Function_breakpoint | "data breakpoint" -> Data_breakpoint | "instruction breakpoint" -> Instruction_breakpoint | _ as s -> Other s)
+     string
 
-(*     end *)
+    end
 
 
-(*     module StoppedEvent_body = struct *)
-(*     type t = { reason: StoppedEvent_body_reason.t; *)
-(*     description: string option; *)
-(*     threadId: int option; *)
-(*     preserveFocusHint: bool option; *)
-(*     text: string option; *)
-(*     allThreadsStopped: bool option; *)
-(*     hitBreakpointIds: int list option; } *)
+    module StoppedEvent_body = struct
+    type t = { reason: StoppedEvent_body_reason.t;
+    description: string option;
+    threadId: int option;
+    preserveFocusHint: bool option;
+    text: string option;
+    allThreadsStopped: bool option;
+    hitBreakpointIds: int list option; }
 
-(*     let enc = *)
-(*      let open Data_encoding in *)
-(*      (\* StoppedEvent_body.t *\) *)
-(*              conv *)
-(*      (fun {reason; description; threadId; preserveFocusHint; text; allThreadsStopped; hitBreakpointIds} -> (reason, description, threadId, preserveFocusHint, text, allThreadsStopped, hitBreakpointIds)) *)
-(*      (fun (reason, description, threadId, preserveFocusHint, text, allThreadsStopped, hitBreakpointIds) -> {reason; description; threadId; preserveFocusHint; text; allThreadsStopped; hitBreakpointIds}) *)
-(*      (obj7 *)
-(*     (req "reason" StoppedEvent_body_reason.enc) *)
-(*     (opt "description" string) *)
-(*     (opt "threadId" int31) *)
-(*     (opt "preserveFocusHint" bool) *)
-(*     (opt "text" string) *)
-(*     (opt "allThreadsStopped" bool) *)
-(*     (opt "hitBreakpointIds" (list int31))) *)
+    let enc =
+     let open Data_encoding in
+     (* StoppedEvent_body.t *)
+             conv
+     (fun {reason; description; threadId; preserveFocusHint; text; allThreadsStopped; hitBreakpointIds} -> (reason, description, threadId, preserveFocusHint, text, allThreadsStopped, hitBreakpointIds))
+     (fun (reason, description, threadId, preserveFocusHint, text, allThreadsStopped, hitBreakpointIds) -> {reason; description; threadId; preserveFocusHint; text; allThreadsStopped; hitBreakpointIds})
+     (obj7
+    (req "reason" StoppedEvent_body_reason.enc)
+    (opt "description" string)
+    (opt "threadId" int31)
+    (opt "preserveFocusHint" bool)
+    (opt "text" string)
+    (opt "allThreadsStopped" bool)
+    (opt "hitBreakpointIds" (list int31)))
 
 
-(*     let make ~reason ?description ?threadId ?preserveFocusHint ?text ?allThreadsStopped ?hitBreakpointIds () = *)
-(*     {reason; description; threadId; preserveFocusHint; text; allThreadsStopped; hitBreakpointIds} *)
+    let make ~reason ?description ?threadId ?preserveFocusHint ?text ?allThreadsStopped ?hitBreakpointIds () =
+    {reason; description; threadId; preserveFocusHint; text; allThreadsStopped; hitBreakpointIds}
 
-(*     end *)
+    end
 
 
-(*     module StoppedEventMessage = MakeEvent (struct type t = Event.t let value=Event.Stopped let enc = Event.enc end) *)
+    module StoppedEventMessage = MakeEvent (struct type t = Event.t let value=Event.Stopped let enc = Event.enc end)
 
-(*     type request = *)
+    type request =
 
 
-(*     type response = *)
+    type response =
 
 
-(*     type event = *)
-(*     | StoppedEvent of StoppedEvent_event.t StoppedEventMessage.t |}] *)
+    type event =
+    | StoppedEvent of StoppedEvent_event.t StoppedEventMessage.t |}]
 
-(* let%expect_test "Check cyclic example" = *)
-(*   let schema_js = Ezjsonm.from_channel @@ open_in "data/cyclic.json" in *)
-(*   let dfs = Dfs.make ~schema_js in *)
-(*   let actual = render dfs in *)
-(*   Printf.printf "%s" actual; *)
-(*   [%expect {| *)
-(*     open Dap_t *)
+let%expect_test "Check cyclic example" =
+  let schema_js = Ezjsonm.from_channel @@ open_in "data/cyclic.json" in
+  let dfs = Dfs.make ~schema_js in
+  let actual = render dfs in
+  Printf.printf "%s" actual;
+  [%expect {|
+    open Dap_t
 
-(*     module Command = struct *)
-(*     type t = Error *)
+    module Command = struct
+    type t = Error
 
-(*     let enc = *)
-(*      let open Data_encoding in *)
-(*      conv *)
-(*      (function Error -> "error") *)
-(*      (function "error" -> Error | _ -> failwith "Command") *)
-(*      string *)
+    let enc =
+     let open Data_encoding in
+     conv
+     (function Error -> "error")
+     (function "error" -> Error | _ -> failwith "Command")
+     string
 
-(*     end *)
+    end
 
 
-(*     module Event = struct *)
-(*     type t = *)
+    module Event = struct
+    type t =
 
-(*     let enc = *)
-(*      let open Data_encoding in *)
-(*      conv *)
-(*      (function ) *)
-(*      (function _ -> failwith "Event") *)
-(*      string *)
+    let enc =
+     let open Data_encoding in
+     conv
+     (function )
+     (function _ -> failwith "Event")
+     string
 
-(*     end *)
+    end
 
 
-(*     module ExceptionDetails = struct *)
-(*     type t = { message: string option; *)
-(*     typeName: string option; *)
-(*     fullTypeName: string option; *)
-(*     evaluateName: string option; *)
-(*     stackTrace: string option; *)
-(*     innerException: t list option; } *)
+    module ExceptionDetails = struct
+    type t = { message: string option;
+    typeName: string option;
+    fullTypeName: string option;
+    evaluateName: string option;
+    stackTrace: string option;
+    innerException: t list option; }
 
-(*     let enc = *)
-(*      let open Data_encoding in *)
-(*      mu "ExceptionDetails.t" *)
-(*      ( fun e -> *)
-(*      conv *)
-(*      (fun {message; typeName; fullTypeName; evaluateName; stackTrace; innerException} -> (message, typeName, fullTypeName, evaluateName, stackTrace, innerException)) *)
-(*      (fun (message, typeName, fullTypeName, evaluateName, stackTrace, innerException) -> {message; typeName; fullTypeName; evaluateName; stackTrace; innerException}) *)
-(*      (obj6 *)
-(*     (opt "message" string) *)
-(*     (opt "typeName" string) *)
-(*     (opt "fullTypeName" string) *)
-(*     (opt "evaluateName" string) *)
-(*     (opt "stackTrace" string) *)
-(*     (opt "innerException" (list e))) *)
-(*     ) *)
+    let enc =
+     let open Data_encoding in
+     mu "ExceptionDetails.t"
+     ( fun e ->
+     conv
+     (fun {message; typeName; fullTypeName; evaluateName; stackTrace; innerException} -> (message, typeName, fullTypeName, evaluateName, stackTrace, innerException))
+     (fun (message, typeName, fullTypeName, evaluateName, stackTrace, innerException) -> {message; typeName; fullTypeName; evaluateName; stackTrace; innerException})
+     (obj6
+    (opt "message" string)
+    (opt "typeName" string)
+    (opt "fullTypeName" string)
+    (opt "evaluateName" string)
+    (opt "stackTrace" string)
+    (opt "innerException" (list e)))
+    )
 
-(*     let make ?message ?typeName ?fullTypeName ?evaluateName ?stackTrace ?innerException () = *)
-(*     {message; typeName; fullTypeName; evaluateName; stackTrace; innerException} *)
+    let make ?message ?typeName ?fullTypeName ?evaluateName ?stackTrace ?innerException () =
+    {message; typeName; fullTypeName; evaluateName; stackTrace; innerException}
 
-(*     end *)
+    end
 
 
-(*     type request = *)
+    type request =
 
 
-(*     type response = *)
+    type response =
 
 
-(*     type event = |}] *)
+    type event = |}]
 
 let%expect_test "Check large example" =
   let schema_js = Ezjsonm.from_channel @@ open_in "data/largeObject.json" in
