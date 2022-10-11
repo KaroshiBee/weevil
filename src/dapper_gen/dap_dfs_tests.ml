@@ -847,3 +847,48 @@ let%expect_test "Check empty example" =
 
 
     type event = |}]
+
+
+let%expect_test "Check LaunchResponse empty body  example" =
+  let schema_js = Ezjsonm.from_channel @@ open_in "data/launchResponseEmptyExample.json" in
+  let dfs = Dfs.make ~schema_js in
+  let actual = render dfs in
+  Printf.printf "%s" actual;
+  [%expect {|
+    open Dap_t
+
+    module Command = struct
+    type t = Error
+
+    let enc =
+     let open Data_encoding in
+     conv
+     (function Error -> "error")
+     (function "error" -> Error | _ -> failwith "Command")
+     string
+
+    end
+
+
+    module Event = struct
+    type t =
+
+    let enc =
+     let open Data_encoding in
+     conv
+     (function )
+     (function _ -> failwith "Event")
+     string
+
+    end
+
+
+    module LaunchResponseMessage = MakeResponse_optionalBody (struct type t = Command.t let value=Command.Launch let enc = Command.enc end)
+
+    type request =
+
+
+    type response =
+    | LaunchResponse of EmptyObject.t LaunchResponseMessage.t
+
+    type event = |}]

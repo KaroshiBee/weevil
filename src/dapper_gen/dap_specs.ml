@@ -104,6 +104,9 @@ module Obj_spec = struct
   let is_big t =
     List.length t.fields > 10
 
+  let is_empty t =
+    List.length t.fields = 0
+
   let append_fields_front t other =
     {t with fields = other.fields @ t.fields}
 
@@ -201,7 +204,6 @@ let is_special_definition ~path =
 
 type t =
   | Object of Obj_spec.t
-  | EmptyObject
   | Enum of Enum_spec.t
   | Field of Field_spec.t
   | Request of Obj_spec.t

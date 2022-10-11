@@ -1,7 +1,6 @@
 (* TODO
-   EmptyObject not defn
-   ConfigurationDoneArguments not defn (empty obj)
-   LoadedSourcesArguments not defn (empty obj)
+   filter out all inline objects in process_kind
+
 *)
 
 module Sp = Dap_specs
@@ -280,9 +279,11 @@ module Dfs = struct
     let dfn = Q.json_pointer_of_path path in
     let module_name = Sp.make_module_name path in
     Logs.debug (fun m -> m "process empty object with no additionalProperties under '%s' and module name '%s'" dfn module_name);
-    let ordering = module_name :: t.ordering in
-    Hashtbl.add t.finished module_name Sp.EmptyObject;
-    {t with ordering}
+    let o = Sp.Object (Sp.Obj_spec.of_path ~dirty_name:module_name ~path ()) in
+    let nodes = o :: t.nodes in
+    (* let ordering = module_name :: t.ordering in *)
+    (* Hashtbl.add t.finished module_name o; *)
+    {t with nodes}
 
   and process_kind t ~path = function
     | Object o when (List.length o.properties) = 0 -> (
@@ -988,14 +989,14 @@ let render (dfs:Dfs.t) =
       | Some (Sp.Event o) ->
         let modstr, tystr = RenderEvent.(of_spec o |> render ~name) in
         modstrs := modstr :: !modstrs; eventstrs := tystr :: !eventstrs
-      | Some (Sp.Object o) when List.length o.fields > 10 ->
+      | Some (Sp.Object o) when Sp.Obj_spec.is_big o ->
         let modstr, _other = RenderLargeObject.(of_spec o |> render ~name) in
+        modstrs := modstr :: !modstrs
+      | Some (Sp.Object o) when Sp.Obj_spec.is_empty o ->
+        let modstr, _other = RenderEmptyObject.(of_spec () |> render ~name) in
         modstrs := modstr :: !modstrs
       | Some (Sp.Object o) ->
         let modstr, _other = RenderObject.(of_spec o |> render ~name) in
-        modstrs := modstr :: !modstrs
-      | Some Sp.EmptyObject ->
-        let modstr, _other = RenderEmptyObject.(of_spec () |> render ~name) in
         modstrs := modstr :: !modstrs
       | Some (Sp.Enum e) ->
         let modstr, _other = RenderEnum.(of_spec e |> render ~name) in

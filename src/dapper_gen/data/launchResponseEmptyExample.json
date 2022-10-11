@@ -1,0 +1,149 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Debug Adapter Protocol",
+  "description": "The Debug Adapter Protocol defines the protocol used between an editor or IDE and a debugger or runtime.",
+  "type": "object",
+
+  "definitions": {
+    "ProtocolMessage": {
+      "type": "object",
+      "title": "Base Protocol",
+      "description": "Base class of requests, responses, and events.",
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "description": "Sequence number (also known as message ID). For protocol messages of type 'request' this ID can be used to cancel the request."
+        },
+        "type": {
+          "type": "string",
+          "description": "Message type.",
+          "_enum": ["request", "response", "event"]
+        }
+      },
+      "required": ["seq", "type"]
+    },
+
+    "Request": {
+      "allOf": [
+        { "$ref": "#/definitions/ProtocolMessage" },
+        {
+          "type": "object",
+          "description": "A client or debug adapter initiated request.",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["request"]
+            },
+            "command": {
+              "type": "string",
+              "description": "The command to execute."
+            },
+            "arguments": {
+              "type": [
+                "array",
+                "boolean",
+                "integer",
+                "null",
+                "number",
+                "object",
+                "string"
+              ],
+              "description": "Object containing arguments for the command."
+            }
+          },
+          "required": ["type", "command"]
+        }
+      ]
+    },
+
+    "Event": {
+      "allOf": [
+        { "$ref": "#/definitions/ProtocolMessage" },
+        {
+          "type": "object",
+          "description": "A debug adapter initiated event.",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["event"]
+            },
+            "event": {
+              "type": "string",
+              "description": "Type of event."
+            },
+            "body": {
+              "type": [
+                "array",
+                "boolean",
+                "integer",
+                "null",
+                "number",
+                "object",
+                "string"
+              ],
+              "description": "Event-specific information."
+            }
+          },
+          "required": ["type", "event"]
+        }
+      ]
+    },
+
+    "Response": {
+      "allOf": [
+        { "$ref": "#/definitions/ProtocolMessage" },
+        {
+          "type": "object",
+          "description": "Response for a request.",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["response"]
+            },
+            "request_seq": {
+              "type": "integer",
+              "description": "Sequence number of the corresponding request."
+            },
+            "success": {
+              "type": "boolean",
+              "description": "Outcome of the request.\nIf true, the request was successful and the 'body' attribute may contain the result of the request.\nIf the value is false, the attribute 'message' contains the error in short form and the 'body' may contain additional information (see 'ErrorResponse.body.error')."
+            },
+            "command": {
+              "type": "string",
+              "description": "The command requested."
+            },
+            "message": {
+              "type": "string",
+              "description": "Contains the raw error in short form if 'success' is false.\nThis raw error might be interpreted by the client and is not shown in the UI.\nSome predefined values exist.",
+              "_enum": ["cancelled"],
+              "enumDescriptions": ["request was cancelled."]
+            },
+            "body": {
+              "type": [
+                "array",
+                "boolean",
+                "integer",
+                "null",
+                "number",
+                "object",
+                "string"
+              ],
+              "description": "Contains request result if success is true and optional error details if success is false."
+            }
+          },
+          "required": ["type", "request_seq", "success", "command"]
+        }
+      ]
+    },
+
+    "LaunchResponse": {
+      "allOf": [
+        { "$ref": "#/definitions/Response" },
+        {
+          "type": "object",
+          "description": "Response to 'launch' request. This is just an acknowledgement, so no body field is required."
+        }
+      ]
+    }
+  }
+}
