@@ -1,0 +1,83 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Debug Adapter Protocol",
+  "description": "The Debug Adapter Protocol defines the protocol used between an editor or IDE and a debugger or runtime.",
+  "type": "object",
+
+  "definitions": {
+    "ProtocolMessage": {
+      "type": "object",
+      "title": "Base Protocol",
+      "description": "Base class of requests, responses, and events.",
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "description": "Sequence number (also known as message ID). For protocol messages of type 'request' this ID can be used to cancel the request."
+        },
+        "type": {
+          "type": "string",
+          "description": "Message type.",
+          "_enum": ["request", "response", "event"]
+        }
+      },
+      "required": ["seq", "type"]
+    },
+
+    "Request": {
+      "allOf": [
+        { "$ref": "#/definitions/ProtocolMessage" },
+        {
+          "type": "object",
+          "description": "A client or debug adapter initiated request.",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["request"]
+            },
+            "command": {
+              "type": "string",
+              "description": "The command to execute."
+            },
+            "arguments": {
+              "type": [
+                "array",
+                "boolean",
+                "integer",
+                "null",
+                "number",
+                "object",
+                "string"
+              ],
+              "description": "Object containing arguments for the command."
+            }
+          },
+          "required": ["type", "command"]
+        }
+      ]
+    },
+
+    "ConfigurationDoneRequest": {
+      "allOf": [
+        { "$ref": "#/definitions/Request" },
+        {
+          "type": "object",
+          "description": "This optional request indicates that the client has finished initialization of the debug adapter.\nSo it is the last request in the sequence of configuration requests (which was started by the 'initialized' event).\nClients should only call this request if the capability 'supportsConfigurationDoneRequest' is true.",
+          "properties": {
+            "command": {
+              "type": "string",
+              "enum": ["configurationDone"]
+            },
+            "arguments": {
+              "$ref": "#/definitions/ConfigurationDoneArguments"
+            }
+          },
+          "required": ["command"]
+        }
+      ]
+    },
+    "ConfigurationDoneArguments": {
+      "type": "object",
+      "description": "Arguments for 'configurationDone' request."
+    }
+  }
+}

@@ -1,3 +1,9 @@
+(* TODO
+   EmptyObject not defn
+   ConfigurationDoneArguments not defn (empty obj)
+   LoadedSourcesArguments not defn (empty obj)
+*)
+
 module Sp = Dap_specs
 module Q = Json_query
 module S = Json_schema
@@ -8,7 +14,9 @@ module CommandHelper = struct
 
   let struct_decl_str name ~on =
     match Stringext.cut name ~on with
-    | Some (enum_str, "") -> Printf.sprintf "struct type t = %s.t let value=%s.%s let enc = %s.enc end" module_name module_name enum_str module_name
+    | Some (enum_str, "") ->
+      let enum_str = Sp.unweird_name enum_str in
+      Printf.sprintf "struct type t = %s.t let value=%s.%s let enc = %s.enc end" module_name module_name enum_str module_name
     | _ -> assert false
 
 end
@@ -19,7 +27,9 @@ module EventHelper = struct
 
   let struct_decl_str name =
     match Stringext.cut name ~on:"Event" with
-    | Some (enum_str, "") -> Printf.sprintf "struct type t = %s.t let value=%s.%s let enc = %s.enc end" module_name module_name enum_str module_name
+    | Some (enum_str, "") ->
+      let enum_str = Sp.unweird_name enum_str in
+      Printf.sprintf "struct type t = %s.t let value=%s.%s let enc = %s.enc end" module_name module_name enum_str module_name
     | _ -> assert false
 
 end
@@ -69,7 +79,6 @@ module RestartArgumentsHelper = struct
     || is_restart_arguments path
 
 end
-
 
 
 module Dfs = struct
@@ -123,7 +132,6 @@ module Dfs = struct
         {t with nodes}
       | _ -> t
 
-
   let _set_variant_field_type t module_name = function
     | [("int", "int31"); ("string", "string")] ->
         let nm = Dap_t.IntString.module_name in
@@ -139,27 +147,6 @@ module Dfs = struct
     Logs.debug (fun m -> m "TODO not sure how to encode an object-as-dict");
     _set_field_type t "" ("Data_encoding.json", "json")
 
-  let rec _make_module_name = function
-    | `Field "definitions" :: rest
-    | `Field "allOf" :: rest
-    | `Field "anyOf" :: rest
-    | `Field "oneOf" :: rest
-    | `Field "not" :: rest
-    | `Field "properties" :: rest
-    | `Field "_enum" :: rest
-    | `Index _ :: rest
-    | `Next :: rest
-    | `Star :: rest
-      -> _make_module_name rest
-    | `Field f :: rest -> (
-      match _make_module_name rest with
-      | "" -> f
-      | s -> Printf.sprintf "%s_%s" f s
-    )
-    | [] -> ""
-
-
-
   let rec process_definition t ~path =
     (* this will be a *Request/*Response/*Event/Object top level definition
        will want to ignore base class ProtocolMessage, Request, Response, Event types
@@ -169,7 +156,7 @@ module Dfs = struct
        with the notion that some objects might get rewritten as enums
     *)
     let dfn = Q.json_pointer_of_path path in
-    let module_name = _make_module_name path in
+    let module_name = Sp.make_module_name path in
 
     Logs.debug (fun m -> m "process dfn start: '%s', '%s'" dfn module_name) ;
     let t =
@@ -212,7 +199,7 @@ module Dfs = struct
 
   and process_enums t ~path =
     let dfn = Q.json_pointer_of_path path in
-    let module_name = _make_module_name path in
+    let module_name = Sp.make_module_name path in
     let _aux dirty_names =
       let enum_spec = Sp.Enum_spec.of_path ~dirty_name:module_name ~path ~dirty_names () in
       let ordering = module_name :: t.ordering in
@@ -273,7 +260,7 @@ module Dfs = struct
          let new_path =
            path @ [`Field "properties"; `Field pname]
          in
-         let module_name = _make_module_name new_path in
+         let module_name = Sp.make_module_name new_path in
          let new_spec = Sp.Field (Sp.Field_spec.make
                                     ~path:new_path
                                     ~dirty_name:pname
@@ -288,6 +275,14 @@ module Dfs = struct
          Hashtbl.replace_seq t_acc.visited (Hashtbl.to_seq t'.visited) ;
          {t' with visited = t_acc.visited}
       ) t
+
+  and process_empty_object t ~path =
+    let dfn = Q.json_pointer_of_path path in
+    let module_name = Sp.make_module_name path in
+    Logs.debug (fun m -> m "process empty object with no additionalProperties under '%s' and module name '%s'" dfn module_name);
+    let ordering = module_name :: t.ordering in
+    Hashtbl.add t.finished module_name Sp.EmptyObject;
+    {t with ordering}
 
   and process_kind t ~path = function
     | Object o when (List.length o.properties) = 0 -> (
@@ -309,12 +304,10 @@ module Dfs = struct
                 _set_field_dict_type t "" ("string", "string")
               | _ -> failwith "TODO more general additionalProperties"
             with Not_found ->
-              Logs.debug (fun m -> m "process empty object with no additionalProperties under '%s'" dfn);
-              _set_field_type t "" ("Data_encoding.json", "json")
+              process_empty_object t ~path
           )
         | None ->
-          Logs.debug (fun m -> m "process empty object with no additionalProperties under '%s'" dfn);
-          _set_field_type t "" ("Data_encoding.json", "json")
+            process_empty_object t ~path
       )
     | Object
         {
@@ -345,7 +338,7 @@ module Dfs = struct
             let t =
               match t.nodes with
               | Sp.Object obj :: nodes ->
-                let module_name = _make_module_name obj.path in
+                let module_name = Sp.make_module_name obj.path in
                 Logs.debug (fun m -> m "adding inline object at '%s' to finished pile with module name '%s'" dfn module_name) ;
                 let ordering = module_name :: t.ordering in
                 Hashtbl.add t.finished module_name (Object obj);
@@ -496,7 +489,7 @@ module Dfs = struct
           else (
             let t' = process_definition t ~path:ref_path in
             (* get typename from ref_path *)
-            let ref_type_name = _make_module_name ref_path in
+            let ref_type_name = Sp.make_module_name ref_path in
             _set_field_type t' ref_type_name (ref_type_name^".t", ref_type_name^".enc")
           )
         in
@@ -512,7 +505,7 @@ module Dfs = struct
          Have to use Ezjsonm.decode_string to read the raw json and then use that.
       *)
       let enum_path = path @ [`Field "_enum"] in
-      let module_name = _make_module_name enum_path in
+      let module_name = Sp.make_module_name enum_path in
       let enum =
         try
           match Q.query enum_path t.schema_js with
@@ -688,7 +681,7 @@ module RenderObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
       Printf.sprintf "{%s}" ss
     in
     let tup_str =
-      let ss = t.fields |> List.map (fun (f:Sp.Field_spec.t) -> f.dirty_name) |> String.concat ", " in
+      let ss = t.fields |> List.map (fun (f:Sp.Field_spec.t) -> f.safe_name) |> String.concat ", " in
       if List.length t.fields = 1 then Printf.sprintf "%s" ss else Printf.sprintf "(%s)" ss
     in
     let args_str =
@@ -812,6 +805,27 @@ module RenderLargeObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
         "let make %s () = \n%s" args_str rec_str
     in
     Printf.sprintf "module %s = struct \n%s\n \n%s\n \n%s\n \n%s\n \nend\n" name internal_mods t_str enc_str make_str, ""
+
+end
+
+module RenderEmptyObject : (RenderT with type spec := unit) = struct
+
+  type t = unit
+
+  let of_spec () = ()
+
+  let render _t ~name =
+    let t_str =
+      "type t = { }"
+    in
+
+    let enc_str =
+      "let enc = Data_encoding.empty"
+    in
+    let make_str =
+        "let make () = {} "
+    in
+    Printf.sprintf "module %s = struct \n%s\n \n%s\n \n%s\n \nend\n" name t_str enc_str make_str, ""
 
 end
 
@@ -969,10 +983,10 @@ let render (dfs:Dfs.t) =
       match (Hashtbl.find_opt dfs.finished name) with
       | Some (Sp.Request o) ->
         let modstr, tystr = RenderRequest.(of_spec o |> render ~name) in
-        modstrs := modstr :: !modstrs; reqstrs := tystr :: !eventstrs
+        modstrs := modstr :: !modstrs; reqstrs := tystr :: !reqstrs
       | Some (Sp.Response o) ->
         let modstr, tystr = RenderResponse.(of_spec o |> render ~name) in
-        modstrs := modstr :: !modstrs; respstrs := tystr :: !eventstrs
+        modstrs := modstr :: !modstrs; respstrs := tystr :: !respstrs
       | Some (Sp.Event o) ->
         let modstr, tystr = RenderEvent.(of_spec o |> render ~name) in
         modstrs := modstr :: !modstrs; eventstrs := tystr :: !eventstrs
@@ -981,6 +995,9 @@ let render (dfs:Dfs.t) =
         modstrs := modstr :: !modstrs
       | Some (Sp.Object o) ->
         let modstr, _other = RenderObject.(of_spec o |> render ~name) in
+        modstrs := modstr :: !modstrs
+      | Some Sp.EmptyObject ->
+        let modstr, _other = RenderEmptyObject.(of_spec () |> render ~name) in
         modstrs := modstr :: !modstrs
       | Some (Sp.Enum e) ->
         let modstr, _other = RenderEnum.(of_spec e |> render ~name) in

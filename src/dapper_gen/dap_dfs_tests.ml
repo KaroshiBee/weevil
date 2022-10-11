@@ -767,8 +767,8 @@ let%expect_test "Check valueFormat example" =
      let open Data_encoding in
      (* StackFrameFormat.t *)
              conv
-     (fun {hex; parameters; parameterTypes; parameterNames; parameterValues; line; module_; includeAll} -> (hex, parameters, parameterTypes, parameterNames, parameterValues, line, module, includeAll))
-     (fun (hex, parameters, parameterTypes, parameterNames, parameterValues, line, module, includeAll) -> {hex; parameters; parameterTypes; parameterNames; parameterValues; line; module_; includeAll})
+     (fun {hex; parameters; parameterTypes; parameterNames; parameterValues; line; module_; includeAll} -> (hex, parameters, parameterTypes, parameterNames, parameterValues, line, module_, includeAll))
+     (fun (hex, parameters, parameterTypes, parameterNames, parameterValues, line, module_, includeAll) -> {hex; parameters; parameterTypes; parameterNames; parameterValues; line; module_; includeAll})
      (obj8
     (opt "hex" bool)
     (opt "parameters" bool)
@@ -788,6 +788,60 @@ let%expect_test "Check valueFormat example" =
 
     type request =
 
+
+    type response =
+
+
+    type event = |}]
+
+let%expect_test "Check empty example" =
+  let schema_js = Ezjsonm.from_channel @@ open_in "data/emptyObject.json" in
+  let dfs = Dfs.make ~schema_js in
+  let actual = render dfs in
+  Printf.printf "%s" actual;
+  [%expect {|
+    open Dap_t
+
+    module Command = struct
+    type t = ConfigurationDone | Error
+
+    let enc =
+     let open Data_encoding in
+     conv
+     (function ConfigurationDone -> "configurationDone" | Error -> "error")
+     (function "configurationDone" -> ConfigurationDone | "error" -> Error | _ -> failwith "Command")
+     string
+
+    end
+
+
+    module Event = struct
+    type t =
+
+    let enc =
+     let open Data_encoding in
+     conv
+     (function )
+     (function _ -> failwith "Event")
+     string
+
+    end
+
+
+    module ConfigurationDoneArguments = struct
+    type t = { }
+
+    let enc = Data_encoding.empty
+
+    let make () = {}
+
+    end
+
+
+    module ConfigurationDoneRequestMessage = MakeRequest_optionalArgs (struct type t = Command.t let value=Command.ConfigurationDone let enc = Command.enc end)
+
+    type request =
+    | ConfigurationDoneRequest of ConfigurationDoneArguments.t ConfigurationDoneRequestMessage.t
 
     type response =
 

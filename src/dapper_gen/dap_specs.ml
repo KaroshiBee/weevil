@@ -1,14 +1,33 @@
 module Q = Json_query
 
-let _unweird_name ?(capitalize=false) name =
+let unweird_name ?(capitalize=false) name =
   let n = match (String.lowercase_ascii name) with
-  | "type" | "module" | "lazy" -> Printf.sprintf "%s_" name
+  | "type" | "module" | "lazy" | "variable" -> Printf.sprintf "%s_" name
   | "null" -> "empty_"
   | _ -> name
   in
   n
   |> Stringext.replace_all ~pattern:" " ~with_:"_"
   |> (fun s -> if capitalize then String.capitalize_ascii s else s)
+
+  let rec make_module_name = function
+    | `Field "definitions" :: rest
+    | `Field "allOf" :: rest
+    | `Field "anyOf" :: rest
+    | `Field "oneOf" :: rest
+    | `Field "not" :: rest
+    | `Field "properties" :: rest
+    | `Field "_enum" :: rest
+    | `Index _ :: rest
+    | `Next :: rest
+    | `Star :: rest
+      -> make_module_name rest
+    | `Field f :: rest -> (
+      match make_module_name rest with
+      | "" -> unweird_name f
+      | s -> Printf.sprintf "%s_%s" f s
+    )
+    | [] -> ""
 
 
 module Field_spec = struct
@@ -25,7 +44,8 @@ module Field_spec = struct
   } [@@deriving show]
 
   let make ~path ~dirty_name ~required ?(module_name="") ?(type_="") ?(enc_="") ?(cyclic=false) ?(seq=false) () =
-    let safe_name = _unweird_name dirty_name in
+    let safe_name = unweird_name dirty_name in
+    let module_name = unweird_name module_name in
     {
       safe_name;
       dirty_name;
@@ -78,7 +98,7 @@ module Obj_spec = struct
   } [@@deriving show]
 
   let of_path ~dirty_name ~path ?(fields=[]) ?(is_cyclic=false) () =
-    let safe_name = _unweird_name dirty_name in
+    let safe_name = unweird_name dirty_name in
     {safe_name; dirty_name; path; fields; is_cyclic}
 
   let is_big t =
@@ -106,11 +126,11 @@ module Enum_spec = struct
   } [@@deriving show]
 
   let of_path ~dirty_name ~path ?(dirty_names=[]) ?(suggested=false) () =
-    let safe_name = _unweird_name dirty_name in
+    let safe_name = unweird_name dirty_name in
     let enums =
       dirty_names
       |> List.map (fun dirty_name ->
-          let safe_name = _unweird_name ~capitalize:true dirty_name in
+          let safe_name = unweird_name ~capitalize:true dirty_name in
           {safe_name; dirty_name}
         )
     in
@@ -120,14 +140,14 @@ module Enum_spec = struct
     let enums =
       dirty_names
       |> List.map (fun dirty_name ->
-          let safe_name = _unweird_name ~capitalize:true dirty_name in
+          let safe_name = unweird_name ~capitalize:true dirty_name in
           {safe_name; dirty_name}
         )
     in
     {t with enums}
 
   let append_enum t ~dirty_name =
-    let safe_name = _unweird_name ~capitalize:true dirty_name in
+    let safe_name = unweird_name ~capitalize:true dirty_name in
     {t with enums={safe_name; dirty_name}::t.enums}
 
   let append_enums t ~enums =
@@ -181,6 +201,7 @@ let is_special_definition ~path =
 
 type t =
   | Object of Obj_spec.t
+  | EmptyObject
   | Enum of Enum_spec.t
   | Field of Field_spec.t
   | Request of Obj_spec.t
