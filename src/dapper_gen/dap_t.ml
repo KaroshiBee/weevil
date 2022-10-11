@@ -15,6 +15,31 @@
       and no-where is it used, so we keep it as a string option
 *)
 
+module IntString = struct
+
+  type t =
+    | I of int
+    | S of string
+
+
+  let enc =
+    let open Data_encoding in
+    union [
+      case ~title:"int" (Tag 0)
+        int31
+        (function I i -> Some i | _ -> None)
+        (fun i -> I i);
+      case ~title:"string" (Tag 1)
+        string
+        (function S s -> Some s | _ -> None)
+        (fun s -> S s);
+    ]
+
+  let of_int i = I i
+  let of_string s = S s
+
+end
+
 (* NOTE hard code this as it rarely changes, as noted above
    the whole protocol is based on requests, responses and events *)
 module ProtocolMessage_type = struct

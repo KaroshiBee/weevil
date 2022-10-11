@@ -2,6 +2,12 @@ module Sp = Dap_specs
 module Q = Json_query
 module S = Json_schema
 
+module IntStringHelper = struct
+
+  let module_name = "IntString"
+
+end
+
 module CommandHelper = struct
 
   let module_name = "Command"
@@ -93,8 +99,12 @@ module Dfs = struct
     | (_type_, _enc_) ->
       failwith "TODO _set_nullable_field_type"
 
-  let _set_variant_field_type _t _module_name _type_encs =
-    failwith "TODO _set_variant_field_type"
+  let _set_variant_field_type t module_name = function
+    | [("int", "int31"); ("string", "string")] ->
+        let nm = IntStringHelper.module_name in
+        _set_field_type t module_name (nm^".t", nm^".enc")
+    | _ ->
+      failwith "TODO _set_variant_field_type"
 
   let _set_nullable_field_dict_type t _module_name _type_encs =
     Logs.debug (fun m -> m "TODO not sure how to encode an object-as-dict");
@@ -951,5 +961,3 @@ let render (dfs:Dfs.t) =
   Printf.sprintf
     "open Dap_t\n\n%s\n\ntype request = \n%s\n\ntype response = \n%s\n\ntype event = \n%s\n\n"
     smods sreqs sresps sevents
-
-
