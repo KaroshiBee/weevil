@@ -111,9 +111,18 @@ module Dfs = struct
       {t with nodes}
     | _ -> t
 
-  let _set_nullable_field_type _t _module_name = function
-    | (_type_, _enc_) ->
-      failwith "TODO _set_nullable_field_type"
+  let _set_nullable_field_type t module_name = function
+    | (type_, enc_) ->
+      (* NOTE make it into a required optional *)
+      let type_ = type_^" option" in
+      let enc_ = "(option "^enc_^")" in
+      match t.nodes with
+      | Sp.Field field_spec :: nodes ->
+        let field = Sp.Field_spec.{field_spec with module_name; type_; enc_; required=true} in
+        let nodes = (Sp.Field field) :: nodes in
+        {t with nodes}
+      | _ -> t
+
 
   let _set_variant_field_type t module_name = function
     | [("int", "int31"); ("string", "string")] ->
@@ -282,25 +291,30 @@ module Dfs = struct
 
   and process_kind t ~path = function
     | Object o when (List.length o.properties) = 0 -> (
-        Logs.debug (fun m ->
-            m
-              "process object with 0 properties under '%s'"
-              (Q.json_pointer_of_path ~wildcards:true path)) ;
+        let dfn = Q.json_pointer_of_path path in
+        Logs.debug (fun m -> m "process object with 0 properties under '%s'" dfn);
         (* NOTE things like Message.variables have additionalProperties,
            they are used for specifying dicts of strings,
            sometimes dicts of nullable strings *)
         match o.additional_properties with
         | Some _el -> (
+            Logs.debug (fun m -> m "process object.additionalProperties under '%s'" dfn);
             let type_path = path @ [`Field "additionalProperties"; `Field "type"] in
-            match Q.query type_path t.schema_js with
-            | `A [`String "string";
-                  `String "null"] ->
-              _set_nullable_field_dict_type t "" ("string", "string")
-            | `String "string" ->
-              _set_field_dict_type t "" ("string", "string")
-            | _ -> failwith "TODO more general additionalProperties"
+            try
+              match Q.query type_path t.schema_js with
+              | `A [`String "string";
+                    `String "null"] ->
+                _set_nullable_field_dict_type t "" ("string", "string")
+              | `String "string" ->
+                _set_field_dict_type t "" ("string", "string")
+              | _ -> failwith "TODO more general additionalProperties"
+            with Not_found ->
+              Logs.debug (fun m -> m "process empty object with no additionalProperties under '%s'" dfn);
+              _set_field_type t "" ("Data_encoding.json", "json")
           )
-        | None -> _set_field_type t "" ("Data_encoding.json", "json")
+        | None ->
+          Logs.debug (fun m -> m "process empty object with no additionalProperties under '%s'" dfn);
+          _set_field_type t "" ("Data_encoding.json", "json")
       )
     | Object
         {
@@ -491,7 +505,7 @@ module Dfs = struct
             in
             Some (Sp.Enum_spec.of_path ~dirty_name:module_name ~path:enum_path ~dirty_names ~suggested:true())
           | _ -> None
-        with _ -> None
+        with Not_found -> None
       in
       match enum with
       | Some enum ->

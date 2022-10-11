@@ -634,3 +634,67 @@ let%expect_test "Check oneOf example" =
 
 
     type event = |}]
+
+
+let%expect_test "Check nullable example" =
+  let schema_js = Ezjsonm.from_channel @@ open_in "data/nullableString.json" in
+  let dfs = Dfs.make ~schema_js in
+  let actual = render dfs in
+  Printf.printf "%s" actual;
+  [%expect {|
+    open Dap_t
+
+    module Command = struct
+    type t = Error
+
+    let enc =
+     let open Data_encoding in
+     conv
+     (function Error -> "error")
+     (function "error" -> Error | _ -> failwith "Command")
+     string
+
+    end
+
+
+    module Event = struct
+    type t =
+
+    let enc =
+     let open Data_encoding in
+     conv
+     (function )
+     (function _ -> failwith "Event")
+     string
+
+    end
+
+
+    module ExceptionDetails = struct
+    type t = { message: string option;
+    typeName: string option; }
+
+    let enc =
+     let open Data_encoding in
+     (* ExceptionDetails.t *)
+             conv
+     (fun {message; typeName} -> (message, typeName))
+     (fun (message, typeName) -> {message; typeName})
+     (obj2
+    (opt "message" string)
+    (req "typeName" (option string)))
+
+
+    let make ?message ~typeName () =
+    {message; typeName}
+
+    end
+
+
+    type request =
+
+
+    type response =
+
+
+    type event = |}]
