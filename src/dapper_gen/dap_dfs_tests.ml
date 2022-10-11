@@ -829,11 +829,11 @@ let%expect_test "Check empty example" =
 
 
     module ConfigurationDoneArguments = struct
-    type t = { }
+    type t = unit
 
     let enc = Data_encoding.empty
 
-    let make () = {}
+    let make () = ()
 
     end
 

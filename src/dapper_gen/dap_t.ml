@@ -14,6 +14,17 @@
       but the spec only specifies "cancelled" as a suggestion
       and no-where is it used, so we keep it as a string option
 *)
+module EmptyObject = struct
+
+  let module_name = "EmptyObject"
+
+  type t = unit
+
+  let enc = Data_encoding.empty
+
+  let make () = ()
+
+end
 
 module IntString = struct
 

@@ -816,20 +816,18 @@ module RenderEmptyObject : (RenderT with type spec := unit) = struct
 
   let render _t ~name =
     let t_str =
-      "type t = { }"
+      "type t = unit"
     in
 
     let enc_str =
       "let enc = Data_encoding.empty"
     in
     let make_str =
-        "let make () = {} "
+        "let make () = () "
     in
     Printf.sprintf "module %s = struct \n%s\n \n%s\n \n%s\n \nend\n" name t_str enc_str make_str, ""
 
 end
-
-let _EMPTY_OBJECT = "EmptyObject"
 
 
 module RenderRequest : (RenderT with type spec := Sp.Obj_spec.t) = struct
@@ -874,7 +872,7 @@ module RenderRequest : (RenderT with type spec := Sp.Obj_spec.t) = struct
       Printf.sprintf
         "| %s of %s.t %sMessage.t"
         name
-        _EMPTY_OBJECT
+        Dap_t.EmptyObject.module_name
         name
 
 end
@@ -921,7 +919,7 @@ module RenderResponse : (RenderT with type spec := Sp.Obj_spec.t) = struct
       Printf.sprintf
         "| %s of %s.t %sMessage.t"
         name
-        _EMPTY_OBJECT
+        Dap_t.EmptyObject.module_name
         name
 
 end
@@ -966,7 +964,7 @@ module RenderEvent : (RenderT with type spec := Sp.Obj_spec.t) = struct
       Printf.sprintf
         "| %s of %s.t %sMessage.t"
         name
-        _EMPTY_OBJECT
+        Dap_t.EmptyObject.module_name
         name
 
 end
