@@ -96,11 +96,13 @@ module Dfs = struct
   let _set_variant_field_type _t _module_name _type_encs =
     failwith "TODO _set_variant_field_type"
 
-  let _set_nullable_field_dict_type _t _module_name _type_encs =
-    failwith "TODO _set_nullable_field_dict_type"
+  let _set_nullable_field_dict_type t _module_name _type_encs =
+    Logs.debug (fun m -> m "TODO not sure how to encode an object-as-dict");
+    _set_field_type t "" ("Data_encoding.json", "json")
 
-  let _set_field_dict_type _t _module_name _type_encs =
-    failwith "TODO _set_field_dict_type"
+  let _set_field_dict_type t _module_name _type_encs =
+    Logs.debug (fun m -> m "TODO not sure how to encode an object-as-dict");
+    _set_field_type t "" ("Data_encoding.json", "json")
 
   let rec _make_module_name = function
     | `Field "definitions" :: rest
