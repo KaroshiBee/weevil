@@ -152,10 +152,10 @@ let%expect_test "Check CancelRequest example" =
     end
 
 
-    module CancelRequestMessage = MakeRequest (struct type t = Command.t let value=Command.Cancel let enc = Command.enc end)
+    module CancelRequestMessage = MakeRequest_optionalArgs (struct type t = Command.t let value=Command.Cancel let enc = Command.enc end)
 
     type request =
-    | CancelRequest of CancelRequest_command.t CancelRequestMessage.t
+    | CancelRequest of CancelArguments.t CancelRequestMessage.t
 
     type response =
 
@@ -250,7 +250,7 @@ let%expect_test "Check StoppedEvent example" =
 
 
     type event =
-    | StoppedEvent of StoppedEvent_event.t StoppedEventMessage.t |}]
+    | StoppedEvent of StoppedEvent_body.t StoppedEventMessage.t |}]
 
 let%expect_test "Check cyclic example" =
   let schema_js = Ezjsonm.from_channel @@ open_in "data/cyclic.json" in
@@ -585,6 +585,50 @@ let%expect_test "Check anyOf example" =
 
     type request =
 
+
+    type response =
+
+
+    type event = |}]
+
+let%expect_test "Check oneOf example" =
+  let schema_js = Ezjsonm.from_channel @@ open_in "data/restartRequest.json" in
+  let dfs = Dfs.make ~schema_js in
+  let actual = render dfs in
+  Printf.printf "%s" actual;
+  [%expect {|
+    open Dap_t
+
+    module Command = struct
+    type t = Restart | Error
+
+    let enc =
+     let open Data_encoding in
+     conv
+     (function Restart -> "restart" | Error -> "error")
+     (function "restart" -> Restart | "error" -> Error | _ -> failwith "Command")
+     string
+
+    end
+
+
+    module Event = struct
+    type t =
+
+    let enc =
+     let open Data_encoding in
+     conv
+     (function )
+     (function _ -> failwith "Event")
+     string
+
+    end
+
+
+    module RestartRequestMessage = MakeRequest_optionalArgs (struct type t = Command.t let value=Command.Restart let enc = Command.enc end)
+
+    type request =
+    | RestartRequest of RestartArguments.t RestartRequestMessage.t
 
     type response =
 

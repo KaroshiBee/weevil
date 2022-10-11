@@ -17,6 +17,8 @@
 
 module IntString = struct
 
+  let module_name = "IntString"
+
   type t =
     | I of int
     | S of string
@@ -37,6 +39,54 @@ module IntString = struct
 
   let of_int i = I i
   let of_string s = S s
+
+end
+
+
+module RestartRequestArguments (M:sig val module_name : string end) = struct
+  (* NOTE Launch/Attach request arguments are the same types *)
+  let module_name = M.module_name
+  type t = {restart: Data_encoding.json option}
+
+  let enc =
+    let open Data_encoding in
+    conv
+      (fun {restart} -> restart)
+      (fun restart -> {restart})
+      (obj1
+         (opt "__restart" json)
+      )
+
+  let make ?restart () =
+    {restart}
+end
+
+module LaunchRequestArguments = RestartRequestArguments (struct let module_name = "LaunchRequestArguments" end)
+module AttachRequestArguments = RestartRequestArguments (struct let module_name = "AttachRequestArguments" end)
+
+
+module RestartArguments = struct
+  let module_name = "RestartArguments"
+
+  type t =
+    | LaunchRequestArgs of LaunchRequestArguments.t
+    | AttachRequestArgs of AttachRequestArguments.t
+
+  let enc =
+    let open Data_encoding in
+    union [
+      case ~title:"launch" (Tag 0)
+        LaunchRequestArguments.enc
+        (function LaunchRequestArgs args -> Some args | _ -> None)
+        (fun args -> LaunchRequestArgs args);
+      case ~title:"attach" (Tag 1)
+        AttachRequestArguments.enc
+        (function AttachRequestArgs args -> Some args | _ -> None)
+        (fun args -> AttachRequestArgs args);
+    ]
+
+  let of_launch_args args = LaunchRequestArgs args
+  let of_attach_args args = AttachRequestArgs args
 
 end
 

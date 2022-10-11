@@ -2,12 +2,6 @@ module Sp = Dap_specs
 module Q = Json_query
 module S = Json_schema
 
-module IntStringHelper = struct
-
-  let module_name = "IntString"
-
-end
-
 module CommandHelper = struct
 
   let module_name = "Command"
@@ -56,6 +50,28 @@ module Finished = struct
 end
 
 
+module RestartArgumentsHelper = struct
+  let is_restart_arguments = function
+    | [`Field "definitions"; `Field "RestartArguments"] -> true
+    | _ -> false
+
+  let is_launch_arguments = function
+    | [`Field "definitions"; `Field "LaunchRequestArguments"] -> true
+    | _ -> false
+
+  let is_attach_arguments = function
+    | [`Field "definitions"; `Field "AttachRequestArguments"] -> true
+    | _ -> false
+
+  let is_special_definition path =
+    is_attach_arguments path
+    || is_launch_arguments path
+    || is_restart_arguments path
+
+end
+
+
+
 module Dfs = struct
 
   type t = {
@@ -101,7 +117,7 @@ module Dfs = struct
 
   let _set_variant_field_type t module_name = function
     | [("int", "int31"); ("string", "string")] ->
-        let nm = IntStringHelper.module_name in
+        let nm = Dap_t.IntString.module_name in
         _set_field_type t module_name (nm^".t", nm^".enc")
     | _ ->
       failwith "TODO _set_variant_field_type"
@@ -150,6 +166,9 @@ module Dfs = struct
     let t =
       if Sp.is_special_definition ~path then (
         Logs.debug (fun m -> m "special case: '%s'" dfn) ;
+        t)
+      else if RestartArgumentsHelper.is_special_definition path then (
+        Logs.debug (fun m -> m "special case restart: '%s'" dfn) ;
         t)
       else
         (* check is valid name by finding the definition *)
@@ -420,6 +439,7 @@ module Dfs = struct
           _set_variant_field_type t "" [("int", "int31"); ("string", "string")]
         | _ -> failwith "TODO more general Any_of"
       )
+
     | Combine (One_of, _elements) -> failwith "TODO One_of"
 
     | Combine _ -> failwith "TODO other combinators"
@@ -775,8 +795,8 @@ module RenderRequest : (RenderT with type spec := Sp.Obj_spec.t) = struct
 
   let render (t:t) ~name =
     let command = CommandHelper.struct_decl_str name ~on:"Request" in
-    match t.fields with
-    | [args; _cmd] when args.required ->
+    match t.fields |> List.find_opt (fun Sp.Field_spec.{safe_name; _} -> safe_name = "arguments") with
+    | Some args when args.required ->
       Printf.sprintf
         "module %sMessage = MakeRequest (%s)"
         name
@@ -788,7 +808,7 @@ module RenderRequest : (RenderT with type spec := Sp.Obj_spec.t) = struct
         args.module_name
         name
 
-    | [args; _cmd] when not args.required ->
+    | Some args ->
       Printf.sprintf
         "module %sMessage = MakeRequest_optionalArgs (%s)"
         name
@@ -800,7 +820,7 @@ module RenderRequest : (RenderT with type spec := Sp.Obj_spec.t) = struct
         args.module_name
         name
 
-    | [_cmd] ->
+    | None ->
       Printf.sprintf
         "module %sMessage = MakeRequest_optionalArgs (%s)"
         name
@@ -812,8 +832,6 @@ module RenderRequest : (RenderT with type spec := Sp.Obj_spec.t) = struct
         _EMPTY_OBJECT
         name
 
-    | _ -> assert false
-
 end
 
 module RenderResponse : (RenderT with type spec := Sp.Obj_spec.t) = struct
@@ -824,8 +842,8 @@ module RenderResponse : (RenderT with type spec := Sp.Obj_spec.t) = struct
 
   let render (t:t) ~name =
     let command = CommandHelper.struct_decl_str name ~on:"Response" in
-    match t.fields with
-    | [body] when body.required ->
+    match t.fields |> List.find_opt (fun Sp.Field_spec.{safe_name; _} -> safe_name = "body") with
+    | Some body when body.required ->
       Printf.sprintf
         "module %sMessage = MakeResponse (%s)"
         name
@@ -837,7 +855,7 @@ module RenderResponse : (RenderT with type spec := Sp.Obj_spec.t) = struct
         body.module_name
         name
 
-    | [body] when not body.required ->
+    | Some body ->
       Printf.sprintf
         "module %sMessage = MakeResponse_optionalBody (%s)"
         name
@@ -849,7 +867,7 @@ module RenderResponse : (RenderT with type spec := Sp.Obj_spec.t) = struct
         body.module_name
         name
 
-    | [] ->
+    | None ->
       Printf.sprintf
         "module %sMessage = MakeResponse_optionalBody (%s)"
         name
@@ -860,9 +878,6 @@ module RenderResponse : (RenderT with type spec := Sp.Obj_spec.t) = struct
         name
         _EMPTY_OBJECT
         name
-
-
-    | _ -> assert false
 
 end
 
@@ -874,8 +889,8 @@ module RenderEvent : (RenderT with type spec := Sp.Obj_spec.t) = struct
 
   let render (t:t) ~name =
     let event = EventHelper.struct_decl_str name in
-    match t.fields with
-    | [body; _ev] when body.required ->
+    match t.fields |> List.find_opt (fun Sp.Field_spec.{safe_name; _} -> safe_name = "body") with
+    | Some body when body.required ->
       Printf.sprintf
         "module %sMessage = MakeEvent (%s)"
         name
@@ -886,8 +901,7 @@ module RenderEvent : (RenderT with type spec := Sp.Obj_spec.t) = struct
         name
         body.module_name
         name
-
-    | [body; _ev] when not body.required ->
+    | Some body ->
       Printf.sprintf
         "module %sMessage = MakeEvent_optionalBody (%s)"
         name
@@ -898,8 +912,7 @@ module RenderEvent : (RenderT with type spec := Sp.Obj_spec.t) = struct
         name
         body.module_name
         name
-
-    | [_ev] ->
+    | None ->
       Printf.sprintf
         "module %sMessage = MakeEvent_optionalBody (%s)"
         name
@@ -910,8 +923,6 @@ module RenderEvent : (RenderT with type spec := Sp.Obj_spec.t) = struct
         name
         _EMPTY_OBJECT
         name
-
-    | _ -> assert false
 
 end
 
