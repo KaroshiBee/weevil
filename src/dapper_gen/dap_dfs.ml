@@ -424,6 +424,23 @@ module Dfs = struct
           {t' with nodes}
         | _ -> t'
       )
+    | Combine (All_of, [dref; el])
+        when dref.kind = Def_ref [`Field "definitions"; `Field "ValueFormat"] -> (
+        let dfn = Q.json_pointer_of_path path in
+        Logs.debug (fun m -> m "process allOf for 'ValueFormat' under '%s'" dfn);
+        let new_path = path @ [`Field "allOf"; `Index 0] in
+        let t' = process_element t ~path:new_path dref in
+        Hashtbl.replace_seq t.visited (Hashtbl.to_seq t'.visited) ;
+        let new_path = path @ [`Field "allOf"; `Index 1] in
+        let t'' = process_element t' ~path:new_path el in
+        Hashtbl.replace_seq t'.visited (Hashtbl.to_seq t''.visited) ;
+        match t''.nodes with
+        | Sp.Object specs :: rest ->
+          let vspecs = match Hashtbl.find t''.finished "ValueFormat" with | Sp.Object vspecs -> vspecs | _ -> assert false in
+          let nodes = Sp.Object (Sp.Obj_spec.append_fields_front specs vspecs) :: rest in
+          {t'' with nodes}
+        | _ -> t''
+      )
     | Combine (Any_of, elements) -> (
         (* NOTE there arent any explicit Any_of declared,
            all uses are implicit with 'type': [thing, thing, thing]

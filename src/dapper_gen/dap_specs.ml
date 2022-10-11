@@ -84,6 +84,9 @@ module Obj_spec = struct
   let is_big t =
     List.length t.fields > 10
 
+  let append_fields_front t other =
+    {t with fields = other.fields @ t.fields}
+
 end
 
 

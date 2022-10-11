@@ -698,3 +698,98 @@ let%expect_test "Check nullable example" =
 
 
     type event = |}]
+
+
+let%expect_test "Check valueFormat example" =
+  let schema_js = Ezjsonm.from_channel @@ open_in "data/valueFormatExample.json" in
+  let dfs = Dfs.make ~schema_js in
+  let actual = render dfs in
+  Printf.printf "%s" actual;
+  [%expect {|
+    open Dap_t
+
+    module Command = struct
+    type t = Error
+
+    let enc =
+     let open Data_encoding in
+     conv
+     (function Error -> "error")
+     (function "error" -> Error | _ -> failwith "Command")
+     string
+
+    end
+
+
+    module Event = struct
+    type t =
+
+    let enc =
+     let open Data_encoding in
+     conv
+     (function )
+     (function _ -> failwith "Event")
+     string
+
+    end
+
+
+    module ValueFormat = struct
+    type t = { hex: bool option; }
+
+    let enc =
+     let open Data_encoding in
+     (* ValueFormat.t *)
+             conv
+     (fun {hex} -> hex)
+     (fun hex -> {hex})
+     (obj1
+    (opt "hex" bool))
+
+
+    let make ?hex () =
+    {hex}
+
+    end
+
+
+    module StackFrameFormat = struct
+    type t = { hex: bool option;
+    parameters: bool option;
+    parameterTypes: bool option;
+    parameterNames: bool option;
+    parameterValues: bool option;
+    line: bool option;
+    module_: bool option;
+    includeAll: bool option; }
+
+    let enc =
+     let open Data_encoding in
+     (* StackFrameFormat.t *)
+             conv
+     (fun {hex; parameters; parameterTypes; parameterNames; parameterValues; line; module_; includeAll} -> (hex, parameters, parameterTypes, parameterNames, parameterValues, line, module, includeAll))
+     (fun (hex, parameters, parameterTypes, parameterNames, parameterValues, line, module, includeAll) -> {hex; parameters; parameterTypes; parameterNames; parameterValues; line; module_; includeAll})
+     (obj8
+    (opt "hex" bool)
+    (opt "parameters" bool)
+    (opt "parameterTypes" bool)
+    (opt "parameterNames" bool)
+    (opt "parameterValues" bool)
+    (opt "line" bool)
+    (opt "module" bool)
+    (opt "includeAll" bool))
+
+
+    let make ?hex ?parameters ?parameterTypes ?parameterNames ?parameterValues ?line ?module_ ?includeAll () =
+    {hex; parameters; parameterTypes; parameterNames; parameterValues; line; module_; includeAll}
+
+    end
+
+
+    type request =
+
+
+    type response =
+
+
+    type event = |}]
