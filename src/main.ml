@@ -1,6 +1,7 @@
 let commands = [
   Stepper_command.cmd;
   Service_command.cmd;
+  Dapper_gen.Dap_command.cmd;
 ]
 
 (* let term = *)
