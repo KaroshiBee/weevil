@@ -126,6 +126,46 @@ end
    because these are auto-generated from schema json *)
 (* NOTE we also put a unit on the end of all make functions sigs because
    the opt versions require ?fields and we believe conformity in the api is useful *)
+
+module Request : sig
+  type ('cmd, 'args) t
+  val seq : ('cmd, 'args) t -> int
+  val incr : ('cmd, 'args) t -> ('cmd, 'args) t
+  val message : ('cmd, 'args) t -> ProtocolMessage_type.t
+  val command : ('cmd, 'args) t -> 'cmd
+  val arguments : ('cmd, 'args) t -> 'args
+  val enc : 'cmd Data_encoding.t -> 'args Data_encoding.t -> ('cmd, 'args) t Data_encoding.t
+  val make : seq:int -> command:'cmd -> arguments:'args -> unit -> ('cmd, 'args) t
+end = struct
+  type ('cmd, 'args) t = {
+    seq : int;
+    type_ : ProtocolMessage_type.t;
+    command : 'cmd;
+    arguments : 'args;
+  }
+
+  let seq t = t.seq
+  let incr t = {t with seq=succ @@ seq t}
+  let message t = t.type_
+  let command t = t.command
+  let arguments t = t.arguments
+
+  let enc cmd args =
+    let open Data_encoding in
+    conv
+      (fun {seq; type_; command; arguments} -> (seq, type_, command, arguments))
+      (fun (seq, type_, command, arguments) -> {seq; type_; command; arguments})
+      (obj4
+         (req "seq" int31)
+         (req "type" ProtocolMessage_type.enc)
+         (req "command" cmd)
+         (req "arguments" args))
+
+  let make ~seq ~command ~arguments () =
+    let type_ = ProtocolMessage_type.Request in
+    {seq; type_; command; arguments}
+end
+
 module MakeRequest (Cmd:ENC0) : sig
   type 'args t
   val seq : 'args t -> int
@@ -215,8 +255,66 @@ end
 
 
 
+module Response : sig
+  type ('cmd, 'body) t
+
+  val seq : ('cmd, 'body) t -> int
+  val incr : ('cmd, 'body) t -> ('cmd, 'body) t
+  val type_ : ('cmd, 'body) t -> ProtocolMessage_type.t
+  val request_seq : ('cmd, 'body) t -> int
+  val success : ('cmd, 'body) t -> bool
+  val command : ('cmd, 'body) t -> 'cmd
+  val message : ('cmd, 'body) t -> string option
+  val body : ('cmd, 'body) t -> 'body
+  val enc : 'cmd Data_encoding.t -> 'body Data_encoding.t -> ('cmd, 'body) t Data_encoding.t
+  val make : seq:int -> request_seq:int -> success:bool -> command:'cmd -> ?message:string -> body:'body -> unit -> ('cmd, 'body) t
+end  = struct
+
+  type ('cmd, 'body) t = {
+    seq : int;
+    type_ : ProtocolMessage_type.t;
+    request_seq : int;
+    success : bool;
+    command : 'cmd;
+    message : string option; (* only used once I think, keep as string for now *)
+    body : 'body;
+  }
+
+  let seq t = t. seq
+  let incr t = {t with seq=succ @@ seq t}
+  let type_ t = t.type_
+  let request_seq t = t.request_seq
+  let success t = t.success
+  let command t = t.command
+  let message t = t.message
+  let body t = t.body
+
+  let enc cmd body =
+    let open Data_encoding in
+    conv
+      (fun {seq; type_; request_seq; success; command; message; body} ->
+        (seq, type_, request_seq, success, command, message, body))
+      (fun (seq, type_, request_seq, success, command, message, body) ->
+        {seq; type_; request_seq; success; command; message; body})
+      (obj7
+         (req "seq" int31)
+         (req "type" ProtocolMessage_type.enc)
+         (req "request_seq" int31)
+         (req "success" bool)
+         (req "command" cmd)
+         (opt "message" string)
+         (req "body" body))
+
+  let make ~seq ~request_seq ~success ~command ?message ~body () =
+    let type_ = ProtocolMessage_type.Response in
+    {seq; type_; request_seq; success; command; message; body}
+
+end
+
+
 module MakeResponse (Cmd:ENC0) : sig
   type 'body t
+
   val seq : 'body t -> int
   val incr : 'body t -> 'body t
   val type_ : 'body t -> ProtocolMessage_type.t
@@ -410,65 +508,6 @@ end = struct
     let type_ = ProtocolMessage_type.Event in
     let event = Ev.value in
     {seq; type_; event; body}
-
-end
-
-
-module type SEQUENCED = sig
-  type a
-  type 'a t
-  val incr : a t -> a t
-end
-
-module Flow (Request:SEQUENCED) (Response:SEQUENCED) = struct
-
-  module JS = Data_encoding.Json
-
-  type ('request, 'response, 'event, 'error, 'cancel) t = {
-    request: 'request Request.t Data_encoding.t;
-    response: 'response Response.t Data_encoding.t;
-    events: 'event list;
-    on_error: (unit -> 'error) option;
-    on_cancel: (unit -> 'cancel) option;
-  }
-
-  let make ?on_error ?on_cancel ?(events=[]) request response = {
-      request; response; events; on_error; on_cancel
-    }
-
-  let _HEADER_FIELD = "Content-Length: "
-  let _HEADER_TOKEN = "\r\n\r\n"
-
-  let _replace input output =
-    Str.global_replace (Str.regexp_string input) output
-
-  let wrap_header js =
-    let s = js
-            |> JS.to_string
-            |> _replace "\n" ""
-    in
-    let n = String.length s in
-    Printf.sprintf "%s%d%s%s" _HEADER_FIELD n _HEADER_TOKEN s
-
-  let destruct_request t msg =
-      match JS.from_string msg with
-      | Ok js -> (
-          try
-            Ok (JS.destruct t.request js)
-          with _ as err ->
-            Logs.err (fun m -> m "Cannot parse json '%s' as request: '%s'" msg @@ Printexc.to_string err);
-            Error (Printexc.to_string err)
-        )
-      | Error err ->
-        Logs.err (fun m -> m "Cannot parse json '%s': '%s'" msg err);
-        (* TODO should return an error response *)
-        Error err
-
-
-  let construct_response t response =
-    let r = Response.incr response in
-    JS.construct t.response r |> wrap_header
-
 
 end
 
