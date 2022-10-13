@@ -2,322 +2,6 @@
 
 open Dap_t
 
-
-module Event = struct
-  type memory
-  type invalidated
-  type progressend
-  (* type progressupdate *)
-  (* type progressstart *)
-  (* type capabilities *)
-  (* type process *)
-  (* type loadedsource *)
-  (* type module_ *)
-  (* type breakpoint *)
-  (* type output *)
-  (* type thread *)
-  (* type terminated *)
-  (* type exited *)
-  (* type continued *)
-  (* type stopped *)
-  (* type initialized *)
-
-  module T = struct
-
-    type ev =
-      | Memory
-      | Invalidated
-      | ProgressEnd
-      (* | ProgressUpdate *)
-    (* | ProgressStart *)
-    (* | Capabilities *)
-    (* | Process *)
-    (* | LoadedSource *)
-    (* | Module_ *)
-    (* | Breakpoint *)
-    (* | Output *)
-    (* | Thread *)
-    (* | Terminated *)
-    (* | Exited *)
-    (* | Continued *)
-    (* | Stopped *)
-    (* | Initialized *)
-
-    type 'a t = {value: ev}
-
-    let make_Memory : memory t = {value=Memory}
-    let make_Invalidated : invalidated t = {value=Invalidated}
-    let make_ProgressEnd : progressend t = {value=ProgressEnd}
-    (* let make_ProgressUpdate : progressupdate t = {value=ProgressUpdate} *)
-    (* let make_ProgressStart : progressstart t = {value=ProgressStart} *)
-    (* let make_Capabilities : capabilities t = {value=Capabilities} *)
-    (* let make_Process : process t = {value=Process} *)
-    (* let make_LoadedSource : loadedsource t = {value=LoadedSource} *)
-    (* let make_Module_ : module_ t = {value= Module_} *)
-    (* let make_Breakpoint : breakpoint t = {value=Breakpoint} *)
-    (* let make_Output : output t = {value=Output} *)
-    (* let make_Thread : thread t = {value=Thread} *)
-    (* let make_Terminated : terminated t = {value=Terminated} *)
-    (* let make_Exited : exited t = {value=Exited} *)
-    (* let make_Continued : continued t = {value=Continued} *)
-    (* let make_Stopped : stopped t = {value=Stopped} *)
-    (* let make_Initialized : initialized t = {value=Initialized} *)
-  end
-
-  type t =
-    | Memory : memory T.t -> t
-    | Invalidated : invalidated T.t -> t
-    | ProgressEnd : progressend T.t -> t
-
-  let enc =
-    let f : t -> string = function
-      | Memory _ -> "memory"
-      | Invalidated _ -> "invalidated"
-      | ProgressEnd _ -> "progressEnd"
-    in
-    let g : string -> t = function
-      | "memory" -> let v = T.make_Memory in Memory v
-      | "invalidated" -> let v = T.make_Invalidated in Invalidated v
-      | "progressEnd" -> let v = T.make_ProgressEnd in ProgressEnd v
-      | _ -> failwith "Event"
-    in
-    Data_encoding.(conv f g string)
-
-  (* let enc = *)
-  (*   let f : type a. a t -> string = function *)
-  (*       | Memory _ -> "memory" *)
-  (*       | Invalidated _ -> "invalidated" *)
-  (*       | ProgressEnd _ -> "progressEnd" *)
-  (*       | ProgressUpdate _ -> "progressUpdate" *)
-  (*       | ProgressStart _ -> "progressStart" *)
-  (*       | Capabilities _ -> "capabilities" *)
-  (*       | Process _ -> "process" *)
-  (*       | LoadedSource _ -> "loadedSource" *)
-  (*       | Module_ _ -> "module" *)
-  (*       | Breakpoint _ -> "breakpoint" *)
-  (*       | Output _ -> "output" *)
-  (*       | Thread _ -> "thread" *)
-  (*       | Terminated _ -> "terminated" *)
-  (*       | Exited _ -> "exited" *)
-  (*       | Continued _ -> "continued" *)
-  (*       | Stopped _ -> "stopped" *)
-  (*       | Initialized _ -> "initialized" *)
-  (*   in *)
-  (*   let g : type a. string -> a t = function *)
-  (*       | "memory" -> Memory memory *)
-  (*       | "invalidated" -> Invalidated _ *)
-  (*       | "progressEnd" -> ProgressEnd _ *)
-  (*       | "progressUpdate" -> ProgressUpdate _ *)
-  (*       | "progressStart" -> ProgressStart _ *)
-  (*       | "capabilities" -> Capabilities _ *)
-  (*       | "process" -> Process _ *)
-  (*       | "loadedSource" -> LoadedSource _ *)
-  (*       | "module" -> Module_ _ *)
-  (*       | "breakpoint" -> Breakpoint _ *)
-  (*       | "output" -> Output _ *)
-  (*       | "thread" -> Thread _ *)
-  (*       | "terminated" -> Terminated _ *)
-  (*       | "exited" -> Exited _ *)
-  (*       | "continued" -> Continued _ *)
-  (*       | "stopped" -> Stopped _ *)
-  (*       | "initialized" -> Initialized _ *)
-  (*       | _ -> failwith "Event" *)
-  (*   in *)
-  (*   let open Data_encoding in *)
-  (*   conv f g string *)
-end
-
-module Command = struct
-  type disassemble
-  type writememory
-  type readmemory
-  type exceptioninfo
-  type completions
-  type gototargets
-  type stepintargets
-  type setexpression
-  type evaluate
-  type loadedsources
-  type modules
-  type terminatethreads
-  type threads
-  type source
-  type setvariable
-  type variables
-  type scopes
-  type stacktrace
-  type pause
-  type goto
-  type restartframe
-  type reversecontinue
-  type stepback
-  type stepout
-  type stepin
-  type next
-  type continue
-  type setinstructionbreakpoints
-  type setdatabreakpoints
-  type databreakpointinfo
-  type setexceptionbreakpoints
-  type setfunctionbreakpoints
-  type setbreakpoints
-  type breakpointlocations
-  type terminate
-  type disconnect
-  type restart
-  type attach
-  type launch
-  type configurationdone
-  type initialize
-  type runinterminal
-  type cancel
-  type error
-
-  type t =
-    | Disassemble : disassemble -> t
-    | WriteMemory : writememory -> t
-    | ReadMemory : readmemory -> t
-    | ExceptionInfo : exceptioninfo -> t
-    | Completions : completions -> t
-    | GotoTargets : gototargets -> t
-    | StepInTargets : stepintargets -> t
-    | SetExpression : setexpression -> t
-    | Evaluate : evaluate -> t
-    | LoadedSources : loadedsources -> t
-    | Modules : modules -> t
-    | TerminateThreads : terminatethreads -> t
-    | Threads : threads -> t
-    | Source : source -> t
-    | SetVariable : setvariable -> t
-    | Variables : variables -> t
-    | Scopes : scopes -> t
-    | StackTrace : stacktrace -> t
-    | Pause : pause -> t
-    | Goto : goto -> t
-    | RestartFrame : restartframe -> t
-    | ReverseContinue : reversecontinue -> t
-    | StepBack : stepback -> t
-    | StepOut : stepout -> t
-    | StepIn : stepin -> t
-    | Next : next -> t
-    | Continue : continue -> t
-    | SetInstructionBreakpoints : setinstructionbreakpoints -> t
-    | SetDataBreakpoints : setdatabreakpoints -> t
-    | DataBreakpointInfo : databreakpointinfo -> t
-    | SetExceptionBreakpoints : setexceptionbreakpoints -> t
-    | SetFunctionBreakpoints : setfunctionbreakpoints -> t
-    | SetBreakpoints : setbreakpoints -> t
-    | BreakpointLocations : breakpointlocations -> t
-    | Terminate : terminate -> t
-    | Disconnect : disconnect -> t
-    | Restart : restart -> t
-    | Attach : attach -> t
-    | Launch : launch -> t
-    | ConfigurationDone : configurationdone -> t
-    | Initialize : initialize -> t
-    | RunInTerminal : runinterminal -> t
-    | Cancel : cancel -> t 
-    | Error : error -> t
-
-  (* let enc = *)
-  (*   let f : t -> string = function *)
-  (*       | Disassemble _ -> "disassemble" *)
-  (*       | WriteMemory _ -> "writeMemory" *)
-  (*       | ReadMemory _ -> "readMemory" *)
-  (*       | ExceptionInfo _ -> "exceptionInfo" *)
-  (*       | Completions _ -> "completions" *)
-  (*       | GotoTargets _ -> "gotoTargets" *)
-  (*       | StepInTargets _ -> "stepInTargets" *)
-  (*       | SetExpression _ -> "setExpression" *)
-  (*       | Evaluate _ -> "evaluate" *)
-  (*       | LoadedSources _ -> "loadedSources" *)
-  (*       | Modules _ -> "modules" *)
-  (*       | TerminateThreads _ -> "terminateThreads" *)
-  (*       | Threads _ -> "threads" *)
-  (*       | Source _ -> "source" *)
-  (*       | SetVariable _ -> "setVariable" *)
-  (*       | Variables _ -> "variables" *)
-  (*       | Scopes _ -> "scopes" *)
-  (*       | StackTrace _ -> "stackTrace" *)
-  (*       | Pause _ -> "pause" *)
-  (*       | Goto _ -> "goto" *)
-  (*       | RestartFrame _ -> "restartFrame" *)
-  (*       | ReverseContinue _ -> "reverseContinue" *)
-  (*       | StepBack _ -> "stepBack" *)
-  (*       | StepOut _ -> "stepOut" *)
-  (*       | StepIn _ -> "stepIn" *)
-  (*       | Next _ -> "next" *)
-  (*       | Continue _ -> "continue" *)
-  (*       | SetInstructionBreakpoints _ -> "setInstructionBreakpoints" *)
-  (*       | SetDataBreakpoints _ -> "setDataBreakpoints" *)
-  (*       | DataBreakpointInfo _ -> "dataBreakpointInfo" *)
-  (*       | SetExceptionBreakpoints _ -> "setExceptionBreakpoints" *)
-  (*       | SetFunctionBreakpoints _ -> "setFunctionBreakpoints" *)
-  (*       | SetBreakpoints _ -> "setBreakpoints" *)
-  (*       | BreakpointLocations _ -> "breakpointLocations" *)
-  (*       | Terminate _ -> "terminate" *)
-  (*       | Disconnect _ -> "disconnect" *)
-  (*       | Restart _ -> "restart" *)
-  (*       | Attach _ -> "attach" *)
-  (*       | Launch _ -> "launch" *)
-  (*       | ConfigurationDone _ -> "configurationDone" *)
-  (*       | Initialize _ -> "initialize" *)
-  (*       | RunInTerminal _ -> "runInTerminal" *)
-  (*       | Cancel _ -> "cancel" *)
-  (*       | Error _ -> "error" *)
-  (*   in *)
-  (*   let g : string -> t = function *)
-  (*       | "disassemble" -> Disassemble _ *)
-  (*       | "writeMemory" -> WriteMemory _ *)
-  (*       | "readMemory" -> ReadMemory _ *)
-  (*       | "exceptionInfo" -> ExceptionInfo _ *)
-  (*       | "completions" -> Completions _ *)
-  (*       | "gotoTargets" -> GotoTargets _ *)
-  (*       | "stepInTargets" -> StepInTargets _ *)
-  (*       | "setExpression" -> SetExpression _ *)
-  (*       | "evaluate" -> Evaluate _ *)
-  (*       | "loadedSources" -> LoadedSources _ *)
-  (*       | "modules" -> Modules _ *)
-  (*       | "terminateThreads" -> TerminateThreads _ *)
-  (*       | "threads" -> Threads _ *)
-  (*       | "source" -> Source _ *)
-  (*       | "setVariable" -> SetVariable _ *)
-  (*       | "variables" -> Variables _ *)
-  (*       | "scopes" -> Scopes _ *)
-  (*       | "stackTrace" -> StackTrace _ *)
-  (*       | "pause" -> Pause _ *)
-  (*       | "goto" -> Goto _ *)
-  (*       | "restartFrame" -> RestartFrame _ *)
-  (*       | "reverseContinue" -> ReverseContinue _ *)
-  (*       | "stepBack" -> StepBack _ *)
-  (*       | "stepOut" -> StepOut _ *)
-  (*       | "stepIn" -> StepIn _ *)
-  (*       | "next" -> Next _ *)
-  (*       | "continue" -> Continue _ *)
-  (*       | "setInstructionBreakpoints" -> SetInstructionBreakpoints _ *)
-  (*       | "setDataBreakpoints" -> SetDataBreakpoints _ *)
-  (*       | "dataBreakpointInfo" -> DataBreakpointInfo _ *)
-  (*       | "setExceptionBreakpoints" -> SetExceptionBreakpoints _ *)
-  (*       | "setFunctionBreakpoints" -> SetFunctionBreakpoints _ *)
-  (*       | "setBreakpoints" -> SetBreakpoints _ *)
-  (*       | "breakpointLocations" -> BreakpointLocations _ *)
-  (*       | "terminate" -> Terminate _ *)
-  (*       | "disconnect" -> Disconnect _ *)
-  (*       | "restart" -> Restart _ *)
-  (*       | "attach" -> Attach _ *)
-  (*       | "launch" -> Launch _ *)
-  (*       | "configurationDone" -> ConfigurationDone _ *)
-  (*       | "initialize" -> Initialize _ *)
-  (*       | "runInTerminal" -> RunInTerminal _ *)
-  (*       | "cancel" -> Cancel _ *)
-  (*       | "error" -> Error _ *)
-  (*       | _ -> failwith "Command" in *)
-  (*   let open Data_encoding in *)
-  (*   conv f g string *)
-
-end
-
-
 module Message = struct
   type t = {
     id : int;
@@ -363,7 +47,6 @@ module ErrorResponse_body = struct
 
   let make ?error () = {error}
 end
-
 
 module CancelArguments = struct
   type t = {requestId : int option; progressId : string option}
@@ -555,7 +238,6 @@ module ThreadEvent_body = struct
 
   let make ~reason ~threadId () = {reason; threadId}
 end
-
 
 module OutputEvent_body_category = struct
   type t = Console | Important | Stdout | Stderr | Telemetry | Other of string
@@ -1106,7 +788,6 @@ module ProcessEvent_body = struct
   let make ~name ?systemProcessId ?isLocalProcess ?startMethod ?pointerSize () =
     {name; systemProcessId; isLocalProcess; startMethod; pointerSize}
 end
-
 
 module ExceptionBreakpointsFilter = struct
   type t = {
@@ -2108,7 +1789,6 @@ module TerminateArguments = struct
   let make ?restart () = {restart}
 end
 
-
 module BreakpointLocationsArguments = struct
   type t = {
     source : Source.t;
@@ -2136,6 +1816,7 @@ module BreakpointLocationsArguments = struct
   let make ~source ~line ?column ?endLine ?endColumn () =
     {source; line; column; endLine; endColumn}
 end
+
 module BreakpointLocation = struct
   type t = {
     line : int;
@@ -2279,7 +1960,6 @@ module SetFunctionBreakpointsArguments = struct
   let make ~breakpoints () = {breakpoints}
 end
 
-
 module SetFunctionBreakpointsResponse_body = struct
   type t = {breakpoints : Breakpoint.t list}
 
@@ -2399,7 +2079,6 @@ module SetExceptionBreakpointsResponse_body = struct
   let make ?breakpoints () = {breakpoints}
 end
 
-
 module DataBreakpointInfoArguments = struct
   type t = {variablesReference : int option; name : string}
 
@@ -2454,7 +2133,6 @@ module DataBreakpointInfoResponse_body = struct
   let make ~dataId ~description ?accessTypes ?canPersist () =
     {dataId; description; accessTypes; canPersist}
 end
-
 
 module DataBreakpoint = struct
   type t = {
@@ -2660,14 +2338,2120 @@ module StepInArguments = struct
     {threadId; singleThread; targetId; granularity}
 end
 
+module StepOutArguments = struct
+  type t = {
+    threadId : int;
+    singleThread : bool option;
+    granularity : SteppingGranularity.t option;
+  }
 
-(* type request = *)
-(*   | CancelRequest of (Command.cancel, CancelArguments.t) Request.t *)
-(*   | InitializeRequest of (Command.initialize, InitializeRequestArguments.t) Request.t *)
-(*   | ConfigurationDoneRequest of (Command.configurationdone, ConfigurationDoneArguments.t) Request.t *)
+  let enc =
+    let open Data_encoding in
+    (* StepOutArguments.t *)
+    conv
+      (fun {threadId; singleThread; granularity} ->
+        (threadId, singleThread, granularity))
+      (fun (threadId, singleThread, granularity) ->
+        {threadId; singleThread; granularity})
+      (obj3
+         (req "threadId" int31)
+         (opt "singleThread" bool)
+         (opt "granularity" SteppingGranularity.enc))
 
-(* type response = *)
-(*   | ErrorResponse of (Command.error, ErrorResponse_body.t) Response.t *)
-(*   | CancelResponse of (Command.cancel, EmptyObject.t) Response.t *)
-(*   | InitializeResponse of (Command.initialize, Capabilities.t) Response.t *)
-(*   | ConfigurationDoneResponse of (Command.configurationdone, EmptyObject.t) Response.t *)
+  let make ~threadId ?singleThread ?granularity () =
+    {threadId; singleThread; granularity}
+end
+
+module StepBackArguments = struct
+  type t = {
+    threadId : int;
+    singleThread : bool option;
+    granularity : SteppingGranularity.t option;
+  }
+
+  let enc =
+    let open Data_encoding in
+    (* StepBackArguments.t *)
+    conv
+      (fun {threadId; singleThread; granularity} ->
+        (threadId, singleThread, granularity))
+      (fun (threadId, singleThread, granularity) ->
+        {threadId; singleThread; granularity})
+      (obj3
+         (req "threadId" int31)
+         (opt "singleThread" bool)
+         (opt "granularity" SteppingGranularity.enc))
+
+  let make ~threadId ?singleThread ?granularity () =
+    {threadId; singleThread; granularity}
+end
+
+module ReverseContinueArguments = struct
+  type t = {threadId : int; singleThread : bool option}
+
+  let enc =
+    let open Data_encoding in
+    (* ReverseContinueArguments.t *)
+    conv
+      (fun {threadId; singleThread} -> (threadId, singleThread))
+      (fun (threadId, singleThread) -> {threadId; singleThread})
+      (obj2 (req "threadId" int31) (opt "singleThread" bool))
+
+  let make ~threadId ?singleThread () = {threadId; singleThread}
+end
+
+module RestartFrameArguments = struct
+  type t = {frameId : int}
+
+  let enc =
+    let open Data_encoding in
+    (* RestartFrameArguments.t *)
+    conv
+      (fun {frameId} -> frameId)
+      (fun frameId -> {frameId})
+      (obj1 (req "frameId" int31))
+
+  let make ~frameId () = {frameId}
+end
+
+module GotoArguments = struct
+  type t = {threadId : int; targetId : int}
+
+  let enc =
+    let open Data_encoding in
+    (* GotoArguments.t *)
+    conv
+      (fun {threadId; targetId} -> (threadId, targetId))
+      (fun (threadId, targetId) -> {threadId; targetId})
+      (obj2 (req "threadId" int31) (req "targetId" int31))
+
+  let make ~threadId ~targetId () = {threadId; targetId}
+end
+
+module PauseArguments = struct
+  type t = {threadId : int}
+
+  let enc =
+    let open Data_encoding in
+    (* PauseArguments.t *)
+    conv
+      (fun {threadId} -> threadId)
+      (fun threadId -> {threadId})
+      (obj1 (req "threadId" int31))
+
+  let make ~threadId () = {threadId}
+end
+
+module ValueFormat = struct
+  type t = {hex : bool option}
+
+  let enc =
+    let open Data_encoding in
+    (* ValueFormat.t *)
+    conv (fun {hex} -> hex) (fun hex -> {hex}) (obj1 (opt "hex" bool))
+
+  let make ?hex () = {hex}
+end
+
+module StackFrameFormat = struct
+  type t = {
+    hex : bool option;
+    parameters : bool option;
+    parameterTypes : bool option;
+    parameterNames : bool option;
+    parameterValues : bool option;
+    line : bool option;
+    module_ : bool option;
+    includeAll : bool option;
+  }
+
+  let enc =
+    let open Data_encoding in
+    (* StackFrameFormat.t *)
+    conv
+      (fun {
+             hex;
+             parameters;
+             parameterTypes;
+             parameterNames;
+             parameterValues;
+             line;
+             module_;
+             includeAll;
+           } ->
+        ( hex,
+          parameters,
+          parameterTypes,
+          parameterNames,
+          parameterValues,
+          line,
+          module_,
+          includeAll ))
+      (fun ( hex,
+             parameters,
+             parameterTypes,
+             parameterNames,
+             parameterValues,
+             line,
+             module_,
+             includeAll ) ->
+        {
+          hex;
+          parameters;
+          parameterTypes;
+          parameterNames;
+          parameterValues;
+          line;
+          module_;
+          includeAll;
+        })
+      (obj8
+         (opt "hex" bool)
+         (opt "parameters" bool)
+         (opt "parameterTypes" bool)
+         (opt "parameterNames" bool)
+         (opt "parameterValues" bool)
+         (opt "line" bool)
+         (opt "module" bool)
+         (opt "includeAll" bool))
+
+  let make ?hex ?parameters ?parameterTypes ?parameterNames ?parameterValues
+      ?line ?module_ ?includeAll () =
+    {
+      hex;
+      parameters;
+      parameterTypes;
+      parameterNames;
+      parameterValues;
+      line;
+      module_;
+      includeAll;
+    }
+end
+
+module StackTraceArguments = struct
+  type t = {
+    threadId : int;
+    startFrame : int option;
+    levels : int option;
+    format : StackFrameFormat.t option;
+  }
+
+  let enc =
+    let open Data_encoding in
+    (* StackTraceArguments.t *)
+    conv
+      (fun {threadId; startFrame; levels; format} ->
+        (threadId, startFrame, levels, format))
+      (fun (threadId, startFrame, levels, format) ->
+        {threadId; startFrame; levels; format})
+      (obj4
+         (req "threadId" int31)
+         (opt "startFrame" int31)
+         (opt "levels" int31)
+         (opt "format" StackFrameFormat.enc))
+
+  let make ~threadId ?startFrame ?levels ?format () =
+    {threadId; startFrame; levels; format}
+end
+
+module StackFrame_presentationHint = struct
+  type t = Normal | Label | Subtle
+
+  let enc =
+    let open Data_encoding in
+    conv
+      (function Normal -> "normal" | Label -> "label" | Subtle -> "subtle")
+      (function
+        | "normal" -> Normal
+        | "label" -> Label
+        | "subtle" -> Subtle
+        | _ -> failwith "StackFrame_presentationHint")
+      string
+end
+
+module StackFrame = struct
+  module StackFrame_0 = struct
+    type t = {
+      id : int;
+      name : string;
+      source : Source.t option;
+      line : int;
+      column : int;
+      endLine : int option;
+      endColumn : int option;
+      canRestart : bool option;
+      instructionPointerReference : string option;
+      moduleId : IntString.t option;
+    }
+
+    let enc =
+      let open Data_encoding in
+      (* StackFrame_0.t *)
+      conv
+        (fun {
+               id;
+               name;
+               source;
+               line;
+               column;
+               endLine;
+               endColumn;
+               canRestart;
+               instructionPointerReference;
+               moduleId;
+             } ->
+          ( id,
+            name,
+            source,
+            line,
+            column,
+            endLine,
+            endColumn,
+            canRestart,
+            instructionPointerReference,
+            moduleId ))
+        (fun ( id,
+               name,
+               source,
+               line,
+               column,
+               endLine,
+               endColumn,
+               canRestart,
+               instructionPointerReference,
+               moduleId ) ->
+          {
+            id;
+            name;
+            source;
+            line;
+            column;
+            endLine;
+            endColumn;
+            canRestart;
+            instructionPointerReference;
+            moduleId;
+          })
+        (obj10
+           (req "id" int31)
+           (req "name" string)
+           (opt "source" Source.enc)
+           (req "line" int31)
+           (req "column" int31)
+           (opt "endLine" int31)
+           (opt "endColumn" int31)
+           (opt "canRestart" bool)
+           (opt "instructionPointerReference" string)
+           (opt "moduleId" IntString.enc))
+
+    let make ~id ~name ?source ~line ~column ?endLine ?endColumn ?canRestart
+        ?instructionPointerReference ?moduleId () =
+      {
+        id;
+        name;
+        source;
+        line;
+        column;
+        endLine;
+        endColumn;
+        canRestart;
+        instructionPointerReference;
+        moduleId;
+      }
+  end
+
+  module StackFrame_10 = struct
+    type t = {presentationHint : StackFrame_presentationHint.t option}
+
+    let enc =
+      let open Data_encoding in
+      (* StackFrame_10.t *)
+      conv
+        (fun {presentationHint} -> presentationHint)
+        (fun presentationHint -> {presentationHint})
+        (obj1 (opt "presentationHint" StackFrame_presentationHint.enc))
+
+    let make ?presentationHint () = {presentationHint}
+  end
+
+  type t = StackFrame_0.t * StackFrame_10.t
+
+  let enc =
+    let open Data_encoding in
+    merge_objs StackFrame_0.enc StackFrame_10.enc
+
+  let make ~id ~name ?source ~line ~column ?endLine ?endColumn ?canRestart
+      ?instructionPointerReference ?moduleId ?presentationHint () =
+    let t0 =
+      StackFrame_0.make
+        ~id
+        ~name
+        ?source
+        ~line
+        ~column
+        ?endLine
+        ?endColumn
+        ?canRestart
+        ?instructionPointerReference
+        ?moduleId
+        ()
+    in
+
+    let t1 = StackFrame_10.make ?presentationHint () in
+
+    (t0, t1)
+end
+
+module StackTraceResponse_body = struct
+  type t = {stackFrames : StackFrame.t list; totalFrames : int option}
+
+  let enc =
+    let open Data_encoding in
+    (* StackTraceResponse_body.t *)
+    conv
+      (fun {stackFrames; totalFrames} -> (stackFrames, totalFrames))
+      (fun (stackFrames, totalFrames) -> {stackFrames; totalFrames})
+      (obj2 (req "stackFrames" (list StackFrame.enc)) (opt "totalFrames" int31))
+
+  let make ~stackFrames ?totalFrames () = {stackFrames; totalFrames}
+end
+
+module ScopesArguments = struct
+  type t = {frameId : int}
+
+  let enc =
+    let open Data_encoding in
+    (* ScopesArguments.t *)
+    conv
+      (fun {frameId} -> frameId)
+      (fun frameId -> {frameId})
+      (obj1 (req "frameId" int31))
+
+  let make ~frameId () = {frameId}
+end
+
+module Scope_presentationHint = struct
+  type t = Arguments | Locals | Registers | Other of string
+
+  let enc =
+    let open Data_encoding in
+    conv
+      (function
+        | Arguments -> "arguments"
+        | Locals -> "locals"
+        | Registers -> "registers"
+        | Other s -> s)
+      (function
+        | "arguments" -> Arguments
+        | "locals" -> Locals
+        | "registers" -> Registers
+        | _ as s -> Other s)
+      string
+end
+
+module Scope = struct
+  module Scope_0 = struct
+    type t = {
+      name : string;
+      presentationHint : Scope_presentationHint.t option;
+      variablesReference : int;
+      namedVariables : int option;
+      indexedVariables : int option;
+      expensive : bool;
+      source : Source.t option;
+      line : int option;
+      column : int option;
+      endLine : int option;
+    }
+
+    let enc =
+      let open Data_encoding in
+      (* Scope_0.t *)
+      conv
+        (fun {
+               name;
+               presentationHint;
+               variablesReference;
+               namedVariables;
+               indexedVariables;
+               expensive;
+               source;
+               line;
+               column;
+               endLine;
+             } ->
+          ( name,
+            presentationHint,
+            variablesReference,
+            namedVariables,
+            indexedVariables,
+            expensive,
+            source,
+            line,
+            column,
+            endLine ))
+        (fun ( name,
+               presentationHint,
+               variablesReference,
+               namedVariables,
+               indexedVariables,
+               expensive,
+               source,
+               line,
+               column,
+               endLine ) ->
+          {
+            name;
+            presentationHint;
+            variablesReference;
+            namedVariables;
+            indexedVariables;
+            expensive;
+            source;
+            line;
+            column;
+            endLine;
+          })
+        (obj10
+           (req "name" string)
+           (opt "presentationHint" Scope_presentationHint.enc)
+           (req "variablesReference" int31)
+           (opt "namedVariables" int31)
+           (opt "indexedVariables" int31)
+           (req "expensive" bool)
+           (opt "source" Source.enc)
+           (opt "line" int31)
+           (opt "column" int31)
+           (opt "endLine" int31))
+
+    let make ~name ?presentationHint ~variablesReference ?namedVariables
+        ?indexedVariables ~expensive ?source ?line ?column ?endLine () =
+      {
+        name;
+        presentationHint;
+        variablesReference;
+        namedVariables;
+        indexedVariables;
+        expensive;
+        source;
+        line;
+        column;
+        endLine;
+      }
+  end
+
+  module Scope_10 = struct
+    type t = {endColumn : int option}
+
+    let enc =
+      let open Data_encoding in
+      (* Scope_10.t *)
+      conv
+        (fun {endColumn} -> endColumn)
+        (fun endColumn -> {endColumn})
+        (obj1 (opt "endColumn" int31))
+
+    let make ?endColumn () = {endColumn}
+  end
+
+  type t = Scope_0.t * Scope_10.t
+
+  let enc =
+    let open Data_encoding in
+    merge_objs Scope_0.enc Scope_10.enc
+
+  let make ~name ?presentationHint ~variablesReference ?namedVariables
+      ?indexedVariables ~expensive ?source ?line ?column ?endLine ?endColumn ()
+      =
+    let t0 =
+      Scope_0.make
+        ~name
+        ?presentationHint
+        ~variablesReference
+        ?namedVariables
+        ?indexedVariables
+        ~expensive
+        ?source
+        ?line
+        ?column
+        ?endLine
+        ()
+    in
+
+    let t1 = Scope_10.make ?endColumn () in
+
+    (t0, t1)
+end
+
+module ScopesResponse_body = struct
+  type t = {scopes : Scope.t list}
+
+  let enc =
+    let open Data_encoding in
+    (* ScopesResponse_body.t *)
+    conv
+      (fun {scopes} -> scopes)
+      (fun scopes -> {scopes})
+      (obj1 (req "scopes" (list Scope.enc)))
+
+  let make ~scopes () = {scopes}
+end
+
+module VariablesArguments_filter = struct
+  type t = Indexed | Named
+
+  let enc =
+    let open Data_encoding in
+    conv
+      (function Indexed -> "indexed" | Named -> "named")
+      (function
+        | "indexed" -> Indexed
+        | "named" -> Named
+        | _ -> failwith "VariablesArguments_filter")
+      string
+end
+
+module VariablesArguments = struct
+  type t = {
+    variablesReference : int;
+    filter : VariablesArguments_filter.t option;
+    start : int option;
+    count : int option;
+    format : ValueFormat.t option;
+  }
+
+  let enc =
+    let open Data_encoding in
+    (* VariablesArguments.t *)
+    conv
+      (fun {variablesReference; filter; start; count; format} ->
+        (variablesReference, filter, start, count, format))
+      (fun (variablesReference, filter, start, count, format) ->
+        {variablesReference; filter; start; count; format})
+      (obj5
+         (req "variablesReference" int31)
+         (opt "filter" VariablesArguments_filter.enc)
+         (opt "start" int31)
+         (opt "count" int31)
+         (opt "format" ValueFormat.enc))
+
+  let make ~variablesReference ?filter ?start ?count ?format () =
+    {variablesReference; filter; start; count; format}
+end
+
+module VariablePresentationHint_kind = struct
+  type t =
+    | Property
+    | Method
+    | Class
+    | Data
+    | Event
+    | BaseClass
+    | InnerClass
+    | Interface
+    | MostDerivedClass
+    | Virtual
+    | DataBreakpoint
+    | Other of string
+
+  let enc =
+    let open Data_encoding in
+    conv
+      (function
+        | Property -> "property"
+        | Method -> "method"
+        | Class -> "class"
+        | Data -> "data"
+        | Event -> "event"
+        | BaseClass -> "baseClass"
+        | InnerClass -> "innerClass"
+        | Interface -> "interface"
+        | MostDerivedClass -> "mostDerivedClass"
+        | Virtual -> "virtual"
+        | DataBreakpoint -> "dataBreakpoint"
+        | Other s -> s)
+      (function
+        | "property" -> Property
+        | "method" -> Method
+        | "class" -> Class
+        | "data" -> Data
+        | "event" -> Event
+        | "baseClass" -> BaseClass
+        | "innerClass" -> InnerClass
+        | "interface" -> Interface
+        | "mostDerivedClass" -> MostDerivedClass
+        | "virtual" -> Virtual
+        | "dataBreakpoint" -> DataBreakpoint
+        | _ as s -> Other s)
+      string
+end
+
+module VariablePresentationHint_attributes_items = struct
+  type t =
+    | Static
+    | Constant
+    | ReadOnly
+    | RawString
+    | HasObjectId
+    | CanHaveObjectId
+    | HasSideEffects
+    | HasDataBreakpoint
+    | Other of string
+
+  let enc =
+    let open Data_encoding in
+    conv
+      (function
+        | Static -> "static"
+        | Constant -> "constant"
+        | ReadOnly -> "readOnly"
+        | RawString -> "rawString"
+        | HasObjectId -> "hasObjectId"
+        | CanHaveObjectId -> "canHaveObjectId"
+        | HasSideEffects -> "hasSideEffects"
+        | HasDataBreakpoint -> "hasDataBreakpoint"
+        | Other s -> s)
+      (function
+        | "static" -> Static
+        | "constant" -> Constant
+        | "readOnly" -> ReadOnly
+        | "rawString" -> RawString
+        | "hasObjectId" -> HasObjectId
+        | "canHaveObjectId" -> CanHaveObjectId
+        | "hasSideEffects" -> HasSideEffects
+        | "hasDataBreakpoint" -> HasDataBreakpoint
+        | _ as s -> Other s)
+      string
+end
+
+module VariablePresentationHint_visibility = struct
+  type t = Public | Private | Protected | Internal | Final | Other of string
+
+  let enc =
+    let open Data_encoding in
+    conv
+      (function
+        | Public -> "public"
+        | Private -> "private"
+        | Protected -> "protected"
+        | Internal -> "internal"
+        | Final -> "final"
+        | Other s -> s)
+      (function
+        | "public" -> Public
+        | "private" -> Private
+        | "protected" -> Protected
+        | "internal" -> Internal
+        | "final" -> Final
+        | _ as s -> Other s)
+      string
+end
+
+module VariablePresentationHint = struct
+  type t = {
+    kind : VariablePresentationHint_kind.t option;
+    attributes : VariablePresentationHint_attributes_items.t list option;
+    visibility : VariablePresentationHint_visibility.t option;
+    lazy_ : bool option;
+  }
+
+  let enc =
+    let open Data_encoding in
+    (* VariablePresentationHint.t *)
+    conv
+      (fun {kind; attributes; visibility; lazy_} ->
+        (kind, attributes, visibility, lazy_))
+      (fun (kind, attributes, visibility, lazy_) ->
+        {kind; attributes; visibility; lazy_})
+      (obj4
+         (opt "kind" VariablePresentationHint_kind.enc)
+         (opt "attributes" (list VariablePresentationHint_attributes_items.enc))
+         (opt "visibility" VariablePresentationHint_visibility.enc)
+         (opt "lazy" bool))
+
+  let make ?kind ?attributes ?visibility ?lazy_ () =
+    {kind; attributes; visibility; lazy_}
+end
+
+module Variable_ = struct
+  type t = {
+    name : string;
+    value : string;
+    type_ : string option;
+    presentationHint : VariablePresentationHint.t option;
+    evaluateName : string option;
+    variablesReference : int;
+    namedVariables : int option;
+    indexedVariables : int option;
+    memoryReference : string option;
+  }
+
+  let enc =
+    let open Data_encoding in
+    (* Variable_.t *)
+    conv
+      (fun {
+             name;
+             value;
+             type_;
+             presentationHint;
+             evaluateName;
+             variablesReference;
+             namedVariables;
+             indexedVariables;
+             memoryReference;
+           } ->
+        ( name,
+          value,
+          type_,
+          presentationHint,
+          evaluateName,
+          variablesReference,
+          namedVariables,
+          indexedVariables,
+          memoryReference ))
+      (fun ( name,
+             value,
+             type_,
+             presentationHint,
+             evaluateName,
+             variablesReference,
+             namedVariables,
+             indexedVariables,
+             memoryReference ) ->
+        {
+          name;
+          value;
+          type_;
+          presentationHint;
+          evaluateName;
+          variablesReference;
+          namedVariables;
+          indexedVariables;
+          memoryReference;
+        })
+      (obj9
+         (req "name" string)
+         (req "value" string)
+         (opt "type" string)
+         (opt "presentationHint" VariablePresentationHint.enc)
+         (opt "evaluateName" string)
+         (req "variablesReference" int31)
+         (opt "namedVariables" int31)
+         (opt "indexedVariables" int31)
+         (opt "memoryReference" string))
+
+  let make ~name ~value ?type_ ?presentationHint ?evaluateName
+      ~variablesReference ?namedVariables ?indexedVariables ?memoryReference ()
+      =
+    {
+      name;
+      value;
+      type_;
+      presentationHint;
+      evaluateName;
+      variablesReference;
+      namedVariables;
+      indexedVariables;
+      memoryReference;
+    }
+end
+
+module VariablesResponse_body = struct
+  type t = {variables : Variable_.t list}
+
+  let enc =
+    let open Data_encoding in
+    (* VariablesResponse_body.t *)
+    conv
+      (fun {variables} -> variables)
+      (fun variables -> {variables})
+      (obj1 (req "variables" (list Variable_.enc)))
+
+  let make ~variables () = {variables}
+end
+
+module SetVariableArguments = struct
+  type t = {
+    variablesReference : int;
+    name : string;
+    value : string;
+    format : ValueFormat.t option;
+  }
+
+  let enc =
+    let open Data_encoding in
+    (* SetVariableArguments.t *)
+    conv
+      (fun {variablesReference; name; value; format} ->
+        (variablesReference, name, value, format))
+      (fun (variablesReference, name, value, format) ->
+        {variablesReference; name; value; format})
+      (obj4
+         (req "variablesReference" int31)
+         (req "name" string)
+         (req "value" string)
+         (opt "format" ValueFormat.enc))
+
+  let make ~variablesReference ~name ~value ?format () =
+    {variablesReference; name; value; format}
+end
+
+module SetVariableResponse_body = struct
+  type t = {
+    value : string;
+    type_ : string option;
+    variablesReference : int option;
+    namedVariables : int option;
+    indexedVariables : int option;
+  }
+
+  let enc =
+    let open Data_encoding in
+    (* SetVariableResponse_body.t *)
+    conv
+      (fun {value; type_; variablesReference; namedVariables; indexedVariables} ->
+        (value, type_, variablesReference, namedVariables, indexedVariables))
+      (fun (value, type_, variablesReference, namedVariables, indexedVariables) ->
+        {value; type_; variablesReference; namedVariables; indexedVariables})
+      (obj5
+         (req "value" string)
+         (opt "type" string)
+         (opt "variablesReference" int31)
+         (opt "namedVariables" int31)
+         (opt "indexedVariables" int31))
+
+  let make ~value ?type_ ?variablesReference ?namedVariables ?indexedVariables
+      () =
+    {value; type_; variablesReference; namedVariables; indexedVariables}
+end
+
+module SourceArguments = struct
+  type t = {source : Source.t option; sourceReference : int}
+
+  let enc =
+    let open Data_encoding in
+    (* SourceArguments.t *)
+    conv
+      (fun {source; sourceReference} -> (source, sourceReference))
+      (fun (source, sourceReference) -> {source; sourceReference})
+      (obj2 (opt "source" Source.enc) (req "sourceReference" int31))
+
+  let make ?source ~sourceReference () = {source; sourceReference}
+end
+
+module SourceResponse_body = struct
+  type t = {content : string; mimeType : string option}
+
+  let enc =
+    let open Data_encoding in
+    (* SourceResponse_body.t *)
+    conv
+      (fun {content; mimeType} -> (content, mimeType))
+      (fun (content, mimeType) -> {content; mimeType})
+      (obj2 (req "content" string) (opt "mimeType" string))
+
+  let make ~content ?mimeType () = {content; mimeType}
+end
+
+module Thread = struct
+  type t = {id : int; name : string}
+
+  let enc =
+    let open Data_encoding in
+    (* Thread.t *)
+    conv
+      (fun {id; name} -> (id, name))
+      (fun (id, name) -> {id; name})
+      (obj2 (req "id" int31) (req "name" string))
+
+  let make ~id ~name () = {id; name}
+end
+
+module ThreadsResponse_body = struct
+  type t = {threads : Thread.t list}
+
+  let enc =
+    let open Data_encoding in
+    (* ThreadsResponse_body.t *)
+    conv
+      (fun {threads} -> threads)
+      (fun threads -> {threads})
+      (obj1 (req "threads" (list Thread.enc)))
+
+  let make ~threads () = {threads}
+end
+
+module TerminateThreadsArguments = struct
+  type t = {threadIds : int list option}
+
+  let enc =
+    let open Data_encoding in
+    (* TerminateThreadsArguments.t *)
+    conv
+      (fun {threadIds} -> threadIds)
+      (fun threadIds -> {threadIds})
+      (obj1 (opt "threadIds" (list int31)))
+
+  let make ?threadIds () = {threadIds}
+end
+
+module ModulesArguments = struct
+  type t = {startModule : int option; moduleCount : int option}
+
+  let enc =
+    let open Data_encoding in
+    (* ModulesArguments.t *)
+    conv
+      (fun {startModule; moduleCount} -> (startModule, moduleCount))
+      (fun (startModule, moduleCount) -> {startModule; moduleCount})
+      (obj2 (opt "startModule" int31) (opt "moduleCount" int31))
+
+  let make ?startModule ?moduleCount () = {startModule; moduleCount}
+end
+
+module ModulesResponse_body = struct
+  type t = {modules : Module_.t list; totalModules : int option}
+
+  let enc =
+    let open Data_encoding in
+    (* ModulesResponse_body.t *)
+    conv
+      (fun {modules; totalModules} -> (modules, totalModules))
+      (fun (modules, totalModules) -> {modules; totalModules})
+      (obj2 (req "modules" (list Module_.enc)) (opt "totalModules" int31))
+
+  let make ~modules ?totalModules () = {modules; totalModules}
+end
+
+module LoadedSourcesArguments = struct
+  type t = unit
+
+  let enc = Data_encoding.empty
+
+  let make () = ()
+end
+
+module LoadedSourcesResponse_body = struct
+  type t = {sources : Source.t list}
+
+  let enc =
+    let open Data_encoding in
+    (* LoadedSourcesResponse_body.t *)
+    conv
+      (fun {sources} -> sources)
+      (fun sources -> {sources})
+      (obj1 (req "sources" (list Source.enc)))
+
+  let make ~sources () = {sources}
+end
+
+module EvaluateArguments_context = struct
+  type t = Variables | Watch | Repl | Hover | Clipboard | Other of string
+
+  let enc =
+    let open Data_encoding in
+    conv
+      (function
+        | Variables -> "variables"
+        | Watch -> "watch"
+        | Repl -> "repl"
+        | Hover -> "hover"
+        | Clipboard -> "clipboard"
+        | Other s -> s)
+      (function
+        | "variables" -> Variables
+        | "watch" -> Watch
+        | "repl" -> Repl
+        | "hover" -> Hover
+        | "clipboard" -> Clipboard
+        | _ as s -> Other s)
+      string
+end
+
+module EvaluateArguments = struct
+  type t = {
+    expression : string;
+    frameId : int option;
+    context : EvaluateArguments_context.t option;
+    format : ValueFormat.t option;
+  }
+
+  let enc =
+    let open Data_encoding in
+    (* EvaluateArguments.t *)
+    conv
+      (fun {expression; frameId; context; format} ->
+        (expression, frameId, context, format))
+      (fun (expression, frameId, context, format) ->
+        {expression; frameId; context; format})
+      (obj4
+         (req "expression" string)
+         (opt "frameId" int31)
+         (opt "context" EvaluateArguments_context.enc)
+         (opt "format" ValueFormat.enc))
+
+  let make ~expression ?frameId ?context ?format () =
+    {expression; frameId; context; format}
+end
+
+module EvaluateResponse_body = struct
+  type t = {
+    result : string;
+    type_ : string option;
+    presentationHint : VariablePresentationHint.t option;
+    variablesReference : int;
+    namedVariables : int option;
+    indexedVariables : int option;
+    memoryReference : string option;
+  }
+
+  let enc =
+    let open Data_encoding in
+    (* EvaluateResponse_body.t *)
+    conv
+      (fun {
+             result;
+             type_;
+             presentationHint;
+             variablesReference;
+             namedVariables;
+             indexedVariables;
+             memoryReference;
+           } ->
+        ( result,
+          type_,
+          presentationHint,
+          variablesReference,
+          namedVariables,
+          indexedVariables,
+          memoryReference ))
+      (fun ( result,
+             type_,
+             presentationHint,
+             variablesReference,
+             namedVariables,
+             indexedVariables,
+             memoryReference ) ->
+        {
+          result;
+          type_;
+          presentationHint;
+          variablesReference;
+          namedVariables;
+          indexedVariables;
+          memoryReference;
+        })
+      (obj7
+         (req "result" string)
+         (opt "type" string)
+         (opt "presentationHint" VariablePresentationHint.enc)
+         (req "variablesReference" int31)
+         (opt "namedVariables" int31)
+         (opt "indexedVariables" int31)
+         (opt "memoryReference" string))
+
+  let make ~result ?type_ ?presentationHint ~variablesReference ?namedVariables
+      ?indexedVariables ?memoryReference () =
+    {
+      result;
+      type_;
+      presentationHint;
+      variablesReference;
+      namedVariables;
+      indexedVariables;
+      memoryReference;
+    }
+end
+
+module SetExpressionArguments = struct
+  type t = {
+    expression : string;
+    value : string;
+    frameId : int option;
+    format : ValueFormat.t option;
+  }
+
+  let enc =
+    let open Data_encoding in
+    (* SetExpressionArguments.t *)
+    conv
+      (fun {expression; value; frameId; format} ->
+        (expression, value, frameId, format))
+      (fun (expression, value, frameId, format) ->
+        {expression; value; frameId; format})
+      (obj4
+         (req "expression" string)
+         (req "value" string)
+         (opt "frameId" int31)
+         (opt "format" ValueFormat.enc))
+
+  let make ~expression ~value ?frameId ?format () =
+    {expression; value; frameId; format}
+end
+
+module SetExpressionResponse_body = struct
+  type t = {
+    value : string;
+    type_ : string option;
+    presentationHint : VariablePresentationHint.t option;
+    variablesReference : int option;
+    namedVariables : int option;
+    indexedVariables : int option;
+  }
+
+  let enc =
+    let open Data_encoding in
+    (* SetExpressionResponse_body.t *)
+    conv
+      (fun {
+             value;
+             type_;
+             presentationHint;
+             variablesReference;
+             namedVariables;
+             indexedVariables;
+           } ->
+        ( value,
+          type_,
+          presentationHint,
+          variablesReference,
+          namedVariables,
+          indexedVariables ))
+      (fun ( value,
+             type_,
+             presentationHint,
+             variablesReference,
+             namedVariables,
+             indexedVariables ) ->
+        {
+          value;
+          type_;
+          presentationHint;
+          variablesReference;
+          namedVariables;
+          indexedVariables;
+        })
+      (obj6
+         (req "value" string)
+         (opt "type" string)
+         (opt "presentationHint" VariablePresentationHint.enc)
+         (opt "variablesReference" int31)
+         (opt "namedVariables" int31)
+         (opt "indexedVariables" int31))
+
+  let make ~value ?type_ ?presentationHint ?variablesReference ?namedVariables
+      ?indexedVariables () =
+    {
+      value;
+      type_;
+      presentationHint;
+      variablesReference;
+      namedVariables;
+      indexedVariables;
+    }
+end
+
+module StepInTargetsArguments = struct
+  type t = {frameId : int}
+
+  let enc =
+    let open Data_encoding in
+    (* StepInTargetsArguments.t *)
+    conv
+      (fun {frameId} -> frameId)
+      (fun frameId -> {frameId})
+      (obj1 (req "frameId" int31))
+
+  let make ~frameId () = {frameId}
+end
+
+module StepInTarget = struct
+  type t = {
+    id : int;
+    label : string;
+    line : int option;
+    column : int option;
+    endLine : int option;
+    endColumn : int option;
+  }
+
+  let enc =
+    let open Data_encoding in
+    (* StepInTarget.t *)
+    conv
+      (fun {id; label; line; column; endLine; endColumn} ->
+        (id, label, line, column, endLine, endColumn))
+      (fun (id, label, line, column, endLine, endColumn) ->
+        {id; label; line; column; endLine; endColumn})
+      (obj6
+         (req "id" int31)
+         (req "label" string)
+         (opt "line" int31)
+         (opt "column" int31)
+         (opt "endLine" int31)
+         (opt "endColumn" int31))
+
+  let make ~id ~label ?line ?column ?endLine ?endColumn () =
+    {id; label; line; column; endLine; endColumn}
+end
+
+module StepInTargetsResponse_body = struct
+  type t = {targets : StepInTarget.t list}
+
+  let enc =
+    let open Data_encoding in
+    (* StepInTargetsResponse_body.t *)
+    conv
+      (fun {targets} -> targets)
+      (fun targets -> {targets})
+      (obj1 (req "targets" (list StepInTarget.enc)))
+
+  let make ~targets () = {targets}
+end
+
+module GotoTargetsArguments = struct
+  type t = {source : Source.t; line : int; column : int option}
+
+  let enc =
+    let open Data_encoding in
+    (* GotoTargetsArguments.t *)
+    conv
+      (fun {source; line; column} -> (source, line, column))
+      (fun (source, line, column) -> {source; line; column})
+      (obj3 (req "source" Source.enc) (req "line" int31) (opt "column" int31))
+
+  let make ~source ~line ?column () = {source; line; column}
+end
+
+module GotoTarget = struct
+  type t = {
+    id : int;
+    label : string;
+    line : int;
+    column : int option;
+    endLine : int option;
+    endColumn : int option;
+    instructionPointerReference : string option;
+  }
+
+  let enc =
+    let open Data_encoding in
+    (* GotoTarget.t *)
+    conv
+      (fun {
+             id;
+             label;
+             line;
+             column;
+             endLine;
+             endColumn;
+             instructionPointerReference;
+           } ->
+        ( id,
+          label,
+          line,
+          column,
+          endLine,
+          endColumn,
+          instructionPointerReference ))
+      (fun ( id,
+             label,
+             line,
+             column,
+             endLine,
+             endColumn,
+             instructionPointerReference ) ->
+        {
+          id;
+          label;
+          line;
+          column;
+          endLine;
+          endColumn;
+          instructionPointerReference;
+        })
+      (obj7
+         (req "id" int31)
+         (req "label" string)
+         (req "line" int31)
+         (opt "column" int31)
+         (opt "endLine" int31)
+         (opt "endColumn" int31)
+         (opt "instructionPointerReference" string))
+
+  let make ~id ~label ~line ?column ?endLine ?endColumn
+      ?instructionPointerReference () =
+    {id; label; line; column; endLine; endColumn; instructionPointerReference}
+end
+
+module GotoTargetsResponse_body = struct
+  type t = {targets : GotoTarget.t list}
+
+  let enc =
+    let open Data_encoding in
+    (* GotoTargetsResponse_body.t *)
+    conv
+      (fun {targets} -> targets)
+      (fun targets -> {targets})
+      (obj1 (req "targets" (list GotoTarget.enc)))
+
+  let make ~targets () = {targets}
+end
+
+module CompletionsArguments = struct
+  type t = {
+    frameId : int option;
+    text : string;
+    column : int;
+    line : int option;
+  }
+
+  let enc =
+    let open Data_encoding in
+    (* CompletionsArguments.t *)
+    conv
+      (fun {frameId; text; column; line} -> (frameId, text, column, line))
+      (fun (frameId, text, column, line) -> {frameId; text; column; line})
+      (obj4
+         (opt "frameId" int31)
+         (req "text" string)
+         (req "column" int31)
+         (opt "line" int31))
+
+  let make ?frameId ~text ~column ?line () = {frameId; text; column; line}
+end
+
+module CompletionItemType = struct
+  type t =
+    | Method
+    | Function
+    | Constructor
+    | Field
+    | Variable_
+    | Class
+    | Interface
+    | Module_
+    | Property
+    | Unit
+    | Value
+    | Enum
+    | Keyword
+    | Snippet
+    | Text
+    | Color
+    | File
+    | Reference
+    | Customcolor
+
+  let enc =
+    let open Data_encoding in
+    conv
+      (function
+        | Method -> "method"
+        | Function -> "function"
+        | Constructor -> "constructor"
+        | Field -> "field"
+        | Variable_ -> "variable"
+        | Class -> "class"
+        | Interface -> "interface"
+        | Module_ -> "module"
+        | Property -> "property"
+        | Unit -> "unit"
+        | Value -> "value"
+        | Enum -> "enum"
+        | Keyword -> "keyword"
+        | Snippet -> "snippet"
+        | Text -> "text"
+        | Color -> "color"
+        | File -> "file"
+        | Reference -> "reference"
+        | Customcolor -> "customcolor")
+      (function
+        | "method" -> Method
+        | "function" -> Function
+        | "constructor" -> Constructor
+        | "field" -> Field
+        | "variable" -> Variable_
+        | "class" -> Class
+        | "interface" -> Interface
+        | "module" -> Module_
+        | "property" -> Property
+        | "unit" -> Unit
+        | "value" -> Value
+        | "enum" -> Enum
+        | "keyword" -> Keyword
+        | "snippet" -> Snippet
+        | "text" -> Text
+        | "color" -> Color
+        | "file" -> File
+        | "reference" -> Reference
+        | "customcolor" -> Customcolor
+        | _ -> failwith "CompletionItemType")
+      string
+end
+
+module CompletionItem = struct
+  type t = {
+    label : string;
+    text : string option;
+    sortText : string option;
+    detail : string option;
+    type_ : CompletionItemType.t option;
+    start : int option;
+    length : int option;
+    selectionStart : int option;
+    selectionLength : int option;
+  }
+
+  let enc =
+    let open Data_encoding in
+    (* CompletionItem.t *)
+    conv
+      (fun {
+             label;
+             text;
+             sortText;
+             detail;
+             type_;
+             start;
+             length;
+             selectionStart;
+             selectionLength;
+           } ->
+        ( label,
+          text,
+          sortText,
+          detail,
+          type_,
+          start,
+          length,
+          selectionStart,
+          selectionLength ))
+      (fun ( label,
+             text,
+             sortText,
+             detail,
+             type_,
+             start,
+             length,
+             selectionStart,
+             selectionLength ) ->
+        {
+          label;
+          text;
+          sortText;
+          detail;
+          type_;
+          start;
+          length;
+          selectionStart;
+          selectionLength;
+        })
+      (obj9
+         (req "label" string)
+         (opt "text" string)
+         (opt "sortText" string)
+         (opt "detail" string)
+         (opt "type" CompletionItemType.enc)
+         (opt "start" int31)
+         (opt "length" int31)
+         (opt "selectionStart" int31)
+         (opt "selectionLength" int31))
+
+  let make ~label ?text ?sortText ?detail ?type_ ?start ?length ?selectionStart
+      ?selectionLength () =
+    {
+      label;
+      text;
+      sortText;
+      detail;
+      type_;
+      start;
+      length;
+      selectionStart;
+      selectionLength;
+    }
+end
+
+module CompletionsResponse_body = struct
+  type t = {targets : CompletionItem.t list}
+
+  let enc =
+    let open Data_encoding in
+    (* CompletionsResponse_body.t *)
+    conv
+      (fun {targets} -> targets)
+      (fun targets -> {targets})
+      (obj1 (req "targets" (list CompletionItem.enc)))
+
+  let make ~targets () = {targets}
+end
+
+module ExceptionInfoArguments = struct
+  type t = {threadId : int}
+
+  let enc =
+    let open Data_encoding in
+    (* ExceptionInfoArguments.t *)
+    conv
+      (fun {threadId} -> threadId)
+      (fun threadId -> {threadId})
+      (obj1 (req "threadId" int31))
+
+  let make ~threadId () = {threadId}
+end
+
+module ExceptionDetails = struct
+  type t = {
+    message : string option;
+    typeName : string option;
+    fullTypeName : string option;
+    evaluateName : string option;
+    stackTrace : string option;
+    innerException : t list option;
+  }
+
+  let enc =
+    let open Data_encoding in
+    mu "ExceptionDetails.t" (fun e ->
+        conv
+          (fun {
+                 message;
+                 typeName;
+                 fullTypeName;
+                 evaluateName;
+                 stackTrace;
+                 innerException;
+               } ->
+            ( message,
+              typeName,
+              fullTypeName,
+              evaluateName,
+              stackTrace,
+              innerException ))
+          (fun ( message,
+                 typeName,
+                 fullTypeName,
+                 evaluateName,
+                 stackTrace,
+                 innerException ) ->
+            {
+              message;
+              typeName;
+              fullTypeName;
+              evaluateName;
+              stackTrace;
+              innerException;
+            })
+          (obj6
+             (opt "message" string)
+             (opt "typeName" string)
+             (opt "fullTypeName" string)
+             (opt "evaluateName" string)
+             (opt "stackTrace" string)
+             (opt "innerException" (list e))))
+
+  let make ?message ?typeName ?fullTypeName ?evaluateName ?stackTrace
+      ?innerException () =
+    {message; typeName; fullTypeName; evaluateName; stackTrace; innerException}
+end
+
+module ExceptionInfoResponse_body = struct
+  type t = {
+    exceptionId : string;
+    description : string option;
+    breakMode : ExceptionBreakMode.t;
+    details : ExceptionDetails.t option;
+  }
+
+  let enc =
+    let open Data_encoding in
+    (* ExceptionInfoResponse_body.t *)
+    conv
+      (fun {exceptionId; description; breakMode; details} ->
+        (exceptionId, description, breakMode, details))
+      (fun (exceptionId, description, breakMode, details) ->
+        {exceptionId; description; breakMode; details})
+      (obj4
+         (req "exceptionId" string)
+         (opt "description" string)
+         (req "breakMode" ExceptionBreakMode.enc)
+         (opt "details" ExceptionDetails.enc))
+
+  let make ~exceptionId ?description ~breakMode ?details () =
+    {exceptionId; description; breakMode; details}
+end
+
+module ReadMemoryArguments = struct
+  type t = {memoryReference : string; offset : int option; count : int}
+
+  let enc =
+    let open Data_encoding in
+    (* ReadMemoryArguments.t *)
+    conv
+      (fun {memoryReference; offset; count} -> (memoryReference, offset, count))
+      (fun (memoryReference, offset, count) -> {memoryReference; offset; count})
+      (obj3
+         (req "memoryReference" string)
+         (opt "offset" int31)
+         (req "count" int31))
+
+  let make ~memoryReference ?offset ~count () = {memoryReference; offset; count}
+end
+
+module ReadMemoryResponse_body = struct
+  type t = {
+    address : string;
+    unreadableBytes : int option;
+    data : string option;
+  }
+
+  let enc =
+    let open Data_encoding in
+    (* ReadMemoryResponse_body.t *)
+    conv
+      (fun {address; unreadableBytes; data} -> (address, unreadableBytes, data))
+      (fun (address, unreadableBytes, data) -> {address; unreadableBytes; data})
+      (obj3
+         (req "address" string)
+         (opt "unreadableBytes" int31)
+         (opt "data" string))
+
+  let make ~address ?unreadableBytes ?data () = {address; unreadableBytes; data}
+end
+
+module WriteMemoryArguments = struct
+  type t = {
+    memoryReference : string;
+    offset : int option;
+    allowPartial : bool option;
+    data : string;
+  }
+
+  let enc =
+    let open Data_encoding in
+    (* WriteMemoryArguments.t *)
+    conv
+      (fun {memoryReference; offset; allowPartial; data} ->
+        (memoryReference, offset, allowPartial, data))
+      (fun (memoryReference, offset, allowPartial, data) ->
+        {memoryReference; offset; allowPartial; data})
+      (obj4
+         (req "memoryReference" string)
+         (opt "offset" int31)
+         (opt "allowPartial" bool)
+         (req "data" string))
+
+  let make ~memoryReference ?offset ?allowPartial ~data () =
+    {memoryReference; offset; allowPartial; data}
+end
+
+module WriteMemoryResponse_body = struct
+  type t = {offset : int option; bytesWritten : int option}
+
+  let enc =
+    let open Data_encoding in
+    (* WriteMemoryResponse_body.t *)
+    conv
+      (fun {offset; bytesWritten} -> (offset, bytesWritten))
+      (fun (offset, bytesWritten) -> {offset; bytesWritten})
+      (obj2 (opt "offset" int31) (opt "bytesWritten" int31))
+
+  let make ?offset ?bytesWritten () = {offset; bytesWritten}
+end
+
+module DisassembleArguments = struct
+  type t = {
+    memoryReference : string;
+    offset : int option;
+    instructionOffset : int option;
+    instructionCount : int;
+    resolveSymbols : bool option;
+  }
+
+  let enc =
+    let open Data_encoding in
+    (* DisassembleArguments.t *)
+    conv
+      (fun {
+             memoryReference;
+             offset;
+             instructionOffset;
+             instructionCount;
+             resolveSymbols;
+           } ->
+        ( memoryReference,
+          offset,
+          instructionOffset,
+          instructionCount,
+          resolveSymbols ))
+      (fun ( memoryReference,
+             offset,
+             instructionOffset,
+             instructionCount,
+             resolveSymbols ) ->
+        {
+          memoryReference;
+          offset;
+          instructionOffset;
+          instructionCount;
+          resolveSymbols;
+        })
+      (obj5
+         (req "memoryReference" string)
+         (opt "offset" int31)
+         (opt "instructionOffset" int31)
+         (req "instructionCount" int31)
+         (opt "resolveSymbols" bool))
+
+  let make ~memoryReference ?offset ?instructionOffset ~instructionCount
+      ?resolveSymbols () =
+    {
+      memoryReference;
+      offset;
+      instructionOffset;
+      instructionCount;
+      resolveSymbols;
+    }
+end
+
+module DisassembledInstruction = struct
+  type t = {
+    address : string;
+    instructionBytes : string option;
+    instruction : string;
+    symbol : string option;
+    location : Source.t option;
+    line : int option;
+    column : int option;
+    endLine : int option;
+    endColumn : int option;
+  }
+
+  let enc =
+    let open Data_encoding in
+    (* DisassembledInstruction.t *)
+    conv
+      (fun {
+             address;
+             instructionBytes;
+             instruction;
+             symbol;
+             location;
+             line;
+             column;
+             endLine;
+             endColumn;
+           } ->
+        ( address,
+          instructionBytes,
+          instruction,
+          symbol,
+          location,
+          line,
+          column,
+          endLine,
+          endColumn ))
+      (fun ( address,
+             instructionBytes,
+             instruction,
+             symbol,
+             location,
+             line,
+             column,
+             endLine,
+             endColumn ) ->
+        {
+          address;
+          instructionBytes;
+          instruction;
+          symbol;
+          location;
+          line;
+          column;
+          endLine;
+          endColumn;
+        })
+      (obj9
+         (req "address" string)
+         (opt "instructionBytes" string)
+         (req "instruction" string)
+         (opt "symbol" string)
+         (opt "location" Source.enc)
+         (opt "line" int31)
+         (opt "column" int31)
+         (opt "endLine" int31)
+         (opt "endColumn" int31))
+
+  let make ~address ?instructionBytes ~instruction ?symbol ?location ?line
+      ?column ?endLine ?endColumn () =
+    {
+      address;
+      instructionBytes;
+      instruction;
+      symbol;
+      location;
+      line;
+      column;
+      endLine;
+      endColumn;
+    }
+end
+
+module DisassembleResponse_body = struct
+  type t = {instructions : DisassembledInstruction.t list}
+
+  let enc =
+    let open Data_encoding in
+    (* DisassembleResponse_body.t *)
+    conv
+      (fun {instructions} -> instructions)
+      (fun instructions -> {instructions})
+      (obj1 (req "instructions" (list DisassembledInstruction.enc)))
+
+  let make ~instructions () = {instructions}
+end
+
+module ModulesViewDescriptor = struct
+  type t = {columns : ColumnDescriptor.t list}
+
+  let enc =
+    let open Data_encoding in
+    (* ModulesViewDescriptor.t *)
+    conv
+      (fun {columns} -> columns)
+      (fun columns -> {columns})
+      (obj1 (req "columns" (list ColumnDescriptor.enc)))
+
+  let make ~columns () = {columns}
+end
+
+type request =
+  | CancelRequest of (Dap_command.cancel, CancelArguments.t) RequestMessageOpt.t
+  | RunInTerminalRequest of
+      ( Dap_command.runInTerminal,
+        RunInTerminalRequestArguments.t )
+      RequestMessage.t
+  | InitializeRequest of
+      (Dap_command.initialize, InitializeRequestArguments.t) RequestMessage.t
+  | ConfigurationDoneRequest of
+      ( Dap_command.configurationDone,
+        ConfigurationDoneArguments.t )
+      RequestMessageOpt.t
+  | LaunchRequest of
+      (Dap_command.launch, LaunchRequestArguments.t) RequestMessage.t
+  | AttachRequest of
+      (Dap_command.attach, AttachRequestArguments.t) RequestMessage.t
+  | RestartRequest of
+      (Dap_command.restart, RestartArguments.t) RequestMessageOpt.t
+  | DisconnectRequest of
+      (Dap_command.disconnect, DisconnectArguments.t) RequestMessageOpt.t
+  | TerminateRequest of
+      (Dap_command.terminate, TerminateArguments.t) RequestMessageOpt.t
+  | BreakpointLocationsRequest of
+      ( Dap_command.breakpointLocations,
+        BreakpointLocationsArguments.t )
+      RequestMessageOpt.t
+  | SetBreakpointsRequest of
+      (Dap_command.setBreakpoints, SetBreakpointsArguments.t) RequestMessage.t
+  | SetFunctionBreakpointsRequest of
+      ( Dap_command.setFunctionBreakpoints,
+        SetFunctionBreakpointsArguments.t )
+      RequestMessage.t
+  | SetExceptionBreakpointsRequest of
+      ( Dap_command.setExceptionBreakpoints,
+        SetExceptionBreakpointsArguments.t )
+      RequestMessage.t
+  | DataBreakpointInfoRequest of
+      ( Dap_command.dataBreakpointInfo,
+        DataBreakpointInfoArguments.t )
+      RequestMessage.t
+  | SetDataBreakpointsRequest of
+      ( Dap_command.setDataBreakpoints,
+        SetDataBreakpointsArguments.t )
+      RequestMessage.t
+  | SetInstructionBreakpointsRequest of
+      ( Dap_command.setInstructionBreakpoints,
+        SetInstructionBreakpointsArguments.t )
+      RequestMessage.t
+  | ContinueRequest of
+      (Dap_command.continue, ContinueArguments.t) RequestMessage.t
+  | NextRequest of (Dap_command.next, NextArguments.t) RequestMessage.t
+  | StepInRequest of (Dap_command.stepIn, StepInArguments.t) RequestMessage.t
+  | StepOutRequest of (Dap_command.stepOut, StepOutArguments.t) RequestMessage.t
+  | StepBackRequest of
+      (Dap_command.stepBack, StepBackArguments.t) RequestMessage.t
+  | ReverseContinueRequest of
+      (Dap_command.reverseContinue, ReverseContinueArguments.t) RequestMessage.t
+  | RestartFrameRequest of
+      (Dap_command.restartFrame, RestartFrameArguments.t) RequestMessage.t
+  | GotoRequest of (Dap_command.goto, GotoArguments.t) RequestMessage.t
+  | PauseRequest of (Dap_command.pause, PauseArguments.t) RequestMessage.t
+  | StackTraceRequest of
+      (Dap_command.stackTrace, StackTraceArguments.t) RequestMessage.t
+  | ScopesRequest of (Dap_command.scopes, ScopesArguments.t) RequestMessage.t
+  | VariablesRequest of
+      (Dap_command.variables, VariablesArguments.t) RequestMessage.t
+  | SetVariableRequest of
+      (Dap_command.setVariable, SetVariableArguments.t) RequestMessage.t
+  | SourceRequest of (Dap_command.source, SourceArguments.t) RequestMessage.t
+  | ThreadsRequest of (Dap_command.threads, EmptyObject.t) RequestMessageOpt.t
+  | TerminateThreadsRequest of
+      ( Dap_command.terminateThreads,
+        TerminateThreadsArguments.t )
+      RequestMessage.t
+  | ModulesRequest of (Dap_command.modules, ModulesArguments.t) RequestMessage.t
+  | LoadedSourcesRequest of
+      (Dap_command.loadedSources, LoadedSourcesArguments.t) RequestMessageOpt.t
+  | EvaluateRequest of
+      (Dap_command.evaluate, EvaluateArguments.t) RequestMessage.t
+  | SetExpressionRequest of
+      (Dap_command.setExpression, SetExpressionArguments.t) RequestMessage.t
+  | StepInTargetsRequest of
+      (Dap_command.stepInTargets, StepInTargetsArguments.t) RequestMessage.t
+  | GotoTargetsRequest of
+      (Dap_command.gotoTargets, GotoTargetsArguments.t) RequestMessage.t
+  | CompletionsRequest of
+      (Dap_command.completions, CompletionsArguments.t) RequestMessage.t
+  | ExceptionInfoRequest of
+      (Dap_command.exceptionInfo, ExceptionInfoArguments.t) RequestMessage.t
+  | ReadMemoryRequest of
+      (Dap_command.readMemory, ReadMemoryArguments.t) RequestMessage.t
+  | WriteMemoryRequest of
+      (Dap_command.writeMemory, WriteMemoryArguments.t) RequestMessage.t
+  | DisassembleRequest of
+      (Dap_command.disassemble, DisassembleArguments.t) RequestMessage.t
+
+type response =
+  | ErrorResponse of (Dap_command.error, ErrorResponse_body.t) ResponseMessage.t
+  | CancelResponse of (Dap_command.cancel, EmptyObject.t) ResponseMessageOpt.t
+  | RunInTerminalResponse of
+      ( Dap_command.runInTerminal,
+        RunInTerminalResponse_body.t )
+      ResponseMessage.t
+  | InitializeResponse of
+      (Dap_command.initialize, Capabilities.t) ResponseMessageOpt.t
+  | ConfigurationDoneResponse of
+      (Dap_command.configurationDone, EmptyObject.t) ResponseMessageOpt.t
+  | LaunchResponse of (Dap_command.launch, EmptyObject.t) ResponseMessageOpt.t
+  | AttachResponse of (Dap_command.attach, EmptyObject.t) ResponseMessageOpt.t
+  | RestartResponse of (Dap_command.restart, EmptyObject.t) ResponseMessageOpt.t
+  | DisconnectResponse of
+      (Dap_command.disconnect, EmptyObject.t) ResponseMessageOpt.t
+  | TerminateResponse of
+      (Dap_command.terminate, EmptyObject.t) ResponseMessageOpt.t
+  | BreakpointLocationsResponse of
+      ( Dap_command.breakpointLocations,
+        BreakpointLocationsResponse_body.t )
+      ResponseMessage.t
+  | SetBreakpointsResponse of
+      ( Dap_command.setBreakpoints,
+        SetBreakpointsResponse_body.t )
+      ResponseMessage.t
+  | SetFunctionBreakpointsResponse of
+      ( Dap_command.setFunctionBreakpoints,
+        SetFunctionBreakpointsResponse_body.t )
+      ResponseMessage.t
+  | SetExceptionBreakpointsResponse of
+      ( Dap_command.setExceptionBreakpoints,
+        SetExceptionBreakpointsResponse_body.t )
+      ResponseMessageOpt.t
+  | DataBreakpointInfoResponse of
+      ( Dap_command.dataBreakpointInfo,
+        DataBreakpointInfoResponse_body.t )
+      ResponseMessage.t
+  | SetDataBreakpointsResponse of
+      ( Dap_command.setDataBreakpoints,
+        SetDataBreakpointsResponse_body.t )
+      ResponseMessage.t
+  | SetInstructionBreakpointsResponse of
+      ( Dap_command.setInstructionBreakpoints,
+        SetInstructionBreakpointsResponse_body.t )
+      ResponseMessage.t
+  | ContinueResponse of
+      (Dap_command.continue, ContinueResponse_body.t) ResponseMessage.t
+  | NextResponse of (Dap_command.next, EmptyObject.t) ResponseMessageOpt.t
+  | StepInResponse of (Dap_command.stepIn, EmptyObject.t) ResponseMessageOpt.t
+  | StepOutResponse of (Dap_command.stepOut, EmptyObject.t) ResponseMessageOpt.t
+  | StepBackResponse of
+      (Dap_command.stepBack, EmptyObject.t) ResponseMessageOpt.t
+  | ReverseContinueResponse of
+      (Dap_command.reverseContinue, EmptyObject.t) ResponseMessageOpt.t
+  | RestartFrameResponse of
+      (Dap_command.restartFrame, EmptyObject.t) ResponseMessageOpt.t
+  | GotoResponse of (Dap_command.goto, EmptyObject.t) ResponseMessageOpt.t
+  | PauseResponse of (Dap_command.pause, EmptyObject.t) ResponseMessageOpt.t
+  | StackTraceResponse of
+      (Dap_command.stackTrace, StackTraceResponse_body.t) ResponseMessage.t
+  | ScopesResponse of
+      (Dap_command.scopes, ScopesResponse_body.t) ResponseMessage.t
+  | VariablesResponse of
+      (Dap_command.variables, VariablesResponse_body.t) ResponseMessage.t
+  | SetVariableResponse of
+      (Dap_command.setVariable, SetVariableResponse_body.t) ResponseMessage.t
+  | SourceResponse of
+      (Dap_command.source, SourceResponse_body.t) ResponseMessage.t
+  | ThreadsResponse of
+      (Dap_command.threads, ThreadsResponse_body.t) ResponseMessage.t
+  | TerminateThreadsResponse of
+      (Dap_command.terminateThreads, EmptyObject.t) ResponseMessageOpt.t
+  | ModulesResponse of
+      (Dap_command.modules, ModulesResponse_body.t) ResponseMessage.t
+  | LoadedSourcesResponse of
+      ( Dap_command.loadedSources,
+        LoadedSourcesResponse_body.t )
+      ResponseMessage.t
+  | EvaluateResponse of
+      (Dap_command.evaluate, EvaluateResponse_body.t) ResponseMessage.t
+  | SetExpressionResponse of
+      ( Dap_command.setExpression,
+        SetExpressionResponse_body.t )
+      ResponseMessage.t
+  | StepInTargetsResponse of
+      ( Dap_command.stepInTargets,
+        StepInTargetsResponse_body.t )
+      ResponseMessage.t
+  | GotoTargetsResponse of
+      (Dap_command.gotoTargets, GotoTargetsResponse_body.t) ResponseMessage.t
+  | CompletionsResponse of
+      (Dap_command.completions, CompletionsResponse_body.t) ResponseMessage.t
+  | ExceptionInfoResponse of
+      ( Dap_command.exceptionInfo,
+        ExceptionInfoResponse_body.t )
+      ResponseMessage.t
+  | ReadMemoryResponse of
+      (Dap_command.readMemory, ReadMemoryResponse_body.t) ResponseMessageOpt.t
+  | WriteMemoryResponse of
+      (Dap_command.writeMemory, WriteMemoryResponse_body.t) ResponseMessageOpt.t
+  | DisassembleResponse of
+      (Dap_command.disassemble, DisassembleResponse_body.t) ResponseMessageOpt.t
+
+type event =
+  | InitializedEvent of (Dap_event.initialized, EmptyObject.t) EventMessageOpt.t
+  | StoppedEvent of (Dap_event.stopped, StoppedEvent_body.t) EventMessage.t
+  | ContinuedEvent of
+      (Dap_event.continued, ContinuedEvent_body.t) EventMessage.t
+  | ExitedEvent of (Dap_event.exited, ExitedEvent_body.t) EventMessage.t
+  | TerminatedEvent of
+      (Dap_event.terminated, TerminatedEvent_body.t) EventMessageOpt.t
+  | ThreadEvent of (Dap_event.thread, ThreadEvent_body.t) EventMessage.t
+  | OutputEvent of (Dap_event.output, OutputEvent_body.t) EventMessage.t
+  | BreakpointEvent of
+      (Dap_event.breakpoint, BreakpointEvent_body.t) EventMessage.t
+  | ModuleEvent of (Dap_event.module_, ModuleEvent_body.t) EventMessage.t
+  | LoadedSourceEvent of
+      (Dap_event.loadedSource, LoadedSourceEvent_body.t) EventMessage.t
+  | ProcessEvent of (Dap_event.process, ProcessEvent_body.t) EventMessage.t
+  | CapabilitiesEvent of
+      (Dap_event.capabilities, CapabilitiesEvent_body.t) EventMessage.t
+  | ProgressStartEvent of
+      (Dap_event.progressStart, ProgressStartEvent_body.t) EventMessage.t
+  | ProgressUpdateEvent of
+      (Dap_event.progressUpdate, ProgressUpdateEvent_body.t) EventMessage.t
+  | ProgressEndEvent of
+      (Dap_event.progressEnd, ProgressEndEvent_body.t) EventMessage.t
+  | InvalidatedEvent of
+      (Dap_event.invalidated, InvalidatedEvent_body.t) EventMessage.t
+  | MemoryEvent of (Dap_event.memory, MemoryEvent_body.t) EventMessage.t

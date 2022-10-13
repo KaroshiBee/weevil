@@ -129,26 +129,26 @@ module type REQUEST = sig
   val seq : ('cmd, 'args) t -> int
   val incr : ('cmd, 'args) t -> ('cmd, 'args) t
   val message : ('cmd, 'args) t -> ProtocolMessage_type.t
-  val command : ('cmd, 'args) t -> 'cmd
+  val command : ('cmd, 'args) t -> 'cmd Dap_command.t
   val arguments : ('cmd, 'args) t -> 'args option
-  val enc : 'cmd Data_encoding.t -> 'args Data_encoding.t -> ('cmd, 'args) t Data_encoding.t
+  val enc : 'cmd Dap_command.t Data_encoding.t -> 'args Data_encoding.t -> ('cmd, 'args) t Data_encoding.t
 
 end
 module type REQUEST_MAKE = sig
   include REQUEST
-  val make : seq:int -> command:'cmd -> arguments:'args -> unit -> ('cmd, 'args) t
+  val make : seq:int -> command:'cmd Dap_command.t-> arguments:'args -> unit -> ('cmd, 'args) t
 end
 
 module type REQUEST_OPT_MAKE = sig
   include REQUEST
-  val make : seq:int -> command:'cmd -> ?arguments:'args -> unit -> ('cmd, 'args) t
+  val make : seq:int -> command:'cmd Dap_command.t -> ?arguments:'args -> unit -> ('cmd, 'args) t
 end
 
 module RequestMessage : REQUEST_MAKE = struct
   type ('cmd, 'args) t = {
     seq : int;
     type_ : ProtocolMessage_type.t;
-    command : 'cmd;
+    command : 'cmd Dap_command.t;
     arguments : 'args;
   }
 
@@ -178,7 +178,7 @@ module RequestMessageOpt : REQUEST_OPT_MAKE = struct
   type ('cmd, 'args) t = {
     seq : int;
     type_ : ProtocolMessage_type.t;
-    command : 'cmd;
+    command : 'cmd Dap_command.t;
     arguments : 'args option;
   }
 
@@ -212,20 +212,20 @@ module type RESPONSE = sig
   val type_ : ('cmd, 'body) t -> ProtocolMessage_type.t
   val request_seq : ('cmd, 'body) t -> int
   val success : ('cmd, 'body) t -> bool
-  val command : ('cmd, 'body) t -> 'cmd
+  val command : ('cmd, 'body) t -> 'cmd Dap_command.t
   val message : ('cmd, 'body) t -> string option
   val body : ('cmd, 'body) t -> 'body option
-  val enc : 'cmd Data_encoding.t -> 'body Data_encoding.t -> ('cmd, 'body) t Data_encoding.t
+  val enc : 'cmd Dap_command.t Data_encoding.t -> 'body Data_encoding.t -> ('cmd, 'body) t Data_encoding.t
 end
 
 module type RESPONSE_MAKE = sig
   include RESPONSE
-  val make : seq:int -> request_seq:int -> success:bool -> command:'cmd -> ?message:string -> body:'body -> unit -> ('cmd, 'body) t
+  val make : seq:int -> request_seq:int -> success:bool -> command:'cmd Dap_command.t -> ?message:string -> body:'body -> unit -> ('cmd, 'body) t
 end
 
 module type RESPONSE_OPT_MAKE = sig
   include RESPONSE
-  val make : seq:int -> request_seq:int -> success:bool -> command:'cmd -> ?message:string -> ?body:'body -> unit -> ('cmd, 'body) t
+  val make : seq:int -> request_seq:int -> success:bool -> command:'cmd Dap_command.t -> ?message:string -> ?body:'body -> unit -> ('cmd, 'body) t
 end
 
 module ResponseMessage : RESPONSE_MAKE = struct
@@ -235,7 +235,7 @@ module ResponseMessage : RESPONSE_MAKE = struct
     type_ : ProtocolMessage_type.t;
     request_seq : int;
     success : bool;
-    command : 'cmd;
+    command : 'cmd Dap_command.t;
     message : string option; (* only used once I think, keep as string for now *)
     body : 'body;
   }
@@ -278,7 +278,7 @@ module ResponseMessageOpt : RESPONSE_OPT_MAKE = struct
     type_ : ProtocolMessage_type.t;
     request_seq : int;
     success : bool;
-    command : 'cmd;
+    command : 'cmd Dap_command.t;
     message : string option; (* only used once I think, keep as string for now *)
     body : 'body option;
   }

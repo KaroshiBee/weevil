@@ -6,7 +6,7 @@ let%expect_test "Check phantoms (command and event) example" =
   let actual = render dfs @@ Commands ML in
   Printf.printf "%s" actual;
   [%expect {|
-    (* NOTE autogenerating Command, do not manually edit *)
+    (* NOTE autogenerating Dap_command, do not manually edit *)
     type v = Cancel | Error
 
     type 'a t = v
@@ -21,7 +21,7 @@ let%expect_test "Check phantoms (command and event) example" =
     | (Error : _ t) -> "error"
 
     let g : type a. string -> a t = function | "cancel" -> (Cancel : _ t)
-    | "error" -> (Error : _ t)| _ -> failwith "Command"
+    | "error" -> (Error : _ t)| _ -> failwith "Dap_command"
 
 
     let enc = Data_encoding.conv f g Data_encoding.string |}];
@@ -29,7 +29,7 @@ let%expect_test "Check phantoms (command and event) example" =
   let actual = render dfs @@ Commands MLI in
   Printf.printf "%s" actual;
   [%expect {|
-    (* NOTE autogenerating Command, do not manually edit *)
+    (* NOTE autogenerating Dap_command, do not manually edit *)
     type 'a t
     type cancel
     type error
@@ -42,7 +42,7 @@ let%expect_test "Check phantoms (command and event) example" =
   let actual = render dfs @@ Events ML in
   Printf.printf "%s" actual;
   [%expect {|
-    (* NOTE autogenerating Event, do not manually edit *)
+    (* NOTE autogenerating Dap_event, do not manually edit *)
     type v = Terminated | Exited | Continued | Stopped | Initialized
 
     type 'a t = v
@@ -69,7 +69,7 @@ let%expect_test "Check phantoms (command and event) example" =
     | "exited" -> (Exited : _ t)
     | "continued" -> (Continued : _ t)
     | "stopped" -> (Stopped : _ t)
-    | "initialized" -> (Initialized : _ t)| _ -> failwith "Event"
+    | "initialized" -> (Initialized : _ t)| _ -> failwith "Dap_event"
 
 
     let enc = Data_encoding.conv f g Data_encoding.string |}];
@@ -77,7 +77,7 @@ let%expect_test "Check phantoms (command and event) example" =
   let actual = render dfs @@ Events MLI in
   Printf.printf "%s" actual;
   [%expect {|
-    (* NOTE autogenerating Event, do not manually edit *)
+    (* NOTE autogenerating Dap_event, do not manually edit *)
     type 'a t
     type terminated
     type exited
@@ -155,13 +155,13 @@ let%expect_test "Check ErrorResponse example" =
     end
 
 
-    module ErrorResponseMessage = MakeResponse (struct type t = Command.t let value=Command.Error let enc = Command.enc end)
+
 
     type request =
 
 
     type response =
-    | ErrorResponse of ErrorResponse_body.t ErrorResponseMessage.t
+    | ErrorResponse of (Dap_command.error, ErrorResponse_body.t) ResponseMessage.t
 
     type event = |}]
 
@@ -197,10 +197,10 @@ let%expect_test "Check CancelRequest example" =
     end
 
 
-    module CancelRequestMessage = MakeRequest_optionalArgs (struct type t = Command.t let value=Command.Cancel let enc = Command.enc end)
+
 
     type request =
-    | CancelRequest of CancelArguments.t CancelRequestMessage.t
+    | CancelRequest of (Dap_command.cancel, CancelArguments.t) RequestMessageOpt.t
 
     type response =
 
@@ -262,7 +262,7 @@ let%expect_test "Check StoppedEvent example" =
     end
 
 
-    module StoppedEventMessage = MakeEvent (struct type t = Event.t let value=Event.Stopped let enc = Event.enc end)
+
 
     type request =
 
@@ -271,7 +271,7 @@ let%expect_test "Check StoppedEvent example" =
 
 
     type event =
-    | StoppedEvent of StoppedEvent_body.t StoppedEventMessage.t |}]
+    | StoppedEvent of (Dap_event.stopped, StoppedEvent_body.t) EventMessage.t |}]
 
 
 let%expect_test "Check cyclic example" =
@@ -551,10 +551,10 @@ let%expect_test "Check oneOf example" =
 
     open Dap_t
 
-    module RestartRequestMessage = MakeRequest_optionalArgs (struct type t = Command.t let value=Command.Restart let enc = Command.enc end)
+
 
     type request =
-    | RestartRequest of RestartArguments.t RestartRequestMessage.t
+    | RestartRequest of (Dap_command.restart, RestartArguments.t) RequestMessageOpt.t
 
     type response =
 
@@ -692,10 +692,10 @@ let%expect_test "Check empty example" =
     end
 
 
-    module ConfigurationDoneRequestMessage = MakeRequest_optionalArgs (struct type t = Command.t let value=Command.ConfigurationDone let enc = Command.enc end)
+
 
     type request =
-    | ConfigurationDoneRequest of ConfigurationDoneArguments.t ConfigurationDoneRequestMessage.t
+    | ConfigurationDoneRequest of (Dap_command.configurationDone, ConfigurationDoneArguments.t) RequestMessageOpt.t
 
     type response =
 
@@ -713,12 +713,12 @@ let%expect_test "Check LaunchResponse empty body  example" =
 
     open Dap_t
 
-    module LaunchResponseMessage = MakeResponse_optionalBody (struct type t = Command.t let value=Command.Launch let enc = Command.enc end)
+
 
     type request =
 
 
     type response =
-    | LaunchResponse of EmptyObject.t LaunchResponseMessage.t
+    | LaunchResponse of (Dap_command.launch, EmptyObject.t) ResponseMessageOpt.t
 
     type event = |}]

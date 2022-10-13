@@ -177,22 +177,24 @@ end
 (*   | DisassembleRequest _ *)
 (*       -> assert false *)
 
-(* module Flow = struct *)
+module Flow = struct
+
+  open Dap_message
+
+  type ('command, 'request, 'response) t = {
+    on_request: 'request -> 'response Lwt.t;
+    response: 'response;
+    events: event list;
+    make_error: seq:int -> request_seq:int -> success:bool -> ?message:string -> body:ErrorResponse_body.t -> unit -> response ;
+  }
+
+  let make ?(events=[]) on_request response =
+    let make_error = fun ~seq ~request_seq ~success ?message ~body () ->
+      let command = Dap_command.error in
+      let e = Dap_t.ResponseMessage.make ~seq ~request_seq ~success ~command ?message ~body () in
+      ErrorResponse e
+    in
+    {on_request; response; events; make_error}
 
 
-(*   type ('request, 'response) t = { *)
-(*     on_request: 'request -> 'response Lwt.t; *)
-(*     response: 'response; *)
-(*     events: event list; *)
-(*     make_error: seq:int -> request_seq:int -> success:bool -> ?message:string -> body:ErrorResponse_body.t -> unit -> response ; *)
-(*   } *)
-
-(*   let make ?(events=[]) on_request response = *)
-(*     let make_error = fun ~seq ~request_seq ~success ?message ~body () -> *)
-(*       let e = ErrorResponseMessage.make ~seq ~request_seq ~success ?message ~body () in *)
-(*       ErrorResponse e *)
-(*     in *)
-(*     {on_request; response; events; make_error} *)
-
-
-(* end *)
+end

@@ -352,43 +352,34 @@ module RenderRequest : (RenderT with type spec := Sp.Obj_spec.t) = struct
   let of_spec spec = spec
 
   let render (t:t) ~name =
-    let command = CommandHelper.struct_decl_str name ~on:"Request" in
+    let command = CommandHelper.enum_str name ~on:"Request" in
     match t.fields |> List.find_opt (fun Sp.Field_spec.{safe_name; _} -> safe_name = "arguments") with
     | Some args when args.required ->
+      "",
       Printf.sprintf
-        "module %sMessage = MakeRequest (%s)"
+        "| %s of (%s.%s, %s.t) RequestMessage.t"
         name
+        CommandHelper.module_name
         command
-      ,
-      Printf.sprintf
-        "| %s of %s.t %sMessage.t"
-        name
         args.module_name
-        name
 
     | Some args ->
+      "",
       Printf.sprintf
-        "module %sMessage = MakeRequest_optionalArgs (%s)"
+        "| %s of (%s.%s, %s.t) RequestMessageOpt.t"
         name
+        CommandHelper.module_name
         command
-      ,
-      Printf.sprintf
-        "| %s of %s.t %sMessage.t"
-        name
         args.module_name
-        name
 
     | None ->
+      "",
       Printf.sprintf
-        "module %sMessage = MakeRequest_optionalArgs (%s)"
+        "| %s of (%s.%s, %s.t) RequestMessageOpt.t"
         name
+        CommandHelper.module_name
         command
-      ,
-      Printf.sprintf
-        "| %s of %s.t %sMessage.t"
-        name
         Dap_t.EmptyObject.module_name
-        name
 
 end
 
@@ -399,43 +390,34 @@ module RenderResponse : (RenderT with type spec := Sp.Obj_spec.t) = struct
   let of_spec spec = spec
 
   let render (t:t) ~name =
-    let command = CommandHelper.struct_decl_str name ~on:"Response" in
+    let command = CommandHelper.enum_str name ~on:"Response" in
     match t.fields |> List.find_opt (fun Sp.Field_spec.{safe_name; _} -> safe_name = "body") with
     | Some body when body.required ->
+      "",
       Printf.sprintf
-        "module %sMessage = MakeResponse (%s)"
+        "| %s of (%s.%s, %s.t) ResponseMessage.t"
         name
+        CommandHelper.module_name
         command
-      ,
-      Printf.sprintf
-        "| %s of %s.t %sMessage.t"
-        name
         body.module_name
-        name
 
     | Some body ->
+      "",
       Printf.sprintf
-        "module %sMessage = MakeResponse_optionalBody (%s)"
+        "| %s of (%s.%s, %s.t) ResponseMessageOpt.t"
         name
+        CommandHelper.module_name
         command
-      ,
-      Printf.sprintf
-        "| %s of %s.t %sMessage.t"
-        name
         body.module_name
-        name
 
     | None ->
+      "",
       Printf.sprintf
-        "module %sMessage = MakeResponse_optionalBody (%s)"
+        "| %s of (%s.%s, %s.t) ResponseMessageOpt.t"
         name
+        CommandHelper.module_name
         command
-      ,
-      Printf.sprintf
-        "| %s of %s.t %sMessage.t"
-        name
         Dap_t.EmptyObject.module_name
-        name
 
 end
 
@@ -446,41 +428,34 @@ module RenderEvent : (RenderT with type spec := Sp.Obj_spec.t) = struct
   let of_spec spec = spec
 
   let render (t:t) ~name =
-    let event = EventHelper.struct_decl_str name in
+    let event = EventHelper.enum_str name in
     match t.fields |> List.find_opt (fun Sp.Field_spec.{safe_name; _} -> safe_name = "body") with
     | Some body when body.required ->
+      "",
       Printf.sprintf
-        "module %sMessage = MakeEvent (%s)"
+        "| %s of (%s.%s, %s.t) EventMessage.t"
         name
+        EventHelper.module_name
         event
-      ,
-      Printf.sprintf
-        "| %s of %s.t %sMessage.t"
-        name
         body.module_name
-        name
+
     | Some body ->
+      "",
       Printf.sprintf
-        "module %sMessage = MakeEvent_optionalBody (%s)"
+        "| %s of (%s.%s, %s.t) EventMessageOpt.t"
         name
+        EventHelper.module_name
         event
-      ,
-      Printf.sprintf
-        "| %s of %s.t %sMessage.t"
-        name
         body.module_name
-        name
+
     | None ->
+      "",
       Printf.sprintf
-        "module %sMessage = MakeEvent_optionalBody (%s)"
+        "| %s of (%s.%s, %s.t) EventMessageOpt.t"
         name
+        EventHelper.module_name
         event
-      ,
-      Printf.sprintf
-        "| %s of %s.t %sMessage.t"
-        name
         Dap_t.EmptyObject.module_name
-        name
 
 end
 type ftype = | ML | MLI

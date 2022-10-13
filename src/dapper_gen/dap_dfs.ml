@@ -8,7 +8,7 @@ module S = Json_schema
 
 module CommandHelper = struct
 
-  let module_name = "Command"
+  let module_name = "Dap_command"
 
   let struct_decl_str name ~on =
     match Stringext.cut name ~on with
@@ -17,11 +17,18 @@ module CommandHelper = struct
       Printf.sprintf "struct type t = %s.t let value=%s.%s let enc = %s.enc end" module_name module_name enum_str module_name
     | _ -> assert false
 
+  let enum_str name ~on =
+    match Stringext.cut name ~on with
+    | Some (enum_str, "") ->
+      let enum_str = Sp.unweird_name enum_str in
+      String.uncapitalize_ascii enum_str
+    | _ -> assert false
+
 end
 
 module EventHelper = struct
 
-  let module_name = "Event"
+  let module_name = "Dap_event"
 
   let struct_decl_str name =
     match Stringext.cut name ~on:"Event" with
@@ -30,6 +37,12 @@ module EventHelper = struct
       Printf.sprintf "struct type t = %s.t let value=%s.%s let enc = %s.enc end" module_name module_name enum_str module_name
     | _ -> assert false
 
+  let enum_str name =
+    match Stringext.cut name ~on:"Event" with
+    | Some (enum_str, "") ->
+      let enum_str = Sp.unweird_name enum_str in
+      String.uncapitalize_ascii enum_str
+    | _ -> assert false
 end
 
 module Visited = struct
