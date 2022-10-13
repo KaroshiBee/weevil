@@ -55,61 +55,61 @@ end
 
 
 (* end *)
-open Dap_encoders
+(* open Dap_encoders *)
 
-module Sequencing (S:SEQUENCED) : sig
-  type t = {seq:int; request_seq:int}
-  val correct_sequence : 'a S.t -> t
-end
-  = struct
-  type t = {seq:int; request_seq:int}
-  let correct_sequence req =
-    let request_seq = S.seq req in
-    let seq = succ request_seq in
-    {seq; request_seq}
-end
+(* module Sequencing (S:SEQUENCED) : sig *)
+(*   type t = {seq:int; request_seq:int} *)
+(*   val correct_sequence : 'a S.t -> t *)
+(* end *)
+(*   = struct *)
+(*   type t = {seq:int; request_seq:int} *)
+(*   let correct_sequence req = *)
+(*     let request_seq = S.seq req in *)
+(*     let seq = succ request_seq in *)
+(*     {seq; request_seq} *)
+(* end *)
 
-module type RequestResponse = sig
-  type body
-  type 'body t
-  val of_request : request -> (body -> response, string) Result.t
-end
+(* module type RequestResponse = sig *)
+(*   type body *)
+(*   type 'body t *)
+(*   val of_request : request -> (body -> response, string) Result.t *)
+(* end *)
 
-module InitFlow : (RequestResponse with type body := Capabilities.t and type _ t = Capabilities.t InitializeResponseMessage.t) = struct
-  type _ t = Capabilities.t InitializeResponseMessage.t
-  let of_request = function
-    | InitializeRequest req ->
-      let module S = Sequencing (InitializeRequestMessage) in
-      let {S.seq; request_seq} = S.correct_sequence req in
-      let resp = fun body -> InitializeResponse (InitializeResponseMessage.make ~seq ~request_seq ~success:true ~body ()) in
-      Result.Ok resp
-    | _ ->
-      Result.Error "Expected InitializeRequest"
+(* module InitFlow : (RequestResponse with type body := Capabilities.t and type _ t = Capabilities.t InitializeResponseMessage.t) = struct *)
+(*   type _ t = Capabilities.t InitializeResponseMessage.t *)
+(*   let of_request = function *)
+(*     | InitializeRequest req -> *)
+(*       let module S = Sequencing (InitializeRequestMessage) in *)
+(*       let {S.seq; request_seq} = S.correct_sequence req in *)
+(*       let resp = fun body -> InitializeResponse (InitializeResponseMessage.make ~seq ~request_seq ~success:true ~body ()) in *)
+(*       Result.Ok resp *)
+(*     | _ -> *)
+(*       Result.Error "Expected InitializeRequest" *)
 
-end
+(* end *)
 
 
-type ('request, 'body, 'response) flow = 'request -> 'body -> ('response, ErrorResponse_body.t ErrorResponseMessage.t) Result.t
-let cancel : (CancelArguments.t CancelRequestMessage.t, unit, unit CancelResponseMessage.t) flow
-  = fun req body ->
-    let module S = Sequencing (CancelRequestMessage) in
-    let {S.seq; request_seq} = S.correct_sequence req in
-    let resp = CancelResponseMessage.make ~seq ~request_seq ~success:true ~body () in
-    Result.Ok resp
+(* type ('request, 'body, 'response) flow = 'request -> 'body -> ('response, ErrorResponse_body.t ErrorResponseMessage.t) Result.t *)
+(* let cancel : (CancelArguments.t CancelRequestMessage.t, unit, unit CancelResponseMessage.t) flow *)
+(*   = fun req body -> *)
+(*     let module S = Sequencing (CancelRequestMessage) in *)
+(*     let {S.seq; request_seq} = S.correct_sequence req in *)
+(*     let resp = CancelResponseMessage.make ~seq ~request_seq ~success:true ~body () in *)
+(*     Result.Ok resp *)
 
-let init : (InitializeRequestArguments.t InitializeRequestMessage.t, Capabilities.t, Capabilities.t InitializeResponseMessage.t) flow
-  = fun req body ->
-    let module S = Sequencing (InitializeRequestMessage) in
-    let {S.seq; request_seq} = S.correct_sequence req in
-    let resp = InitializeResponseMessage.make ~seq ~request_seq ~success:true ~body () in
-    Result.Ok resp
+(* let init : (InitializeRequestArguments.t InitializeRequestMessage.t, Capabilities.t, Capabilities.t InitializeResponseMessage.t) flow *)
+(*   = fun req body -> *)
+(*     let module S = Sequencing (InitializeRequestMessage) in *)
+(*     let {S.seq; request_seq} = S.correct_sequence req in *)
+(*     let resp = InitializeResponseMessage.make ~seq ~request_seq ~success:true ~body () in *)
+(*     Result.Ok resp *)
 
-let config : (ConfigurationDoneArguments.t ConfigurationDoneRequestMessage.t, Dap_t.EmptyObject.t, Dap_t.EmptyObject.t ConfigurationDoneResponseMessage.t) flow
-  = fun req body ->
-    let module S = Sequencing (ConfigurationDoneRequestMessage) in
-    let {S.seq; request_seq} = S.correct_sequence req in
-    let resp = ConfigurationDoneResponseMessage.make ~seq ~request_seq ~success:true ~body () in
-    Result.Ok resp
+(* let config : (ConfigurationDoneArguments.t ConfigurationDoneRequestMessage.t, Dap_t.EmptyObject.t, Dap_t.EmptyObject.t ConfigurationDoneResponseMessage.t) flow *)
+(*   = fun req body -> *)
+(*     let module S = Sequencing (ConfigurationDoneRequestMessage) in *)
+(*     let {S.seq; request_seq} = S.correct_sequence req in *)
+(*     let resp = ConfigurationDoneResponseMessage.make ~seq ~request_seq ~success:true ~body () in *)
+(*     Result.Ok resp *)
 
 
  
