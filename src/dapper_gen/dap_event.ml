@@ -1,4 +1,4 @@
-type values =
+type v =
     | Memory
     | Invalidated
     | ProgressEnd
@@ -17,7 +17,7 @@ type values =
     | Stopped
     | Initialized
 
-type 'event t = values
+type 'a t = v
 
 type memory
 type invalidated
@@ -66,7 +66,7 @@ let f : type a. a t -> string =
     | (Capabilities : _ t) -> "capabilities"
     | (Process : _ t) -> "process"
     | (LoadedSource : _ t) -> "loadedSource"
-    | (Module_ : _ t) -> "module_"
+    | (Module_ : _ t) -> "module"
     | (Breakpoint : _ t) -> "breakpoint"
     | (Output : _ t) -> "output"
     | (Thread : _ t) -> "thread"
@@ -86,7 +86,7 @@ let g : type a. string -> a t =
     | "capabilities" -> (Capabilities : _ t)
     | "process" -> (Process : _ t)
     | "loadedSource" -> (LoadedSource : _ t)
-    | "module_" -> (Module_ : _ t)
+    | "module" -> (Module_ : _ t)
     | "breakpoint" -> (Breakpoint : _ t)
     | "output" -> (Output : _ t)
     | "thread" -> (Thread : _ t)

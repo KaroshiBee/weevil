@@ -45,8 +45,99 @@ module RenderEnum : (RenderT with type spec := Sp.Enum_spec.t) = struct
     in
     Printf.sprintf "module %s = struct \n%s\n \n%s\n \nend\n" name t_str enc_str, ""
 
+end
+
+
+module RenderEnumWithPhantoms : (RenderT with type spec := Sp.Enum_spec.t) = struct
+
+  type t = Sp.Enum_spec.t
+
+  let of_spec spec = spec
+
+  let render_ml (t:t) ~name =
+    let t_str =
+      let lns = t.enums |> List.map (fun (e:Sp.Enum_spec.enum_val) -> e.safe_name |> String.capitalize_ascii) |> String.concat " | " in
+      Printf.sprintf "(* NOTE autogenerating %s, do not manually edit *)\ntype v = %s\n\ntype t = 'a t" name lns
+    in
+
+
+    let types_str =
+      t.enums |> List.map (fun (e:Sp.Enum_spec.enum_val) ->
+          let s = e.safe_name |> String.uncapitalize_ascii in
+          Printf.sprintf "type %s" s
+        ) |> String.concat "\n"
+    in
+
+    let ctors_str =
+      t.enums |> List.map (fun (e:Sp.Enum_spec.enum_val) ->
+          let l = e.safe_name |> String.uncapitalize_ascii in
+          let u = l |> String.capitalize_ascii in
+          Printf.sprintf "let %s : %s t = %s" l l u
+        ) |> String.concat "\n"
+    in
+
+    let func_str reversed =
+      let lns = t.enums |> List.map (fun (e:Sp.Enum_spec.enum_val) ->
+          let u = e.safe_name |> String.capitalize_ascii in
+          let d = e.dirty_name in
+          if not reversed then
+            Printf.sprintf "| (%s : _ t) -> \"%s\"" u d
+          else
+            Printf.sprintf "| \"%s\" -> (%s : _ t)" d u
+        ) |> String.concat "\n"
+      in
+      let lns = if reversed then
+          lns ^ (Printf.sprintf "| _ -> failwith \"%s\"\n" name)
+        else
+          lns
+      in
+      lns
+    in
+
+
+    let f_str =
+      Printf.sprintf "let f : type a. a t -> string = function %s" @@ func_str false
+    in
+
+    let g_str =
+      Printf.sprintf "let g : type a. string -> a t = function %s" @@ func_str true
+    in
+
+    let enc_str =
+      "let enc = Data_encoding.conv f g Data_encoding.string\n\n"
+    in
+    [t_str; types_str; ctors_str; f_str; g_str; enc_str; ] |> String.concat "\n\n"
+
+  let render_mli (t:t) ~name =
+    let types_str =
+      let lns = t.enums |> List.map (fun (e:Sp.Enum_spec.enum_val) ->
+          let s = e.safe_name |> String.uncapitalize_ascii in
+          Printf.sprintf "type %s" s
+        ) |> String.concat "\n"
+      in
+      Printf.sprintf "(* NOTE autogenerating %s, do not manually edit *)\ntype 'a t\n%s" name lns
+    in
+
+    let ctors_str =
+      t.enums |> List.map (fun (e:Sp.Enum_spec.enum_val) ->
+          let l = e.safe_name |> String.uncapitalize_ascii in
+          Printf.sprintf "val %s : %s t" l l
+        ) |> String.concat "\n"
+    in
+
+    let enc_str =
+      "val enc : 'a t Data_encoding.t"
+    in
+    [types_str; ctors_str; enc_str; ] |> String.concat "\n\n"
+
+
+  let render (t:t) ~name =
+    let ml = render_ml t ~name in
+    let mli = render_mli t ~name in
+    ml, mli
 
 end
+
 
 module RenderObjectField = struct
 
@@ -392,53 +483,62 @@ module RenderEvent : (RenderT with type spec := Sp.Obj_spec.t) = struct
         name
 
 end
+type ftype = | ML | MLI
 
+type what =
+  | Events of ftype | Commands of ftype | Messages
 
-let render (dfs:Dfs.t) =
-  let modstrs = ref [] in
-  let reqstrs = ref [] in
-  let respstrs = ref [] in
-  let eventstrs = ref [] in
-  let _ =
-    Dfs.ordering dfs
+let render (dfs:Dfs.t) = function
+  | Messages ->
+    let modstrs = ref [] in
+    let reqstrs = ref [] in
+    let respstrs = ref [] in
+    let eventstrs = ref [] in
+    let _ =
+      Dfs.ordering dfs
       |> List.iter (fun name ->
-      match (Hashtbl.find_opt dfs.finished name) with
-      | Some (Sp.Request o) ->
-        let modstr, tystr = RenderRequest.(of_spec o |> render ~name) in
-        modstrs := modstr :: !modstrs; reqstrs := tystr :: !reqstrs
-      | Some (Sp.Response o) ->
-        let modstr, tystr = RenderResponse.(of_spec o |> render ~name) in
-        modstrs := modstr :: !modstrs; respstrs := tystr :: !respstrs
-      | Some (Sp.Event o) ->
-        let modstr, tystr = RenderEvent.(of_spec o |> render ~name) in
-        modstrs := modstr :: !modstrs; eventstrs := tystr :: !eventstrs
-      | Some (Sp.Object o) when Sp.Obj_spec.is_big o ->
-        let modstr, _other = RenderLargeObject.(of_spec o |> render ~name) in
-        modstrs := modstr :: !modstrs
-      | Some (Sp.Object o) when Sp.Obj_spec.is_empty o ->
-        let modstr, _other = RenderEmptyObject.(of_spec () |> render ~name) in
-        modstrs := modstr :: !modstrs
-      | Some (Sp.Object o) ->
-        let modstr, _other = RenderObject.(of_spec o |> render ~name) in
-        modstrs := modstr :: !modstrs
-      | Some (Sp.Enum e) ->
-        let modstr, _other = RenderEnum.(of_spec e |> render ~name) in
-        modstrs := modstr :: !modstrs
-      | None ->
-        if name = CommandHelper.module_name then
-          let modstr, _ = RenderEnum.(of_spec dfs.command_enum |> render ~name) in
-          modstrs := modstr :: !modstrs
-        else if name = EventHelper.module_name then
-          let modstr, _ = RenderEnum.(of_spec dfs.event_enum |> render ~name) in
-          modstrs := modstr :: !modstrs
-        else assert false
-      | _ -> assert false
-      )
-  in
-  let smods = String.concat "\n\n" (!modstrs |> List.rev) in
-  let sreqs = String.concat "\n" (!reqstrs |> List.rev) in
-  let sresps = String.concat "\n" (!respstrs |> List.rev) in
-  let sevents = String.concat "\n" (!eventstrs |> List.rev) in
-  Printf.sprintf
-    "(* NOTE this file was autogenerated - do not modify by hand *)\n\nopen Dap_t\n\n%s\n\ntype request = \n%s\n\ntype response = \n%s\n\ntype event = \n%s\n\n"
-    smods sreqs sresps sevents
+          match (Hashtbl.find_opt dfs.finished name) with
+          | Some (Sp.Request o) ->
+            let modstr, tystr = RenderRequest.(of_spec o |> render ~name) in
+            modstrs := modstr :: !modstrs; reqstrs := tystr :: !reqstrs
+          | Some (Sp.Response o) ->
+            let modstr, tystr = RenderResponse.(of_spec o |> render ~name) in
+            modstrs := modstr :: !modstrs; respstrs := tystr :: !respstrs
+          | Some (Sp.Event o) ->
+            let modstr, tystr = RenderEvent.(of_spec o |> render ~name) in
+            modstrs := modstr :: !modstrs; eventstrs := tystr :: !eventstrs
+          | Some (Sp.Object o) when Sp.Obj_spec.is_big o ->
+            let modstr, _other = RenderLargeObject.(of_spec o |> render ~name) in
+            modstrs := modstr :: !modstrs
+          | Some (Sp.Object o) when Sp.Obj_spec.is_empty o ->
+            let modstr, _other = RenderEmptyObject.(of_spec () |> render ~name) in
+            modstrs := modstr :: !modstrs
+          | Some (Sp.Object o) ->
+            let modstr, _other = RenderObject.(of_spec o |> render ~name) in
+            modstrs := modstr :: !modstrs
+          | Some (Sp.Enum e) ->
+            let modstr, _other = RenderEnum.(of_spec e |> render ~name) in
+            modstrs := modstr :: !modstrs
+          | Some _ -> assert false
+          | None -> Logs.warn (fun m -> m "couldn't find '%s'" name)
+        )
+    in
+    let smods = String.concat "\n\n" (!modstrs |> List.rev) in
+    let sreqs = String.concat "\n" (!reqstrs |> List.rev) in
+    let sresps = String.concat "\n" (!respstrs |> List.rev) in
+    let sevents = String.concat "\n" (!eventstrs |> List.rev) in
+    Printf.sprintf
+      "(* NOTE this file was autogenerated - do not modify by hand *)\n\nopen Dap_t\n\n%s\n\ntype request = \n%s\n\ntype response = \n%s\n\ntype event = \n%s\n\n"
+      smods sreqs sresps sevents
+  | Commands ML ->
+    let ml, _ = RenderEnumWithPhantoms.(of_spec dfs.command_enum |> render ~name:CommandHelper.module_name) in
+    ml
+  | Commands MLI ->
+    let _, mli = RenderEnumWithPhantoms.(of_spec dfs.command_enum |> render ~name:CommandHelper.module_name) in
+    mli
+  | Events ML ->
+    let ml, _ = RenderEnumWithPhantoms.(of_spec dfs.event_enum |> render ~name:EventHelper.module_name) in
+    ml
+  | Events MLI ->
+    let _, mli = RenderEnumWithPhantoms.(of_spec dfs.event_enum |> render ~name:EventHelper.module_name) in
+    mli

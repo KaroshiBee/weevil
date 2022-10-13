@@ -5,7 +5,7 @@ let process json_schema_arg output_file_arg =
   let p ?(json_schema_arg=_DEFAULT_SCHEMA) ?(output_file_arg=_DEFAULT_OUTPUT) () =
     let schema_js = Ezjsonm.from_channel @@ open_in json_schema_arg in
     let dfs = Dap_dfs.Dfs.make ~schema_js in
-    let txt = Dap_render.render dfs in
+    let txt = Dap_render.(render dfs Messages) in
     let o = open_out output_file_arg in
     let res =
       try

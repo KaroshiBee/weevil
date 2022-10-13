@@ -1,4 +1,4 @@
-type 'event t
+type 'a t
 type memory
 type invalidated
 type progressUpdate
@@ -35,4 +35,4 @@ val continued : continued t
 val stopped : stopped t
 val initialized : initialized t
 
-val enc : 'event t Data_encoding.t
+val enc : 'a t Data_encoding.t
