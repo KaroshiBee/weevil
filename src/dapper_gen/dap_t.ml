@@ -124,23 +124,62 @@ end
 
 (* NOTE in the following we parameterise over command/event and args/body types
    because these are auto-generated from schema json *)
-(* TODO write Dap_command.t  and Optional forms of these *)
-  
-module RequestMessage : sig
+module type REQUEST = sig
   type ('cmd, 'args) t
   val seq : ('cmd, 'args) t -> int
   val incr : ('cmd, 'args) t -> ('cmd, 'args) t
   val message : ('cmd, 'args) t -> ProtocolMessage_type.t
   val command : ('cmd, 'args) t -> 'cmd
-  val arguments : ('cmd, 'args) t -> 'args
+  val arguments : ('cmd, 'args) t -> 'args option
   val enc : 'cmd Data_encoding.t -> 'args Data_encoding.t -> ('cmd, 'args) t Data_encoding.t
-  val make : seq:int -> command:'cmd -> 'args -> ('cmd, 'args) t
-end = struct
+
+end
+module type REQUEST_MAKE = sig
+  include REQUEST
+  val make : seq:int -> command:'cmd -> arguments:'args -> unit -> ('cmd, 'args) t
+end
+
+module type REQUEST_OPT_MAKE = sig
+  include REQUEST
+  val make : seq:int -> command:'cmd -> ?arguments:'args -> unit -> ('cmd, 'args) t
+end
+
+module RequestMessage : REQUEST_MAKE = struct
   type ('cmd, 'args) t = {
     seq : int;
     type_ : ProtocolMessage_type.t;
     command : 'cmd;
     arguments : 'args;
+  }
+
+  let seq t = t.seq
+  let incr t = {t with seq=succ @@ seq t}
+  let message t = t.type_
+  let command t = t.command
+  let arguments t = Some t.arguments
+
+  let enc cmd args =
+    let open Data_encoding in
+    conv
+      (fun {seq; type_; command; arguments} -> (seq, type_, command, arguments))
+      (fun (seq, type_, command, arguments) -> {seq; type_; command; arguments})
+      (obj4
+         (req "seq" int31)
+         (req "type" ProtocolMessage_type.enc)
+         (req "command" cmd)
+         (req "arguments" args))
+
+  let make ~seq ~command ~arguments () =
+    let type_ = ProtocolMessage_type.Request in
+    {seq; type_; command; arguments}
+end
+
+module RequestMessageOpt : REQUEST_OPT_MAKE = struct
+  type ('cmd, 'args) t = {
+    seq : int;
+    type_ : ProtocolMessage_type.t;
+    command : 'cmd;
+    arguments : 'args option;
   }
 
   let seq t = t.seq
@@ -158,15 +197,15 @@ end = struct
          (req "seq" int31)
          (req "type" ProtocolMessage_type.enc)
          (req "command" cmd)
-         (req "arguments" args))
+         (opt "arguments" args))
 
-  let make ~seq ~command arguments =
+  let make ~seq ~command ?arguments () =
     let type_ = ProtocolMessage_type.Request in
     {seq; type_; command; arguments}
 end
 
 
-module ResponseMessage : sig
+module type RESPONSE = sig
   type ('cmd, 'body) t
   val seq : ('cmd, 'body) t -> int
   val incr : ('cmd, 'body) t -> ('cmd, 'body) t
@@ -175,10 +214,21 @@ module ResponseMessage : sig
   val success : ('cmd, 'body) t -> bool
   val command : ('cmd, 'body) t -> 'cmd
   val message : ('cmd, 'body) t -> string option
-  val body : ('cmd, 'body) t -> 'body
+  val body : ('cmd, 'body) t -> 'body option
   val enc : 'cmd Data_encoding.t -> 'body Data_encoding.t -> ('cmd, 'body) t Data_encoding.t
-  val make : seq:int -> request_seq:int -> success:bool -> command:'cmd -> ?message:string -> 'body -> ('cmd, 'body) t
-end  = struct
+end
+
+module type RESPONSE_MAKE = sig
+  include RESPONSE
+  val make : seq:int -> request_seq:int -> success:bool -> command:'cmd -> ?message:string -> body:'body -> unit -> ('cmd, 'body) t
+end
+
+module type RESPONSE_OPT_MAKE = sig
+  include RESPONSE
+  val make : seq:int -> request_seq:int -> success:bool -> command:'cmd -> ?message:string -> ?body:'body -> unit -> ('cmd, 'body) t
+end
+
+module ResponseMessage : RESPONSE_MAKE = struct
 
   type ('cmd, 'body) t = {
     seq : int;
@@ -188,6 +238,49 @@ end  = struct
     command : 'cmd;
     message : string option; (* only used once I think, keep as string for now *)
     body : 'body;
+  }
+
+  let seq t = t. seq
+  let incr t = {t with seq=succ @@ seq t}
+  let type_ t = t.type_
+  let request_seq t = t.request_seq
+  let success t = t.success
+  let command t = t.command
+  let message t = t.message
+  let body t = Some t.body
+
+  let enc cmd body =
+    let open Data_encoding in
+    conv
+      (fun {seq; type_; request_seq; success; command; message; body} ->
+        (seq, type_, request_seq, success, command, message, body))
+      (fun (seq, type_, request_seq, success, command, message, body) ->
+        {seq; type_; request_seq; success; command; message; body})
+      (obj7
+         (req "seq" int31)
+         (req "type" ProtocolMessage_type.enc)
+         (req "request_seq" int31)
+         (req "success" bool)
+         (req "command" cmd)
+         (opt "message" string)
+         (req "body" body))
+
+  let make ~seq ~request_seq ~success ~command ?message ~body () =
+    let type_ = ProtocolMessage_type.Response in
+    {seq; type_; request_seq; success; command; message; body}
+
+end
+
+module ResponseMessageOpt : RESPONSE_OPT_MAKE = struct
+
+  type ('cmd, 'body) t = {
+    seq : int;
+    type_ : ProtocolMessage_type.t;
+    request_seq : int;
+    success : bool;
+    command : 'cmd;
+    message : string option; (* only used once I think, keep as string for now *)
+    body : 'body option;
   }
 
   let seq t = t. seq
@@ -213,32 +306,73 @@ end  = struct
          (req "success" bool)
          (req "command" cmd)
          (opt "message" string)
-         (req "body" body))
+         (opt "body" body))
 
-  let make ~seq ~request_seq ~success ~command ?message body =
+  let make ~seq ~request_seq ~success ~command ?message ?body () =
     let type_ = ProtocolMessage_type.Response in
     {seq; type_; request_seq; success; command; message; body}
 
 end
 
-
-
-module EventMessage : sig
+module type EVENT = sig
   type ('event, 'body) t
   val seq : ('event, 'body) t -> int
   val incr : ('event, 'body) t -> ('event, 'body) t
   val type_ : ('event, 'body) t -> ProtocolMessage_type.t
   val event : ('event, 'body) t -> 'event Dap_event.t
-  val body : ('event, 'body) t -> 'body
+  val body : ('event, 'body) t -> 'body option
   val enc : 'event Dap_event.t Data_encoding.t -> 'body Data_encoding.t -> ('event, 'body) t Data_encoding.t
-  val make : seq:int -> event:'event Dap_event.t -> 'body -> ('event, 'body) t
-end = struct
+end
+
+module type EVENT_MAKE = sig
+  include EVENT
+  val make : seq:int -> event:'event Dap_event.t -> body:'body -> unit -> ('event, 'body) t
+end
+
+module type EVENT_OPT_MAKE = sig
+  include EVENT
+  val make : seq:int -> event:'event Dap_event.t -> ?body:'body -> unit -> ('event, 'body) t
+end
+
+module EventMessage : EVENT_MAKE = struct
 
   type ('event, 'body) t = {
     seq : int;
     type_ : ProtocolMessage_type.t;
     event : 'event Dap_event.t;
     body : 'body;
+  }
+
+  let seq t = t.seq
+  let incr t = {t with seq=succ @@ seq t}
+  let type_ t = t.type_
+  let event t = t.event
+  let body t = Some t.body
+
+  let enc ev body =
+    let open Data_encoding in
+    conv
+      (fun {seq; type_; event; body} -> (seq, type_, event, body))
+      (fun (seq, type_, event, body) -> {seq; type_; event; body})
+      (obj4
+         (req "seq" int31)
+         (req "type" ProtocolMessage_type.enc)
+         (req "event" ev)
+         (req "body" body))
+
+  let make ~seq ~event ~body () =
+    let type_ = ProtocolMessage_type.Event in
+    {seq; type_; event; body}
+
+end
+
+module EventMessageOpt : EVENT_OPT_MAKE = struct
+
+  type ('event, 'body) t = {
+    seq : int;
+    type_ : ProtocolMessage_type.t;
+    event : 'event Dap_event.t;
+    body : 'body option;
   }
 
   let seq t = t.seq
@@ -256,9 +390,9 @@ end = struct
          (req "seq" int31)
          (req "type" ProtocolMessage_type.enc)
          (req "event" ev)
-         (req "body" body))
+         (opt "body" body))
 
-  let make ~seq ~event body =
+  let make ~seq ~event ?body () =
     let type_ = ProtocolMessage_type.Event in
     {seq; type_; event; body}
 

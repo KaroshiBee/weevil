@@ -9,7 +9,7 @@ let%expect_test "Check phantoms (command and event) example" =
     (* NOTE autogenerating Command, do not manually edit *)
     type v = Cancel | Error
 
-    type t = 'a t
+    type 'a t = v
 
     type cancel
     type error
@@ -45,7 +45,7 @@ let%expect_test "Check phantoms (command and event) example" =
     (* NOTE autogenerating Event, do not manually edit *)
     type v = Terminated | Exited | Continued | Stopped | Initialized
 
-    type t = 'a t
+    type 'a t = v
 
     type terminated
     type exited

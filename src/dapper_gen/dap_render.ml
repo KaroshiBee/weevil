@@ -57,7 +57,7 @@ module RenderEnumWithPhantoms : (RenderT with type spec := Sp.Enum_spec.t) = str
   let render_ml (t:t) ~name =
     let t_str =
       let lns = t.enums |> List.map (fun (e:Sp.Enum_spec.enum_val) -> e.safe_name |> String.capitalize_ascii) |> String.concat " | " in
-      Printf.sprintf "(* NOTE autogenerating %s, do not manually edit *)\ntype v = %s\n\ntype t = 'a t" name lns
+      Printf.sprintf "(* NOTE autogenerating %s, do not manually edit *)\ntype v = %s\n\ntype 'a t = v" name lns
     in
 
 

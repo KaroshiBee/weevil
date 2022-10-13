@@ -1,8 +1,9 @@
+(* NOTE autogenerating Event, do not manually edit *)
 type 'a t
 type memory
 type invalidated
-type progressUpdate
 type progressEnd
+type progressUpdate
 type progressStart
 type capabilities
 type process
