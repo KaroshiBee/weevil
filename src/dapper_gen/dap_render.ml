@@ -357,7 +357,7 @@ module RenderRequest : (RenderT with type spec := Sp.Obj_spec.t) = struct
     | Some args when args.required ->
       "",
       Printf.sprintf
-        "| %s of (%s.%s, %s.t) RequestMessage.t"
+        "| %s of (%s.%s, %s.t, RequestMessage.req) RequestMessage.t"
         name
         CommandHelper.module_name
         command
@@ -366,7 +366,7 @@ module RenderRequest : (RenderT with type spec := Sp.Obj_spec.t) = struct
     | Some args ->
       "",
       Printf.sprintf
-        "| %s of (%s.%s, %s.t) RequestMessageOpt.t"
+        "| %s of (%s.%s, %s.t option, RequestMessage.opt) RequestMessage.t"
         name
         CommandHelper.module_name
         command
@@ -375,7 +375,7 @@ module RenderRequest : (RenderT with type spec := Sp.Obj_spec.t) = struct
     | None ->
       "",
       Printf.sprintf
-        "| %s of (%s.%s, %s.t) RequestMessageOpt.t"
+        "| %s of (%s.%s, %s.t option, RequestMessage.opt) RequestMessage.t"
         name
         CommandHelper.module_name
         command
@@ -433,7 +433,7 @@ module RenderEvent : (RenderT with type spec := Sp.Obj_spec.t) = struct
     | Some body when body.required ->
       "",
       Printf.sprintf
-        "| %s of (%s.%s, %s.t) EventMessage.t"
+        "| %s of (%s.%s, %s.t, EventMessage.req) EventMessage.t"
         name
         EventHelper.module_name
         event
@@ -442,7 +442,7 @@ module RenderEvent : (RenderT with type spec := Sp.Obj_spec.t) = struct
     | Some body ->
       "",
       Printf.sprintf
-        "| %s of (%s.%s, %s.t) EventMessageOpt.t"
+        "| %s of (%s.%s, %s.t option, EventMessage.opt) EventMessage.t"
         name
         EventHelper.module_name
         event
@@ -451,7 +451,7 @@ module RenderEvent : (RenderT with type spec := Sp.Obj_spec.t) = struct
     | None ->
       "",
       Printf.sprintf
-        "| %s of (%s.%s, %s.t) EventMessageOpt.t"
+        "| %s of (%s.%s, %s.t option, EventMessage.opt) EventMessage.t"
         name
         EventHelper.module_name
         event

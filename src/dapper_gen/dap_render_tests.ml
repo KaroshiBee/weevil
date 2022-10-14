@@ -200,7 +200,7 @@ let%expect_test "Check CancelRequest example" =
 
 
     type request =
-    | CancelRequest of (Dap_command.cancel, CancelArguments.t) RequestMessageOpt.t
+    | CancelRequest of (Dap_command.cancel, CancelArguments.t option, RequestMessage.opt) RequestMessage.t
 
     type response =
 
@@ -271,7 +271,7 @@ let%expect_test "Check StoppedEvent example" =
 
 
     type event =
-    | StoppedEvent of (Dap_event.stopped, StoppedEvent_body.t) EventMessage.t |}]
+    | StoppedEvent of (Dap_event.stopped, StoppedEvent_body.t, EventMessage.req) EventMessage.t |}]
 
 
 let%expect_test "Check cyclic example" =
@@ -554,7 +554,7 @@ let%expect_test "Check oneOf example" =
 
 
     type request =
-    | RestartRequest of (Dap_command.restart, RestartArguments.t) RequestMessageOpt.t
+    | RestartRequest of (Dap_command.restart, RestartArguments.t option, RequestMessage.opt) RequestMessage.t
 
     type response =
 
@@ -695,7 +695,7 @@ let%expect_test "Check empty example" =
 
 
     type request =
-    | ConfigurationDoneRequest of (Dap_command.configurationDone, ConfigurationDoneArguments.t) RequestMessageOpt.t
+    | ConfigurationDoneRequest of (Dap_command.configurationDone, ConfigurationDoneArguments.t option, RequestMessage.opt) RequestMessage.t
 
     type response =
 

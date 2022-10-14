@@ -118,7 +118,7 @@ module Flow (Request:REQUEST) (Response:RESPONSE) = struct
   open Dap_message
 
   type ('command, 'args, 'presence_args, 'body, 'presence_body) t = {
-    request: ('command, 'args) Request.t;
+    request: ('command, 'args, 'presence_args) Request.t;
     response: ('command, 'body, 'presence_body) Response.t;
     events: event list;
     make_error: seq:int -> request_seq:int -> success:bool -> ?message:string -> body:ErrorResponse_body.t -> unit -> response ;
