@@ -2,10 +2,10 @@
    they all three have to conform to the ProtocolMessage spec
    which is having fields "seq" & "type",
    they also have their own additional specs,
-   all leaf types are auto-generated (enums, plain objects etc)
-   and written to Dap_enum.ml and then used in the following functors
+   all types are auto-generated (enums, plain objects etc)
 
    NOTE According to the spec
+
    - The arguments field of Requests can sometimes be optional,
 
    - The body field of Event and Response can sometimes be optional
@@ -13,6 +13,17 @@
    - The message field of Response is supposed to be an _enum
       but the spec only specifies "cancelled" as a suggestion
       and no-where is it used, so we keep it as a string option
+
+   Therefore in order to reach some sort of uniformity in the API
+   we choose to present two sigs for the REQUESTs,
+   one for requests with required args and one for optional args.
+   That is because, being a backend, the weevil needs to be able to
+   consume any/all request messages and hence will need to error when
+   something is required but missing.
+
+   For responses and events, the weevil creates these so we can
+   get away with fixing the body field to be required but wrapped
+   in an option type.
 *)
 module EmptyObject = struct
 
@@ -122,6 +133,11 @@ module type ENC0 = sig
   val enc : t Data_encoding.t
 end
 
+module type PRESENCE = sig
+  type req
+  type opt
+end
+
 (* NOTE in the following we parameterise over command/event and args/body types
    because these are auto-generated from schema json *)
 module type REQUEST = sig
@@ -204,33 +220,32 @@ module RequestMessageOpt : REQUEST_OPT_MAKE = struct
     {seq; type_; command; arguments}
 end
 
-
 module type RESPONSE = sig
-  type ('cmd, 'body) t
-  val seq : ('cmd, 'body) t -> int
-  val incr : ('cmd, 'body) t -> ('cmd, 'body) t
-  val type_ : ('cmd, 'body) t -> ProtocolMessage_type.t
-  val request_seq : ('cmd, 'body) t -> int
-  val success : ('cmd, 'body) t -> bool
-  val command : ('cmd, 'body) t -> 'cmd Dap_command.t
-  val message : ('cmd, 'body) t -> string option
-  val body : ('cmd, 'body) t -> 'body option
-  val enc : 'cmd Dap_command.t Data_encoding.t -> 'body Data_encoding.t -> ('cmd, 'body) t Data_encoding.t
+
+  include PRESENCE
+
+  type ('cmd, 'body, 'presence) t
+
+  val seq : ('cmd, 'body, 'presence) t -> int
+  val incr : ('cmd, 'body, 'presence) t -> ('cmd, 'body, 'presence) t
+  val type_ : ('cmd, 'body, 'presence) t -> ProtocolMessage_type.t
+  val request_seq : ('cmd, 'body, 'presence) t -> int
+  val success : ('cmd, 'body, 'presence) t -> bool
+  val command : ('cmd, 'body, 'presence) t -> 'cmd Dap_command.t
+  val message : ('cmd, 'body, 'presence) t -> string option
+  val body : ('cmd, 'body, 'presence) t -> 'body
+  val enc :     'cmd Dap_command.t Data_encoding.t -> 'body Data_encoding.t -> ('cmd, 'body, req) t Data_encoding.t
+  val enc_opt : 'cmd Dap_command.t Data_encoding.t -> 'body Data_encoding.t -> ('cmd, 'body option, opt) t Data_encoding.t
+  val make :     seq:int -> request_seq:int -> success:bool -> command:'cmd Dap_command.t -> ?message:string -> body:'body -> unit -> ('cmd, 'body, req) t
+  val make_opt : seq:int -> request_seq:int -> success:bool -> command:'cmd Dap_command.t -> ?message:string -> ?body:'body -> unit -> ('cmd, 'body option, opt) t
 end
 
-module type RESPONSE_MAKE = sig
-  include RESPONSE
-  val make : seq:int -> request_seq:int -> success:bool -> command:'cmd Dap_command.t -> ?message:string -> body:'body -> unit -> ('cmd, 'body) t
-end
+module ResponseMessage : RESPONSE = struct
 
-module type RESPONSE_OPT_MAKE = sig
-  include RESPONSE
-  val make : seq:int -> request_seq:int -> success:bool -> command:'cmd Dap_command.t -> ?message:string -> ?body:'body -> unit -> ('cmd, 'body) t
-end
+  type req
+  type opt
 
-module ResponseMessage : RESPONSE_MAKE = struct
-
-  type ('cmd, 'body) t = {
+  type ('cmd, 'body, 'presence) t = {
     seq : int;
     type_ : ProtocolMessage_type.t;
     request_seq : int;
@@ -238,49 +253,6 @@ module ResponseMessage : RESPONSE_MAKE = struct
     command : 'cmd Dap_command.t;
     message : string option; (* only used once I think, keep as string for now *)
     body : 'body;
-  }
-
-  let seq t = t. seq
-  let incr t = {t with seq=succ @@ seq t}
-  let type_ t = t.type_
-  let request_seq t = t.request_seq
-  let success t = t.success
-  let command t = t.command
-  let message t = t.message
-  let body t = Some t.body
-
-  let enc cmd body =
-    let open Data_encoding in
-    conv
-      (fun {seq; type_; request_seq; success; command; message; body} ->
-        (seq, type_, request_seq, success, command, message, body))
-      (fun (seq, type_, request_seq, success, command, message, body) ->
-        {seq; type_; request_seq; success; command; message; body})
-      (obj7
-         (req "seq" int31)
-         (req "type" ProtocolMessage_type.enc)
-         (req "request_seq" int31)
-         (req "success" bool)
-         (req "command" cmd)
-         (opt "message" string)
-         (req "body" body))
-
-  let make ~seq ~request_seq ~success ~command ?message ~body () =
-    let type_ = ProtocolMessage_type.Response in
-    {seq; type_; request_seq; success; command; message; body}
-
-end
-
-module ResponseMessageOpt : RESPONSE_OPT_MAKE = struct
-
-  type ('cmd, 'body) t = {
-    seq : int;
-    type_ : ProtocolMessage_type.t;
-    request_seq : int;
-    success : bool;
-    command : 'cmd Dap_command.t;
-    message : string option; (* only used once I think, keep as string for now *)
-    body : 'body option;
   }
 
   let seq t = t. seq
@@ -306,9 +278,29 @@ module ResponseMessageOpt : RESPONSE_OPT_MAKE = struct
          (req "success" bool)
          (req "command" cmd)
          (opt "message" string)
+         (req "body" body))
+
+  let enc_opt cmd body =
+    let open Data_encoding in
+    conv
+      (fun {seq; type_; request_seq; success; command; message; body} ->
+        (seq, type_, request_seq, success, command, message, body))
+      (fun (seq, type_, request_seq, success, command, message, body) ->
+        {seq; type_; request_seq; success; command; message; body})
+      (obj7
+         (req "seq" int31)
+         (req "type" ProtocolMessage_type.enc)
+         (req "request_seq" int31)
+         (req "success" bool)
+         (req "command" cmd)
+         (opt "message" string)
          (opt "body" body))
 
-  let make ~seq ~request_seq ~success ~command ?message ?body () =
+  let make ~seq ~request_seq ~success ~command ?message ~body () =
+    let type_ = ProtocolMessage_type.Response in
+    {seq; type_; request_seq; success; command; message; body}
+
+  let make_opt ~seq ~request_seq ~success ~command ?message ?body () =
     let type_ = ProtocolMessage_type.Response in
     {seq; type_; request_seq; success; command; message; body}
 

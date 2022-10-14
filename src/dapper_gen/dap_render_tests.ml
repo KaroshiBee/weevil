@@ -161,7 +161,7 @@ let%expect_test "Check ErrorResponse example" =
 
 
     type response =
-    | ErrorResponse of (Dap_command.error, ErrorResponse_body.t) ResponseMessage.t
+    | ErrorResponse of (Dap_command.error, ErrorResponse_body.t, ResponseMessage.req) ResponseMessage.t
 
     type event = |}]
 
@@ -719,6 +719,6 @@ let%expect_test "Check LaunchResponse empty body  example" =
 
 
     type response =
-    | LaunchResponse of (Dap_command.launch, EmptyObject.t) ResponseMessageOpt.t
+    | LaunchResponse of (Dap_command.launch, EmptyObject.t option, ResponseMessage.opt) ResponseMessage.t
 
     type event = |}]

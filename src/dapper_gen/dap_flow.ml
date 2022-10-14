@@ -111,90 +111,29 @@ end
 (*     let resp = ConfigurationDoneResponseMessage.make ~seq ~request_seq ~success:true ~body () in *)
 (*     Result.Ok resp *)
 
+open Dap_t
 
- 
-
-(* let make_response = function *)
-(*   | CancelRequest req -> *)
-(*     let module S = Sequencing (CancelRequestMessage) in *)
-(*     let {S.seq; request_seq} = S.correct_sequence req in *)
-(*     let resp = CancelResponseMessage.make ~seq ~request_seq ~success:true in *)
-(*     let aux : 'body -> response = fun body -> CancelResponse (resp ~body ()) in *)
-(*     aux *)
-
-(*   | InitializeRequest req -> *)
-(*     let module S = Sequencing (InitializeRequestMessage) in *)
-(*     let {S.seq; request_seq} = S.correct_sequence req in *)
-(*     let resp = InitializeResponseMessage.make ~seq ~request_seq ~success:true in *)
-(*     let aux : 'body -> response = fun body -> InitializeResponse (resp ~body ()) in *)
-(*     aux *)
-
-(*   | ConfigurationDoneRequest req -> *)
-(*     let module S = Sequencing (ConfigurationDoneRequestMessage) in *)
-(*     let {S.seq; request_seq} = S.correct_sequence req in *)
-(*     let resp = ConfigurationDoneResponseMessage.make ~seq ~request_seq ~success:true in *)
-(*     fun body:'body -> ConfigurationDoneResponse (resp ~body ()) *)
-
-(*   | RunInTerminalRequest _ *)
-(*   | LaunchRequest _ *)
-(*   | AttachRequest _ *)
-(*   | RestartRequest _ *)
-(*   | DisconnectRequest _ *)
-(*   | TerminateRequest _ *)
-(*   | BreakpointLocationsRequest _ *)
-(*   | SetBreakpointsRequest _ *)
-(*   | SetFunctionBreakpointsRequest _ *)
-(*   | SetExceptionBreakpointsRequest _ *)
-(*   | DataBreakpointInfoRequest _ *)
-(*   | SetDataBreakpointsRequest _ *)
-(*   | SetInstructionBreakpointsRequest _ *)
-(*   | ContinueRequest _ *)
-(*   | NextRequest _ *)
-(*   | StepInRequest _ *)
-(*   | StepOutRequest _ *)
-(*   | StepBackRequest _ *)
-(*   | ReverseContinueRequest _ *)
-(*   | RestartFrameRequest _ *)
-(*   | GotoRequest _ *)
-(*   | PauseRequest _ *)
-(*   | StackTraceRequest _ *)
-(*   | ScopesRequest _ *)
-(*   | VariablesRequest _ *)
-(*   | SetVariableRequest _ *)
-(*   | SourceRequest _ *)
-(*   | ThreadsRequest _ *)
-(*   | TerminateThreadsRequest _ *)
-(*   | ModulesRequest _ *)
-(*   | LoadedSourcesRequest _ *)
-(*   | EvaluateRequest _ *)
-(*   | SetExpressionRequest _ *)
-(*   | StepInTargetsRequest _ *)
-(*   | GotoTargetsRequest _ *)
-(*   | CompletionsRequest _ *)
-(*   | ExceptionInfoRequest _ *)
-(*   | ReadMemoryRequest _ *)
-(*   | WriteMemoryRequest _ *)
-(*   | DisassembleRequest _ *)
-(*       -> assert false *)
-
-module Flow = struct
+module Flow (Request:REQUEST) (Response:RESPONSE) = struct
 
   open Dap_message
 
-  type ('command, 'request, 'response) t = {
-    on_request: 'request -> 'response Lwt.t;
-    response: 'response;
+  type ('command, 'args, 'presence_args, 'body, 'presence_body) t = {
+    request: ('command, 'args) Request.t;
+    response: ('command, 'body, 'presence_body) Response.t;
     events: event list;
     make_error: seq:int -> request_seq:int -> success:bool -> ?message:string -> body:ErrorResponse_body.t -> unit -> response ;
   }
 
-  let make ?(events=[]) on_request response =
+  let make ?(events=[]) request response =
     let make_error = fun ~seq ~request_seq ~success ?message ~body () ->
+      let cnl = Dap_command.cancel in
+      let _b = EmptyObject.make () in
+      let c = ResponseMessage.make_opt ~seq ~request_seq ~success ~command:cnl ?message ~body:_b () in
+      let _ = CancelResponse c in
       let command = Dap_command.error in
-      let e = Dap_t.ResponseMessage.make ~seq ~request_seq ~success ~command ?message ~body () in
+      let e = ResponseMessage.make ~seq ~request_seq ~success ~command ?message ~body () in
       ErrorResponse e
     in
-    {on_request; response; events; make_error}
-
+    {request; response; events; make_error}
 
 end

@@ -395,7 +395,7 @@ module RenderResponse : (RenderT with type spec := Sp.Obj_spec.t) = struct
     | Some body when body.required ->
       "",
       Printf.sprintf
-        "| %s of (%s.%s, %s.t) ResponseMessage.t"
+        "| %s of (%s.%s, %s.t, ResponseMessage.req) ResponseMessage.t"
         name
         CommandHelper.module_name
         command
@@ -404,7 +404,7 @@ module RenderResponse : (RenderT with type spec := Sp.Obj_spec.t) = struct
     | Some body ->
       "",
       Printf.sprintf
-        "| %s of (%s.%s, %s.t) ResponseMessageOpt.t"
+        "| %s of (%s.%s, %s.t option, ResponseMessage.opt) ResponseMessage.t"
         name
         CommandHelper.module_name
         command
@@ -413,7 +413,7 @@ module RenderResponse : (RenderT with type spec := Sp.Obj_spec.t) = struct
     | None ->
       "",
       Printf.sprintf
-        "| %s of (%s.%s, %s.t) ResponseMessageOpt.t"
+        "| %s of (%s.%s, %s.t option, ResponseMessage.opt) ResponseMessage.t"
         name
         CommandHelper.module_name
         command
