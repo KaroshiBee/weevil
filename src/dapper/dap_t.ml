@@ -237,9 +237,11 @@ module type RESPONSE = sig
   type ('cmd, 'body, 'presence) t
 
   val seq : ('cmd, 'body, 'presence) t -> int
+  val set_seq : ('cmd, 'body, 'presence) t -> int ->  ('cmd, 'body, 'presence) t
   val incr : ('cmd, 'body, 'presence) t -> ('cmd, 'body, 'presence) t
   val type_ : ('cmd, 'body, 'presence) t -> ProtocolMessage_type.t
   val request_seq : ('cmd, 'body, 'presence) t -> int
+  val set_request_seq : ('cmd, 'body, 'presence) t -> int ->  ('cmd, 'body, 'presence) t
   val success : ('cmd, 'body, 'presence) t -> bool
   val command : ('cmd, 'body, 'presence) t -> 'cmd Dap_command.t
   val message : ('cmd, 'body, 'presence) t -> string option
@@ -265,10 +267,12 @@ module ResponseMessage : RESPONSE = struct
     body : 'body;
   }
 
-  let seq t = t. seq
+  let seq t = t.seq
+  let set_seq t seq = {t with seq}
   let incr t = {t with seq=succ @@ seq t}
   let type_ t = t.type_
   let request_seq t = t.request_seq
+  let set_request_seq t request_seq = {t with request_seq}
   let success t = t.success
   let command t = t.command
   let message t = t.message
@@ -323,6 +327,7 @@ module type EVENT = sig
   type ('event, 'body, 'presence) t
 
   val seq : ('event, 'body, 'presence) t -> int
+  val set_seq : ('event, 'body, 'presence) t -> int -> ('event, 'body, 'presence) t
   val incr : ('event, 'body, 'presence) t -> ('event, 'body, 'presence) t
   val type_ : ('event, 'body, 'presence) t -> ProtocolMessage_type.t
   val event : ('event, 'body, 'presence) t -> 'event Dap_event.t
@@ -346,6 +351,7 @@ module EventMessage : EVENT = struct
   }
 
   let seq t = t.seq
+  let set_seq t seq = {t with seq}
   let incr t = {t with seq=succ @@ seq t}
   let type_ t = t.type_
   let event t = t.event
