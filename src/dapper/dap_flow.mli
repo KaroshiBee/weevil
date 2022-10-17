@@ -11,6 +11,10 @@ type ('command, 'args, 'pargs) req  = ('command, 'args, 'pargs) Dap_t.RequestMes
 type ('command, 'body, 'pbody) resp = ('command, 'body, 'pbody) Dap_t.ResponseMessage.t
 type ('event, 'body, 'pbody) ev = ('event, 'body, 'pbody) Dap_t.EventMessage.t
 
+val of_req :
+  ('command, 'args, 'pargs) req ->
+  ('command, 'args, 'pargs) req t
+
 (* NOTE in req_resp there is only one 'command type ie NextRequest -> NextResponse *)
 val req_resp :
   ('command, 'args, 'pargs) req t ->

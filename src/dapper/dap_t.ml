@@ -174,8 +174,8 @@ module type REQUEST = sig
   val message : ('cmd, 'args, 'presence) t -> ProtocolMessage_type.t
   val command : ('cmd, 'args, 'presence) t -> 'cmd Dap_command.t
   val arguments : ('cmd, 'args, 'presence) t -> 'args
-  val enc :     'cmd Dap_command.t Data_encoding.t -> 'args Data_encoding.t -> ('cmd, 'args, req) t Data_encoding.t
-  val enc_opt : 'cmd Dap_command.t Data_encoding.t -> 'args Data_encoding.t -> ('cmd, 'args option, opt) t Data_encoding.t
+  val enc :     'args Data_encoding.t -> ('cmd, 'args, req) t Data_encoding.t
+  val enc_opt : 'args Data_encoding.t -> ('cmd, 'args option, opt) t Data_encoding.t
   val make :     seq:int -> command:'cmd Dap_command.t ->  arguments:'args -> unit -> ('cmd, 'args, req) t
   val make_opt : seq:int -> command:'cmd Dap_command.t -> ?arguments:'args -> unit -> ('cmd, 'args option, opt) t
 end
@@ -198,7 +198,7 @@ module RequestMessage : REQUEST = struct
   let command t = t.command
   let arguments t = t.arguments
 
-  let enc cmd args =
+  let enc args =
     let open Data_encoding in
     conv
       (fun {seq; type_; command; arguments} -> (seq, type_, command, arguments))
@@ -206,10 +206,10 @@ module RequestMessage : REQUEST = struct
       (obj4
          (req "seq" int31)
          (req "type" ProtocolMessage_type.enc)
-         (req "command" cmd)
+         (req "command" Dap_command.enc)
          (req "arguments" args))
 
-  let enc_opt cmd args =
+  let enc_opt args =
     let open Data_encoding in
     conv
       (fun {seq; type_; command; arguments} -> (seq, type_, command, arguments))
@@ -217,7 +217,7 @@ module RequestMessage : REQUEST = struct
       (obj4
          (req "seq" int31)
          (req "type" ProtocolMessage_type.enc)
-         (req "command" cmd)
+         (req "command" Dap_command.enc)
          (opt "arguments" args))
 
   let make ~seq ~command ~arguments () =
@@ -246,8 +246,8 @@ module type RESPONSE = sig
   val command : ('cmd, 'body, 'presence) t -> 'cmd Dap_command.t
   val message : ('cmd, 'body, 'presence) t -> string option
   val body : ('cmd, 'body, 'presence) t -> 'body
-  val enc :     'cmd Dap_command.t Data_encoding.t -> 'body Data_encoding.t -> ('cmd, 'body, req) t Data_encoding.t
-  val enc_opt : 'cmd Dap_command.t Data_encoding.t -> 'body Data_encoding.t -> ('cmd, 'body option, opt) t Data_encoding.t
+  val enc :     'body Data_encoding.t -> ('cmd, 'body, req) t Data_encoding.t
+  val enc_opt : 'body Data_encoding.t -> ('cmd, 'body option, opt) t Data_encoding.t
   val make :     seq:int -> request_seq:int -> success:bool -> command:'cmd Dap_command.t -> ?message:string ->  body:'body -> unit -> ('cmd, 'body, req) t
   val make_opt : seq:int -> request_seq:int -> success:bool -> command:'cmd Dap_command.t -> ?message:string -> ?body:'body -> unit -> ('cmd, 'body option, opt) t
 end
@@ -278,7 +278,7 @@ module ResponseMessage : RESPONSE = struct
   let message t = t.message
   let body t = t.body
 
-  let enc cmd body =
+  let enc body =
     let open Data_encoding in
     conv
       (fun {seq; type_; request_seq; success; command; message; body} ->
@@ -290,11 +290,11 @@ module ResponseMessage : RESPONSE = struct
          (req "type" ProtocolMessage_type.enc)
          (req "request_seq" int31)
          (req "success" bool)
-         (req "command" cmd)
+         (req "command" Dap_command.enc)
          (opt "message" string)
          (req "body" body))
 
-  let enc_opt cmd body =
+  let enc_opt body =
     let open Data_encoding in
     conv
       (fun {seq; type_; request_seq; success; command; message; body} ->
@@ -306,7 +306,7 @@ module ResponseMessage : RESPONSE = struct
          (req "type" ProtocolMessage_type.enc)
          (req "request_seq" int31)
          (req "success" bool)
-         (req "command" cmd)
+         (req "command" Dap_command.enc)
          (opt "message" string)
          (opt "body" body))
 
@@ -332,8 +332,8 @@ module type EVENT = sig
   val type_ : ('event, 'body, 'presence) t -> ProtocolMessage_type.t
   val event : ('event, 'body, 'presence) t -> 'event Dap_event.t
   val body : ('event, 'body, 'presence) t -> 'body
-  val enc :     'event Dap_event.t Data_encoding.t -> 'body Data_encoding.t -> ('event, 'body, req) t Data_encoding.t
-  val enc_opt : 'event Dap_event.t Data_encoding.t -> 'body Data_encoding.t -> ('event, 'body option, opt) t Data_encoding.t
+  val enc :     'body Data_encoding.t -> ('event, 'body, req) t Data_encoding.t
+  val enc_opt : 'body Data_encoding.t -> ('event, 'body option, opt) t Data_encoding.t
   val make :     seq:int -> event:'event Dap_event.t ->  body:'body -> unit -> ('event, 'body, req) t
   val make_opt : seq:int -> event:'event Dap_event.t -> ?body:'body -> unit -> ('event, 'body option, opt) t
 end
@@ -357,7 +357,7 @@ module EventMessage : EVENT = struct
   let event t = t.event
   let body t = t.body
 
-  let enc ev body =
+  let enc body =
     let open Data_encoding in
     conv
       (fun {seq; type_; event; body} -> (seq, type_, event, body))
@@ -365,10 +365,10 @@ module EventMessage : EVENT = struct
       (obj4
          (req "seq" int31)
          (req "type" ProtocolMessage_type.enc)
-         (req "event" ev)
+         (req "event" Dap_event.enc)
          (req "body" body))
 
-  let enc_opt ev body =
+  let enc_opt body =
     let open Data_encoding in
     conv
       (fun {seq; type_; event; body} -> (seq, type_, event, body))
@@ -376,7 +376,7 @@ module EventMessage : EVENT = struct
       (obj4
          (req "seq" int31)
          (req "type" ProtocolMessage_type.enc)
-         (req "event" ev)
+         (req "event" Dap_event.enc)
          (opt "body" body))
 
   let make ~seq ~event ~body () =
@@ -388,12 +388,3 @@ module EventMessage : EVENT = struct
     {seq; type_; event; body}
 
 end
-
-module EventSeq : sig
-  val add_seq : ('event, 'body, 'pbody) EventMessage.t -> ('event, 'body_, 'pbody_) EventMessage.t -> int
-end
-= struct
-  let add_seq ev1 ev2 =
-    EventMessage.seq ev1 + EventMessage.seq ev2
-end
-
