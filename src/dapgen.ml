@@ -1,4 +1,4 @@
-open Dapper_gen.Dap_dfs
+open Dapper.Dap_dfs
 
 let () =
   Logs.set_reporter (Logs.format_reporter ());

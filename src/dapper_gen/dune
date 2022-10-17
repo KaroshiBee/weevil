@@ -1,6 +1,0 @@
-(library
- (name dapper_gen)
- (libraries lwt data-encoding cmdliner logs ppx_expect str)
- (inline_tests (deps (glob_files data/*.json)))
-  (preprocess (pps ppx_deriving.show ppx_expect))
-)

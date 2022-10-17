@@ -2,10 +2,10 @@ open Conduit_lwt_unix
 open Data_encoding.Json
 open Lwt
 
-module DRq = Dapper.Dap_request
-module DRs = Dapper.Dap_response
-module DEv = Dapper.Dap_event
-module Db = Dapper.Dap_base
+module DRq = Dapper_old.Dap_request
+module DRs = Dapper_old.Dap_response
+module DEv = Dapper_old.Dap_event
+module Db = Dapper_old.Dap_base
 
 let recs : Model.Weevil_json.t list ref  = ref []
 

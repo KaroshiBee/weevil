@@ -18,8 +18,8 @@
   conduit-lwt-unix
   data-encoding
   cmdliner
+  dapper_old
   dapper
-  dapper_gen
  )
  (flags
   (:standard
