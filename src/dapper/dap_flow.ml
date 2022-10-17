@@ -1,123 +1,68 @@
 
-(* module type SEQUENCED = sig *)
-(*   type (_, _, _) t *)
-(*   val seq : (_, _, _) t -> int *)
-(* end *)
+open Dap_t
+(* open Dap_message *)
 
-(* module Sequencing (S:SEQUENCED) : sig *)
-(*   type t *)
-(*   val next_sequence : (_, _, _) S.t -> t *)
-(*   val seq : t -> int *)
-(*   val set_seq : t -> int -> t *)
-(*   val request_seq : t -> int *)
-(*   val set_request_seq : t -> int -> t *)
-(* end *)
-(*   = struct *)
-(*   type t = {seq:int; request_seq:int} *)
-(*   let next_sequence req = *)
-(*     let request_seq = S.seq req in *)
-(*     let seq = succ request_seq in *)
-(*     {seq; request_seq} *)
-(*   let seq t = t.seq *)
-(*   let set_seq t =  *)
-(*   let request_seq t = t.request_seq *)
-(* end *)
+(* module JS = Data_encoding.Json *)
+(* module SReq = Sequencing(RequestMessage) *)
+(* module SResp = Sequencing(ResponseMessage) *)
+(* module SEv = Sequencing(EventMessage) *)
 
-(* result-bind like behaviour from req -> resp, resp -> ev, ev -> ev
-   takes care of sequencing numbers correctly
-   and also the types for commands etc *)
-(* TODO error message ids need to be unique *)
-module MessageFlow : sig
-  (* NOTE using ErrorResponse_body here because wont know the sequence number of error mesage yet *)
-  type 'a t = ('a, Dap_message.ErrorResponse_body.t) Result.t
-  type ('command, 'args, 'pargs) req  = ('command, 'args, 'pargs) Dap_t.RequestMessage.t
-  type ('command, 'body, 'pbody) resp = ('command, 'body, 'pbody) Dap_t.ResponseMessage.t
-  type ('event, 'body, 'pbody) ev = ('event, 'body, 'pbody) Dap_t.EventMessage.t
+(* type launch_mode = [ `Launch | `Attach | `AttachForSuspendedLaunch ] *)
+(* type config = {launch_mode: launch_mode} *)
+(* type ret = (response * event list, ErrorResponse_body.t) Result.t *)
+type 'a t = ('a, Dap_message.ErrorResponse_body.t) Result.t
+type ('command, 'args, 'pargs) req  = ('command, 'args, 'pargs) Dap_t.RequestMessage.t
+type ('command, 'body, 'pbody) resp = ('command, 'body, 'pbody) Dap_t.ResponseMessage.t
+type ('event, 'body, 'pbody) ev = ('event, 'body, 'pbody) Dap_t.EventMessage.t
 
-  (* NOTE in req_resp there is only one 'command type ie NextRequest -> NextResponse *)
-  val req_resp :
-    ('command, 'args, 'pargs) req t ->
-    (('command, 'args, 'pargs) req -> ('command, 'body, 'pbody) resp t) ->
-    ('command, 'body, 'pbody) resp t
+let req_resp :
+  (('command, 'args, 'pargs) req t ->
+   (('command, 'args, 'pargs) req -> ('command, 'body, 'pbody) resp t) ->
+   ('command, 'body, 'pbody) resp t) = fun v f ->
+  match v with
+  | Result.Ok req ->
+    let request_seq = RequestMessage.seq req in
+    let seq = succ @@ request_seq in
+    let resp = f req in
+    Result.bind resp (fun resp ->
+        let resp = ResponseMessage.set_request_seq resp request_seq in
+        let resp = ResponseMessage.set_seq resp seq in
+        (Result.Ok resp)
+      )
+  | Result.Error _ as err -> err
 
-  val resp_ev :
-    ('command, 'body, 'pbody) resp t ->
-    (('command, 'body, 'pbody) resp -> ('event, 'evbody, 'pevbody) ev t) ->
-    ('event, 'evbody, 'pevbody) ev t
-
-  val next_ev :
-    ('event, 'evbody, 'pevbody) ev t ->
-    (('event, 'evbody, 'pevbody) ev -> ('event_, 'evbody_, 'pevbody_) ev t) ->
-    ('event_, 'evbody_, 'pevbody_) ev t
-
-  (* val response_event : config:config -> (_, _, _) ResponseMessage.t -> (('body -> (_, 'body, _) EventMessage.t), ErrorResponse_body.t) Result.t *)
-  (* val event_event : config:config -> ('event, _, _) EventMessage.t -> (('body -> ('event_, 'body, _) EventMessage.t), ErrorResponse_body.t) Result.t *)
-end = struct
-
-  open Dap_t
-  (* open Dap_message *)
-
-  (* module JS = Data_encoding.Json *)
-  (* module SReq = Sequencing(RequestMessage) *)
-  (* module SResp = Sequencing(ResponseMessage) *)
-  (* module SEv = Sequencing(EventMessage) *)
-
-  (* type launch_mode = [ `Launch | `Attach | `AttachForSuspendedLaunch ] *)
-  (* type config = {launch_mode: launch_mode} *)
-  (* type ret = (response * event list, ErrorResponse_body.t) Result.t *)
-  type 'a t = ('a, Dap_message.ErrorResponse_body.t) Result.t
-  type ('command, 'args, 'pargs) req  = ('command, 'args, 'pargs) Dap_t.RequestMessage.t
-  type ('command, 'body, 'pbody) resp = ('command, 'body, 'pbody) Dap_t.ResponseMessage.t
-  type ('event, 'body, 'pbody) ev = ('event, 'body, 'pbody) Dap_t.EventMessage.t
-
-  let req_resp :
-    (('command, 'args, 'pargs) req t ->
-    (('command, 'args, 'pargs) req -> ('command, 'body, 'pbody) resp t) ->
-    ('command, 'body, 'pbody) resp t) = fun v f ->
-    match v with
-    | Result.Ok req ->
-      let request_seq = RequestMessage.seq req in
-      let seq = succ @@ request_seq in
-      let resp = f req in
-      Result.bind resp (fun resp ->
-          let resp = ResponseMessage.set_request_seq resp request_seq in
-          let resp = ResponseMessage.set_seq resp seq in
-          (Result.Ok resp)
-        )
-    | Result.Error _ as err -> err
-
-  let resp_ev :
-    ('command, 'body, 'pbody) resp t ->
-    (('command, 'body, 'pbody) resp -> ('event, 'evbody, 'pevbody) ev t) ->
-    ('event, 'evbody, 'pevbody) ev t = fun v f ->
-    match v with
-    | Result.Ok resp ->
-      let request_seq = ResponseMessage.seq resp in
-      let seq = succ @@ request_seq in
-      let ev = f resp in
-      Result.bind ev (fun ev ->
-          let ev = EventMessage.set_seq ev seq in
-          (Result.Ok ev)
-        )
-    | Result.Error _ as err -> err
+let resp_ev :
+  ('command, 'body, 'pbody) resp t ->
+  (('command, 'body, 'pbody) resp -> ('event, 'evbody, 'pevbody) ev t) ->
+  ('event, 'evbody, 'pevbody) ev t = fun v f ->
+  match v with
+  | Result.Ok resp ->
+    let request_seq = ResponseMessage.seq resp in
+    let seq = succ @@ request_seq in
+    let ev = f resp in
+    Result.bind ev (fun ev ->
+        let ev = EventMessage.set_seq ev seq in
+        (Result.Ok ev)
+      )
+  | Result.Error _ as err -> err
 
 
-  let next_ev :
-    ('event, 'evbody, 'pevbody) ev t ->
-    (('event, 'evbody, 'pevbody) ev -> ('event_, 'evbody_, 'pevbody_) ev t) ->
-    ('event_, 'evbody_, 'pevbody_) ev t = fun v f ->
-    match v with
-    | Result.Ok ev ->
-      let request_seq = EventMessage.seq ev in
-      let seq = succ @@ request_seq in
-      let ev = f ev in
-      Result.bind ev (fun ev ->
-          let ev = EventMessage.set_seq ev seq in
-          (Result.Ok ev)
-        )
-    | Result.Error _ as err -> err
+let next_ev :
+  ('event, 'evbody, 'pevbody) ev t ->
+  (('event, 'evbody, 'pevbody) ev -> ('event_, 'evbody_, 'pevbody_) ev t) ->
+  ('event_, 'evbody_, 'pevbody_) ev t = fun v f ->
+  match v with
+  | Result.Ok ev ->
+    let request_seq = EventMessage.seq ev in
+    let seq = succ @@ request_seq in
+    let ev = f ev in
+    Result.bind ev (fun ev ->
+        let ev = EventMessage.set_seq ev seq in
+        (Result.Ok ev)
+      )
+  | Result.Error _ as err -> err
 
-end
+
 
 (*   let request_response_ ~config = function *)
 (*     | CancelRequest req -> *)
