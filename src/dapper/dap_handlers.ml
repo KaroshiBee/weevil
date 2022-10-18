@@ -1,3 +1,36 @@
+
+(* let _HEADER_FIELD = "Content-Length: " *)
+(* let _HEADER_TOKEN = "\r\n\r\n" *)
+
+(* let _replace input output = *)
+(*   Str.global_replace (Str.regexp_string input) output *)
+
+(* let wrap_header js = *)
+(*   let s = js *)
+(*           |> JS.to_string *)
+(*           |> _replace "\n" "" *)
+(*   in *)
+(*   let n = String.length s in *)
+(*   Printf.sprintf "%s%d%s%s" _HEADER_FIELD n _HEADER_TOKEN s *)
+
+(* let destruct_request t msg = *)
+(*     match JS.from_string msg with *)
+(*     | Ok js -> ( *)
+(*         try *)
+(*           Ok (JS.destruct Request.enc t.request js) *)
+(*         with _ as err -> *)
+(*           Logs.err (fun m -> m "Cannot parse json '%s' as request: '%s'" msg @@ Printexc.to_string err); *)
+(*           Error (Printexc.to_string err) *)
+(*       ) *)
+(*     | Error err -> *)
+(*       Logs.err (fun m -> m "Cannot parse json '%s': '%s'" msg err); *)
+(*       (\* TODO should return an error response *\) *)
+(*       Error err *)
+
+(* let construct_response t response = *)
+(*   let r = Response.incr response in *)
+(*   JS.construct t.response r |> wrap_header *)
+(* end *)
 open Dap_t
 open Dap_message
 module Js = Data_encoding.Json
@@ -30,18 +63,17 @@ let default_event
     ~body
     ()
 
-module Cancel : sig
-  type req
+module type HANDLER = sig
+  type t
   val handle : config:config -> string -> string Dap_flow.t
-end = struct
+end
 
-  type req = (Dap_command.cancel, CancelArguments.t option, RequestMessage.opt) request Dap_flow.t
+module Cancel : HANDLER = struct
 
-  let on_cancel_request :
-    config:config ->
-    (Dap_command.cancel, _, _) request ->
-    (Dap_command.cancel, _, _) response Dap_flow.t
-    = fun ~config:_ -> function
+  type req = (Dap_command.cancel, CancelArguments.t option, RequestMessage.opt) request
+  type t = req Dap_flow.t
+
+  let on_cancel_request ~config:_ = function
       | CancelRequest req ->
         let resp =
           let command = RequestMessage.command req in
@@ -68,8 +100,8 @@ end = struct
       Js.construct enc_resp resp |> Js.to_string
     | _ -> assert false
 
-  let handle ~config request =
-    string_to_cancel_request request
+  let handle ~config t =
+    string_to_cancel_request t
     |> fun cancel -> Dap_flow.on_request cancel (on_cancel_request ~config)
     |> Result.map cancel_response_to_string
   (* TODO do some io *)
@@ -150,20 +182,6 @@ let on_configurationDone ~config req =
   Dap_flow.on_request req (on_configurationDone_request ~config)
 (* TODO do some io *)
 
-(* let request_response (type cmd args pargs) : *)
-(*   config:config -> *)
-(*   ((cmd, args, pargs) request -> (cmd, _, _) response Dap_flow.t) *)
-(*     = fun ~config -> function *)
-(*   | CancelRequest req -> *)
-(*       let resp = *)
-(*         let command = RequestMessage.command req in *)
-(*         let body = EmptyObject.make () in *)
-(*         default_response command body *)
-(*       in *)
-(*       let ret = CancelResponse resp in *)
-(*       Result.ok ret *)
-(*   (\* TODO breakpoints stuff - here *\) *)
-(*   (\* *)
 (* Launching and attaching *)
 
 (* After the debug adapter has been initialized, it is ready to accept requests for starting debugging. Two requests exist for this: *)
@@ -295,36 +313,3 @@ let on_configurationDone ~config req =
 (*       Result.ok ret *)
 (*   | _ -> failwith "TODO: every request should have a response" *)
 
-
-(* let _HEADER_FIELD = "Content-Length: " *)
-(* let _HEADER_TOKEN = "\r\n\r\n" *)
-
-(* let _replace input output = *)
-(*   Str.global_replace (Str.regexp_string input) output *)
-
-(* let wrap_header js = *)
-(*   let s = js *)
-(*           |> JS.to_string *)
-(*           |> _replace "\n" "" *)
-(*   in *)
-(*   let n = String.length s in *)
-(*   Printf.sprintf "%s%d%s%s" _HEADER_FIELD n _HEADER_TOKEN s *)
-
-(* let destruct_request t msg = *)
-(*     match JS.from_string msg with *)
-(*     | Ok js -> ( *)
-(*         try *)
-(*           Ok (JS.destruct Request.enc t.request js) *)
-(*         with _ as err -> *)
-(*           Logs.err (fun m -> m "Cannot parse json '%s' as request: '%s'" msg @@ Printexc.to_string err); *)
-(*           Error (Printexc.to_string err) *)
-(*       ) *)
-(*     | Error err -> *)
-(*       Logs.err (fun m -> m "Cannot parse json '%s': '%s'" msg err); *)
-(*       (\* TODO should return an error response *\) *)
-(*       Error err *)
-
-(* let construct_response t response = *)
-(*   let r = Response.incr response in *)
-(*   JS.construct t.response r |> wrap_header *)
-(* end *)
