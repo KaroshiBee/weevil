@@ -76,8 +76,12 @@ module Cancel : HANDLER = struct
   type req = (Dap_command.cancel, CancelArguments.t option, RequestMessage.opt) request
   type t = req Dap_flow.t
 
-  let on_cancel_request ~config:_ = function
-      | CancelRequest req ->
+  let on_cancel_request :
+      config:config ->
+      (Dap_command.cancel, _, _) request ->
+      (Dap_command.cancel, _, _) response Dap_flow.t
+      = fun ~config:_ -> function
+        | CancelRequest req ->
         let resp =
           let command = RequestMessage.command req in
           let body = EmptyObject.make () in
@@ -143,6 +147,7 @@ let on_initialize_request :
       in
       let ret = InitializeResponse resp in
       Result.ok ret
+  | _ -> assert false
 
 let on_initialization_response :
   config:config ->

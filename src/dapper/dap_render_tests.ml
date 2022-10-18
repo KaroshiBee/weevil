@@ -103,7 +103,11 @@ let%expect_test "Check ErrorResponse example" =
 
      open Dap_t
 
-     module Message = struct
+     module Message : sig
+    type t
+     val enc : t Data_encoding.t
+     val make : id:int -> format:string -> ?variables:Data_encoding.json -> ?sendTelemetry:bool -> ?showUser:bool -> ?url:string -> ?urlLabel:string -> ?lines:int list -> unit -> t
+    end = struct
      type t = { id: int;
     format: string;
     variables: Data_encoding.json option;
@@ -136,7 +140,11 @@ let%expect_test "Check ErrorResponse example" =
      end
 
 
-    module ErrorResponse_body = struct
+    module ErrorResponse_body : sig
+    type t
+     val enc : t Data_encoding.t
+     val make : ?error:Message.t -> unit -> t
+    end = struct
      type t = { error: Message.t option; }
 
      let enc =
@@ -176,7 +184,11 @@ let%expect_test "Check CancelRequest example" =
 
      open Dap_t
 
-     module CancelArguments = struct
+     module CancelArguments : sig
+    type t
+     val enc : t Data_encoding.t
+     val make : ?requestId:int -> ?progressId:string -> unit -> t
+    end = struct
      type t = { requestId: int option;
     progressId: string option; }
 
@@ -218,6 +230,7 @@ let%expect_test "Check StoppedEvent example" =
 
      open Dap_t
 
+     (* dont bother with a sig for enums, the inferred one is fine *)
      module StoppedEvent_body_reason = struct
      type t = Step | Breakpoint | Exception | Pause | Entry | Goto | Function_breakpoint | Data_breakpoint | Instruction_breakpoint | Other of string
 
@@ -231,7 +244,11 @@ let%expect_test "Check StoppedEvent example" =
      end
 
 
-    module StoppedEvent_body = struct
+    module StoppedEvent_body : sig
+    type t
+     val enc : t Data_encoding.t
+     val make : reason:StoppedEvent_body_reason.t -> ?description:string -> ?threadId:int -> ?preserveFocusHint:bool -> ?text:string -> ?allThreadsStopped:bool -> ?hitBreakpointIds:int list -> unit -> t
+    end = struct
      type t = { reason: StoppedEvent_body_reason.t;
     description: string option;
     threadId: int option;
@@ -284,7 +301,11 @@ let%expect_test "Check cyclic example" =
 
      open Dap_t
 
-     module ExceptionDetails = struct
+     module ExceptionDetails : sig
+    type t
+     val enc : t Data_encoding.t
+     val make : ?message:string -> ?typeName:string -> ?fullTypeName:string -> ?evaluateName:string -> ?stackTrace:string -> ?innerException:t list -> unit -> t
+    end = struct
      type t = { message: string option;
     typeName: string option;
     fullTypeName: string option;
@@ -332,8 +353,16 @@ let%expect_test "Check large example" =
 
      open Dap_t
 
-     module Capabilities = struct
-     module Capabilities_0 = struct
+     module Capabilities : sig
+    type t
+     val enc : t Data_encoding.t
+     val make : ?supportsConfigurationDoneRequest:bool -> ?supportsFunctionBreakpoints:bool -> ?supportsConditionalBreakpoints:bool -> ?supportsHitConditionalBreakpoints:bool -> ?supportsEvaluateForHovers:bool -> ?supportsStepBack:bool -> ?supportsSetVariable:bool -> ?supportsRestartFrame:bool -> ?supportsGotoTargetsRequest:bool -> ?supportsStepInTargetsRequest:bool -> ?supportsCompletionsRequest:bool -> ?completionTriggerCharacters:string list -> ?supportsModulesRequest:bool -> ?supportsRestartRequest:bool -> ?supportsExceptionOptions:bool -> ?supportsValueFormattingOptions:bool -> ?supportsExceptionInfoRequest:bool -> ?supportTerminateDebuggee:bool -> ?supportSuspendDebuggee:bool -> ?supportsDelayedStackTraceLoading:bool -> ?supportsLoadedSourcesRequest:bool -> ?supportsLogPoints:bool -> ?supportsTerminateThreadsRequest:bool -> ?supportsSetExpression:bool -> ?supportsTerminateRequest:bool -> ?supportsDataBreakpoints:bool -> ?supportsReadMemoryRequest:bool -> ?supportsWriteMemoryRequest:bool -> ?supportsDisassembleRequest:bool -> ?supportsCancelRequest:bool -> ?supportsBreakpointLocationsRequest:bool -> ?supportsClipboardContext:bool -> ?supportsSteppingGranularity:bool -> ?supportsInstructionBreakpoints:bool -> ?supportsExceptionFilterOptions:bool -> ?supportsSingleThreadExecutionRequests:bool -> unit -> t
+    end = struct
+     module Capabilities_0 : sig
+    type t
+     val enc : t Data_encoding.t
+     val make : ?supportsConfigurationDoneRequest:bool -> ?supportsFunctionBreakpoints:bool -> ?supportsConditionalBreakpoints:bool -> ?supportsHitConditionalBreakpoints:bool -> ?supportsEvaluateForHovers:bool -> ?supportsStepBack:bool -> ?supportsSetVariable:bool -> ?supportsRestartFrame:bool -> ?supportsGotoTargetsRequest:bool -> ?supportsStepInTargetsRequest:bool -> unit -> t
+    end = struct
      type t = { supportsConfigurationDoneRequest: bool option;
     supportsFunctionBreakpoints: bool option;
     supportsConditionalBreakpoints: bool option;
@@ -370,7 +399,11 @@ let%expect_test "Check large example" =
      end
 
 
-    module Capabilities_10 = struct
+    module Capabilities_10 : sig
+    type t
+     val enc : t Data_encoding.t
+     val make : ?supportsCompletionsRequest:bool -> ?completionTriggerCharacters:string list -> ?supportsModulesRequest:bool -> ?supportsRestartRequest:bool -> ?supportsExceptionOptions:bool -> ?supportsValueFormattingOptions:bool -> ?supportsExceptionInfoRequest:bool -> ?supportTerminateDebuggee:bool -> ?supportSuspendDebuggee:bool -> ?supportsDelayedStackTraceLoading:bool -> unit -> t
+    end = struct
      type t = { supportsCompletionsRequest: bool option;
     completionTriggerCharacters: string list option;
     supportsModulesRequest: bool option;
@@ -407,7 +440,11 @@ let%expect_test "Check large example" =
      end
 
 
-    module Capabilities_20 = struct
+    module Capabilities_20 : sig
+    type t
+     val enc : t Data_encoding.t
+     val make : ?supportsLoadedSourcesRequest:bool -> ?supportsLogPoints:bool -> ?supportsTerminateThreadsRequest:bool -> ?supportsSetExpression:bool -> ?supportsTerminateRequest:bool -> ?supportsDataBreakpoints:bool -> ?supportsReadMemoryRequest:bool -> ?supportsWriteMemoryRequest:bool -> ?supportsDisassembleRequest:bool -> ?supportsCancelRequest:bool -> unit -> t
+    end = struct
      type t = { supportsLoadedSourcesRequest: bool option;
     supportsLogPoints: bool option;
     supportsTerminateThreadsRequest: bool option;
@@ -444,7 +481,11 @@ let%expect_test "Check large example" =
      end
 
 
-    module Capabilities_30 = struct
+    module Capabilities_30 : sig
+    type t
+     val enc : t Data_encoding.t
+     val make : ?supportsBreakpointLocationsRequest:bool -> ?supportsClipboardContext:bool -> ?supportsSteppingGranularity:bool -> ?supportsInstructionBreakpoints:bool -> ?supportsExceptionFilterOptions:bool -> ?supportsSingleThreadExecutionRequests:bool -> unit -> t
+    end = struct
      type t = { supportsBreakpointLocationsRequest: bool option;
     supportsClipboardContext: bool option;
     supportsSteppingGranularity: bool option;
@@ -512,7 +553,11 @@ let%expect_test "Check anyOf example" =
 
      open Dap_t
 
-     module SomeExample = struct
+     module SomeExample : sig
+    type t
+     val enc : t Data_encoding.t
+     val make : ?moduleId:IntString.t -> ?adapterData:Data_encoding.json -> unit -> t
+    end = struct
      type t = { moduleId: IntString.t option;
     adapterData: Data_encoding.json option; }
 
@@ -572,7 +617,11 @@ let%expect_test "Check nullable example" =
 
      open Dap_t
 
-     module ExceptionDetails = struct
+     module ExceptionDetails : sig
+    type t
+     val enc : t Data_encoding.t
+     val make : ?message:string -> typeName:string option -> unit -> t
+    end = struct
      type t = { message: string option;
     typeName: string option; }
 
@@ -612,7 +661,11 @@ let%expect_test "Check valueFormat example" =
 
      open Dap_t
 
-     module ValueFormat = struct
+     module ValueFormat : sig
+    type t
+     val enc : t Data_encoding.t
+     val make : ?hex:bool -> unit -> t
+    end = struct
      type t = { hex: bool option; }
 
      let enc =
@@ -631,7 +684,11 @@ let%expect_test "Check valueFormat example" =
      end
 
 
-    module StackFrameFormat = struct
+    module StackFrameFormat : sig
+    type t
+     val enc : t Data_encoding.t
+     val make : ?hex:bool -> ?parameters:bool -> ?parameterTypes:bool -> ?parameterNames:bool -> ?parameterValues:bool -> ?line:bool -> ?module_:bool -> ?includeAll:bool -> unit -> t
+    end = struct
      type t = { hex: bool option;
     parameters: bool option;
     parameterTypes: bool option;
@@ -682,7 +739,11 @@ let%expect_test "Check empty example" =
 
      open Dap_t
 
-     module ConfigurationDoneArguments = struct
+     module ConfigurationDoneArguments : sig
+     type t
+     val enc : t Data_encoding.t
+     val make : unit -> t
+     end = struct
      type t = unit
 
      let enc = Data_encoding.empty

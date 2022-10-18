@@ -44,10 +44,11 @@ module RenderEnum : (RenderT with type spec := Sp.Enum_spec.t) = struct
          string" enc_t_s enc_s_t
     in
     Printf.sprintf
-        "module %s = struct \n \
-         %s\n\n \
-         %s\n\n \
-         end\n" name t_str enc_str, ""
+      "(* dont bother with a sig for enums, the inferred one is fine *)\n \
+       module %s = struct \n \
+       %s\n\n \
+       %s\n\n \
+       end\n" name t_str enc_str, ""
 
 end
 
@@ -152,6 +153,16 @@ module RenderObjectField = struct
 
   type t = Sp.Field_spec.t
 
+  let sig_typ_str ~required ~seq safe_name type_ =
+    let s = Printf.sprintf (if seq then "%s list" else "%s") type_ in
+    Printf.sprintf (if required then "%s:%s" else "?%s:%s") safe_name s
+
+  let render_sig = function
+    | Sp.Field_spec.{ safe_name; type_; required; cyclic; seq; _ } when not cyclic ->
+      sig_typ_str ~required ~seq safe_name type_
+    | Sp.Field_spec.{ safe_name; required; seq; _ } ->
+      sig_typ_str ~required ~seq safe_name "t"
+
   let typ_str ~required ~seq type_ =
     let s = Printf.sprintf (if seq then "%s list" else "%s") type_ in
     Printf.sprintf (if required then "%s" else "%s option") s
@@ -192,6 +203,14 @@ module RenderObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
     | _ -> failwith "Use RenderLargeObject"
 
   let render (t:t) ~name =
+    let sig_str =
+      let lns = t.fields |> List.map RenderObjectField.render_sig |> String.concat " -> " in
+      Printf.sprintf
+        "type t \n \
+         val enc : t Data_encoding.t \n \
+         val make : %s -> unit -> t"
+        lns
+    in
     let t_str =
       let lns = t.fields |> List.map RenderObjectField.render_t |> String.concat "\n" in
       Printf.sprintf "type t = { %s }" lns
@@ -237,11 +256,11 @@ module RenderObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
         "let make %s () = \n%s" args_str rec_str
     in
     Printf.sprintf
-        "module %s = struct \n \
+        "module %s : sig \n%s\nend = struct \n \
          %s\n\n \
          %s\n\n \
          %s\n\n \
-         end\n" name t_str enc_str make_str, ""
+         end\n" name sig_str t_str enc_str make_str, ""
 
 end
 
@@ -318,6 +337,14 @@ module RenderLargeObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
            let open Data_encoding in \n \
            %s" ln
     in
+    let sig_str =
+      let lns = spec.fields |> List.map RenderObjectField.render_sig |> String.concat " -> " in
+      Printf.sprintf
+        "type t \n \
+         val enc : t Data_encoding.t \n \
+         val make : %s -> unit -> t"
+        lns
+    in
     let args_str =
       spec.fields |> List.map RenderObjectField.render_arg |> String.concat " "
     in
@@ -334,12 +361,12 @@ module RenderLargeObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
         "let make %s () = \n%s" args_str rec_str
     in
     Printf.sprintf
-      "module %s = struct \n \
+      "module %s : sig \n%s\nend = struct \n \
        %s\n\n \
        %s\n\n \
        %s\n\n \
        %s\n\n \
-       end\n" name internal_mods t_str enc_str make_str, ""
+       end\n" name sig_str internal_mods t_str enc_str make_str, ""
 
 end
 
@@ -361,7 +388,11 @@ module RenderEmptyObject : (RenderT with type spec := unit) = struct
         "let make () = () "
     in
     Printf.sprintf
-      "module %s = struct \n \
+      "module %s : sig \n \
+       type t \n \
+       val enc : t Data_encoding.t \n \
+       val make : unit -> t \n \
+       end = struct \n \
        %s\n\n \
        %s\n\n \
        %s\n\n \
