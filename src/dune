@@ -21,6 +21,7 @@
   dapper_old
   dapper
  )
+
  (flags
   (:standard
    -linkall

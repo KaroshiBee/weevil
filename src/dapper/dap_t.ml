@@ -50,7 +50,7 @@
 
 
 (* some helper modules *)
-module EmptyObject = struct
+module EmptyObject : sig type t val module_name : string val enc : t Data_encoding.t val make : unit -> t end = struct
 
   let module_name = "EmptyObject"
 
