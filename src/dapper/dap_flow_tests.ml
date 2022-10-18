@@ -16,26 +16,29 @@ let%expect_test "Check sequencing request/response/event" =
     { "seq": 10, "type": "request", "command": "cancel",
       "arguments": { "requestId": 1 } } |}];
 
-  let f = fun req ->
-    let command = RequestMessage.command req in
+  let f = fun _ ->
+    (* NOTE could also get the command off input *)
+    let command = Dap_command.cancel in
     let body = EmptyObject.make () in
-    ResponseMessage.make_opt
-      ~seq:0
-      ~request_seq:0
-      ~success:true
-      ~command
-      ~body
-      ()
+    Dap_message.CancelResponse (
+      ResponseMessage.make_opt
+        ~seq:0
+        ~request_seq:0
+        ~success:true
+        ~command
+        ~body
+        ()
+    )
     |> Result.ok
   in
   let v = Dap_flow.(
-      of_req cancel
+      of_req @@ CancelRequest cancel
       |> fun v -> req_resp v f
     )
   in
   let s =
     match v with
-    | Result.Ok resp ->
+    | Result.Ok (Dap_message.CancelResponse resp) ->
       let enc = ResponseMessage.enc_opt EmptyObject.enc in
       Js.construct enc resp |> Js.to_string
     | _ -> assert false
@@ -45,20 +48,22 @@ let%expect_test "Check sequencing request/response/event" =
     { "seq": 11, "type": "response", "request_seq": 10, "success": true,
       "command": "cancel", "body": {} } |}];
 
-  let f = fun _resp ->
+  let f = fun _ ->
     let event = Dap_event.terminated in
-    let body = None in
-    EventMessage.make_opt
+    let body  = None in
+    Dap_message.TerminatedEvent (
+      EventMessage.make_opt
         ~seq:0
         ~event
         ?body
         ()
+    )
     |> Result.ok
   in
   let v = Dap_flow.resp_ev v f in
   let s =
     match v with
-    | Result.Ok ev ->
+    | Result.Ok (Dap_message.TerminatedEvent ev) ->
       let enc = EventMessage.enc_opt Dap_message.TerminatedEvent_body.enc in
       Js.construct enc ev |> Js.to_string
     | _ -> assert false
@@ -66,19 +71,21 @@ let%expect_test "Check sequencing request/response/event" =
   Printf.printf "%s" s;
   [%expect {| { "seq": 12, "type": "event", "event": "terminated" } |}];
 
-  let f = fun _ev ->
+  let f = fun _ ->
     let event = Dap_event.exited in
     let body = Dap_message.ExitedEvent_body.make ~exitCode:0 () in
-    EventMessage.make
-      ~seq:0
-      ~event
-      ~body
-      ()
+    Dap_message.ExitedEvent (
+      EventMessage.make
+        ~seq:0
+        ~event
+        ~body
+        ()
+    )
     |> Result.ok
   in
   let v = Dap_flow.next_ev v f in
   let s = match v with
-    | Result.Ok ev ->
+    | Result.Ok (Dap_message.ExitedEvent ev) ->
       let enc = EventMessage.enc Dap_message.ExitedEvent_body.enc in
       Js.construct enc ev |> Js.to_string
     | _ -> assert false
