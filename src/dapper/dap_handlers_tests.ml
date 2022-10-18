@@ -5,16 +5,14 @@ open Dap_handlers
 let config : config = {launch_mode=`Attach}
 
 let%expect_test "Check on_cancel" =
-  let arguments = Dap_message.CancelArguments.make ~requestId:1 () in
-  let cancel = Dap_message.CancelRequest (
-      RequestMessage.make_opt
-        ~seq:10
-        ~command:Dap_command.cancel
-        ~arguments
-        ()
-    ) in
-
-  let v = Dap_handlers.on_cancel ~config (Result.Ok cancel) in
+  let s = {| { "seq": 10, "type": "request", "command": "cancel", "arguments": { "requestId": 1 } } |} in
+  let enc = RequestMessage.enc_opt Dap_message.CancelArguments.enc in
+  let cancel =
+    Js.from_string s
+    |> Result.map (Js.destruct enc)
+    |> Result.map (fun x -> Dap_message.CancelRequest x)
+  in
+  let v = Dap_handlers.on_cancel ~config cancel in
   let s =
     match v with
     | Result.Ok (Dap_message.CancelResponse resp) ->

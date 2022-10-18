@@ -1,7 +1,7 @@
 open Dap_t
 open Dap_message
 
-type 'a t = ('a, Dap_message.ErrorResponse_body.t) Result.t
+type 'a t = ('a, string) Result.t
 type seqr = {seq:int; request_seq:int}
 
 let response_map (type cmd body pbody) :

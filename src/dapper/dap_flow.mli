@@ -2,11 +2,8 @@
 (* result-bind like behaviour from req -> resp, resp -> ev, ev -> ev *)
 (* takes care of sequencing numbers correctly *)
 (* and also the types for commands etc *)
-(* TODO error message ids need to be unique *)
-(* NOTE using ErrorResponse_body here because wont know the sequence number *)
-(*      of the error message until it is ready to be sent *)
 
-type 'a t = ('a, Dap_message.ErrorResponse_body.t) Result.t
+type 'a t = ('a, string) Result.t
 
 val of_req :
   ('command, 'args, 'pargs) Dap_message.request ->
