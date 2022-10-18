@@ -11,8 +11,8 @@ type config = {launch_mode : launch_mode}
 
 let default_response command body =
   (* NOTE for use in the Flow monad so seq and request_seq get taken care of there *)
-  let seq = 0 in
-  let request_seq = 0 in
+  let seq = -1 in
+  let request_seq = -1 in
   let success = true in
   ResponseMessage.make_opt
     ~seq
