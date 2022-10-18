@@ -1,11 +1,10 @@
 open Dap_t
 open Dap_message
-module JS = Data_encoding.Json
+module Js = Data_encoding.Json
 
 type launch_mode = [`Launch | `Attach | `AttachForSuspendedLaunch]
 
 type config = {launch_mode : launch_mode}
-(* type ret = (response * event list, ErrorResponse_body.t) Result.t *)
 
 let default_response
   = fun command body ->
@@ -31,24 +30,51 @@ let default_event
     ~body
     ()
 
-let on_cancel_request :
-  config:config ->
-  (Dap_command.cancel, _, _) request ->
-  (Dap_command.cancel, _, _) response Dap_flow.t
-    = fun ~config:_ -> function
-  | CancelRequest req ->
-      let resp =
-        let command = RequestMessage.command req in
-        let body = EmptyObject.make () in
-        default_response command body
-      in
-      let ret = CancelResponse resp in
-      Result.ok ret
-  | _ -> assert false
+module Cancel : sig
+  type req
+  val handle : config:config -> string -> string Dap_flow.t
+end = struct
 
-let on_cancel ~config req =
-  Dap_flow.req_resp req (on_cancel_request ~config)
+  type req = (Dap_command.cancel, CancelArguments.t option, RequestMessage.opt) request Dap_flow.t
+
+  let on_cancel_request :
+    config:config ->
+    (Dap_command.cancel, _, _) request ->
+    (Dap_command.cancel, _, _) response Dap_flow.t
+    = fun ~config:_ -> function
+      | CancelRequest req ->
+        let resp =
+          let command = RequestMessage.command req in
+          let body = EmptyObject.make () in
+          default_response command body
+        in
+        let ret = CancelResponse resp in
+        Result.ok ret
+      | _ -> assert false
+
+  let string_to_cancel_request request =
+    let enc_req = RequestMessage.enc_opt Dap_message.CancelArguments.enc in
+    let cancel =
+      Js.from_string request
+      |> Result.map (Js.destruct enc_req)
+      |> Result.map (fun x -> Dap_message.CancelRequest x)
+    in
+    cancel
+
+  let cancel_response_to_string =
+    let enc_resp = ResponseMessage.enc_opt EmptyObject.enc in
+    function
+    | CancelResponse resp ->
+      Js.construct enc_resp resp |> Js.to_string
+    | _ -> assert false
+
+  let handle ~config request =
+    string_to_cancel_request request
+    |> fun cancel -> Dap_flow.req_resp cancel (on_cancel_request ~config)
+    |> Result.map cancel_response_to_string
   (* TODO do some io *)
+
+end
 
   (*
 Initialization
