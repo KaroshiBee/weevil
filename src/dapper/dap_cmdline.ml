@@ -1,5 +1,5 @@
 let _DEFAULT_SCHEMA = "./schema/debugAdapterProtocol-1.56.X.json"
-let _DEFAULT_OUTPUT = "src/dapper_gen/dap_encoders.ml"
+let _DEFAULT_OUTPUT = "test.ml"
 let _DEFAULT_WHAT = Dap_render.Messages
 
 let process what_arg json_schema_arg output_file_arg =

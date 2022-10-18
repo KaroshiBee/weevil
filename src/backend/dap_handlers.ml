@@ -31,9 +31,12 @@
 (*   let r = Response.incr response in *)
 (*   JS.construct t.response r |> wrap_header *)
 (* end *)
-open Dap_t
-open Dap_message
+open Dapper.Dap_t
+open Dapper.Dap_message
 module Js = Data_encoding.Json
+module Dap_command = Dapper.Dap_command
+module Dap_event = Dapper.Dap_event
+module Dap_flow = Dapper.Dap_flow
 
 type launch_mode = [`Launch | `Attach | `AttachForSuspendedLaunch]
 
@@ -85,11 +88,11 @@ module Cancel : HANDLER = struct
       | _ -> assert false
 
   let string_to_cancel_request request =
-    let enc_req = RequestMessage.enc_opt Dap_message.CancelArguments.enc in
+    let enc_req = RequestMessage.enc_opt CancelArguments.enc in
     let cancel =
       Js.from_string request
       |> Result.map (Js.destruct enc_req)
-      |> Result.map (fun x -> Dap_message.CancelRequest x)
+      |> Result.map (fun x -> CancelRequest x)
     in
     cancel
 
