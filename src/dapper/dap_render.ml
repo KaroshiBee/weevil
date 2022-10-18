@@ -43,7 +43,11 @@ module RenderEnum : (RenderT with type spec := Sp.Enum_spec.t) = struct
          (function %s)\n \
          string" enc_t_s enc_s_t
     in
-    Printf.sprintf "module %s = struct \n%s\n \n%s\n \nend\n" name t_str enc_str, ""
+    Printf.sprintf
+        "module %s = struct \n \
+         %s\n\n \
+         %s\n\n \
+         end\n" name t_str enc_str, ""
 
 end
 
@@ -57,7 +61,10 @@ module RenderEnumWithPhantoms : (RenderT with type spec := Sp.Enum_spec.t) = str
   let render_ml (t:t) ~name =
     let t_str =
       let lns = t.enums |> List.map (fun (e:Sp.Enum_spec.enum_val) -> e.safe_name |> String.capitalize_ascii) |> String.concat " | " in
-      Printf.sprintf "(* NOTE autogenerating %s, do not manually edit *)\ntype v = %s\n\ntype 'a t = v" name lns
+      Printf.sprintf
+        "(* NOTE autogenerating %s, do not manually edit *)\n \
+         type v = %s\n\n \
+         type 'a t = v" name lns
     in
 
 
@@ -115,7 +122,9 @@ module RenderEnumWithPhantoms : (RenderT with type spec := Sp.Enum_spec.t) = str
           Printf.sprintf "type %s" s
         ) |> String.concat "\n"
       in
-      Printf.sprintf "(* NOTE autogenerating %s, do not manually edit *)\ntype 'a t\n%s" name lns
+      Printf.sprintf
+        "(* NOTE autogenerating %s, do not manually edit *)\n \
+         type 'a t\n%s" name lns
     in
 
     let ctors_str =
@@ -227,7 +236,12 @@ module RenderObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
     let make_str = Printf.sprintf
         "let make %s () = \n%s" args_str rec_str
     in
-    Printf.sprintf "module %s = struct \n%s\n \n%s\n \n%s\n \nend\n" name t_str enc_str make_str, ""
+    Printf.sprintf
+        "module %s = struct \n \
+         %s\n\n \
+         %s\n\n \
+         %s\n\n \
+         end\n" name t_str enc_str make_str, ""
 
 end
 
@@ -319,7 +333,13 @@ module RenderLargeObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
     let make_str = Printf.sprintf
         "let make %s () = \n%s" args_str rec_str
     in
-    Printf.sprintf "module %s = struct \n%s\n \n%s\n \n%s\n \n%s\n \nend\n" name internal_mods t_str enc_str make_str, ""
+    Printf.sprintf
+      "module %s = struct \n \
+       %s\n\n \
+       %s\n\n \
+       %s\n\n \
+       %s\n\n \
+       end\n" name internal_mods t_str enc_str make_str, ""
 
 end
 
@@ -340,7 +360,12 @@ module RenderEmptyObject : (RenderT with type spec := unit) = struct
     let make_str =
         "let make () = () "
     in
-    Printf.sprintf "module %s = struct \n%s\n \n%s\n \n%s\n \nend\n" name t_str enc_str make_str, ""
+    Printf.sprintf
+      "module %s = struct \n \
+       %s\n\n \
+       %s\n\n \
+       %s\n\n \
+       end\n" name t_str enc_str make_str, ""
 
 end
 

@@ -7,9 +7,9 @@ let%expect_test "Check phantoms (command and event) example" =
   Printf.printf "%s" actual;
   [%expect {|
     (* NOTE autogenerating Dap_command, do not manually edit *)
-    type v = Cancel | Error
+     type v = Cancel | Error
 
-    type 'a t = v
+     type 'a t = v
 
     type cancel
     type error
@@ -30,7 +30,7 @@ let%expect_test "Check phantoms (command and event) example" =
   Printf.printf "%s" actual;
   [%expect {|
     (* NOTE autogenerating Dap_command, do not manually edit *)
-    type 'a t
+     type 'a t
     type cancel
     type error
 
@@ -43,9 +43,9 @@ let%expect_test "Check phantoms (command and event) example" =
   Printf.printf "%s" actual;
   [%expect {|
     (* NOTE autogenerating Dap_event, do not manually edit *)
-    type v = Terminated | Exited | Continued | Stopped | Initialized
+     type v = Terminated | Exited | Continued | Stopped | Initialized
 
-    type 'a t = v
+     type 'a t = v
 
     type terminated
     type exited
@@ -78,7 +78,7 @@ let%expect_test "Check phantoms (command and event) example" =
   Printf.printf "%s" actual;
   [%expect {|
     (* NOTE autogenerating Dap_event, do not manually edit *)
-    type 'a t
+     type 'a t
     type terminated
     type exited
     type continued
@@ -104,7 +104,7 @@ let%expect_test "Check ErrorResponse example" =
      open Dap_t
 
      module Message = struct
-    type t = { id: int;
+     type t = { id: int;
     format: string;
     variables: Data_encoding.json option;
     sendTelemetry: bool option;
@@ -113,7 +113,7 @@ let%expect_test "Check ErrorResponse example" =
     urlLabel: string option;
     lines: int list option; }
 
-    let enc =
+     let enc =
      let open Data_encoding in
      (* Message.t *)
              conv
@@ -130,16 +130,16 @@ let%expect_test "Check ErrorResponse example" =
     (opt "lines" (list int31)))
 
 
-    let make ~id ~format ?variables ?sendTelemetry ?showUser ?url ?urlLabel ?lines () =
+     let make ~id ~format ?variables ?sendTelemetry ?showUser ?url ?urlLabel ?lines () =
     {id; format; variables; sendTelemetry; showUser; url; urlLabel; lines}
 
-    end
+     end
 
 
     module ErrorResponse_body = struct
-    type t = { error: Message.t option; }
+     type t = { error: Message.t option; }
 
-    let enc =
+     let enc =
      let open Data_encoding in
      (* ErrorResponse_body.t *)
              conv
@@ -149,10 +149,10 @@ let%expect_test "Check ErrorResponse example" =
     (opt "error" Message.enc))
 
 
-    let make ?error () =
+     let make ?error () =
     {error}
 
-    end
+     end
 
 
 
@@ -177,10 +177,10 @@ let%expect_test "Check CancelRequest example" =
      open Dap_t
 
      module CancelArguments = struct
-    type t = { requestId: int option;
+     type t = { requestId: int option;
     progressId: string option; }
 
-    let enc =
+     let enc =
      let open Data_encoding in
      (* CancelArguments.t *)
              conv
@@ -191,10 +191,10 @@ let%expect_test "Check CancelRequest example" =
     (opt "progressId" string))
 
 
-    let make ?requestId ?progressId () =
+     let make ?requestId ?progressId () =
     {requestId; progressId}
 
-    end
+     end
 
 
 
@@ -219,20 +219,20 @@ let%expect_test "Check StoppedEvent example" =
      open Dap_t
 
      module StoppedEvent_body_reason = struct
-    type t = Step | Breakpoint | Exception | Pause | Entry | Goto | Function_breakpoint | Data_breakpoint | Instruction_breakpoint | Other of string
+     type t = Step | Breakpoint | Exception | Pause | Entry | Goto | Function_breakpoint | Data_breakpoint | Instruction_breakpoint | Other of string
 
-    let enc =
+     let enc =
      let open Data_encoding in
      conv
      (function Step -> "step" | Breakpoint -> "breakpoint" | Exception -> "exception" | Pause -> "pause" | Entry -> "entry" | Goto -> "goto" | Function_breakpoint -> "function breakpoint" | Data_breakpoint -> "data breakpoint" | Instruction_breakpoint -> "instruction breakpoint" | Other s -> s)
      (function "step" -> Step | "breakpoint" -> Breakpoint | "exception" -> Exception | "pause" -> Pause | "entry" -> Entry | "goto" -> Goto | "function breakpoint" -> Function_breakpoint | "data breakpoint" -> Data_breakpoint | "instruction breakpoint" -> Instruction_breakpoint | _ as s -> Other s)
      string
 
-    end
+     end
 
 
     module StoppedEvent_body = struct
-    type t = { reason: StoppedEvent_body_reason.t;
+     type t = { reason: StoppedEvent_body_reason.t;
     description: string option;
     threadId: int option;
     preserveFocusHint: bool option;
@@ -240,7 +240,7 @@ let%expect_test "Check StoppedEvent example" =
     allThreadsStopped: bool option;
     hitBreakpointIds: int list option; }
 
-    let enc =
+     let enc =
      let open Data_encoding in
      (* StoppedEvent_body.t *)
              conv
@@ -256,10 +256,10 @@ let%expect_test "Check StoppedEvent example" =
     (opt "hitBreakpointIds" (list int31)))
 
 
-    let make ~reason ?description ?threadId ?preserveFocusHint ?text ?allThreadsStopped ?hitBreakpointIds () =
+     let make ~reason ?description ?threadId ?preserveFocusHint ?text ?allThreadsStopped ?hitBreakpointIds () =
     {reason; description; threadId; preserveFocusHint; text; allThreadsStopped; hitBreakpointIds}
 
-    end
+     end
 
 
 
@@ -285,14 +285,14 @@ let%expect_test "Check cyclic example" =
      open Dap_t
 
      module ExceptionDetails = struct
-    type t = { message: string option;
+     type t = { message: string option;
     typeName: string option;
     fullTypeName: string option;
     evaluateName: string option;
     stackTrace: string option;
     innerException: t list option; }
 
-    let enc =
+     let enc =
      let open Data_encoding in
      mu "ExceptionDetails.t"
      ( fun e ->
@@ -308,10 +308,10 @@ let%expect_test "Check cyclic example" =
     (opt "innerException" (list e)))
     )
 
-    let make ?message ?typeName ?fullTypeName ?evaluateName ?stackTrace ?innerException () =
+     let make ?message ?typeName ?fullTypeName ?evaluateName ?stackTrace ?innerException () =
     {message; typeName; fullTypeName; evaluateName; stackTrace; innerException}
 
-    end
+     end
 
 
      type (_,_,_) request =
@@ -333,8 +333,8 @@ let%expect_test "Check large example" =
      open Dap_t
 
      module Capabilities = struct
-    module Capabilities_0 = struct
-    type t = { supportsConfigurationDoneRequest: bool option;
+     module Capabilities_0 = struct
+     type t = { supportsConfigurationDoneRequest: bool option;
     supportsFunctionBreakpoints: bool option;
     supportsConditionalBreakpoints: bool option;
     supportsHitConditionalBreakpoints: bool option;
@@ -345,7 +345,7 @@ let%expect_test "Check large example" =
     supportsGotoTargetsRequest: bool option;
     supportsStepInTargetsRequest: bool option; }
 
-    let enc =
+     let enc =
      let open Data_encoding in
      (* Capabilities_0.t *)
              conv
@@ -364,14 +364,14 @@ let%expect_test "Check large example" =
     (opt "supportsStepInTargetsRequest" bool))
 
 
-    let make ?supportsConfigurationDoneRequest ?supportsFunctionBreakpoints ?supportsConditionalBreakpoints ?supportsHitConditionalBreakpoints ?supportsEvaluateForHovers ?supportsStepBack ?supportsSetVariable ?supportsRestartFrame ?supportsGotoTargetsRequest ?supportsStepInTargetsRequest () =
+     let make ?supportsConfigurationDoneRequest ?supportsFunctionBreakpoints ?supportsConditionalBreakpoints ?supportsHitConditionalBreakpoints ?supportsEvaluateForHovers ?supportsStepBack ?supportsSetVariable ?supportsRestartFrame ?supportsGotoTargetsRequest ?supportsStepInTargetsRequest () =
     {supportsConfigurationDoneRequest; supportsFunctionBreakpoints; supportsConditionalBreakpoints; supportsHitConditionalBreakpoints; supportsEvaluateForHovers; supportsStepBack; supportsSetVariable; supportsRestartFrame; supportsGotoTargetsRequest; supportsStepInTargetsRequest}
 
-    end
+     end
 
 
     module Capabilities_10 = struct
-    type t = { supportsCompletionsRequest: bool option;
+     type t = { supportsCompletionsRequest: bool option;
     completionTriggerCharacters: string list option;
     supportsModulesRequest: bool option;
     supportsRestartRequest: bool option;
@@ -382,7 +382,7 @@ let%expect_test "Check large example" =
     supportSuspendDebuggee: bool option;
     supportsDelayedStackTraceLoading: bool option; }
 
-    let enc =
+     let enc =
      let open Data_encoding in
      (* Capabilities_10.t *)
              conv
@@ -401,14 +401,14 @@ let%expect_test "Check large example" =
     (opt "supportsDelayedStackTraceLoading" bool))
 
 
-    let make ?supportsCompletionsRequest ?completionTriggerCharacters ?supportsModulesRequest ?supportsRestartRequest ?supportsExceptionOptions ?supportsValueFormattingOptions ?supportsExceptionInfoRequest ?supportTerminateDebuggee ?supportSuspendDebuggee ?supportsDelayedStackTraceLoading () =
+     let make ?supportsCompletionsRequest ?completionTriggerCharacters ?supportsModulesRequest ?supportsRestartRequest ?supportsExceptionOptions ?supportsValueFormattingOptions ?supportsExceptionInfoRequest ?supportTerminateDebuggee ?supportSuspendDebuggee ?supportsDelayedStackTraceLoading () =
     {supportsCompletionsRequest; completionTriggerCharacters; supportsModulesRequest; supportsRestartRequest; supportsExceptionOptions; supportsValueFormattingOptions; supportsExceptionInfoRequest; supportTerminateDebuggee; supportSuspendDebuggee; supportsDelayedStackTraceLoading}
 
-    end
+     end
 
 
     module Capabilities_20 = struct
-    type t = { supportsLoadedSourcesRequest: bool option;
+     type t = { supportsLoadedSourcesRequest: bool option;
     supportsLogPoints: bool option;
     supportsTerminateThreadsRequest: bool option;
     supportsSetExpression: bool option;
@@ -419,7 +419,7 @@ let%expect_test "Check large example" =
     supportsDisassembleRequest: bool option;
     supportsCancelRequest: bool option; }
 
-    let enc =
+     let enc =
      let open Data_encoding in
      (* Capabilities_20.t *)
              conv
@@ -438,21 +438,21 @@ let%expect_test "Check large example" =
     (opt "supportsCancelRequest" bool))
 
 
-    let make ?supportsLoadedSourcesRequest ?supportsLogPoints ?supportsTerminateThreadsRequest ?supportsSetExpression ?supportsTerminateRequest ?supportsDataBreakpoints ?supportsReadMemoryRequest ?supportsWriteMemoryRequest ?supportsDisassembleRequest ?supportsCancelRequest () =
+     let make ?supportsLoadedSourcesRequest ?supportsLogPoints ?supportsTerminateThreadsRequest ?supportsSetExpression ?supportsTerminateRequest ?supportsDataBreakpoints ?supportsReadMemoryRequest ?supportsWriteMemoryRequest ?supportsDisassembleRequest ?supportsCancelRequest () =
     {supportsLoadedSourcesRequest; supportsLogPoints; supportsTerminateThreadsRequest; supportsSetExpression; supportsTerminateRequest; supportsDataBreakpoints; supportsReadMemoryRequest; supportsWriteMemoryRequest; supportsDisassembleRequest; supportsCancelRequest}
 
-    end
+     end
 
 
     module Capabilities_30 = struct
-    type t = { supportsBreakpointLocationsRequest: bool option;
+     type t = { supportsBreakpointLocationsRequest: bool option;
     supportsClipboardContext: bool option;
     supportsSteppingGranularity: bool option;
     supportsInstructionBreakpoints: bool option;
     supportsExceptionFilterOptions: bool option;
     supportsSingleThreadExecutionRequests: bool option; }
 
-    let enc =
+     let enc =
      let open Data_encoding in
      (* Capabilities_30.t *)
              conv
@@ -467,19 +467,19 @@ let%expect_test "Check large example" =
     (opt "supportsSingleThreadExecutionRequests" bool))
 
 
-    let make ?supportsBreakpointLocationsRequest ?supportsClipboardContext ?supportsSteppingGranularity ?supportsInstructionBreakpoints ?supportsExceptionFilterOptions ?supportsSingleThreadExecutionRequests () =
+     let make ?supportsBreakpointLocationsRequest ?supportsClipboardContext ?supportsSteppingGranularity ?supportsInstructionBreakpoints ?supportsExceptionFilterOptions ?supportsSingleThreadExecutionRequests () =
     {supportsBreakpointLocationsRequest; supportsClipboardContext; supportsSteppingGranularity; supportsInstructionBreakpoints; supportsExceptionFilterOptions; supportsSingleThreadExecutionRequests}
 
-    end
+     end
 
 
-    type t = (Capabilities_0.t * (Capabilities_10.t * (Capabilities_20.t * Capabilities_30.t)))
+     type t = (Capabilities_0.t * (Capabilities_10.t * (Capabilities_20.t * Capabilities_30.t)))
 
-    let enc =
+     let enc =
      let open Data_encoding in
      merge_objs Capabilities_0.enc @@ merge_objs Capabilities_10.enc @@ merge_objs Capabilities_20.enc Capabilities_30.enc
 
-    let make ?supportsConfigurationDoneRequest ?supportsFunctionBreakpoints ?supportsConditionalBreakpoints ?supportsHitConditionalBreakpoints ?supportsEvaluateForHovers ?supportsStepBack ?supportsSetVariable ?supportsRestartFrame ?supportsGotoTargetsRequest ?supportsStepInTargetsRequest ?supportsCompletionsRequest ?completionTriggerCharacters ?supportsModulesRequest ?supportsRestartRequest ?supportsExceptionOptions ?supportsValueFormattingOptions ?supportsExceptionInfoRequest ?supportTerminateDebuggee ?supportSuspendDebuggee ?supportsDelayedStackTraceLoading ?supportsLoadedSourcesRequest ?supportsLogPoints ?supportsTerminateThreadsRequest ?supportsSetExpression ?supportsTerminateRequest ?supportsDataBreakpoints ?supportsReadMemoryRequest ?supportsWriteMemoryRequest ?supportsDisassembleRequest ?supportsCancelRequest ?supportsBreakpointLocationsRequest ?supportsClipboardContext ?supportsSteppingGranularity ?supportsInstructionBreakpoints ?supportsExceptionFilterOptions ?supportsSingleThreadExecutionRequests () =
+     let make ?supportsConfigurationDoneRequest ?supportsFunctionBreakpoints ?supportsConditionalBreakpoints ?supportsHitConditionalBreakpoints ?supportsEvaluateForHovers ?supportsStepBack ?supportsSetVariable ?supportsRestartFrame ?supportsGotoTargetsRequest ?supportsStepInTargetsRequest ?supportsCompletionsRequest ?completionTriggerCharacters ?supportsModulesRequest ?supportsRestartRequest ?supportsExceptionOptions ?supportsValueFormattingOptions ?supportsExceptionInfoRequest ?supportTerminateDebuggee ?supportSuspendDebuggee ?supportsDelayedStackTraceLoading ?supportsLoadedSourcesRequest ?supportsLogPoints ?supportsTerminateThreadsRequest ?supportsSetExpression ?supportsTerminateRequest ?supportsDataBreakpoints ?supportsReadMemoryRequest ?supportsWriteMemoryRequest ?supportsDisassembleRequest ?supportsCancelRequest ?supportsBreakpointLocationsRequest ?supportsClipboardContext ?supportsSteppingGranularity ?supportsInstructionBreakpoints ?supportsExceptionFilterOptions ?supportsSingleThreadExecutionRequests () =
     let t0 = Capabilities_0.make ?supportsConfigurationDoneRequest ?supportsFunctionBreakpoints ?supportsConditionalBreakpoints ?supportsHitConditionalBreakpoints ?supportsEvaluateForHovers ?supportsStepBack ?supportsSetVariable ?supportsRestartFrame ?supportsGotoTargetsRequest ?supportsStepInTargetsRequest () in
 
     let t1 = Capabilities_10.make ?supportsCompletionsRequest ?completionTriggerCharacters ?supportsModulesRequest ?supportsRestartRequest ?supportsExceptionOptions ?supportsValueFormattingOptions ?supportsExceptionInfoRequest ?supportTerminateDebuggee ?supportSuspendDebuggee ?supportsDelayedStackTraceLoading () in
@@ -490,7 +490,7 @@ let%expect_test "Check large example" =
 
     (t0 , (t1 , (t2 , t3)))
 
-    end
+     end
 
 
      type (_,_,_) request =
@@ -513,10 +513,10 @@ let%expect_test "Check anyOf example" =
      open Dap_t
 
      module SomeExample = struct
-    type t = { moduleId: IntString.t option;
+     type t = { moduleId: IntString.t option;
     adapterData: Data_encoding.json option; }
 
-    let enc =
+     let enc =
      let open Data_encoding in
      (* SomeExample.t *)
              conv
@@ -527,10 +527,10 @@ let%expect_test "Check anyOf example" =
     (opt "adapterData" json))
 
 
-    let make ?moduleId ?adapterData () =
+     let make ?moduleId ?adapterData () =
     {moduleId; adapterData}
 
-    end
+     end
 
 
      type (_,_,_) request =
@@ -573,10 +573,10 @@ let%expect_test "Check nullable example" =
      open Dap_t
 
      module ExceptionDetails = struct
-    type t = { message: string option;
+     type t = { message: string option;
     typeName: string option; }
 
-    let enc =
+     let enc =
      let open Data_encoding in
      (* ExceptionDetails.t *)
              conv
@@ -587,10 +587,10 @@ let%expect_test "Check nullable example" =
     (req "typeName" (option string)))
 
 
-    let make ?message ~typeName () =
+     let make ?message ~typeName () =
     {message; typeName}
 
-    end
+     end
 
 
      type (_,_,_) request =
@@ -613,9 +613,9 @@ let%expect_test "Check valueFormat example" =
      open Dap_t
 
      module ValueFormat = struct
-    type t = { hex: bool option; }
+     type t = { hex: bool option; }
 
-    let enc =
+     let enc =
      let open Data_encoding in
      (* ValueFormat.t *)
              conv
@@ -625,14 +625,14 @@ let%expect_test "Check valueFormat example" =
     (opt "hex" bool))
 
 
-    let make ?hex () =
+     let make ?hex () =
     {hex}
 
-    end
+     end
 
 
     module StackFrameFormat = struct
-    type t = { hex: bool option;
+     type t = { hex: bool option;
     parameters: bool option;
     parameterTypes: bool option;
     parameterNames: bool option;
@@ -641,7 +641,7 @@ let%expect_test "Check valueFormat example" =
     module_: bool option;
     includeAll: bool option; }
 
-    let enc =
+     let enc =
      let open Data_encoding in
      (* StackFrameFormat.t *)
              conv
@@ -658,10 +658,10 @@ let%expect_test "Check valueFormat example" =
     (opt "includeAll" bool))
 
 
-    let make ?hex ?parameters ?parameterTypes ?parameterNames ?parameterValues ?line ?module_ ?includeAll () =
+     let make ?hex ?parameters ?parameterTypes ?parameterNames ?parameterValues ?line ?module_ ?includeAll () =
     {hex; parameters; parameterTypes; parameterNames; parameterValues; line; module_; includeAll}
 
-    end
+     end
 
 
      type (_,_,_) request =
@@ -683,13 +683,13 @@ let%expect_test "Check empty example" =
      open Dap_t
 
      module ConfigurationDoneArguments = struct
-    type t = unit
+     type t = unit
 
-    let enc = Data_encoding.empty
+     let enc = Data_encoding.empty
 
-    let make () = ()
+     let make () = ()
 
-    end
+     end
 
 
 
