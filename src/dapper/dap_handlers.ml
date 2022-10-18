@@ -70,7 +70,7 @@ end = struct
 
   let handle ~config request =
     string_to_cancel_request request
-    |> fun cancel -> Dap_flow.req_resp cancel (on_cancel_request ~config)
+    |> fun cancel -> Dap_flow.on_request cancel (on_cancel_request ~config)
     |> Result.map cancel_response_to_string
   (* TODO do some io *)
 
@@ -126,9 +126,9 @@ let on_initialization_response :
 
 let on_initialize ~config req =
   let open Dap_flow in
-  let v = req_resp req (on_initialize_request ~config) in
+  let v = on_request req (on_initialize_request ~config) in
   (*  TODO io here *)
-  resp_ev v (on_initialization_response ~config)
+  on_response v (on_initialization_response ~config)
 
 let on_configurationDone_request :
   config:config ->
@@ -147,7 +147,7 @@ let on_configurationDone_request :
 
 
 let on_configurationDone ~config req =
-  Dap_flow.req_resp req (on_configurationDone_request ~config)
+  Dap_flow.on_request req (on_configurationDone_request ~config)
 (* TODO do some io *)
 
 (* let request_response (type cmd args pargs) : *)

@@ -5,22 +5,22 @@
 
 type 'a t = ('a, string) Result.t
 
-val of_req :
+val from_request :
   ('command, 'args, 'pargs) Dap_message.request ->
   ('command, 'args, 'pargs) Dap_message.request t
 
 (* NOTE in req_resp there is only one 'command type ie NextRequest -> NextResponse *)
-val req_resp :
+val on_request :
   ('cmd, 'args, 'pargs) Dap_message.request t ->
   (('cmd, 'args, 'pargs) Dap_message.request -> ('cmd, 'body, 'pbody) Dap_message.response t) ->
   ('cmd, 'body, 'pbody) Dap_message.response t
 
-val resp_ev :
+val on_response :
   ('command, 'body, 'pbody) Dap_message.response t ->
   (('command, 'body, 'pbody) Dap_message.response -> ('event, 'evbody, 'pevbody) Dap_message.event t) ->
   ('event, 'evbody, 'pevbody) Dap_message.event t
 
-val next_ev :
+val raise_event :
   ('event, 'evbody, 'pevbody) Dap_message.event t ->
   (('event, 'evbody, 'pevbody) Dap_message.event -> ('event_, 'evbody_, 'pevbody_) Dap_message.event t) ->
   ('event_, 'evbody_, 'pevbody_) Dap_message.event t

@@ -65,13 +65,13 @@ let set_seqr_response (type cmd body pbody) :
     | DisassembleResponse resp -> DisassembleResponse (aux resp seqr)
 
 
-let of_req :
+let from_request :
   ('command, 'args, 'pargs) request ->
   ('command, 'args, 'pargs) request t
     = Result.ok
 
 
-let req_resp (type cmd args pargs) :
+let on_request (type cmd args pargs) :
   (cmd, args, pargs) request t ->
   ((cmd, args, pargs) request -> (cmd, _, _) response t) ->
   (cmd, _, _) response t
@@ -160,7 +160,7 @@ let set_seqr_event (type ev body pbody) :
     | MemoryEvent ev -> MemoryEvent (aux ev seqr)
 
 
-let resp_ev (type cmd body pbody) :
+let on_response (type cmd body pbody) :
   (cmd, body, pbody) response t ->
   ((cmd, body, pbody) response -> (_, _, _) event t) ->
   (_, _, _) event t
@@ -218,7 +218,7 @@ let resp_ev (type cmd body pbody) :
      )
 
 
-let next_ev (type ev body pbody) :
+let raise_event (type ev body pbody) :
   (ev, body, pbody) event t ->
   ((ev, body, pbody) event -> (_, _, _) event t) ->
   (_, _, _) event t
