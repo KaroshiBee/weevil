@@ -19,5 +19,7 @@ let main_cmd =
   Cmdliner.Cmd.group info commands
 
 let () =
+  Logs.set_reporter (Logs.format_reporter ());
+  Logs.set_level (Some Logs.Info);
   exit (Cmdliner.Cmd.eval main_cmd)
 
