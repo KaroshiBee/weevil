@@ -31,11 +31,12 @@
 (*   let r = Response.incr response in *)
 (*   JS.construct t.response r |> wrap_header *)
 (* end *)
+open Dapper.Dap_base
 open Dapper.Dap_t
 open Dapper.Dap_message
 module Js = Data_encoding.Json
-module Dap_command = Dapper.Dap_command
-module Dap_event = Dapper.Dap_event
+module Dap_commands = Dapper.Dap_commands
+module Dap_events = Dapper.Dap_events
 module Dap_flow = Dapper.Dap_flow
 
 type launch_mode = [`Launch | `Attach | `AttachForSuspendedLaunch]
@@ -73,13 +74,13 @@ end
 
 module Cancel : HANDLER = struct
 
-  type req = (Dap_command.cancel, CancelArguments.t option, RequestMessage.opt) request
+  type req = (Dap_commands.cancel, CancelArguments.t option, RequestMessage.opt) request
   type t = req Dap_flow.t
 
   let on_cancel_request :
       config:config ->
-      (Dap_command.cancel, _, _) request ->
-      (Dap_command.cancel, _, _) response Dap_flow.t
+      (Dap_commands.cancel, _, _) request ->
+      (Dap_commands.cancel, _, _) response Dap_flow.t
       = fun ~config:_ -> function
         | CancelRequest req ->
         let resp =
@@ -135,8 +136,8 @@ The debug adapter returns the supported capabilities in the InitializeResponse v
  *)
 let on_initialize_request :
   config:config ->
-  (Dap_command.initialize, _, _) request ->
-  (Dap_command.initialize, _, _) response Dap_flow.t
+  (Dap_commands.initialize, _, _) request ->
+  (Dap_commands.initialize, _, _) response Dap_flow.t
   = fun ~config:_ -> function
   | InitializeRequest req ->
       let resp =
@@ -151,12 +152,12 @@ let on_initialize_request :
 
 let on_initialization_response :
   config:config ->
-  (Dap_command.initialize, _, _) response ->
+  (Dap_commands.initialize, _, _) response ->
   (_ , _, _) event Dap_flow.t
   = fun ~config:_ -> function
   | InitializeResponse _ ->
       let ev =
-        let event = Dap_event.initialized in
+        let event = Dap_events.initialized in
         let body = EmptyObject.make () in
         default_event event body
       in
@@ -172,8 +173,8 @@ let on_initialize ~config req =
 
 let on_configurationDone_request :
   config:config ->
-  (Dap_command.configurationDone, _, _) request ->
-  (Dap_command.configurationDone, _, _) response Dap_flow.t
+  (Dap_commands.configurationDone, _, _) request ->
+  (Dap_commands.configurationDone, _, _) response Dap_flow.t
   = fun ~config:_ -> function
   | ConfigurationDoneRequest req ->
       let resp =
@@ -208,7 +209,7 @@ let on_configurationDone ~config req =
 (*       in *)
 (*       (\* let ev = *\) *)
 (*       (\*   let seq = SResp.(next_sequence resp |> seq) in *\) *)
-(*       (\*   let event = Dap_event.process in *\) *)
+(*       (\*   let event = Dap_events.process in *\) *)
 (*       (\*   let startMethod = ProcessEvent_body_startMethod.Launch in *\) *)
 (*       (\*   let body = *\) *)
 (*       (\*     ProcessEvent_body.make *\) *)
@@ -243,7 +244,7 @@ let on_configurationDone ~config req =
 (*         default_response command body *)
 (*       in *)
 (*       (\* let ev = *\) *)
-(*       (\*   let event = Dap_event.process in *\) *)
+(*       (\*   let event = Dap_events.process in *\) *)
 (*       (\*   let startMethod = ProcessEvent_body_startMethod.Attach in *\) *)
 (*       (\*   let body = *\) *)
 (*       (\*     ProcessEvent_body.make *\) *)

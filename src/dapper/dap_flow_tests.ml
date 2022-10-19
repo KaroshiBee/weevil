@@ -6,7 +6,7 @@ let%expect_test "Check sequencing request/response/event" =
   let arguments = Dap_message.CancelArguments.make ~requestId:1 () in
   let cancel = RequestMessage.make_opt
       ~seq:10
-      ~command:Dap_command.cancel
+      ~command:Dap_commands.cancel
       ~arguments
       () in
   let enc = RequestMessage.enc_opt Dap_message.CancelArguments.enc in
@@ -18,8 +18,8 @@ let%expect_test "Check sequencing request/response/event" =
 
   let f = fun _ ->
     (* NOTE could also get the command off input *)
-    let command = Dap_command.cancel in
-    let body = EmptyObject.make () in
+    let command = Dap_commands.cancel in
+    let body = Dap_base.EmptyObject.make () in
     Dap_message.CancelResponse (
       ResponseMessage.make_opt
         ~seq:0
@@ -39,7 +39,7 @@ let%expect_test "Check sequencing request/response/event" =
   let s =
     match v with
     | Result.Ok (Dap_message.CancelResponse resp) ->
-      let enc = ResponseMessage.enc_opt EmptyObject.enc in
+      let enc = ResponseMessage.enc_opt Dap_base.EmptyObject.enc in
       Js.construct enc resp |> Js.to_string
     | _ -> assert false
   in
@@ -49,7 +49,7 @@ let%expect_test "Check sequencing request/response/event" =
       "command": "cancel", "body": {} } |}];
 
   let f = fun _ ->
-    let event = Dap_event.terminated in
+    let event = Dap_events.terminated in
     let body  = None in
     Dap_message.TerminatedEvent (
       EventMessage.make_opt
@@ -72,7 +72,7 @@ let%expect_test "Check sequencing request/response/event" =
   [%expect {| { "seq": 12, "type": "event", "event": "terminated" } |}];
 
   let f = fun _ ->
-    let event = Dap_event.exited in
+    let event = Dap_events.exited in
     let body = Dap_message.ExitedEvent_body.make ~exitCode:0 () in
     Dap_message.ExitedEvent (
       EventMessage.make

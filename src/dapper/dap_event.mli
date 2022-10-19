@@ -1,39 +1,33 @@
-(* NOTE autogenerating Event, do not manually edit *)
-type 'a t
-type memory
-type invalidated
-type progressEnd
-type progressUpdate
-type progressStart
-type capabilities
-type process
-type loadedSource
-type module_
-type breakpoint
-type output
-type thread
-type terminated
-type exited
-type continued
-type stopped
-type initialized
+include Dap_base.PRESENCE
 
-val memory : memory t
-val invalidated : invalidated t
-val progressEnd : progressEnd t
-val progressUpdate : progressUpdate t
-val progressStart : progressStart t
-val capabilities : capabilities t
-val process : process t
-val loadedSource : loadedSource t
-val module_ : module_ t
-val breakpoint : breakpoint t
-val output : output t
-val thread : thread t
-val terminated : terminated t
-val exited : exited t
-val continued : continued t
-val stopped : stopped t
-val initialized : initialized t
+type ('event, 'body, 'presence) t
 
-val enc : 'a t Data_encoding.t
+val seq : ('event, 'body, 'presence) t -> int
+
+val set_seq :
+  ('event, 'body, 'presence) t -> seq:int -> ('event, 'body, 'presence) t
+
+val type_ : ('event, 'body, 'presence) t -> Dap_base.ProtocolMessage_type.t
+
+val event : ('event, 'body, 'presence) t -> 'event Dap_events.t
+
+val body : ('event, 'body, 'presence) t -> 'body
+
+val enc : 'body Data_encoding.t -> ('event, 'body, req) t Data_encoding.t
+
+val enc_opt :
+  'body Data_encoding.t -> ('event, 'body option, opt) t Data_encoding.t
+
+val make :
+  seq:int ->
+  event:'event Dap_events.t ->
+  body:'body ->
+  unit ->
+  ('event, 'body, req) t
+
+val make_opt :
+  seq:int ->
+  event:'event Dap_events.t ->
+  ?body:'body ->
+  unit ->
+  ('event, 'body option, opt) t

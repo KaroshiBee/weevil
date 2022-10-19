@@ -8,7 +8,7 @@ module S = Json_schema
 
 module CommandHelper = struct
 
-  let module_name = "Dap_command"
+  let module_name = "Dap_commands"
 
   let struct_decl_str name ~on =
     match Stringext.cut name ~on with
@@ -28,7 +28,7 @@ end
 
 module EventHelper = struct
 
-  let module_name = "Dap_event"
+  let module_name = "Dap_events"
 
   let struct_decl_str name =
     match Stringext.cut name ~on:"Event" with
@@ -145,7 +145,7 @@ module Dfs = struct
 
   let _set_variant_field_type t module_name = function
     | [("int", "int31"); ("string", "string")] ->
-        let nm = Dap_t.IntString.module_name in
+        let nm = Dap_base.IntString.module_name in
         _set_field_type t module_name (nm^".t", nm^".enc")
     | _ ->
       failwith "TODO _set_variant_field_type"
