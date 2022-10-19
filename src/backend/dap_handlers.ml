@@ -31,8 +31,6 @@
 (*   let r = Response.incr response in *)
 (*   JS.construct t.response r |> wrap_header *)
 (* end *)
-open Dapper.Dap_base
-open Dapper.Dap_t
 open Dapper.Dap_message
 module Js = Data_encoding.Json
 module Dap_commands = Dapper.Dap_commands
@@ -69,7 +67,7 @@ let default_event
 
 module type HANDLER = sig
   type t
-  val handle : config:config -> string -> string Dap_flow.t
+  val handle : config:config -> string -> (string, string) Result.t
 end
 
 module Cancel : HANDLER = struct
@@ -77,20 +75,16 @@ module Cancel : HANDLER = struct
   type req = (Dap_commands.cancel, CancelArguments.t option, RequestMessage.opt) request
   type t = req Dap_flow.t
 
-  let on_cancel_request :
-      config:config ->
-      (Dap_commands.cancel, _, _) request ->
-      (Dap_commands.cancel, _, _) response Dap_flow.t
-      = fun ~config:_ -> function
-        | CancelRequest req ->
-        let resp =
-          let command = RequestMessage.command req in
-          let body = EmptyObject.make () in
-          default_response command body
-        in
-        let ret = CancelResponse resp in
-        Result.ok ret
-      | _ -> assert false
+  let on_cancel_request ~config:_ = function
+    | CancelRequest req ->
+      let resp =
+        let command = RequestMessage.command req in
+        let body = EmptyObject.make () in
+        default_response command body
+      in
+      let ret = CancelResponse resp in
+      Dap_flow.from_response ret
+    | _ -> assert false
 
   let string_to_cancel_request request =
     let enc_req = RequestMessage.enc_opt CancelArguments.enc in
@@ -98,6 +92,7 @@ module Cancel : HANDLER = struct
       Js.from_string request
       |> Result.map (Js.destruct enc_req)
       |> Result.map (fun x -> CancelRequest x)
+      |> Dap_flow.from_result
     in
     cancel
 
@@ -109,9 +104,12 @@ module Cancel : HANDLER = struct
     | _ -> assert false
 
   let handle ~config t =
-    string_to_cancel_request t
-    |> fun cancel -> Dap_flow.on_request cancel (on_cancel_request ~config)
-    |> Result.map cancel_response_to_string
+    let cancel = string_to_cancel_request t in
+    Dap_flow.(
+      on_request cancel (on_cancel_request ~config)
+      |> to_result
+      |> Result.map cancel_response_to_string
+    )
   (* TODO do some io *)
 
 end
@@ -147,7 +145,7 @@ let on_initialize_request :
         default_response command body
       in
       let ret = InitializeResponse resp in
-      Result.ok ret
+      Dap_flow.from_response ret
   | _ -> assert false
 
 let on_initialization_response :
@@ -162,7 +160,7 @@ let on_initialization_response :
         default_event event body
       in
       let ret = InitializedEvent ev in
-      Result.ok ret
+      Dap_flow.from_event ret
   | _ -> assert false
 
 let on_initialize ~config req =
@@ -183,7 +181,7 @@ let on_configurationDone_request :
         default_response command body
       in
       let ret = ConfigurationDoneResponse resp in
-      Result.ok ret
+      Dap_flow.from_response ret
   | _ -> assert false
 
 

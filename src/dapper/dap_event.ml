@@ -50,3 +50,4 @@ let make ~seq ~event ~body () =
 let make_opt ~seq ~event ?body () =
   let type_ = ProtocolMessage_type.Event in
   {seq; type_; event; body}
+

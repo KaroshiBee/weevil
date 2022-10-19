@@ -1,15 +1,15 @@
 module Js = Data_encoding.Json
-open Dap_t
+open Dap_message
 
 
 let%expect_test "Check sequencing request/response/event" =
-  let arguments = Dap_message.CancelArguments.make ~requestId:1 () in
+  let arguments = CancelArguments.make ~requestId:1 () in
   let cancel = RequestMessage.make_opt
       ~seq:10
       ~command:Dap_commands.cancel
       ~arguments
       () in
-  let enc = RequestMessage.enc_opt Dap_message.CancelArguments.enc in
+  let enc = RequestMessage.enc_opt CancelArguments.enc in
   let s = Js.construct enc cancel |> Js.to_string in
   Printf.printf "%s" s;
   [%expect {|
@@ -20,7 +20,7 @@ let%expect_test "Check sequencing request/response/event" =
     (* NOTE could also get the command off input *)
     let command = Dap_commands.cancel in
     let body = Dap_base.EmptyObject.make () in
-    Dap_message.CancelResponse (
+    CancelResponse (
       ResponseMessage.make_opt
         ~seq:0
         ~request_seq:0
@@ -29,7 +29,7 @@ let%expect_test "Check sequencing request/response/event" =
         ~body
         ()
     )
-    |> Result.ok
+    |> Dap_flow.from_response
   in
   let v = Dap_flow.(
       from_request @@ CancelRequest cancel
@@ -37,8 +37,8 @@ let%expect_test "Check sequencing request/response/event" =
     )
   in
   let s =
-    match v with
-    | Result.Ok (Dap_message.CancelResponse resp) ->
+    match Dap_flow.to_response v with
+    | Result.Ok (CancelResponse resp) ->
       let enc = ResponseMessage.enc_opt Dap_base.EmptyObject.enc in
       Js.construct enc resp |> Js.to_string
     | _ -> assert false
@@ -51,20 +51,20 @@ let%expect_test "Check sequencing request/response/event" =
   let f = fun _ ->
     let event = Dap_events.terminated in
     let body  = None in
-    Dap_message.TerminatedEvent (
+    TerminatedEvent (
       EventMessage.make_opt
         ~seq:0
         ~event
         ?body
         ()
     )
-    |> Result.ok
+    |> Dap_flow.from_event
   in
   let v = Dap_flow.on_response v f in
   let s =
-    match v with
-    | Result.Ok (Dap_message.TerminatedEvent ev) ->
-      let enc = EventMessage.enc_opt Dap_message.TerminatedEvent_body.enc in
+    match Dap_flow.to_event v with
+    | Result.Ok (TerminatedEvent ev) ->
+      let enc = EventMessage.enc_opt TerminatedEvent_body.enc in
       Js.construct enc ev |> Js.to_string
     | _ -> assert false
   in
@@ -73,20 +73,20 @@ let%expect_test "Check sequencing request/response/event" =
 
   let f = fun _ ->
     let event = Dap_events.exited in
-    let body = Dap_message.ExitedEvent_body.make ~exitCode:0 () in
-    Dap_message.ExitedEvent (
+    let body = ExitedEvent_body.make ~exitCode:0 () in
+    ExitedEvent (
       EventMessage.make
         ~seq:0
         ~event
         ~body
         ()
     )
-    |> Result.ok
+    |> Dap_flow.from_event
   in
   let v = Dap_flow.raise_event v f in
-  let s = match v with
-    | Result.Ok (Dap_message.ExitedEvent ev) ->
-      let enc = EventMessage.enc Dap_message.ExitedEvent_body.enc in
+  let s = match Dap_flow.to_event v with
+    | Result.Ok (ExitedEvent ev) ->
+      let enc = EventMessage.enc ExitedEvent_body.enc in
       Js.construct enc ev |> Js.to_string
     | _ -> assert false
   in
