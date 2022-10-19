@@ -37,7 +37,7 @@ let%expect_test "Check sequencing request/response/event" =
     )
   in
   let s =
-    match Dap_flow.to_response v with
+    match Dap_flow.to_result v with
     | Result.Ok (CancelResponse resp) ->
       let enc = ResponseMessage.enc_opt Dap_base.EmptyObject.enc in
       Js.construct enc resp |> Js.to_string
@@ -62,7 +62,7 @@ let%expect_test "Check sequencing request/response/event" =
   in
   let v = Dap_flow.on_response v f in
   let s =
-    match Dap_flow.to_event v with
+    match Dap_flow.to_result v with
     | Result.Ok (TerminatedEvent ev) ->
       let enc = EventMessage.enc_opt TerminatedEvent_body.enc in
       Js.construct enc ev |> Js.to_string
@@ -84,7 +84,7 @@ let%expect_test "Check sequencing request/response/event" =
     |> Dap_flow.from_event
   in
   let v = Dap_flow.raise_event v f in
-  let s = match Dap_flow.to_event v with
+  let s = match Dap_flow.to_result v with
     | Result.Ok (ExitedEvent ev) ->
       let enc = EventMessage.enc ExitedEvent_body.enc in
       Js.construct enc ev |> Js.to_string

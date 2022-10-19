@@ -3,6 +3,14 @@ open Dap_message
 type 'a t = ('a, string) Result.t
 type seqr = {seq:int; request_seq:int}
 
+let from_result x = x
+let to_result x = x
+
+let from_request = Result.ok
+let from_response = Result.ok
+let from_event = Result.ok
+
+
 module Response = struct
 
   let map (type cmd body pbody) :
@@ -65,18 +73,6 @@ module Response = struct
       | WriteMemoryResponse resp -> WriteMemoryResponse (aux resp seqr)
       | DisassembleResponse resp -> DisassembleResponse (aux resp seqr)
 end
-
-let from_result x = x
-let to_result x = x
-
-let from_request = Result.ok
-let to_request t = t
-
-let from_response = Result.ok
-let to_response t = t
-
-let from_event = Result.ok
-let to_event t = t
 
 let on_request (type cmd args pargs) :
   (cmd, args, pargs) request t ->

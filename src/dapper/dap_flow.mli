@@ -12,25 +12,13 @@ val from_request :
   ('command, 'args, 'pargs) Dap_message.request ->
   ('command, 'args, 'pargs) Dap_message.request t
 
-val to_request :
-  ('command, 'args, 'pargs) Dap_message.request t ->
-  ( ('command, 'args, 'pargs) Dap_message.request, string) Result.t
-
 val from_response :
   ('command, 'body, 'pbody) Dap_message.response ->
   ('command, 'body, 'pbody) Dap_message.response t
 
-val to_response :
-  ('command, 'body, 'pbody) Dap_message.response t ->
-  ( ('command, 'body, 'pbody) Dap_message.response, string) Result.t
-
 val from_event :
   ('event, 'body, 'pbody) Dap_message.event ->
   ('event, 'body, 'pbody) Dap_message.event t
-
-val to_event :
-  ('event, 'body, 'pbody) Dap_message.event t ->
-  ( ('event, 'body, 'pbody) Dap_message.event, string) Result.t
 
 (* NOTE in req_resp there is only one 'command type ie NextRequest -> NextResponse *)
 val on_request :

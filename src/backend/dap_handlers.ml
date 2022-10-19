@@ -66,14 +66,22 @@ let default_event
     ()
 
 module type HANDLER = sig
-  type t
-  val handle : config:config -> string -> (string, string) Result.t
+
+  type input
+  type output
+
+  val from_string : string -> input
+  val to_string : output -> (string, string) Result.t
+  val handle : config:config -> input -> output
 end
 
 module Cancel : HANDLER = struct
 
   type req = (Dap_commands.cancel, CancelArguments.t option, RequestMessage.opt) request
-  type t = req Dap_flow.t
+  type input = req Dap_flow.t
+
+  type resp = (Dap_commands.cancel, EmptyObject.t option, ResponseMessage.opt) response
+  type output = resp Dap_flow.t
 
   let on_cancel_request ~config:_ = function
     | CancelRequest req ->
@@ -86,7 +94,7 @@ module Cancel : HANDLER = struct
       Dap_flow.from_response ret
     | _ -> assert false
 
-  let string_to_cancel_request request =
+  let from_string : string -> input = fun request ->
     let enc_req = RequestMessage.enc_opt CancelArguments.enc in
     let cancel =
       Js.from_string request
@@ -96,20 +104,16 @@ module Cancel : HANDLER = struct
     in
     cancel
 
-  let cancel_response_to_string =
+  let to_string : output -> (string, string) Result.t = fun cancel ->
     let enc_resp = ResponseMessage.enc_opt EmptyObject.enc in
-    function
-    | CancelResponse resp ->
-      Js.construct enc_resp resp |> Js.to_string
+    match Dap_flow.to_result cancel with
+    | Result.Ok (CancelResponse resp) ->
+      Js.construct enc_resp resp |> Js.to_string |> Result.ok
+    | Result.Error _ as err -> err
     | _ -> assert false
 
-  let handle ~config t =
-    let cancel = string_to_cancel_request t in
-    Dap_flow.(
-      on_request cancel (on_cancel_request ~config)
-      |> to_result
-      |> Result.map cancel_response_to_string
-    )
+  let handle ~config cancel =
+    Dap_flow.on_request cancel (on_cancel_request ~config)
   (* TODO do some io *)
 
 end
