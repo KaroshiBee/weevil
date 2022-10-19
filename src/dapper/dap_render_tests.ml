@@ -17,10 +17,10 @@ let%expect_test "Check phantoms (command and event) example" =
     let cancel : cancel t = Cancel
     let error : error t = Error
 
-    let f : type a. a t -> string = function | (Cancel : _ t) -> "cancel"
+    let f (type a) : a t -> string = function | (Cancel : _ t) -> "cancel"
     | (Error : _ t) -> "error"
 
-    let g : type a. string -> a t = function | "cancel" -> (Cancel : _ t)
+    let g (type a) : string -> a t = function | "cancel" -> (Cancel : _ t)
     | "error" -> (Error : _ t)| _ -> failwith "Dap_commands"
 
 
@@ -59,13 +59,13 @@ let%expect_test "Check phantoms (command and event) example" =
     let stopped : stopped t = Stopped
     let initialized : initialized t = Initialized
 
-    let f : type a. a t -> string = function | (Terminated : _ t) -> "terminated"
+    let f (type a) : a t -> string = function | (Terminated : _ t) -> "terminated"
     | (Exited : _ t) -> "exited"
     | (Continued : _ t) -> "continued"
     | (Stopped : _ t) -> "stopped"
     | (Initialized : _ t) -> "initialized"
 
-    let g : type a. string -> a t = function | "terminated" -> (Terminated : _ t)
+    let g (type a) : string -> a t = function | "terminated" -> (Terminated : _ t)
     | "exited" -> (Exited : _ t)
     | "continued" -> (Continued : _ t)
     | "stopped" -> (Stopped : _ t)

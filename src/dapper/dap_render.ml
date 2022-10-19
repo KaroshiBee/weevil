@@ -104,11 +104,11 @@ module RenderEnumWithPhantoms : (RenderT with type spec := Sp.Enum_spec.t) = str
 
 
     let f_str =
-      Printf.sprintf "let f : type a. a t -> string = function %s" @@ func_str false
+      Printf.sprintf "let f (type a) : a t -> string = function %s" @@ func_str false
     in
 
     let g_str =
-      Printf.sprintf "let g : type a. string -> a t = function %s" @@ func_str true
+      Printf.sprintf "let g (type a) : string -> a t = function %s" @@ func_str true
     in
 
     let enc_str =
@@ -570,7 +570,7 @@ let render (dfs:Dfs.t) = function
             let modstr, _other = RenderEnum.(of_spec e |> render ~name) in
             modstrs := modstr :: !modstrs
           | Some _ -> assert false
-          | None -> Logs.warn (fun m -> m "couldn't find '%s'" name)
+          | None -> Logs.warn (fun m -> m "couldn't find '%s', ignoring" name)
         )
     in
     let smods = String.concat "\n\n" (!modstrs |> List.rev) in
