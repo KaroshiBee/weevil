@@ -1,17 +1,30 @@
+open Dapper.Dap_message
+module Js = Data_encoding.Json
+module Dap_commands = Dapper.Dap_commands
+module Dap_events = Dapper.Dap_events
+module Dap_flow = Dapper.Dap_flow
 
-(* let _HEADER_FIELD = "Content-Length: " *)
-(* let _HEADER_TOKEN = "\r\n\r\n" *)
+module JsMsg = struct
 
-(* let _replace input output = *)
-(*   Str.global_replace (Str.regexp_string input) output *)
+  let _HEADER_FIELD = "Content-Length: "
+  let _HEADER_TOKEN = "\r\n\r\n"
 
-(* let wrap_header js = *)
-(*   let s = js *)
-(*           |> JS.to_string *)
-(*           |> _replace "\n" "" *)
-(*   in *)
-(*   let n = String.length s in *)
-(*   Printf.sprintf "%s%d%s%s" _HEADER_FIELD n _HEADER_TOKEN s *)
+  type t = Js.json
+
+  let _replace input output =
+    Str.global_replace (Str.regexp_string input) output
+
+  let from_string = Js.from_string
+
+  let to_string t =
+    let s = t
+            |> Js.to_string
+            |> _replace "\n" ""
+    in
+    let n = String.length s in
+    Printf.sprintf "%s%d%s%s" _HEADER_FIELD n _HEADER_TOKEN s
+
+end
 
 (* let destruct_request t msg = *)
 (*     match JS.from_string msg with *)
@@ -31,11 +44,6 @@
 (*   let r = Response.incr response in *)
 (*   JS.construct t.response r |> wrap_header *)
 (* end *)
-open Dapper.Dap_message
-module Js = Data_encoding.Json
-module Dap_commands = Dapper.Dap_commands
-module Dap_events = Dapper.Dap_events
-module Dap_flow = Dapper.Dap_flow
 
 type launch_mode = [`Launch | `Attach | `AttachForSuspendedLaunch]
 
@@ -94,27 +102,25 @@ module Cancel : HANDLER = struct
       Dap_flow.from_response ret
     | _ -> assert false
 
-  let from_string : string -> input = fun request ->
-    let enc_req = RequestMessage.enc_opt CancelArguments.enc in
-    let cancel =
-      Js.from_string request
-      |> Result.map (Js.destruct enc_req)
+  let from_string =
+    let enc = RequestMessage.enc_opt CancelArguments.enc in
+    fun input ->
+      JsMsg.from_string input
+      |> Result.map (Js.destruct enc)
       |> Result.map (fun x -> CancelRequest x)
       |> Dap_flow.from_result
-    in
-    cancel
 
-  let to_string : output -> (string, string) Result.t = fun cancel ->
-    let enc_resp = ResponseMessage.enc_opt EmptyObject.enc in
-    match Dap_flow.to_result cancel with
-    | Result.Ok (CancelResponse resp) ->
-      Js.construct enc_resp resp |> Js.to_string |> Result.ok
-    | Result.Error _ as err -> err
-    | _ -> assert false
+  let to_string =
+    let enc = ResponseMessage.enc_opt EmptyObject.enc in
+    fun output ->
+      match Dap_flow.to_result output with
+      | Result.Ok (CancelResponse resp) ->
+        Js.construct enc resp |> JsMsg.to_string |> Result.ok
+      | Result.Error _ as err -> err
+      | _ -> assert false
 
   let handle ~config cancel =
     Dap_flow.on_request cancel (on_cancel_request ~config)
-  (* TODO do some io *)
 
 end
 
@@ -136,42 +142,75 @@ The development tool capabilities are provided in the InitializeRequestArguments
 
 The debug adapter returns the supported capabilities in the InitializeResponse via the Capabilities type. It is not necessary to return an explicit false for unsupported capabilities.
  *)
-let on_initialize_request :
-  config:config ->
-  (Dap_commands.initialize, _, _) request ->
-  (Dap_commands.initialize, _, _) response Dap_flow.t
-  = fun ~config:_ -> function
-  | InitializeRequest req ->
-      let resp =
-        let command = RequestMessage.command req in
-        (* TODO hardcode capabilities or pull in from config *)
-        let body = Capabilities.make () in
-        default_response command body
-      in
-      let ret = InitializeResponse resp in
-      Dap_flow.from_response ret
-  | _ -> assert false
+module Initialize : HANDLER = struct
 
-let on_initialization_response :
-  config:config ->
-  (Dap_commands.initialize, _, _) response ->
-  (_ , _, _) event Dap_flow.t
-  = fun ~config:_ -> function
-  | InitializeResponse _ ->
-      let ev =
-        let event = Dap_events.initialized in
-        let body = EmptyObject.make () in
-        default_event event body
-      in
-      let ret = InitializedEvent ev in
-      Dap_flow.from_event ret
-  | _ -> assert false
+  type req = (Dap_commands.initialize, InitializeRequestArguments.t, RequestMessage.req) request
+  type input = req Dap_flow.t
 
-let on_initialize ~config req =
-  let open Dap_flow in
-  let v = on_request req (on_initialize_request ~config) in
-  (*  TODO io here *)
-  on_response v (on_initialization_response ~config)
+  type resp = (Dap_commands.initialize, Capabilities.t option, ResponseMessage.opt) response
+  type ev = (Dap_events.initialized, EmptyObject.t option, EventMessage.opt) event
+  type output = {
+    response: resp Dap_flow.t;
+    event: ev Dap_flow.t;
+  }
+
+  let from_string =
+    let enc = RequestMessage.enc InitializeRequestArguments.enc in
+    fun input ->
+      JsMsg.from_string input
+      |> Result.map (Js.destruct enc)
+      |> Result.map (fun x -> InitializeRequest x)
+      |> Dap_flow.from_result
+
+  let to_string =
+    let enc_resp = ResponseMessage.enc_opt Capabilities.enc in
+    let enc_ev = EventMessage.enc_opt EmptyObject.enc in
+    fun {response; event} ->
+      match Dap_flow.(to_result response, to_result event) with
+      | Result.Ok (InitializeResponse resp), Result.Ok (InitializedEvent ev) ->
+        let resp = Js.construct enc_resp resp |> JsMsg.to_string in
+        let ev = Js.construct enc_ev ev |> JsMsg.to_string in
+        Result.ok @@ resp^ev
+      | _, _ -> failwith "TODO"
+
+  let on_initialize_request :
+    config:config ->
+    (Dap_commands.initialize, _, _) request ->
+    (Dap_commands.initialize, _, _) response Dap_flow.t
+    = fun ~config:_ -> function
+      | InitializeRequest req ->
+        let resp =
+          let command = RequestMessage.command req in
+          (* TODO hardcode capabilities or pull in from config *)
+          let body = Capabilities.make () in
+          default_response command body
+        in
+        let ret = InitializeResponse resp in
+        Dap_flow.from_response ret
+      | _ -> assert false
+
+  let on_initialization_response :
+    config:config ->
+    (Dap_commands.initialize, _, _) response ->
+    (_ , _, _) event Dap_flow.t
+    = fun ~config:_ -> function
+      | InitializeResponse _ ->
+        let ev =
+          let event = Dap_events.initialized in
+          let body = EmptyObject.make () in
+          default_event event body
+        in
+        let ret = InitializedEvent ev in
+        Dap_flow.from_event ret
+      | _ -> assert false
+
+  let handle ~config init =
+    let open Dap_flow in
+    let response = on_request init (on_initialize_request ~config) in
+    let event = on_response response (on_initialization_response ~config) in
+    {response; event}
+
+end
 
 let on_configurationDone_request :
   config:config ->
