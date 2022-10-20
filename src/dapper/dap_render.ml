@@ -31,14 +31,14 @@ module RenderEnum : (RenderT with type spec := Sp.Enum_spec.t) = struct
       String.concat " | " lns
     in
     let enc_s_t =
-      let lns = t.enums |> List.map (fun (e:Sp.Enum_spec.enum_val) -> Printf.sprintf "\"%s\" -> %s" e.dirty_name e.safe_name) in
-      let lns = if t.suggested then lns @ ["_ as s -> Other s"] else lns @ [Printf.sprintf "_ -> failwith \"%s\"" name] in
+      let lns = t.enums |> List.map (fun (e:Sp.Enum_spec.enum_val) -> Printf.sprintf "\"%s\" -> Ok %s" e.dirty_name e.safe_name) in
+      let lns = if t.suggested then lns @ ["_ as s -> Ok (Other s)"] else lns @ [Printf.sprintf "_ -> Error \"%s\"" name] in
       String.concat " | " lns
     in
     let enc_str = Printf.sprintf
         "let enc = \n \
          let open Data_encoding in \n \
-         conv \n \
+         conv_with_guard \n \
          (function %s)\n \
          (function %s)\n \
          string" enc_t_s enc_s_t
@@ -118,10 +118,14 @@ let enc ~value =
   let to_str = to_string in
   let from_str =
     let sentinal = to_string value in
-    fun s ->
-      if s = sentinal then from_string s
-        else failwith @@ Printf.sprintf "expected '%s', got '%s'" sentinal s in
-  conv
+    function
+    | s when s = sentinal ->
+      Ok (from_string s)
+    | _  as s ->
+      let err = Printf.sprintf "expected '%s', got '%s'" sentinal s in
+      Error err
+  in
+  conv_with_guard
     to_str from_str string
       |}
 

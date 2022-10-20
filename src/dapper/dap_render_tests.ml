@@ -30,10 +30,14 @@ let%expect_test "Check phantoms (command and event) example" =
       let to_str = to_string in
       let from_str =
         let sentinal = to_string value in
-        fun s ->
-          if s = sentinal then from_string s
-            else failwith @@ Printf.sprintf "expected '%s', got '%s'" sentinal s in
-      conv
+        function
+        | s when s = sentinal ->
+          Ok (from_string s)
+        | _  as s ->
+          let err = Printf.sprintf "expected '%s', got '%s'" sentinal s in
+          Error err
+      in
+      conv_with_guard
         to_str from_str string |}];
 
   let actual = render dfs @@ Commands MLI in
@@ -92,10 +96,14 @@ let%expect_test "Check phantoms (command and event) example" =
       let to_str = to_string in
       let from_str =
         let sentinal = to_string value in
-        fun s ->
-          if s = sentinal then from_string s
-            else failwith @@ Printf.sprintf "expected '%s', got '%s'" sentinal s in
-      conv
+        function
+        | s when s = sentinal ->
+          Ok (from_string s)
+        | _  as s ->
+          let err = Printf.sprintf "expected '%s', got '%s'" sentinal s in
+          Error err
+      in
+      conv_with_guard
         to_str from_str string |}];
 
   let actual = render dfs @@ Events MLI in
@@ -276,9 +284,9 @@ let%expect_test "Check StoppedEvent example" =
 
      let enc =
      let open Data_encoding in
-     conv
+     conv_with_guard
      (function Step -> "step" | Breakpoint -> "breakpoint" | Exception -> "exception" | Pause -> "pause" | Entry -> "entry" | Goto -> "goto" | Function_breakpoint -> "function breakpoint" | Data_breakpoint -> "data breakpoint" | Instruction_breakpoint -> "instruction breakpoint" | Other s -> s)
-     (function "step" -> Step | "breakpoint" -> Breakpoint | "exception" -> Exception | "pause" -> Pause | "entry" -> Entry | "goto" -> Goto | "function breakpoint" -> Function_breakpoint | "data breakpoint" -> Data_breakpoint | "instruction breakpoint" -> Instruction_breakpoint | _ as s -> Other s)
+     (function "step" -> Ok Step | "breakpoint" -> Ok Breakpoint | "exception" -> Ok Exception | "pause" -> Ok Pause | "entry" -> Ok Entry | "goto" -> Ok Goto | "function breakpoint" -> Ok Function_breakpoint | "data breakpoint" -> Ok Data_breakpoint | "instruction breakpoint" -> Ok Instruction_breakpoint | _ as s -> Ok (Other s))
      string
 
      end

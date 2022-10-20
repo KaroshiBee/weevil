@@ -51,6 +51,10 @@ end = struct
           (Q.json_pointer_of_path pth) value typestr in
       raise @@ Wrong_encoder s
 
+    | Data_encoding__.Binary_error_types.Invariant_guard err ->
+      let s = Printf.sprintf "cannnot destruct: %s" err in
+      raise @@ Wrong_encoder s
+
     | _ as e ->
       let s = Printf.sprintf "cannnot destruct: %s" (Printexc.to_string e) in
       raise @@ Wrong_encoder s

@@ -108,7 +108,7 @@ module StoppedEvent_body_reason = struct
 
   let enc =
     let open Data_encoding in
-    conv
+    conv_with_guard
       (function
         | Step -> "step"
         | Breakpoint -> "breakpoint"
@@ -121,16 +121,16 @@ module StoppedEvent_body_reason = struct
         | Instruction_breakpoint -> "instruction breakpoint"
         | Other s -> s)
       (function
-        | "step" -> Step
-        | "breakpoint" -> Breakpoint
-        | "exception" -> Exception
-        | "pause" -> Pause
-        | "entry" -> Entry
-        | "goto" -> Goto
-        | "function breakpoint" -> Function_breakpoint
-        | "data breakpoint" -> Data_breakpoint
-        | "instruction breakpoint" -> Instruction_breakpoint
-        | _ as s -> Other s)
+        | "step" -> Ok Step
+        | "breakpoint" -> Ok Breakpoint
+        | "exception" -> Ok Exception
+        | "pause" -> Ok Pause
+        | "entry" -> Ok Entry
+        | "goto" -> Ok Goto
+        | "function breakpoint" -> Ok Function_breakpoint
+        | "data breakpoint" -> Ok Data_breakpoint
+        | "instruction breakpoint" -> Ok Instruction_breakpoint
+        | _ as s -> Ok (Other s))
       string
 end
 
@@ -284,9 +284,12 @@ module ThreadEvent_body_reason = struct
 
   let enc =
     let open Data_encoding in
-    conv
+    conv_with_guard
       (function Started -> "started" | Exited -> "exited" | Other s -> s)
-      (function "started" -> Started | "exited" -> Exited | _ as s -> Other s)
+      (function
+        | "started" -> Ok Started
+        | "exited" -> Ok Exited
+        | _ as s -> Ok (Other s))
       string
 end
 
@@ -316,7 +319,7 @@ module OutputEvent_body_category = struct
 
   let enc =
     let open Data_encoding in
-    conv
+    conv_with_guard
       (function
         | Console -> "console"
         | Important -> "important"
@@ -325,12 +328,12 @@ module OutputEvent_body_category = struct
         | Telemetry -> "telemetry"
         | Other s -> s)
       (function
-        | "console" -> Console
-        | "important" -> Important
-        | "stdout" -> Stdout
-        | "stderr" -> Stderr
-        | "telemetry" -> Telemetry
-        | _ as s -> Other s)
+        | "console" -> Ok Console
+        | "important" -> Ok Important
+        | "stdout" -> Ok Stdout
+        | "stderr" -> Ok Stderr
+        | "telemetry" -> Ok Telemetry
+        | _ as s -> Ok (Other s))
       string
 end
 
@@ -340,14 +343,14 @@ module OutputEvent_body_group = struct
 
   let enc =
     let open Data_encoding in
-    conv
+    conv_with_guard
       (function
         | Start -> "start" | StartCollapsed -> "startCollapsed" | End -> "end")
       (function
-        | "start" -> Start
-        | "startCollapsed" -> StartCollapsed
-        | "end" -> End
-        | _ -> failwith "OutputEvent_body_group")
+        | "start" -> Ok Start
+        | "startCollapsed" -> Ok StartCollapsed
+        | "end" -> Ok End
+        | _ -> Error "OutputEvent_body_group")
       string
 end
 
@@ -357,16 +360,16 @@ module Source_presentationHint = struct
 
   let enc =
     let open Data_encoding in
-    conv
+    conv_with_guard
       (function
         | Normal -> "normal"
         | Emphasize -> "emphasize"
         | Deemphasize -> "deemphasize")
       (function
-        | "normal" -> Normal
-        | "emphasize" -> Emphasize
-        | "deemphasize" -> Deemphasize
-        | _ -> failwith "Source_presentationHint")
+        | "normal" -> Ok Normal
+        | "emphasize" -> Ok Emphasize
+        | "deemphasize" -> Ok Deemphasize
+        | _ -> Error "Source_presentationHint")
       string
 end
 
@@ -376,18 +379,18 @@ module ChecksumAlgorithm = struct
 
   let enc =
     let open Data_encoding in
-    conv
+    conv_with_guard
       (function
         | MD5 -> "MD5"
         | SHA1 -> "SHA1"
         | SHA256 -> "SHA256"
         | Timestamp -> "timestamp")
       (function
-        | "MD5" -> MD5
-        | "SHA1" -> SHA1
-        | "SHA256" -> SHA256
-        | "timestamp" -> Timestamp
-        | _ -> failwith "ChecksumAlgorithm")
+        | "MD5" -> Ok MD5
+        | "SHA1" -> Ok SHA1
+        | "SHA256" -> Ok SHA256
+        | "timestamp" -> Ok Timestamp
+        | _ -> Error "ChecksumAlgorithm")
       string
 end
 
@@ -585,17 +588,17 @@ module BreakpointEvent_body_reason = struct
 
   let enc =
     let open Data_encoding in
-    conv
+    conv_with_guard
       (function
         | Changed -> "changed"
         | New -> "new"
         | Removed -> "removed"
         | Other s -> s)
       (function
-        | "changed" -> Changed
-        | "new" -> New
-        | "removed" -> Removed
-        | _ as s -> Other s)
+        | "changed" -> Ok Changed
+        | "new" -> Ok New
+        | "removed" -> Ok Removed
+        | _ as s -> Ok (Other s))
       string
 end
 
@@ -736,13 +739,13 @@ module ModuleEvent_body_reason = struct
 
   let enc =
     let open Data_encoding in
-    conv
+    conv_with_guard
       (function New -> "new" | Changed -> "changed" | Removed -> "removed")
       (function
-        | "new" -> New
-        | "changed" -> Changed
-        | "removed" -> Removed
-        | _ -> failwith "ModuleEvent_body_reason")
+        | "new" -> Ok New
+        | "changed" -> Ok Changed
+        | "removed" -> Ok Removed
+        | _ -> Error "ModuleEvent_body_reason")
       string
 end
 
@@ -882,13 +885,13 @@ module LoadedSourceEvent_body_reason = struct
 
   let enc =
     let open Data_encoding in
-    conv
+    conv_with_guard
       (function New -> "new" | Changed -> "changed" | Removed -> "removed")
       (function
-        | "new" -> New
-        | "changed" -> Changed
-        | "removed" -> Removed
-        | _ -> failwith "LoadedSourceEvent_body_reason")
+        | "new" -> Ok New
+        | "changed" -> Ok Changed
+        | "removed" -> Ok Removed
+        | _ -> Error "LoadedSourceEvent_body_reason")
       string
 end
 
@@ -921,16 +924,16 @@ module ProcessEvent_body_startMethod = struct
 
   let enc =
     let open Data_encoding in
-    conv
+    conv_with_guard
       (function
         | Launch -> "launch"
         | Attach -> "attach"
         | AttachForSuspendedLaunch -> "attachForSuspendedLaunch")
       (function
-        | "launch" -> Launch
-        | "attach" -> Attach
-        | "attachForSuspendedLaunch" -> AttachForSuspendedLaunch
-        | _ -> failwith "ProcessEvent_body_startMethod")
+        | "launch" -> Ok Launch
+        | "attach" -> Ok Attach
+        | "attachForSuspendedLaunch" -> Ok AttachForSuspendedLaunch
+        | _ -> Error "ProcessEvent_body_startMethod")
       string
 end
 
@@ -1057,18 +1060,18 @@ module ColumnDescriptor_type_ = struct
 
   let enc =
     let open Data_encoding in
-    conv
+    conv_with_guard
       (function
         | String -> "string"
         | Number -> "number"
         | Boolean -> "boolean"
         | UnixTimestampUTC -> "unixTimestampUTC")
       (function
-        | "string" -> String
-        | "number" -> Number
-        | "boolean" -> Boolean
-        | "unixTimestampUTC" -> UnixTimestampUTC
-        | _ -> failwith "ColumnDescriptor_type_")
+        | "string" -> Ok String
+        | "number" -> Ok Number
+        | "boolean" -> Ok Boolean
+        | "unixTimestampUTC" -> Ok UnixTimestampUTC
+        | _ -> Error "ColumnDescriptor_type_")
       string
 end
 
@@ -1811,7 +1814,7 @@ module InvalidatedAreas = struct
 
   let enc =
     let open Data_encoding in
-    conv
+    conv_with_guard
       (function
         | All -> "all"
         | Stacks -> "stacks"
@@ -1819,11 +1822,11 @@ module InvalidatedAreas = struct
         | Variables -> "variables"
         | Other s -> s)
       (function
-        | "all" -> All
-        | "stacks" -> Stacks
-        | "threads" -> Threads
-        | "variables" -> Variables
-        | _ as s -> Other s)
+        | "all" -> Ok All
+        | "stacks" -> Ok Stacks
+        | "threads" -> Ok Threads
+        | "variables" -> Ok Variables
+        | _ as s -> Ok (Other s))
       string
 end
 
@@ -1888,12 +1891,12 @@ module RunInTerminalRequestArguments_kind = struct
 
   let enc =
     let open Data_encoding in
-    conv
+    conv_with_guard
       (function Integrated -> "integrated" | External -> "external")
       (function
-        | "integrated" -> Integrated
-        | "external" -> External
-        | _ -> failwith "RunInTerminalRequestArguments_kind")
+        | "integrated" -> Ok Integrated
+        | "external" -> Ok External
+        | _ -> Error "RunInTerminalRequestArguments_kind")
       string
 end
 
@@ -1961,9 +1964,9 @@ module InitializeRequestArguments_pathFormat = struct
 
   let enc =
     let open Data_encoding in
-    conv
+    conv_with_guard
       (function Path -> "path" | Uri -> "uri" | Other s -> s)
-      (function "path" -> Path | "uri" -> Uri | _ as s -> Other s)
+      (function "path" -> Ok Path | "uri" -> Ok Uri | _ as s -> Ok (Other s))
       string
 end
 
@@ -2575,18 +2578,18 @@ module ExceptionBreakMode = struct
 
   let enc =
     let open Data_encoding in
-    conv
+    conv_with_guard
       (function
         | Never -> "never"
         | Always -> "always"
         | Unhandled -> "unhandled"
         | UserUnhandled -> "userUnhandled")
       (function
-        | "never" -> Never
-        | "always" -> Always
-        | "unhandled" -> Unhandled
-        | "userUnhandled" -> UserUnhandled
-        | _ -> failwith "ExceptionBreakMode")
+        | "never" -> Ok Never
+        | "always" -> Ok Always
+        | "unhandled" -> Ok Unhandled
+        | "userUnhandled" -> Ok UserUnhandled
+        | _ -> Error "ExceptionBreakMode")
       string
 end
 
@@ -2700,13 +2703,13 @@ module DataBreakpointAccessType = struct
 
   let enc =
     let open Data_encoding in
-    conv
+    conv_with_guard
       (function Read -> "read" | Write -> "write" | ReadWrite -> "readWrite")
       (function
-        | "read" -> Read
-        | "write" -> Write
-        | "readWrite" -> ReadWrite
-        | _ -> failwith "DataBreakpointAccessType")
+        | "read" -> Ok Read
+        | "write" -> Ok Write
+        | "readWrite" -> Ok ReadWrite
+        | _ -> Error "DataBreakpointAccessType")
       string
 end
 
@@ -2950,16 +2953,16 @@ module SteppingGranularity = struct
 
   let enc =
     let open Data_encoding in
-    conv
+    conv_with_guard
       (function
         | Statement -> "statement"
         | Line -> "line"
         | Instruction -> "instruction")
       (function
-        | "statement" -> Statement
-        | "line" -> Line
-        | "instruction" -> Instruction
-        | _ -> failwith "SteppingGranularity")
+        | "statement" -> Ok Statement
+        | "line" -> Ok Line
+        | "instruction" -> Ok Instruction
+        | _ -> Error "SteppingGranularity")
       string
 end
 
@@ -3339,13 +3342,13 @@ module StackFrame_presentationHint = struct
 
   let enc =
     let open Data_encoding in
-    conv
+    conv_with_guard
       (function Normal -> "normal" | Label -> "label" | Subtle -> "subtle")
       (function
-        | "normal" -> Normal
-        | "label" -> Label
-        | "subtle" -> Subtle
-        | _ -> failwith "StackFrame_presentationHint")
+        | "normal" -> Ok Normal
+        | "label" -> Ok Label
+        | "subtle" -> Ok Subtle
+        | _ -> Error "StackFrame_presentationHint")
       string
 end
 
@@ -3571,17 +3574,17 @@ module Scope_presentationHint = struct
 
   let enc =
     let open Data_encoding in
-    conv
+    conv_with_guard
       (function
         | Arguments -> "arguments"
         | Locals -> "locals"
         | Registers -> "registers"
         | Other s -> s)
       (function
-        | "arguments" -> Arguments
-        | "locals" -> Locals
-        | "registers" -> Registers
-        | _ as s -> Other s)
+        | "arguments" -> Ok Arguments
+        | "locals" -> Ok Locals
+        | "registers" -> Ok Registers
+        | _ as s -> Ok (Other s))
       string
 end
 
@@ -3788,12 +3791,12 @@ module VariablesArguments_filter = struct
 
   let enc =
     let open Data_encoding in
-    conv
+    conv_with_guard
       (function Indexed -> "indexed" | Named -> "named")
       (function
-        | "indexed" -> Indexed
-        | "named" -> Named
-        | _ -> failwith "VariablesArguments_filter")
+        | "indexed" -> Ok Indexed
+        | "named" -> Ok Named
+        | _ -> Error "VariablesArguments_filter")
       string
 end
 
@@ -3856,7 +3859,7 @@ module VariablePresentationHint_kind = struct
 
   let enc =
     let open Data_encoding in
-    conv
+    conv_with_guard
       (function
         | Property -> "property"
         | Method -> "method"
@@ -3871,18 +3874,18 @@ module VariablePresentationHint_kind = struct
         | DataBreakpoint -> "dataBreakpoint"
         | Other s -> s)
       (function
-        | "property" -> Property
-        | "method" -> Method
-        | "class" -> Class
-        | "data" -> Data
-        | "event" -> Event
-        | "baseClass" -> BaseClass
-        | "innerClass" -> InnerClass
-        | "interface" -> Interface
-        | "mostDerivedClass" -> MostDerivedClass
-        | "virtual" -> Virtual
-        | "dataBreakpoint" -> DataBreakpoint
-        | _ as s -> Other s)
+        | "property" -> Ok Property
+        | "method" -> Ok Method
+        | "class" -> Ok Class
+        | "data" -> Ok Data
+        | "event" -> Ok Event
+        | "baseClass" -> Ok BaseClass
+        | "innerClass" -> Ok InnerClass
+        | "interface" -> Ok Interface
+        | "mostDerivedClass" -> Ok MostDerivedClass
+        | "virtual" -> Ok Virtual
+        | "dataBreakpoint" -> Ok DataBreakpoint
+        | _ as s -> Ok (Other s))
       string
 end
 
@@ -3901,7 +3904,7 @@ module VariablePresentationHint_attributes_items = struct
 
   let enc =
     let open Data_encoding in
-    conv
+    conv_with_guard
       (function
         | Static -> "static"
         | Constant -> "constant"
@@ -3913,15 +3916,15 @@ module VariablePresentationHint_attributes_items = struct
         | HasDataBreakpoint -> "hasDataBreakpoint"
         | Other s -> s)
       (function
-        | "static" -> Static
-        | "constant" -> Constant
-        | "readOnly" -> ReadOnly
-        | "rawString" -> RawString
-        | "hasObjectId" -> HasObjectId
-        | "canHaveObjectId" -> CanHaveObjectId
-        | "hasSideEffects" -> HasSideEffects
-        | "hasDataBreakpoint" -> HasDataBreakpoint
-        | _ as s -> Other s)
+        | "static" -> Ok Static
+        | "constant" -> Ok Constant
+        | "readOnly" -> Ok ReadOnly
+        | "rawString" -> Ok RawString
+        | "hasObjectId" -> Ok HasObjectId
+        | "canHaveObjectId" -> Ok CanHaveObjectId
+        | "hasSideEffects" -> Ok HasSideEffects
+        | "hasDataBreakpoint" -> Ok HasDataBreakpoint
+        | _ as s -> Ok (Other s))
       string
 end
 
@@ -3931,7 +3934,7 @@ module VariablePresentationHint_visibility = struct
 
   let enc =
     let open Data_encoding in
-    conv
+    conv_with_guard
       (function
         | Public -> "public"
         | Private -> "private"
@@ -3940,12 +3943,12 @@ module VariablePresentationHint_visibility = struct
         | Final -> "final"
         | Other s -> s)
       (function
-        | "public" -> Public
-        | "private" -> Private
-        | "protected" -> Protected
-        | "internal" -> Internal
-        | "final" -> Final
-        | _ as s -> Other s)
+        | "public" -> Ok Public
+        | "private" -> Ok Private
+        | "protected" -> Ok Protected
+        | "internal" -> Ok Internal
+        | "final" -> Ok Final
+        | _ as s -> Ok (Other s))
       string
 end
 
@@ -4368,7 +4371,7 @@ module EvaluateArguments_context = struct
 
   let enc =
     let open Data_encoding in
-    conv
+    conv_with_guard
       (function
         | Variables -> "variables"
         | Watch -> "watch"
@@ -4377,12 +4380,12 @@ module EvaluateArguments_context = struct
         | Clipboard -> "clipboard"
         | Other s -> s)
       (function
-        | "variables" -> Variables
-        | "watch" -> Watch
-        | "repl" -> Repl
-        | "hover" -> Hover
-        | "clipboard" -> Clipboard
-        | _ as s -> Other s)
+        | "variables" -> Ok Variables
+        | "watch" -> Ok Watch
+        | "repl" -> Ok Repl
+        | "hover" -> Ok Hover
+        | "clipboard" -> Ok Clipboard
+        | _ as s -> Ok (Other s))
       string
 end
 
@@ -4876,7 +4879,7 @@ module CompletionItemType = struct
 
   let enc =
     let open Data_encoding in
-    conv
+    conv_with_guard
       (function
         | Method -> "method"
         | Function -> "function"
@@ -4898,26 +4901,26 @@ module CompletionItemType = struct
         | Reference -> "reference"
         | Customcolor -> "customcolor")
       (function
-        | "method" -> Method
-        | "function" -> Function
-        | "constructor" -> Constructor
-        | "field" -> Field
-        | "variable" -> Variable_
-        | "class" -> Class
-        | "interface" -> Interface
-        | "module" -> Module_
-        | "property" -> Property
-        | "unit" -> Unit
-        | "value" -> Value
-        | "enum" -> Enum
-        | "keyword" -> Keyword
-        | "snippet" -> Snippet
-        | "text" -> Text
-        | "color" -> Color
-        | "file" -> File
-        | "reference" -> Reference
-        | "customcolor" -> Customcolor
-        | _ -> failwith "CompletionItemType")
+        | "method" -> Ok Method
+        | "function" -> Ok Function
+        | "constructor" -> Ok Constructor
+        | "field" -> Ok Field
+        | "variable" -> Ok Variable_
+        | "class" -> Ok Class
+        | "interface" -> Ok Interface
+        | "module" -> Ok Module_
+        | "property" -> Ok Property
+        | "unit" -> Ok Unit
+        | "value" -> Ok Value
+        | "enum" -> Ok Enum
+        | "keyword" -> Ok Keyword
+        | "snippet" -> Ok Snippet
+        | "text" -> Ok Text
+        | "color" -> Ok Color
+        | "file" -> Ok File
+        | "reference" -> Ok Reference
+        | "customcolor" -> Ok Customcolor
+        | _ -> Error "CompletionItemType")
       string
 end
 

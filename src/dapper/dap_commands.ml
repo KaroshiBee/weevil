@@ -190,8 +190,13 @@ let enc ~value =
   let to_str = to_string in
   let from_str =
     let sentinal = to_string value in
-    fun s ->
-      if s = sentinal then from_string s
-        else failwith @@ Printf.sprintf "expected '%s', got '%s'" sentinal s in
-  conv
+    function
+    | s when s = sentinal ->
+      Ok (from_string s)
+    | _  as s ->
+      let err = Printf.sprintf "expected '%s', got '%s'" sentinal s in
+      Error err
+  in
+  conv_with_guard
     to_str from_str string
+      
