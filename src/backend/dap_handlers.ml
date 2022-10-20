@@ -141,9 +141,9 @@ module Cancel : HANDLER = struct
   type backend_channel = Lwt_io.output_channel
 
   let on_cancel_request ~config:_ = function
-    | CancelRequest _req ->
+    | CancelRequest req ->
       let resp =
-        let command = Dap_commands.cancel in
+        let command = RequestMessage.command req in
         let body = EmptyObject.make () in
         default_response_opt command body
       in
@@ -219,14 +219,10 @@ module Initialize : HANDLER = struct
       |> Result.map (fun x -> InitializeRequest x)
       |> Dap_flow.from_result
 
-  let on_initialize_request :
-    config:config ->
-    (Dap_commands.initialize, _, _) request ->
-    (Dap_commands.initialize, _, _) response Dap_flow.t
-    = fun ~config:_ -> function
-      | InitializeRequest _req ->
+  let on_initialize_request ~config:_ = function
+      | InitializeRequest req ->
         let resp =
-          let command = Dap_commands.initialize in
+          let command = RequestMessage.command req in
           (* TODO hardcode capabilities or pull in from config *)
           let body = Capabilities.make () in
           default_response_opt command body
@@ -235,11 +231,7 @@ module Initialize : HANDLER = struct
         Dap_flow.from_response ret
       | _ -> assert false
 
-  let on_initialization_response :
-    config:config ->
-    (Dap_commands.initialize, _, _) response ->
-    (_ , _, _) event Dap_flow.t
-    = fun ~config:_ -> function
+  let on_initialization_response ~config:_ = function
       | InitializeResponse _ ->
         let ev =
           let event = Dap_events.initialized in
@@ -276,14 +268,10 @@ end
 
 module Configuration = struct
 
-  let on_configurationDone_request :
-    config:config ->
-    (Dap_commands.configurationDone, _, _) request ->
-    (Dap_commands.configurationDone, _, _) response Dap_flow.t
-    = fun ~config:_ -> function
-      | ConfigurationDoneRequest _req ->
+  let on_configurationDone_request ~config:_ = function
+      | ConfigurationDoneRequest req ->
         let resp =
-          let command = Dap_commands.configurationDone in
+          let command = RequestMessage.command req in
           let body = EmptyObject.make () in
           default_response_opt command body
         in
@@ -331,9 +319,9 @@ module Launch : HANDLER = struct
       |> Dap_flow.from_result
 
   let on_launch_request ~config = function
-  | LaunchRequest _req when config.launch_mode = `Launch ->
+  | LaunchRequest req when config.launch_mode = `Launch ->
       let resp =
-        let command = Dap_commands.launch in
+        let command = RequestMessage.command req in
         let body = EmptyObject.make () in
         default_response_opt command body
       in
@@ -346,7 +334,7 @@ module Launch : HANDLER = struct
   | _ -> assert false
 
   let on_launch_response ~config = function
-  | LaunchResponse _resp when config.launch_mode = `Launch ->
+  | LaunchResponse _ when config.launch_mode = `Launch ->
       let ev =
         let event = Dap_events.process in
         let startMethod = ProcessEvent_body_startMethod.Launch in
@@ -494,11 +482,11 @@ module Handler (H:HANDLER) : (MAKE_HANDLER with type input := H.input and type o
   }
 
   let handle t ~config s =
-    let open Lwt in
-    t.from_string s
-    |> t.handle ~config
-    >>= t.to_string
-    >>= function
+    let%lwt output =
+      t.from_string s
+      |> t.handle ~config
+    in
+    match%lwt t.to_string output with
     | Result.Ok msg ->
       Lwt.return msg
     | Result.Error err ->
