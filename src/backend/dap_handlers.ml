@@ -61,7 +61,21 @@ type launch_mode = [`Launch | `Attach | `AttachForSuspendedLaunch]
 
 type config = {launch_mode : launch_mode}
 
-let default_response
+let default_response_req
+  = fun command body ->
+  (* NOTE for use in the Flow monad so seq and request_seq get taken care of there *)
+  let seq = -1 in
+  let request_seq = -1 in
+  let success = true in
+  ResponseMessage.make
+    ~seq
+    ~request_seq
+    ~success
+    ~command
+    ~body
+    ()
+
+let default_response_opt
   = fun command body ->
   (* NOTE for use in the Flow monad so seq and request_seq get taken care of there *)
   let seq = -1 in
@@ -75,7 +89,17 @@ let default_response
     ~body
     ()
 
-let default_event
+let default_event_req
+  = fun event body ->
+  (* NOTE for use in the Flow monad so seq and request_seq get taken care of there *)
+  let seq = -1 in
+  EventMessage.make
+    ~seq
+    ~event
+    ~body
+    ()
+
+let default_event_opt
   = fun event body ->
   (* NOTE for use in the Flow monad so seq and request_seq get taken care of there *)
   let seq = -1 in
@@ -85,17 +109,18 @@ let default_event
     ~body
     ()
 
+
 module type HANDLER = sig
 
   type input
   type output
 
-  type frontend_channel
   type backend_channel
 
   val from_string : string -> input
-  val to_string : output -> (string, string) Result.t Lwt.t
+  (* NOTE when handling a request we will be interacting with the backend, hence the Lwt.t  *)
   val handle : config:config -> input -> output Lwt.t
+  val to_string : output -> (string, string) Result.t Lwt.t
 
 end
 (*
@@ -113,7 +138,6 @@ module Cancel : HANDLER = struct
   type resp = (Dap_commands.cancel, EmptyObject.t option, ResponseMessage.opt) response
   type output = resp Dap_flow.t
 
-  type frontend_channel = Lwt_io.output_channel
   type backend_channel = Lwt_io.output_channel
 
   let on_cancel_request ~config:_ = function
@@ -121,7 +145,7 @@ module Cancel : HANDLER = struct
       let resp =
         let command = Dap_commands.cancel in
         let body = EmptyObject.make () in
-        default_response command body
+        default_response_opt command body
       in
       let ret = CancelResponse resp in
       Dap_flow.from_response ret
@@ -134,6 +158,10 @@ module Cancel : HANDLER = struct
       |> Result.map (JsMsg.destruct enc)
       |> Result.map (fun x -> CancelRequest x)
       |> Dap_flow.from_result
+
+  let handle ~config req =
+    Dap_flow.on_request req (on_cancel_request ~config)
+    |> Lwt.return
 
   let to_string =
     let enc = ResponseMessage.enc_opt Dap_commands.cancel EmptyObject.enc in
@@ -148,10 +176,6 @@ module Cancel : HANDLER = struct
 
       | Result.Error _ as err -> Lwt.return err
       | _ -> assert false
-
-  let handle ~config cancel =
-    Dap_flow.on_request cancel (on_cancel_request ~config)
-    |> Lwt.return
 
 end
 
@@ -185,7 +209,6 @@ module Initialize : HANDLER = struct
     event: ev Dap_flow.t;
   }
 
-  type frontend_channel = Lwt_io.output_channel
   type backend_channel = Lwt_io.output_channel
 
   let from_string =
@@ -195,19 +218,6 @@ module Initialize : HANDLER = struct
       |> Result.map (JsMsg.destruct enc)
       |> Result.map (fun x -> InitializeRequest x)
       |> Dap_flow.from_result
-
-  let to_string =
-    let enc_resp = ResponseMessage.enc_opt Dap_commands.initialize Capabilities.enc in
-    let enc_ev = EventMessage.enc_opt Dap_events.initialized EmptyObject.enc in
-    fun {response; event} ->
-      match Dap_flow.(to_result response, to_result event) with
-      | Result.Ok (InitializeResponse resp), Result.Ok (InitializedEvent ev) ->
-        let resp = JsMsg.construct enc_resp resp |> JsMsg.to_string in
-        let ev = JsMsg.construct enc_ev ev |> JsMsg.to_string in
-        Result.ok @@ resp^ev
-        |> Lwt.return
-
-      | _, _ -> failwith "TODO"
 
   let on_initialize_request :
     config:config ->
@@ -219,7 +229,7 @@ module Initialize : HANDLER = struct
           let command = Dap_commands.initialize in
           (* TODO hardcode capabilities or pull in from config *)
           let body = Capabilities.make () in
-          default_response command body
+          default_response_opt command body
         in
         let ret = InitializeResponse resp in
         Dap_flow.from_response ret
@@ -234,39 +244,58 @@ module Initialize : HANDLER = struct
         let ev =
           let event = Dap_events.initialized in
           let body = EmptyObject.make () in
-          default_event event body
+          default_event_opt event body
         in
         let ret = InitializedEvent ev in
         Dap_flow.from_event ret
       | _ -> assert false
 
-  let handle ~config init =
+  let handle ~config req =
     let open Dap_flow in
-    let response = on_request init (on_initialize_request ~config) in
+    let response = on_request req (on_initialize_request ~config) in
     let event = on_response response (on_initialization_response ~config) in
     Lwt.return {response; event}
 
+  let to_string =
+    let enc_resp = ResponseMessage.enc_opt Dap_commands.initialize Capabilities.enc in
+    let enc_ev = EventMessage.enc_opt Dap_events.initialized EmptyObject.enc in
+    fun {response; event} ->
+      match Dap_flow.(to_result response, to_result event) with
+      | Result.Ok (InitializeResponse resp), Result.Ok (InitializedEvent ev) ->
+        let resp = JsMsg.construct enc_resp resp |> JsMsg.to_string in
+        let ev = JsMsg.construct enc_ev ev |> JsMsg.to_string in
+        Result.ok @@ resp^ev
+        |> Lwt.return
+      | Result.Error _, Result.Ok (InitializedEvent _)
+      | Result.Ok (InitializeResponse _), Result.Error _
+      | Result.Error _, Result.Error _ ->
+        failwith "TODO"
+      | _, _ -> assert false
+
 end
 
-let on_configurationDone_request :
-  config:config ->
-  (Dap_commands.configurationDone, _, _) request ->
-  (Dap_commands.configurationDone, _, _) response Dap_flow.t
-  = fun ~config:_ -> function
-  | ConfigurationDoneRequest _req ->
-      let resp =
-        let command = Dap_commands.configurationDone in
-        let body = EmptyObject.make () in
-        default_response command body
-      in
-      let ret = ConfigurationDoneResponse resp in
-      Dap_flow.from_response ret
-  | _ -> assert false
+module Configuration = struct
+
+  let on_configurationDone_request :
+    config:config ->
+    (Dap_commands.configurationDone, _, _) request ->
+    (Dap_commands.configurationDone, _, _) response Dap_flow.t
+    = fun ~config:_ -> function
+      | ConfigurationDoneRequest _req ->
+        let resp =
+          let command = Dap_commands.configurationDone in
+          let body = EmptyObject.make () in
+          default_response_opt command body
+        in
+        let ret = ConfigurationDoneResponse resp in
+        Dap_flow.from_response ret
+      | _ -> assert false
 
 
-let on_configurationDone ~config req =
-  Dap_flow.on_request req (on_configurationDone_request ~config)
-(* TODO do some io *)
+  let on_configurationDone ~config req =
+    Dap_flow.on_request req (on_configurationDone_request ~config)
+
+end
 
 (* Launching and attaching *)
 
@@ -278,42 +307,85 @@ let on_configurationDone ~config req =
 
 (* Since arguments for both requests are highly dependent on a specific debugger and debug adapter implementation, the Debug Adapter Protocol does not specify any arguments for these requests. Instead, the development tool is expected to get information about debugger specific arguments from elsewhere (e.g. contributed by some plugin or extension mechanism) and to build a UI and validation mechanism on top of that. *)
 (*   *\) *)
-(*   | LaunchRequest req when config.launch_mode = `Launch -> *)
-(*       let resp = *)
-(*         let command = RequestMessage.command req in *)
-(*         let body = EmptyObject.make () in *)
-(*         default_response command body *)
-(*       in *)
-(*       (\* let ev = *\) *)
-(*       (\*   let seq = SResp.(next_sequence resp |> seq) in *\) *)
-(*       (\*   let event = Dap_events.process in *\) *)
-(*       (\*   let startMethod = ProcessEvent_body_startMethod.Launch in *\) *)
-(*       (\*   let body = *\) *)
-(*       (\*     ProcessEvent_body.make *\) *)
-(*       (\*       ~name:"TODO PROCESS EVENT NAME e.g. test.tz" *\) *)
-(*       (\*       ~startMethod *\) *)
-(*       (\*       () *\) *)
-(*       (\*   in *\) *)
-(*       (\*   EventMessage.make ~seq ~event ~body () *\) *)
-(*       (\* in *\) *)
 
-(*       let ret = LaunchResponse resp in *)
-(*       Result.ok ret *)
-(*   | LaunchRequest _req when config.launch_mode = `Attach -> *)
-(*       Logs.err (fun m -> *)
-(*           m *)
-(*             "wrong launch mode - config is set to Attach but got a Launch \ *)
-(*              request message") ; *)
-(*       let error = *)
-(*         Message.make *)
-(*           ~id:0 *)
-(*           ~format: *)
-(*             "wrong launch mode - config is set to Attach but got a Launch \ *)
-(*              request message" *)
-(*           () *)
-(*       in *)
-(*       let error = ErrorResponse_body.make ~error () in *)
-(*       Result.error error *)
+module Launch : HANDLER = struct
+
+  type req = (Dap_commands.launch, LaunchRequestArguments.t, RequestMessage.req) request
+  type input = req Dap_flow.t
+
+  type resp = (Dap_commands.launch, EmptyObject.t option, ResponseMessage.opt) response
+  type ev = (Dap_events.process, ProcessEvent_body.t, EventMessage.req) event
+  type output = {
+    response: resp Dap_flow.t;
+    event: ev Dap_flow.t;
+  }
+
+  type backend_channel = Lwt_io.output_channel
+
+  let from_string =
+    let enc = RequestMessage.enc Dap_commands.launch LaunchRequestArguments.enc in
+    fun input ->
+      JsMsg.from_string input
+      |> Result.map (JsMsg.destruct enc)
+      |> Result.map (fun x -> LaunchRequest x)
+      |> Dap_flow.from_result
+
+  let on_launch_request ~config = function
+  | LaunchRequest _req when config.launch_mode = `Launch ->
+      let resp =
+        let command = Dap_commands.launch in
+        let body = EmptyObject.make () in
+        default_response_opt command body
+      in
+      let ret = LaunchResponse resp in
+      Dap_flow.from_response ret
+  | LaunchRequest _req when config.launch_mode = `Attach ->
+    let err = "wrong launch mode - config is set to Attach but got a Launch request message" in
+    Logs.err (fun m -> m "%s" err) ;
+    Dap_flow.from_result @@ Result.error err
+  | _ -> assert false
+
+  let on_launch_response ~config = function
+  | LaunchResponse _resp when config.launch_mode = `Launch ->
+      let ev =
+        let event = Dap_events.process in
+        let startMethod = ProcessEvent_body_startMethod.Launch in
+        let body =
+          ProcessEvent_body.make
+            ~name:"TODO PROCESS EVENT NAME e.g. test.tz"
+            ~startMethod
+            ()
+        in
+        default_event_req event body
+      in
+      let ret = ProcessEvent ev in
+      Dap_flow.from_event ret
+  | _ -> assert false
+
+  let handle ~config req =
+    let open Dap_flow in
+    let response = on_request req (on_launch_request ~config) in
+    let event = on_response response (on_launch_response ~config) in
+    Lwt.return {response; event}
+
+  let to_string =
+    let enc_resp = ResponseMessage.enc_opt Dap_commands.launch EmptyObject.enc in
+    let enc_ev = EventMessage.enc Dap_events.process ProcessEvent_body.enc in
+    fun {response; event} ->
+      match Dap_flow.(to_result response, to_result event) with
+      | Result.Ok (LaunchResponse resp), Result.Ok (ProcessEvent ev) ->
+        let resp = JsMsg.construct enc_resp resp |> JsMsg.to_string in
+        let ev = JsMsg.construct enc_ev ev |> JsMsg.to_string in
+        Result.ok @@ resp^ev
+        |> Lwt.return
+      | Result.Error _, Result.Ok (ProcessEvent _)
+      | Result.Ok (LaunchResponse _), Result.Error _
+      | Result.Error _, Result.Error _ ->
+        failwith "TODO"
+      | _, _ -> assert false
+
+end
+
 (*   | AttachRequest req when config.launch_mode = `Attach -> *)
 (*       let resp = *)
 (*         let command = RequestMessage.command req in *)
