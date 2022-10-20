@@ -10,6 +10,124 @@ let from_request = Result.ok
 let from_response = Result.ok
 let from_event = Result.ok
 
+let to_request (type cmd args presence) :
+  (cmd, args, presence) request ->
+  (cmd, args, presence) RequestMessage.t
+  = function
+  | CancelRequest req -> req
+  | RunInTerminalRequest req -> req
+  | InitializeRequest req -> req
+  | ConfigurationDoneRequest req -> req
+  | LaunchRequest req -> req
+  | AttachRequest req -> req
+  | RestartRequest req -> req
+  | DisconnectRequest req -> req
+  | TerminateRequest req -> req
+  | BreakpointLocationsRequest req -> req
+  | SetBreakpointsRequest req -> req
+  | SetFunctionBreakpointsRequest req -> req
+  | SetExceptionBreakpointsRequest req -> req
+  | DataBreakpointInfoRequest req -> req
+  | SetDataBreakpointsRequest req -> req
+  | SetInstructionBreakpointsRequest req -> req
+  | ContinueRequest req -> req
+  | NextRequest req -> req
+  | StepInRequest req -> req
+  | StepOutRequest req -> req
+  | StepBackRequest req -> req
+  | ReverseContinueRequest req -> req
+  | RestartFrameRequest req -> req
+  | GotoRequest req -> req
+  | PauseRequest req -> req
+  | StackTraceRequest req -> req
+  | ScopesRequest req -> req
+  | VariablesRequest req -> req
+  | SetVariableRequest req -> req
+  | SourceRequest req -> req
+  | ThreadsRequest req -> req
+  | TerminateThreadsRequest req -> req
+  | ModulesRequest req -> req
+  | LoadedSourcesRequest req -> req
+  | EvaluateRequest req -> req
+  | SetExpressionRequest req -> req
+  | StepInTargetsRequest req -> req
+  | GotoTargetsRequest req -> req
+  | CompletionsRequest req -> req
+  | ExceptionInfoRequest req -> req
+  | ReadMemoryRequest req -> req
+  | WriteMemoryRequest req -> req
+  | DisassembleRequest req -> req
+
+let to_response (type cmd body presence) :
+  (cmd, body, presence) response ->
+  (cmd, body, presence) ResponseMessage.t
+  = function
+      | ErrorResponse resp -> resp
+      | CancelResponse resp -> resp
+      | RunInTerminalResponse resp -> resp
+      | InitializeResponse resp -> resp
+      | ConfigurationDoneResponse resp -> resp
+      | LaunchResponse resp -> resp
+      | AttachResponse resp -> resp
+      | RestartResponse resp -> resp
+      | DisconnectResponse resp -> resp
+      | TerminateResponse resp -> resp
+      | BreakpointLocationsResponse resp -> resp
+      | SetBreakpointsResponse resp -> resp
+      | SetFunctionBreakpointsResponse resp -> resp
+      | SetExceptionBreakpointsResponse resp -> resp
+      | DataBreakpointInfoResponse resp -> resp
+      | SetDataBreakpointsResponse resp -> resp
+      | SetInstructionBreakpointsResponse resp -> resp
+      | ContinueResponse resp -> resp
+      | NextResponse resp -> resp
+      | StepInResponse resp -> resp
+      | StepOutResponse resp -> resp
+      | StepBackResponse resp -> resp
+      | ReverseContinueResponse resp -> resp
+      | RestartFrameResponse resp -> resp
+      | GotoResponse resp -> resp
+      | PauseResponse resp -> resp
+      | StackTraceResponse resp -> resp
+      | ScopesResponse resp -> resp
+      | VariablesResponse resp -> resp
+      | SetVariableResponse resp -> resp
+      | SourceResponse resp -> resp
+      | ThreadsResponse resp -> resp
+      | TerminateThreadsResponse resp -> resp
+      | ModulesResponse resp -> resp
+      | LoadedSourcesResponse resp -> resp
+      | EvaluateResponse resp -> resp
+      | SetExpressionResponse resp -> resp
+      | StepInTargetsResponse resp -> resp
+      | GotoTargetsResponse resp -> resp
+      | CompletionsResponse resp -> resp
+      | ExceptionInfoResponse resp -> resp
+      | ReadMemoryResponse resp -> resp
+      | WriteMemoryResponse resp -> resp
+      | DisassembleResponse resp -> resp
+
+let to_event (type ev body presence) :
+  (ev, body, presence) event ->
+  (ev, body, presence) EventMessage.t
+  = function
+    | InitializedEvent ev -> ev
+    | StoppedEvent ev -> ev
+    | ContinuedEvent ev -> ev
+    | ExitedEvent ev -> ev
+    | TerminatedEvent ev -> ev
+    | ThreadEvent ev -> ev
+    | OutputEvent ev -> ev
+    | BreakpointEvent ev -> ev
+    | ModuleEvent ev -> ev
+    | LoadedSourceEvent ev -> ev
+    | ProcessEvent ev -> ev
+    | CapabilitiesEvent ev -> ev
+    | ProgressStartEvent ev -> ev
+    | ProgressUpdateEvent ev -> ev
+    | ProgressEndEvent ev -> ev
+    | InvalidatedEvent ev -> ev
+    | MemoryEvent ev -> ev
 
 module Response = struct
 

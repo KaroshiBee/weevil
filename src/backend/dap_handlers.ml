@@ -127,6 +127,87 @@ module type HANDLER = sig
   val to_string : output -> (string, string) Result.t Lwt.t
 
 end
+
+
+module type REQ_T = sig
+  type ('a,'b,'c) t
+  type command
+  val command : command Dap_commands.t
+  type args
+  type presence
+  val enc : (command, args, presence) t Data_encoding.t
+  val ctor : (command, args, presence) t -> (command, args, presence) request
+  val extract : (command, args, presence) request -> (command, args, presence) t
+end
+
+module type RESP_T = sig
+  type ('a,'b,'c) t
+  type command
+  val command : command Dap_commands.t
+  type body
+  type presence
+  val enc : (command, body, presence) t Data_encoding.t
+  val ctor : (command, body, presence) t -> (command, body, presence) response
+  val extract : (command, body, presence) response -> (command, body, presence) t
+end
+
+module type EV_T = sig
+  type ('a,'b,'c) t
+  type event
+  val event : event Dap_events.t
+  type body
+  type presence
+  val enc : (event, body, presence) t Data_encoding.t
+  val ctor : (event, body, presence) t -> (event, body, presence) Dapper.Dap_message.event
+  val extract : (event, body, presence) Dapper.Dap_message.event -> (event, body, presence) t
+end
+
+module MakeHandlerIncludes
+    (REQ:REQ_T)
+    (RESP:RESP_T with type command = REQ.command)
+    (EV:EV_T)
+    = struct
+
+  type req = (REQ.command, REQ.args, REQ.presence) request
+  type input = req Dap_flow.t
+
+  type resp = (REQ.command, RESP.body, RESP.presence) response
+  type ev = (EV.event, EV.body, EV.presence) event
+
+  type output = {
+    response: resp Dap_flow.t;
+    event: ev Dap_flow.t;
+  }
+
+  type backend_channel = Lwt_io.output_channel
+
+  let from_string =
+    fun input ->
+      JsMsg.from_string input
+      |> Result.map (JsMsg.destruct REQ.enc)
+      |> Result.map (fun x -> REQ.ctor x)
+      |> Dap_flow.from_result
+
+  let to_string =
+    fun {response; event} ->
+      match Dap_flow.(to_result response, to_result event) with
+      | Result.Ok response, Result.Ok event ->
+        let resp = RESP.extract response |> JsMsg.construct RESP.enc |> JsMsg.to_string in
+        let ev = EV.extract event |> JsMsg.construct EV.enc |> JsMsg.to_string in
+        Result.ok @@ resp^ev
+        |> Lwt.return
+
+      | Result.Error _, Result.Ok (InitializedEvent _) ->
+        failwith "TODO - response errored, need to make an error response str from the initial request seq#"
+      | Result.Ok (InitializeResponse _resp), Result.Error _ ->
+        failwith "TODO - response ok, but couldn't raise the event??"
+      | Result.Error _, Result.Error _ ->
+        failwith "TODO - nothing worked"
+      | _, _ -> assert false
+
+end
+
+
 (*
 Previous handler func:
   client:Lwt_io.output Lwt_io.channel ->
@@ -202,26 +283,37 @@ The development tool capabilities are provided in the InitializeRequestArguments
 The debug adapter returns the supported capabilities in the InitializeResponse via the Capabilities type. It is not necessary to return an explicit false for unsupported capabilities.
  *)
 module Initialize : HANDLER = struct
-
-  type req = (Dap_commands.initialize, InitializeRequestArguments.t, RequestMessage.req) request
-  type input = req Dap_flow.t
-
-  type resp = (Dap_commands.initialize, Capabilities.t option, ResponseMessage.opt) response
-  type ev = (Dap_events.initialized, EmptyObject.t option, EventMessage.opt) event
-  type output = {
-    response: resp Dap_flow.t;
-    event: ev Dap_flow.t;
-  }
-
-  type backend_channel = Lwt_io.output_channel
-
-  let from_string =
-    let enc = RequestMessage.enc Dap_commands.initialize InitializeRequestArguments.enc in
-    fun input ->
-      JsMsg.from_string input
-      |> Result.map (JsMsg.destruct enc)
-      |> Result.map (fun x -> InitializeRequest x)
-      |> Dap_flow.from_result
+  include MakeHandlerIncludes
+      (struct
+        type command = Dap_commands.initialize
+        let command = Dap_commands.initialize
+        type args = InitializeRequestArguments.t
+        type presence = RequestMessage.req
+        type ('command, 'args, 'presence) t = ('command, 'args, 'presence) RequestMessage.t
+        let enc = RequestMessage.enc command InitializeRequestArguments.enc
+        let ctor = fun req -> InitializeRequest req
+        let extract = Dap_flow.to_request
+      end)
+      (struct
+        type command = Dap_commands.initialize
+        let command = Dap_commands.initialize
+        type body = Capabilities.t option
+        type presence = ResponseMessage.opt
+        type ('command, 'body, 'presence) t = ('command, 'body, 'presence) ResponseMessage.t
+        let enc = ResponseMessage.enc_opt command Capabilities.enc
+        let ctor = fun resp -> InitializeResponse resp
+        let extract = Dap_flow.to_response
+      end)
+      (struct
+        type event = Dap_events.initialized
+        let event = Dap_events.initialized
+        type body = EmptyObject.t option
+        type presence = EventMessage.opt
+        type ('event, 'body, 'presence) t = ('event, 'body, 'presence) EventMessage.t
+        let enc = EventMessage.enc_opt event EmptyObject.enc
+        let ctor = fun ev -> InitializedEvent ev
+        let extract = Dap_flow.to_event
+      end)
 
   let on_initialize_request ~config:_ = function
       | InitializeRequest req ->
@@ -251,22 +343,6 @@ module Initialize : HANDLER = struct
     let response = on_request req (on_initialize_request ~config) in
     let event = on_response response (on_initialization_response ~config) in
     Lwt.return {response; event}
-
-  let to_string =
-    let enc_resp = ResponseMessage.enc_opt Dap_commands.initialize Capabilities.enc in
-    let enc_ev = EventMessage.enc_opt Dap_events.initialized EmptyObject.enc in
-    fun {response; event} ->
-      match Dap_flow.(to_result response, to_result event) with
-      | Result.Ok (InitializeResponse resp), Result.Ok (InitializedEvent ev) ->
-        let resp = JsMsg.construct enc_resp resp |> JsMsg.to_string in
-        let ev = JsMsg.construct enc_ev ev |> JsMsg.to_string in
-        Result.ok @@ resp^ev
-        |> Lwt.return
-      | Result.Error _, Result.Ok (InitializedEvent _)
-      | Result.Ok (InitializeResponse _), Result.Error _
-      | Result.Error _, Result.Error _ ->
-        failwith "TODO"
-      | _, _ -> assert false
 
 end
 
