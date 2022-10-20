@@ -90,4 +90,5 @@ val runInTerminal : runInTerminal t
 val cancel : cancel t
 val error : error t
 
-val enc : 'a t Data_encoding.t
+val to_string : 'a t -> string
+val enc : command:'a t -> unit Data_encoding.t

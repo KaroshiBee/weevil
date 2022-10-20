@@ -9,7 +9,7 @@ let%expect_test "Check sequencing request/response/event" =
       ~command:Dap_commands.cancel
       ~arguments
       () in
-  let enc = RequestMessage.enc_opt CancelArguments.enc in
+  let enc = RequestMessage.enc_opt ~command:Dap_commands.cancel CancelArguments.enc in
   let s = Js.construct enc cancel |> Js.to_string in
   Printf.printf "%s" s;
   [%expect {|
@@ -39,7 +39,7 @@ let%expect_test "Check sequencing request/response/event" =
   let s =
     match Dap_flow.to_result v with
     | Result.Ok (CancelResponse resp) ->
-      let enc = ResponseMessage.enc_opt Dap_base.EmptyObject.enc in
+      let enc = ResponseMessage.enc_opt ~command:Dap_commands.cancel Dap_base.EmptyObject.enc in
       Js.construct enc resp |> Js.to_string
     | _ -> assert false
   in

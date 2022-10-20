@@ -1,4 +1,4 @@
-open Conduit_lwt_unix
+module Conduit = Conduit_lwt_unix
 open Data_encoding.Json
 open Lwt
 
@@ -180,7 +180,12 @@ let handle_message msg =
         Unknown s
     )
 
-let handle_msg oc msg oc_process =
+let handle_msg :
+  Lwt_io.output Lwt_io.channel ->
+  string ->
+  Lwt_io.output Lwt_io.channel ->
+  unit Lwt.t
+    = fun oc msg oc_process ->
   Logs_lwt.debug (fun m -> m "[DAP] Got msg: '%s'" msg) >>= fun _ ->
   match handle_message msg with
   | InitReq req -> (
@@ -457,8 +462,8 @@ let main_handler ~mode ~content_length (process_full:Lwt_process.process_full) =
   let p = process_full in
 
   let dap_svc =
-    init () >>= fun ctx ->
-    serve ~on_exn ~ctx ~mode (dap_handler ~content_length ~oc_process:p#stdin)
+    Conduit.init () >>= fun ctx ->
+    Conduit.serve ~on_exn ~ctx ~mode (dap_handler ~content_length ~oc_process:p#stdin)
   in
 
   let step_svc =

@@ -7,7 +7,7 @@ type opt
 type ('cmd, 'args, 'presence) t = {
   seq : int;
   type_ : ProtocolMessage_type.t;
-  command : 'cmd Dap_commands.t;
+  command : unit; (* 'cmd Dap_commands.t; *)
   arguments : 'args;
 }
 
@@ -15,11 +15,11 @@ let seq t = t.seq
 
 let message t = t.type_
 
-let command t = t.command
+(* let command t = t.command *)
 
 let arguments t = t.arguments
 
-let enc args =
+let enc ~command args =
   let open Data_encoding in
   conv
     (fun {seq; type_; command; arguments} -> (seq, type_, command, arguments))
@@ -27,10 +27,10 @@ let enc args =
     (obj4
        (req "seq" int31)
        (req "type" ProtocolMessage_type.enc)
-       (req "command" Dap_commands.enc)
+       (req "command" @@ Dap_commands.enc ~command)
        (req "arguments" args))
 
-let enc_opt args =
+let enc_opt ~command args =
   let open Data_encoding in
   conv
     (fun {seq; type_; command; arguments} -> (seq, type_, command, arguments))
@@ -38,13 +38,13 @@ let enc_opt args =
     (obj4
        (req "seq" int31)
        (req "type" ProtocolMessage_type.enc)
-       (req "command" Dap_commands.enc)
+       (req "command" @@ Dap_commands.enc ~command)
        (opt "arguments" args))
 
-let make ~seq ~command ~arguments () =
+let make ~seq ~command:_ ~arguments () =
   let type_ = ProtocolMessage_type.Request in
-  {seq; type_; command; arguments}
+  {seq; type_; command=(); arguments}
 
-let make_opt ~seq ~command ?arguments () =
+let make_opt ~seq ~command:_ ?arguments () =
   let type_ = ProtocolMessage_type.Request in
-  {seq; type_; command; arguments}
+  {seq; type_; command=(); arguments}

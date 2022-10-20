@@ -1,6 +1,6 @@
 (library
  (name backend)
- (libraries dapper lwt data-encoding cmdliner logs ppx_expect str)
+ (libraries dapper lwt conduit-lwt-unix data-encoding cmdliner logs ppx_expect str)
  (inline_tests (deps (glob_files data/*.json)))
-  (preprocess (pps ppx_deriving.show ppx_expect))
+  (preprocess (pps lwt_ppx ppx_deriving.show ppx_expect))
 )

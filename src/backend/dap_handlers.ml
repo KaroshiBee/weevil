@@ -1,10 +1,19 @@
 open Dapper.Dap_message
 module Js = Data_encoding.Json
+module Q = Json_query
+
 module Dap_commands = Dapper.Dap_commands
 module Dap_events = Dapper.Dap_events
 module Dap_flow = Dapper.Dap_flow
 
-module JsMsg = struct
+module JsMsg : sig
+  type t = Js.json
+  exception Wrong_encoder of string
+  val from_string : string -> (t, string) Result.t
+  val to_string : t -> string
+  val construct : 'a Data_encoding.t -> 'a -> t
+  val destruct : 'a Data_encoding.t -> t -> 'a
+end = struct
 
   let _HEADER_FIELD = "Content-Length: "
   let _HEADER_TOKEN = "\r\n\r\n"
@@ -24,26 +33,29 @@ module JsMsg = struct
     let n = String.length s in
     Printf.sprintf "%s%d%s%s" _HEADER_FIELD n _HEADER_TOKEN s
 
+  exception Wrong_encoder of string
+
+  let construct enc i =
+    try
+      Js.construct enc i
+    with _ as e ->
+      let s = Printf.sprintf "cannnot construct: %s" (Printexc.to_string e) in
+      raise @@ Wrong_encoder s
+
+  let destruct enc i =
+    try
+      Js.destruct enc i
+    with
+    | Js.Cannot_destruct (pth, Js.Unexpected(typestr, value)) ->
+      let s = Printf.sprintf "cannot destruct @ %s, expected '%s':%s"
+          (Q.json_pointer_of_path pth) value typestr in
+      raise @@ Wrong_encoder s
+
+    | _ as e ->
+      let s = Printf.sprintf "cannnot destruct: %s" (Printexc.to_string e) in
+      raise @@ Wrong_encoder s
+
 end
-
-(* let destruct_request t msg = *)
-(*     match JS.from_string msg with *)
-(*     | Ok js -> ( *)
-(*         try *)
-(*           Ok (JS.destruct Request.enc t.request js) *)
-(*         with _ as err -> *)
-(*           Logs.err (fun m -> m "Cannot parse json '%s' as request: '%s'" msg @@ Printexc.to_string err); *)
-(*           Error (Printexc.to_string err) *)
-(*       ) *)
-(*     | Error err -> *)
-(*       Logs.err (fun m -> m "Cannot parse json '%s': '%s'" msg err); *)
-(*       (\* TODO should return an error response *\) *)
-(*       Error err *)
-
-(* let construct_response t response = *)
-(*   let r = Response.incr response in *)
-(*   JS.construct t.response r |> wrap_header *)
-(* end *)
 
 type launch_mode = [`Launch | `Attach | `AttachForSuspendedLaunch]
 
@@ -78,11 +90,21 @@ module type HANDLER = sig
   type input
   type output
 
-  val from_string : string -> input
-  val to_string : output -> (string, string) Result.t
-  val handle : config:config -> input -> output
-end
+  type frontend_channel
+  type backend_channel
 
+  val from_string : string -> input
+  val to_string : output -> (string, string) Result.t Lwt.t
+  val handle : config:config -> input -> output Lwt.t
+
+end
+(*
+Previous handler func:
+  client:Lwt_io.output Lwt_io.channel ->
+  msg:string ->
+  backend:Lwt_io.output Lwt_io.channel ->
+  unit Lwt.t
+*)
 module Cancel : HANDLER = struct
 
   type req = (Dap_commands.cancel, CancelArguments.t option, RequestMessage.opt) request
@@ -91,10 +113,13 @@ module Cancel : HANDLER = struct
   type resp = (Dap_commands.cancel, EmptyObject.t option, ResponseMessage.opt) response
   type output = resp Dap_flow.t
 
+  type frontend_channel = Lwt_io.output_channel
+  type backend_channel = Lwt_io.output_channel
+
   let on_cancel_request ~config:_ = function
-    | CancelRequest req ->
+    | CancelRequest _req ->
       let resp =
-        let command = RequestMessage.command req in
+        let command = Dap_commands.cancel in
         let body = EmptyObject.make () in
         default_response command body
       in
@@ -103,24 +128,30 @@ module Cancel : HANDLER = struct
     | _ -> assert false
 
   let from_string =
-    let enc = RequestMessage.enc_opt CancelArguments.enc in
+    let enc = RequestMessage.enc_opt ~command:Dap_commands.cancel CancelArguments.enc in
     fun input ->
       JsMsg.from_string input
-      |> Result.map (Js.destruct enc)
+      |> Result.map (JsMsg.destruct enc)
       |> Result.map (fun x -> CancelRequest x)
       |> Dap_flow.from_result
 
   let to_string =
-    let enc = ResponseMessage.enc_opt EmptyObject.enc in
+    let enc = ResponseMessage.enc_opt ~command:Dap_commands.cancel EmptyObject.enc in
     fun output ->
       match Dap_flow.to_result output with
       | Result.Ok (CancelResponse resp) ->
-        Js.construct enc resp |> JsMsg.to_string |> Result.ok
-      | Result.Error _ as err -> err
+        (* TODO cancel the backend svc *)
+        JsMsg.construct enc resp
+        |> JsMsg.to_string
+        |> Result.ok
+        |> Lwt.return
+
+      | Result.Error _ as err -> Lwt.return err
       | _ -> assert false
 
   let handle ~config cancel =
     Dap_flow.on_request cancel (on_cancel_request ~config)
+    |> Lwt.return
 
 end
 
@@ -154,23 +185,28 @@ module Initialize : HANDLER = struct
     event: ev Dap_flow.t;
   }
 
+  type frontend_channel = Lwt_io.output_channel
+  type backend_channel = Lwt_io.output_channel
+
   let from_string =
-    let enc = RequestMessage.enc InitializeRequestArguments.enc in
+    let enc = RequestMessage.enc ~command:Dap_commands.initialize InitializeRequestArguments.enc in
     fun input ->
       JsMsg.from_string input
-      |> Result.map (Js.destruct enc)
+      |> Result.map (JsMsg.destruct enc)
       |> Result.map (fun x -> InitializeRequest x)
       |> Dap_flow.from_result
 
   let to_string =
-    let enc_resp = ResponseMessage.enc_opt Capabilities.enc in
+    let enc_resp = ResponseMessage.enc_opt ~command:Dap_commands.initialize Capabilities.enc in
     let enc_ev = EventMessage.enc_opt EmptyObject.enc in
     fun {response; event} ->
       match Dap_flow.(to_result response, to_result event) with
       | Result.Ok (InitializeResponse resp), Result.Ok (InitializedEvent ev) ->
-        let resp = Js.construct enc_resp resp |> JsMsg.to_string in
-        let ev = Js.construct enc_ev ev |> JsMsg.to_string in
+        let resp = JsMsg.construct enc_resp resp |> JsMsg.to_string in
+        let ev = JsMsg.construct enc_ev ev |> JsMsg.to_string in
         Result.ok @@ resp^ev
+        |> Lwt.return
+
       | _, _ -> failwith "TODO"
 
   let on_initialize_request :
@@ -178,9 +214,9 @@ module Initialize : HANDLER = struct
     (Dap_commands.initialize, _, _) request ->
     (Dap_commands.initialize, _, _) response Dap_flow.t
     = fun ~config:_ -> function
-      | InitializeRequest req ->
+      | InitializeRequest _req ->
         let resp =
-          let command = RequestMessage.command req in
+          let command = Dap_commands.initialize in
           (* TODO hardcode capabilities or pull in from config *)
           let body = Capabilities.make () in
           default_response command body
@@ -208,7 +244,7 @@ module Initialize : HANDLER = struct
     let open Dap_flow in
     let response = on_request init (on_initialize_request ~config) in
     let event = on_response response (on_initialization_response ~config) in
-    {response; event}
+    Lwt.return {response; event}
 
 end
 
@@ -217,9 +253,9 @@ let on_configurationDone_request :
   (Dap_commands.configurationDone, _, _) request ->
   (Dap_commands.configurationDone, _, _) response Dap_flow.t
   = fun ~config:_ -> function
-  | ConfigurationDoneRequest req ->
+  | ConfigurationDoneRequest _req ->
       let resp =
-        let command = RequestMessage.command req in
+        let command = Dap_commands.configurationDone in
         let body = EmptyObject.make () in
         default_response command body
       in
@@ -363,3 +399,38 @@ let on_configurationDone ~config req =
 (*       Result.ok ret *)
 (*   | _ -> failwith "TODO: every request should have a response" *)
 
+module type MAKE_HANDLER = sig
+  type input
+  type output
+  type t
+  val make : t
+  val handle : t -> config:config -> string -> string Lwt.t
+end
+
+module Handler (H:HANDLER) : (MAKE_HANDLER with type input := H.input and type output := H.output) = struct
+
+  type t = {
+    from_string : string -> H.input;
+    to_string : H.output -> (string, string) Result.t Lwt.t ;
+    handle : config:config -> H.input -> H.output Lwt.t;
+  }
+
+  let make = {
+    from_string = H.from_string;
+    to_string = H.to_string;
+    handle = H.handle;
+  }
+
+  let handle t ~config s =
+    let open Lwt in
+    t.from_string s
+    |> t.handle ~config
+    >>= t.to_string
+    >>= function
+    | Result.Ok msg ->
+      Lwt.return msg
+    | Result.Error err ->
+      Lwt.return err
+
+
+end
