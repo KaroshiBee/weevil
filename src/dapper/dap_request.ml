@@ -15,7 +15,7 @@ let seq t = t.seq
 
 let message t = t.type_
 
-(* let command t = t.command *)
+let command t = t.command
 
 let arguments t = t.arguments
 
