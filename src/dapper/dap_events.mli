@@ -36,4 +36,8 @@ val continued : continued t
 val stopped : stopped t
 val initialized : initialized t
 
-val enc : 'a t Data_encoding.t
+val to_string : 'a t -> string
+
+val from_string : string -> 'a t
+
+val enc : value:'a t -> unit Data_encoding.t

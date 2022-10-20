@@ -87,11 +87,12 @@ module RenderEnumWithPhantoms : (RenderT with type spec := Sp.Enum_spec.t) = str
     let func_str reversed =
       let lns = t.enums |> List.map (fun (e:Sp.Enum_spec.enum_val) ->
           let u = e.safe_name |> String.capitalize_ascii in
+          let l = e.safe_name |> String.uncapitalize_ascii in
           let d = e.dirty_name in
           if not reversed then
-            Printf.sprintf "| (%s : _ t) -> \"%s\"" u d
+            Printf.sprintf "| (%s : %s t) -> \"%s\"" u l d
           else
-            Printf.sprintf "| \"%s\" -> (%s : _ t)" d u
+            Printf.sprintf "| \"%s\" -> (%s : %s t)" d u l
         ) |> String.concat "\n"
       in
       let lns = if reversed then
@@ -104,15 +105,15 @@ module RenderEnumWithPhantoms : (RenderT with type spec := Sp.Enum_spec.t) = str
 
 
     let f_str =
-      Printf.sprintf "let f (type a) : a t -> string = function %s" @@ func_str false
+      Printf.sprintf "let to_string (type a) : a t -> string = function %s" @@ func_str false
     in
 
     let g_str =
-      Printf.sprintf "let g (type a) : string -> a t = function %s" @@ func_str true
+      Printf.sprintf "let from_string (type a) : string -> a t = function %s" @@ func_str true
     in
 
     let enc_str =
-      "let enc = Data_encoding.conv f g Data_encoding.string\n\n"
+      "let enc ~value = Data_encoding.constant (to_string value)"
     in
     [t_str; types_str; ctors_str; f_str; g_str; enc_str; ] |> String.concat "\n\n"
 
@@ -135,10 +136,15 @@ module RenderEnumWithPhantoms : (RenderT with type spec := Sp.Enum_spec.t) = str
         ) |> String.concat "\n"
     in
 
-    let enc_str =
-      "val enc : 'a t Data_encoding.t"
+    let funcs_str =
+      "val to_string : 'a t -> string\n\nval from_string : string -> 'a t"
     in
-    [types_str; ctors_str; enc_str; ] |> String.concat "\n\n"
+
+    let enc_str =
+      "val enc : value:'a t -> unit Data_encoding.t"
+    in
+
+    [types_str; ctors_str; funcs_str; enc_str; ] |> String.concat "\n\n"
 
 
   let render (t:t) ~name =

@@ -22,10 +22,10 @@ val message : ('cmd, 'body, 'presence) t -> string option
 
 val body : ('cmd, 'body, 'presence) t -> 'body
 
-val enc : command:'cmd Dap_commands.t -> 'body Data_encoding.t -> ('cmd, 'body, req) t Data_encoding.t
+val enc : 'cmd Dap_commands.t -> 'body Data_encoding.t -> ('cmd, 'body, req) t Data_encoding.t
 
 val enc_opt :
-  command:'cmd Dap_commands.t -> 'body Data_encoding.t -> ('cmd, 'body option, opt) t Data_encoding.t
+  'cmd Dap_commands.t -> 'body Data_encoding.t -> ('cmd, 'body option, opt) t Data_encoding.t
 
 val make :
   seq:int ->

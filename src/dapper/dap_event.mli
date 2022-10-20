@@ -9,14 +9,14 @@ val set_seq :
 
 val type_ : ('event, 'body, 'presence) t -> Dap_base.ProtocolMessage_type.t
 
-val event : ('event, 'body, 'presence) t -> 'event Dap_events.t
+(* val event : ('event, 'body, 'presence) t -> 'event Dap_events.t *)
 
 val body : ('event, 'body, 'presence) t -> 'body
 
-val enc : 'body Data_encoding.t -> ('event, 'body, req) t Data_encoding.t
+val enc : 'event Dap_events.t -> 'body Data_encoding.t -> ('event, 'body, req) t Data_encoding.t
 
 val enc_opt :
-  'body Data_encoding.t -> ('event, 'body option, opt) t Data_encoding.t
+  'event Dap_events.t -> 'body Data_encoding.t -> ('event, 'body option, opt) t Data_encoding.t
 
 val make :
   seq:int ->

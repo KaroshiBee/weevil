@@ -32,7 +32,7 @@ let message t = t.message
 
 let body t = t.body
 
-let enc ~command body =
+let enc command body =
   let open Data_encoding in
   conv
     (fun {seq; type_; request_seq; success; command; message; body} ->
@@ -44,11 +44,11 @@ let enc ~command body =
        (req "type" ProtocolMessage_type.enc)
        (req "request_seq" int31)
        (req "success" bool)
-       (req "command" @@ Dap_commands.enc ~command)
+       (req "command" @@ Dap_commands.enc ~value:command)
        (opt "message" string)
        (req "body" body))
 
-let enc_opt ~command body =
+let enc_opt command body =
   let open Data_encoding in
   conv
     (fun {seq; type_; request_seq; success; command; message; body} ->
@@ -60,7 +60,7 @@ let enc_opt ~command body =
        (req "type" ProtocolMessage_type.enc)
        (req "request_seq" int31)
        (req "success" bool)
-       (req "command" @@ Dap_commands.enc ~command)
+       (req "command" @@ Dap_commands.enc ~value:command)
        (opt "message" string)
        (opt "body" body))
 

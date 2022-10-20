@@ -128,7 +128,7 @@ module Cancel : HANDLER = struct
     | _ -> assert false
 
   let from_string =
-    let enc = RequestMessage.enc_opt ~command:Dap_commands.cancel CancelArguments.enc in
+    let enc = RequestMessage.enc_opt Dap_commands.cancel CancelArguments.enc in
     fun input ->
       JsMsg.from_string input
       |> Result.map (JsMsg.destruct enc)
@@ -136,7 +136,7 @@ module Cancel : HANDLER = struct
       |> Dap_flow.from_result
 
   let to_string =
-    let enc = ResponseMessage.enc_opt ~command:Dap_commands.cancel EmptyObject.enc in
+    let enc = ResponseMessage.enc_opt Dap_commands.cancel EmptyObject.enc in
     fun output ->
       match Dap_flow.to_result output with
       | Result.Ok (CancelResponse resp) ->
@@ -189,7 +189,7 @@ module Initialize : HANDLER = struct
   type backend_channel = Lwt_io.output_channel
 
   let from_string =
-    let enc = RequestMessage.enc ~command:Dap_commands.initialize InitializeRequestArguments.enc in
+    let enc = RequestMessage.enc Dap_commands.initialize InitializeRequestArguments.enc in
     fun input ->
       JsMsg.from_string input
       |> Result.map (JsMsg.destruct enc)
@@ -197,8 +197,8 @@ module Initialize : HANDLER = struct
       |> Dap_flow.from_result
 
   let to_string =
-    let enc_resp = ResponseMessage.enc_opt ~command:Dap_commands.initialize Capabilities.enc in
-    let enc_ev = EventMessage.enc_opt EmptyObject.enc in
+    let enc_resp = ResponseMessage.enc_opt Dap_commands.initialize Capabilities.enc in
+    let enc_ev = EventMessage.enc_opt Dap_events.initialized EmptyObject.enc in
     fun {response; event} ->
       match Dap_flow.(to_result response, to_result event) with
       | Result.Ok (InitializeResponse resp), Result.Ok (InitializedEvent ev) ->

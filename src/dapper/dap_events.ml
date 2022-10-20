@@ -39,42 +39,41 @@ let continued : continued t = Continued
 let stopped : stopped t = Stopped
 let initialized : initialized t = Initialized
 
-let f (type a) : a t -> string = function | (Memory : _ t) -> "memory"
-| (Invalidated : _ t) -> "invalidated"
-| (ProgressEnd : _ t) -> "progressEnd"
-| (ProgressUpdate : _ t) -> "progressUpdate"
-| (ProgressStart : _ t) -> "progressStart"
-| (Capabilities : _ t) -> "capabilities"
-| (Process : _ t) -> "process"
-| (LoadedSource : _ t) -> "loadedSource"
-| (Module_ : _ t) -> "module"
-| (Breakpoint : _ t) -> "breakpoint"
-| (Output : _ t) -> "output"
-| (Thread : _ t) -> "thread"
-| (Terminated : _ t) -> "terminated"
-| (Exited : _ t) -> "exited"
-| (Continued : _ t) -> "continued"
-| (Stopped : _ t) -> "stopped"
-| (Initialized : _ t) -> "initialized"
+let to_string (type a) : a t -> string = function | (Memory : memory t) -> "memory"
+| (Invalidated : invalidated t) -> "invalidated"
+| (ProgressEnd : progressEnd t) -> "progressEnd"
+| (ProgressUpdate : progressUpdate t) -> "progressUpdate"
+| (ProgressStart : progressStart t) -> "progressStart"
+| (Capabilities : capabilities t) -> "capabilities"
+| (Process : process t) -> "process"
+| (LoadedSource : loadedSource t) -> "loadedSource"
+| (Module_ : module_ t) -> "module"
+| (Breakpoint : breakpoint t) -> "breakpoint"
+| (Output : output t) -> "output"
+| (Thread : thread t) -> "thread"
+| (Terminated : terminated t) -> "terminated"
+| (Exited : exited t) -> "exited"
+| (Continued : continued t) -> "continued"
+| (Stopped : stopped t) -> "stopped"
+| (Initialized : initialized t) -> "initialized"
 
-let g (type a) : string -> a t = function | "memory" -> (Memory : _ t)
-| "invalidated" -> (Invalidated : _ t)
-| "progressEnd" -> (ProgressEnd : _ t)
-| "progressUpdate" -> (ProgressUpdate : _ t)
-| "progressStart" -> (ProgressStart : _ t)
-| "capabilities" -> (Capabilities : _ t)
-| "process" -> (Process : _ t)
-| "loadedSource" -> (LoadedSource : _ t)
-| "module" -> (Module_ : _ t)
-| "breakpoint" -> (Breakpoint : _ t)
-| "output" -> (Output : _ t)
-| "thread" -> (Thread : _ t)
-| "terminated" -> (Terminated : _ t)
-| "exited" -> (Exited : _ t)
-| "continued" -> (Continued : _ t)
-| "stopped" -> (Stopped : _ t)
-| "initialized" -> (Initialized : _ t)| _ -> failwith "Dap_events"
+let from_string (type a) : string -> a t = function | "memory" -> (Memory : memory t)
+| "invalidated" -> (Invalidated : invalidated t)
+| "progressEnd" -> (ProgressEnd : progressEnd t)
+| "progressUpdate" -> (ProgressUpdate : progressUpdate t)
+| "progressStart" -> (ProgressStart : progressStart t)
+| "capabilities" -> (Capabilities : capabilities t)
+| "process" -> (Process : process t)
+| "loadedSource" -> (LoadedSource : loadedSource t)
+| "module" -> (Module_ : module_ t)
+| "breakpoint" -> (Breakpoint : breakpoint t)
+| "output" -> (Output : output t)
+| "thread" -> (Thread : thread t)
+| "terminated" -> (Terminated : terminated t)
+| "exited" -> (Exited : exited t)
+| "continued" -> (Continued : continued t)
+| "stopped" -> (Stopped : stopped t)
+| "initialized" -> (Initialized : initialized t)| _ -> failwith "Dap_events"
 
 
-let enc = Data_encoding.conv f g Data_encoding.string
-
+let enc ~value = Data_encoding.constant (to_string value)

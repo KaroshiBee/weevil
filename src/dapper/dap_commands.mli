@@ -91,4 +91,7 @@ val cancel : cancel t
 val error : error t
 
 val to_string : 'a t -> string
-val enc : command:'a t -> unit Data_encoding.t
+
+val from_string : string -> 'a t
+
+val enc : value:'a t -> unit Data_encoding.t

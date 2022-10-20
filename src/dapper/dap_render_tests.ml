@@ -17,14 +17,14 @@ let%expect_test "Check phantoms (command and event) example" =
     let cancel : cancel t = Cancel
     let error : error t = Error
 
-    let f (type a) : a t -> string = function | (Cancel : _ t) -> "cancel"
-    | (Error : _ t) -> "error"
+    let to_string (type a) : a t -> string = function | (Cancel : cancel t) -> "cancel"
+    | (Error : error t) -> "error"
 
-    let g (type a) : string -> a t = function | "cancel" -> (Cancel : _ t)
-    | "error" -> (Error : _ t)| _ -> failwith "Dap_commands"
+    let from_string (type a) : string -> a t = function | "cancel" -> (Cancel : cancel t)
+    | "error" -> (Error : error t)| _ -> failwith "Dap_commands"
 
 
-    let enc = Data_encoding.conv f g Data_encoding.string |}];
+    let enc ~value = Data_encoding.constant (to_string value) |}];
 
   let actual = render dfs @@ Commands MLI in
   Printf.printf "%s" actual;
@@ -37,7 +37,11 @@ let%expect_test "Check phantoms (command and event) example" =
     val cancel : cancel t
     val error : error t
 
-    val enc : 'a t Data_encoding.t |}];
+    val to_string : 'a t -> string
+
+    val from_string : string -> 'a t
+
+    val enc : value:'a t -> unit Data_encoding.t |}];
 
   let actual = render dfs @@ Events ML in
   Printf.printf "%s" actual;
@@ -59,20 +63,20 @@ let%expect_test "Check phantoms (command and event) example" =
     let stopped : stopped t = Stopped
     let initialized : initialized t = Initialized
 
-    let f (type a) : a t -> string = function | (Terminated : _ t) -> "terminated"
-    | (Exited : _ t) -> "exited"
-    | (Continued : _ t) -> "continued"
-    | (Stopped : _ t) -> "stopped"
-    | (Initialized : _ t) -> "initialized"
+    let to_string (type a) : a t -> string = function | (Terminated : terminated t) -> "terminated"
+    | (Exited : exited t) -> "exited"
+    | (Continued : continued t) -> "continued"
+    | (Stopped : stopped t) -> "stopped"
+    | (Initialized : initialized t) -> "initialized"
 
-    let g (type a) : string -> a t = function | "terminated" -> (Terminated : _ t)
-    | "exited" -> (Exited : _ t)
-    | "continued" -> (Continued : _ t)
-    | "stopped" -> (Stopped : _ t)
-    | "initialized" -> (Initialized : _ t)| _ -> failwith "Dap_events"
+    let from_string (type a) : string -> a t = function | "terminated" -> (Terminated : terminated t)
+    | "exited" -> (Exited : exited t)
+    | "continued" -> (Continued : continued t)
+    | "stopped" -> (Stopped : stopped t)
+    | "initialized" -> (Initialized : initialized t)| _ -> failwith "Dap_events"
 
 
-    let enc = Data_encoding.conv f g Data_encoding.string |}];
+    let enc ~value = Data_encoding.constant (to_string value) |}];
 
   let actual = render dfs @@ Events MLI in
   Printf.printf "%s" actual;
@@ -91,7 +95,11 @@ let%expect_test "Check phantoms (command and event) example" =
     val stopped : stopped t
     val initialized : initialized t
 
-    val enc : 'a t Data_encoding.t |}]
+    val to_string : 'a t -> string
+
+    val from_string : string -> 'a t
+
+    val enc : value:'a t -> unit Data_encoding.t |}]
 
 let%expect_test "Check ErrorResponse example" =
   let schema_js = Ezjsonm.from_channel @@ open_in "data/errorResponse.json" in

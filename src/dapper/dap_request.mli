@@ -10,10 +10,10 @@ val message : ('cmd, 'args, 'presence) t -> Dap_base.ProtocolMessage_type.t
 
 val arguments : ('cmd, 'args, 'presence) t -> 'args
 
-val enc : command:'cmd Dap_commands.t -> 'args Data_encoding.t -> ('cmd, 'args, req) t Data_encoding.t
+val enc : 'cmd Dap_commands.t -> 'args Data_encoding.t -> ('cmd, 'args, req) t Data_encoding.t
 
 val enc_opt :
-  command:'cmd Dap_commands.t -> 'args Data_encoding.t -> ('cmd, 'args option, opt) t Data_encoding.t
+  'cmd Dap_commands.t -> 'args Data_encoding.t -> ('cmd, 'args option, opt) t Data_encoding.t
 
 val make :
   seq:int ->

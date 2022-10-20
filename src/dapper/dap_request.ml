@@ -19,7 +19,7 @@ let message t = t.type_
 
 let arguments t = t.arguments
 
-let enc ~command args =
+let enc command args =
   let open Data_encoding in
   conv
     (fun {seq; type_; command; arguments} -> (seq, type_, command, arguments))
@@ -27,10 +27,10 @@ let enc ~command args =
     (obj4
        (req "seq" int31)
        (req "type" ProtocolMessage_type.enc)
-       (req "command" @@ Dap_commands.enc ~command)
+       (req "command" @@ Dap_commands.enc ~value:command)
        (req "arguments" args))
 
-let enc_opt ~command args =
+let enc_opt command args =
   let open Data_encoding in
   conv
     (fun {seq; type_; command; arguments} -> (seq, type_, command, arguments))
@@ -38,7 +38,7 @@ let enc_opt ~command args =
     (obj4
        (req "seq" int31)
        (req "type" ProtocolMessage_type.enc)
-       (req "command" @@ Dap_commands.enc ~command)
+       (req "command" @@ Dap_commands.enc ~value:command)
        (opt "arguments" args))
 
 let make ~seq ~command:_ ~arguments () =

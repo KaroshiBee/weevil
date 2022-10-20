@@ -93,8 +93,7 @@ let runInTerminal : runInTerminal t = RunInTerminal
 let cancel : cancel t = Cancel
 let error : error t = Error
 
-let to_string (type a) : a t -> string = function
-| (Disassemble : disassemble t) -> "disassemble"
+let to_string (type a) : a t -> string = function | (Disassemble : disassemble t) -> "disassemble"
 | (WriteMemory : writeMemory t) -> "writeMemory"
 | (ReadMemory : readMemory t) -> "readMemory"
 | (ExceptionInfo : exceptionInfo t) -> "exceptionInfo"
@@ -139,4 +138,50 @@ let to_string (type a) : a t -> string = function
 | (Cancel : cancel t) -> "cancel"
 | (Error : error t) -> "error"
 
-let enc ~command = Data_encoding.constant (to_string command)
+let from_string (type a) : string -> a t = function | "disassemble" -> (Disassemble : disassemble t)
+| "writeMemory" -> (WriteMemory : writeMemory t)
+| "readMemory" -> (ReadMemory : readMemory t)
+| "exceptionInfo" -> (ExceptionInfo : exceptionInfo t)
+| "completions" -> (Completions : completions t)
+| "gotoTargets" -> (GotoTargets : gotoTargets t)
+| "stepInTargets" -> (StepInTargets : stepInTargets t)
+| "setExpression" -> (SetExpression : setExpression t)
+| "evaluate" -> (Evaluate : evaluate t)
+| "loadedSources" -> (LoadedSources : loadedSources t)
+| "modules" -> (Modules : modules t)
+| "terminateThreads" -> (TerminateThreads : terminateThreads t)
+| "threads" -> (Threads : threads t)
+| "source" -> (Source : source t)
+| "setVariable" -> (SetVariable : setVariable t)
+| "variables" -> (Variables : variables t)
+| "scopes" -> (Scopes : scopes t)
+| "stackTrace" -> (StackTrace : stackTrace t)
+| "pause" -> (Pause : pause t)
+| "goto" -> (Goto : goto t)
+| "restartFrame" -> (RestartFrame : restartFrame t)
+| "reverseContinue" -> (ReverseContinue : reverseContinue t)
+| "stepBack" -> (StepBack : stepBack t)
+| "stepOut" -> (StepOut : stepOut t)
+| "stepIn" -> (StepIn : stepIn t)
+| "next" -> (Next : next t)
+| "continue" -> (Continue : continue t)
+| "setInstructionBreakpoints" -> (SetInstructionBreakpoints : setInstructionBreakpoints t)
+| "setDataBreakpoints" -> (SetDataBreakpoints : setDataBreakpoints t)
+| "dataBreakpointInfo" -> (DataBreakpointInfo : dataBreakpointInfo t)
+| "setExceptionBreakpoints" -> (SetExceptionBreakpoints : setExceptionBreakpoints t)
+| "setFunctionBreakpoints" -> (SetFunctionBreakpoints : setFunctionBreakpoints t)
+| "setBreakpoints" -> (SetBreakpoints : setBreakpoints t)
+| "breakpointLocations" -> (BreakpointLocations : breakpointLocations t)
+| "terminate" -> (Terminate : terminate t)
+| "disconnect" -> (Disconnect : disconnect t)
+| "restart" -> (Restart : restart t)
+| "attach" -> (Attach : attach t)
+| "launch" -> (Launch : launch t)
+| "configurationDone" -> (ConfigurationDone : configurationDone t)
+| "initialize" -> (Initialize : initialize t)
+| "runInTerminal" -> (RunInTerminal : runInTerminal t)
+| "cancel" -> (Cancel : cancel t)
+| "error" -> (Error : error t)| _ -> failwith "Dap_commands"
+
+
+let enc ~value = Data_encoding.constant (to_string value)
