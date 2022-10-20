@@ -130,7 +130,7 @@ end
 
 
 module type REQ_T = sig
-  type ('a,'b,'c) t
+  type ('command, 'args, 'presence) t
   type command
   val command : command Dap_commands.t
   type args
@@ -141,7 +141,7 @@ module type REQ_T = sig
 end
 
 module type RESP_T = sig
-  type ('a,'b,'c) t
+  type ('command, 'body, 'presence) t
   type command
   val command : command Dap_commands.t
   type body
@@ -152,7 +152,7 @@ module type RESP_T = sig
 end
 
 module type EV_T = sig
-  type ('a,'b,'c) t
+  type ('event, 'body, 'presence) t
   type event
   val event : event Dap_events.t
   type body
@@ -285,31 +285,31 @@ The debug adapter returns the supported capabilities in the InitializeResponse v
 module Initialize : HANDLER = struct
   include MakeHandlerIncludes
       (struct
+        type ('command, 'args, 'presence) t = ('command, 'args, 'presence) RequestMessage.t
         type command = Dap_commands.initialize
         let command = Dap_commands.initialize
         type args = InitializeRequestArguments.t
         type presence = RequestMessage.req
-        type ('command, 'args, 'presence) t = ('command, 'args, 'presence) RequestMessage.t
         let enc = RequestMessage.enc command InitializeRequestArguments.enc
         let ctor = fun req -> InitializeRequest req
         let extract = Dap_flow.to_request
       end)
       (struct
+        type ('command, 'body, 'presence) t = ('command, 'body, 'presence) ResponseMessage.t
         type command = Dap_commands.initialize
         let command = Dap_commands.initialize
         type body = Capabilities.t option
         type presence = ResponseMessage.opt
-        type ('command, 'body, 'presence) t = ('command, 'body, 'presence) ResponseMessage.t
         let enc = ResponseMessage.enc_opt command Capabilities.enc
         let ctor = fun resp -> InitializeResponse resp
         let extract = Dap_flow.to_response
       end)
       (struct
+        type ('event, 'body, 'presence) t = ('event, 'body, 'presence) EventMessage.t
         type event = Dap_events.initialized
         let event = Dap_events.initialized
         type body = EmptyObject.t option
         type presence = EventMessage.opt
-        type ('event, 'body, 'presence) t = ('event, 'body, 'presence) EventMessage.t
         let enc = EventMessage.enc_opt event EmptyObject.enc
         let ctor = fun ev -> InitializedEvent ev
         let extract = Dap_flow.to_event
