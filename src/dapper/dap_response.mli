@@ -16,7 +16,7 @@ val set_request_seq :
 
 val success : ('cmd, 'body, 'presence) t -> bool
 
-(* val command : ('cmd, 'body, 'presence) t -> 'cmd Dap_commands.t *)
+val command : ('cmd, 'body, 'presence) t -> 'cmd Dap_commands.t
 
 val message : ('cmd, 'body, 'presence) t -> string option
 

@@ -7,7 +7,7 @@ type opt
 type ('event, 'body, 'presence) t = {
   seq : int;
   type_ : ProtocolMessage_type.t;
-  event : unit; (* 'event Dap_events.t; *)
+  event : 'event Dap_events.t;
   body : 'body;
 }
 
@@ -17,7 +17,7 @@ let set_seq t ~seq = {t with seq}
 
 let type_ t = t.type_
 
-(* let event t = t.event *)
+let event t = t.event
 
 let body t = t.body
 
@@ -43,10 +43,10 @@ let enc_opt event body =
        (req "event" @@ Dap_events.enc ~value:event)
        (opt "body" body))
 
-let make ~seq ~event:_ ~body () =
+let make ~seq ~event ~body () =
   let type_ = ProtocolMessage_type.Event in
-  {seq; type_; event=(); body}
+  {seq; type_; event; body}
 
-let make_opt ~seq ~event:_ ?body () =
+let make_opt ~seq ~event ?body () =
   let type_ = ProtocolMessage_type.Event in
-  {seq; type_; event=(); body}
+  {seq; type_; event; body}

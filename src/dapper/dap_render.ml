@@ -112,8 +112,19 @@ module RenderEnumWithPhantoms : (RenderT with type spec := Sp.Enum_spec.t) = str
       Printf.sprintf "let from_string (type a) : string -> a t = function %s" @@ func_str true
     in
 
-    let enc_str =
-      "let enc ~value = Data_encoding.constant (to_string value)"
+    let enc_str = {|
+let enc ~value =
+  let open Data_encoding in
+  let to_str = to_string in
+  let from_str =
+    let sentinal = to_string value in
+    fun s ->
+      if s = sentinal then from_string s
+        else failwith @@ Printf.sprintf "expected '%s', got '%s'" sentinal s in
+  conv
+    to_str from_str string
+      |}
+
     in
     [t_str; types_str; ctors_str; f_str; g_str; enc_str; ] |> String.concat "\n\n"
 
@@ -141,7 +152,7 @@ module RenderEnumWithPhantoms : (RenderT with type spec := Sp.Enum_spec.t) = str
     in
 
     let enc_str =
-      "val enc : value:'a t -> unit Data_encoding.t"
+      "val enc : value:'a t -> 'a t Data_encoding.t"
     in
 
     [types_str; ctors_str; funcs_str; enc_str; ] |> String.concat "\n\n"

@@ -7,7 +7,7 @@ type opt
 type ('cmd, 'args, 'presence) t = {
   seq : int;
   type_ : ProtocolMessage_type.t;
-  command : unit; (* 'cmd Dap_commands.t; *)
+  command : 'cmd Dap_commands.t;
   arguments : 'args;
 }
 
@@ -41,10 +41,10 @@ let enc_opt command args =
        (req "command" @@ Dap_commands.enc ~value:command)
        (opt "arguments" args))
 
-let make ~seq ~command:_ ~arguments () =
+let make ~seq ~command ~arguments () =
   let type_ = ProtocolMessage_type.Request in
-  {seq; type_; command=(); arguments}
+  {seq; type_; command; arguments}
 
-let make_opt ~seq ~command:_ ?arguments () =
+let make_opt ~seq ~command ?arguments () =
   let type_ = ProtocolMessage_type.Request in
-  {seq; type_; command=(); arguments}
+  {seq; type_; command; arguments}

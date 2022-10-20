@@ -6,7 +6,7 @@ val seq : ('cmd, 'args, 'presence) t -> int
 
 val message : ('cmd, 'args, 'presence) t -> Dap_base.ProtocolMessage_type.t
 
-(* val command : ('cmd, 'args, 'presence) t -> 'cmd Dap_commands.t *)
+val command : ('cmd, 'args, 'presence) t -> 'cmd Dap_commands.t
 
 val arguments : ('cmd, 'args, 'presence) t -> 'args
 

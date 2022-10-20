@@ -94,4 +94,4 @@ val to_string : 'a t -> string
 
 val from_string : string -> 'a t
 
-val enc : value:'a t -> unit Data_encoding.t
+val enc : value:'a t -> 'a t Data_encoding.t

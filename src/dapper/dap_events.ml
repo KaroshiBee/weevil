@@ -76,4 +76,15 @@ let from_string (type a) : string -> a t = function | "memory" -> (Memory : memo
 | "initialized" -> (Initialized : initialized t)| _ -> failwith "Dap_events"
 
 
-let enc ~value = Data_encoding.constant (to_string value)
+
+let enc ~value =
+  let open Data_encoding in
+  let to_str = to_string in
+  let from_str =
+    let sentinal = to_string value in
+    fun s ->
+      if s = sentinal then from_string s
+        else failwith @@ Printf.sprintf "expected '%s', got '%s'" sentinal s in
+  conv
+    to_str from_str string
+      

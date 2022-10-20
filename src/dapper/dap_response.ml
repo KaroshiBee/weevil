@@ -9,7 +9,7 @@ type ('cmd, 'body, 'presence) t = {
   type_ : ProtocolMessage_type.t;
   request_seq : int;
   success : bool;
-  command : unit; (* 'cmd Dap_commands.t; *)
+  command : 'cmd Dap_commands.t;
   message : string option; (* only used once I think, keep as string for now *)
   body : 'body;
 }
@@ -26,7 +26,7 @@ let set_request_seq t ~request_seq = {t with request_seq}
 
 let success t = t.success
 
-(* let command t = t.command *)
+let command t = t.command
 
 let message t = t.message
 
@@ -64,10 +64,10 @@ let enc_opt command body =
        (opt "message" string)
        (opt "body" body))
 
-let make ~seq ~request_seq ~success ~command:_ ?message ~body () =
+let make ~seq ~request_seq ~success ~command ?message ~body () =
   let type_ = ProtocolMessage_type.Response in
-  {seq; type_; request_seq; success; command=(); message; body}
+  {seq; type_; request_seq; success; command; message; body}
 
-let make_opt ~seq ~request_seq ~success ~command:_ ?message ?body () =
+let make_opt ~seq ~request_seq ~success ~command ?message ?body () =
   let type_ = ProtocolMessage_type.Response in
-  {seq; type_; request_seq; success; command=(); message; body}
+  {seq; type_; request_seq; success; command; message; body}

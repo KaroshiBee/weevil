@@ -29,7 +29,7 @@ let%expect_test "Check cancel handler" =
   in
   Printf.printf "%s" s;
 
-  [%expect {| cannot destruct @ /command, expected 'cancel':string |}]
+  [%expect {| cannnot destruct: Failure("expected 'cancel', got 'initialize'") |}]
 
 let%expect_test "Check initialize handler" =
   let s = {| { "seq": 10, "type": "request", "command": "initialize", "arguments": { "adapterID": "weevil", "clientID":"1" } } |} in

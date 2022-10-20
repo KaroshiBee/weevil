@@ -24,7 +24,17 @@ let%expect_test "Check phantoms (command and event) example" =
     | "error" -> (Error : error t)| _ -> failwith "Dap_commands"
 
 
-    let enc ~value = Data_encoding.constant (to_string value) |}];
+
+    let enc ~value =
+      let open Data_encoding in
+      let to_str = to_string in
+      let from_str =
+        let sentinal = to_string value in
+        fun s ->
+          if s = sentinal then from_string s
+            else failwith @@ Printf.sprintf "expected '%s', got '%s'" sentinal s in
+      conv
+        to_str from_str string |}];
 
   let actual = render dfs @@ Commands MLI in
   Printf.printf "%s" actual;
@@ -41,7 +51,7 @@ let%expect_test "Check phantoms (command and event) example" =
 
     val from_string : string -> 'a t
 
-    val enc : value:'a t -> unit Data_encoding.t |}];
+    val enc : value:'a t -> 'a t Data_encoding.t |}];
 
   let actual = render dfs @@ Events ML in
   Printf.printf "%s" actual;
@@ -76,7 +86,17 @@ let%expect_test "Check phantoms (command and event) example" =
     | "initialized" -> (Initialized : initialized t)| _ -> failwith "Dap_events"
 
 
-    let enc ~value = Data_encoding.constant (to_string value) |}];
+
+    let enc ~value =
+      let open Data_encoding in
+      let to_str = to_string in
+      let from_str =
+        let sentinal = to_string value in
+        fun s ->
+          if s = sentinal then from_string s
+            else failwith @@ Printf.sprintf "expected '%s', got '%s'" sentinal s in
+      conv
+        to_str from_str string |}];
 
   let actual = render dfs @@ Events MLI in
   Printf.printf "%s" actual;
@@ -99,7 +119,7 @@ let%expect_test "Check phantoms (command and event) example" =
 
     val from_string : string -> 'a t
 
-    val enc : value:'a t -> unit Data_encoding.t |}]
+    val enc : value:'a t -> 'a t Data_encoding.t |}]
 
 let%expect_test "Check ErrorResponse example" =
   let schema_js = Ezjsonm.from_channel @@ open_in "data/errorResponse.json" in
