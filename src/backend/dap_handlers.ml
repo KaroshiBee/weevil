@@ -114,6 +114,13 @@ let default_event_opt
     ()
 
 
+(*
+Previous handler func:
+  client:Lwt_io.output Lwt_io.channel ->
+  msg:string ->
+  backend:Lwt_io.output Lwt_io.channel ->
+  unit Lwt.t
+*)
 module type HANDLER = sig
 
   type input
@@ -162,21 +169,18 @@ module type EV_T = sig
   val extract : (event, body, presence) Dapper.Dap_message.event -> (event, body, presence) t
 end
 
-module MakeHandlerIncludes
+module MakeReqRespIncludes
     (REQ:REQ_T)
     (RESP:RESP_T with type command = REQ.command)
-    (EV:EV_T)
     = struct
 
   type req = (REQ.command, REQ.args, REQ.presence) request
   type input = req Dap_flow.t
 
-  type resp = (REQ.command, RESP.body, RESP.presence) response
-  type ev = (EV.event, EV.body, EV.presence) event
+  type resp = (RESP.command, RESP.body, RESP.presence) response
 
   type output = {
     response: resp Dap_flow.t;
-    event: ev Dap_flow.t;
   }
 
   type backend_channel = Lwt_io.output_channel
@@ -189,7 +193,47 @@ module MakeHandlerIncludes
       |> Dap_flow.from_result
 
   let to_string =
-    fun {response; event} ->
+    fun {response; } ->
+      match Dap_flow.(to_result response) with
+      | Result.Ok response ->
+        let resp = RESP.extract response |> JsMsg.construct RESP.enc |> JsMsg.to_string in
+        Result.ok resp
+        |> Lwt.return
+
+      | Result.Error _ ->
+        failwith "TODO - response errored, need to make an error response str from the initial request seq#"
+
+end
+
+
+module MakeReqRespIncludes_withEvent
+    (REQ:REQ_T)
+    (RESP:RESP_T with type command = REQ.command)
+    (EV:EV_T)
+    = struct
+
+  type req = (REQ.command, REQ.args, REQ.presence) request
+  type input = req Dap_flow.t
+
+  type resp = (RESP.command, RESP.body, RESP.presence) response
+  type ev = (EV.event, EV.body, EV.presence) event
+
+  type output = {
+    response: resp Dap_flow.t;
+    event: ev Dap_flow.t option;
+  }
+
+  type backend_channel = Lwt_io.output_channel
+
+  let from_string =
+    fun input ->
+      JsMsg.from_string input
+      |> Result.map (JsMsg.destruct REQ.enc)
+      |> Result.map (fun x -> REQ.ctor x)
+      |> Dap_flow.from_result
+
+  let to_string = function
+    | {response; event=Some event} -> (
       match Dap_flow.(to_result response, to_result event) with
       | Result.Ok response, Result.Ok event ->
         let resp = RESP.extract response |> JsMsg.construct RESP.enc |> JsMsg.to_string in
@@ -204,28 +248,46 @@ module MakeHandlerIncludes
       | Result.Error _, Result.Error _ ->
         failwith "TODO - nothing worked"
       | _, _ -> assert false
+    )
+
+    | {response; event=None} -> (
+      match Dap_flow.(to_result response) with
+      | Result.Ok response ->
+        let resp = RESP.extract response |> JsMsg.construct RESP.enc |> JsMsg.to_string in
+        Result.ok @@ resp
+        |> Lwt.return
+
+      | Result.Error _ ->
+        failwith "TODO - response errored, need to make an error response str from the initial request seq#"
+    )
 
 end
 
 
-(*
-Previous handler func:
-  client:Lwt_io.output Lwt_io.channel ->
-  msg:string ->
-  backend:Lwt_io.output Lwt_io.channel ->
-  unit Lwt.t
-*)
 module Cancel : HANDLER = struct
+  include MakeReqRespIncludes
+      (struct
+        type ('command, 'args, 'presence) t = ('command, 'args, 'presence) RequestMessage.t
+        type command = Dap_commands.cancel
+        let command = Dap_commands.cancel
+        type args = CancelArguments.t option
+        type presence = RequestMessage.opt
+        let enc = RequestMessage.enc_opt command CancelArguments.enc
+        let ctor = fun req -> CancelRequest req
+        let extract = Dap_flow.to_request
+      end)
+      (struct
+        type ('command, 'body, 'presence) t = ('command, 'body, 'presence) ResponseMessage.t
+        type command = Dap_commands.cancel
+        let command = Dap_commands.cancel
+        type body = EmptyObject.t option
+        type presence = ResponseMessage.opt
+        let enc = ResponseMessage.enc_opt command EmptyObject.enc
+        let ctor = fun resp -> CancelResponse resp
+        let extract = Dap_flow.to_response
+      end)
 
-  type req = (Dap_commands.cancel, CancelArguments.t option, RequestMessage.opt) request
-  type input = req Dap_flow.t
-
-  type resp = (Dap_commands.cancel, EmptyObject.t option, ResponseMessage.opt) response
-  type output = resp Dap_flow.t
-
-  type backend_channel = Lwt_io.output_channel
-
-  let on_cancel_request ~config:_ = function
+  let on_cancel_request = function
     | CancelRequest req ->
       let resp =
         let command = RequestMessage.command req in
@@ -236,31 +298,9 @@ module Cancel : HANDLER = struct
       Dap_flow.from_response ret
     | _ -> assert false
 
-  let from_string =
-    let enc = RequestMessage.enc_opt Dap_commands.cancel CancelArguments.enc in
-    fun input ->
-      JsMsg.from_string input
-      |> Result.map (JsMsg.destruct enc)
-      |> Result.map (fun x -> CancelRequest x)
-      |> Dap_flow.from_result
-
-  let handle ~config req =
-    Dap_flow.on_request req (on_cancel_request ~config)
-    |> Lwt.return
-
-  let to_string =
-    let enc = ResponseMessage.enc_opt Dap_commands.cancel EmptyObject.enc in
-    fun output ->
-      match Dap_flow.to_result output with
-      | Result.Ok (CancelResponse resp) ->
-        (* TODO cancel the backend svc *)
-        JsMsg.construct enc resp
-        |> JsMsg.to_string
-        |> Result.ok
-        |> Lwt.return
-
-      | Result.Error _ as err -> Lwt.return err
-      | _ -> assert false
+  let handle ~config:_ req =
+    let response = Dap_flow.on_request req on_cancel_request in
+    Lwt.return {response;}
 
 end
 
@@ -283,7 +323,7 @@ The development tool capabilities are provided in the InitializeRequestArguments
 The debug adapter returns the supported capabilities in the InitializeResponse via the Capabilities type. It is not necessary to return an explicit false for unsupported capabilities.
  *)
 module Initialize : HANDLER = struct
-  include MakeHandlerIncludes
+  include MakeReqRespIncludes_withEvent
       (struct
         type ('command, 'args, 'presence) t = ('command, 'args, 'presence) RequestMessage.t
         type command = Dap_commands.initialize
@@ -315,7 +355,7 @@ module Initialize : HANDLER = struct
         let extract = Dap_flow.to_event
       end)
 
-  let on_initialize_request ~config:_ = function
+  let on_initialize_request = function
       | InitializeRequest req ->
         let resp =
           let command = RequestMessage.command req in
@@ -327,7 +367,7 @@ module Initialize : HANDLER = struct
         Dap_flow.from_response ret
       | _ -> assert false
 
-  let on_initialization_response ~config:_ = function
+  let on_initialization_response = function
       | InitializeResponse _ ->
         let ev =
           let event = Dap_events.initialized in
@@ -338,17 +378,39 @@ module Initialize : HANDLER = struct
         Dap_flow.from_event ret
       | _ -> assert false
 
-  let handle ~config req =
+  let handle ~config:_ req =
     let open Dap_flow in
-    let response = on_request req (on_initialize_request ~config) in
-    let event = on_response response (on_initialization_response ~config) in
+    let response = on_request req on_initialize_request in
+    let event = Option.some @@ on_response response on_initialization_response in
     Lwt.return {response; event}
 
 end
 
-module Configuration = struct
+module Configuration : HANDLER = struct
+  include MakeReqRespIncludes
+      (struct
+        type ('command, 'args, 'presence) t = ('command, 'args, 'presence) RequestMessage.t
+        type command = Dap_commands.configurationDone
+        let command = Dap_commands.configurationDone
+        type args = ConfigurationDoneArguments.t option
+        type presence = RequestMessage.opt
+        let enc = RequestMessage.enc_opt command ConfigurationDoneArguments.enc
+        let ctor = fun req -> ConfigurationDoneRequest req
+        let extract = Dap_flow.to_request
+      end)
+      (struct
+        type ('command, 'body, 'presence) t = ('command, 'body, 'presence) ResponseMessage.t
+        type command = Dap_commands.configurationDone
+        let command = Dap_commands.configurationDone
+        type body = EmptyObject.t option
+        type presence = ResponseMessage.opt
+        let enc = ResponseMessage.enc_opt command EmptyObject.enc
+        let ctor = fun resp -> ConfigurationDoneResponse resp
+        let extract = Dap_flow.to_response
+      end)
 
-  let on_configurationDone_request ~config:_ = function
+
+  let on_configurationDone_request = function
       | ConfigurationDoneRequest req ->
         let resp =
           let command = RequestMessage.command req in
@@ -360,8 +422,9 @@ module Configuration = struct
       | _ -> assert false
 
 
-  let on_configurationDone ~config req =
-    Dap_flow.on_request req (on_configurationDone_request ~config)
+  let handle ~config:_ req =
+    let response = Dap_flow.on_request req on_configurationDone_request in
+    Lwt.return {response}
 
 end
 
@@ -377,26 +440,37 @@ end
 (*   *\) *)
 
 module Launch : HANDLER = struct
-
-  type req = (Dap_commands.launch, LaunchRequestArguments.t, RequestMessage.req) request
-  type input = req Dap_flow.t
-
-  type resp = (Dap_commands.launch, EmptyObject.t option, ResponseMessage.opt) response
-  type ev = (Dap_events.process, ProcessEvent_body.t, EventMessage.req) event
-  type output = {
-    response: resp Dap_flow.t;
-    event: ev Dap_flow.t;
-  }
-
-  type backend_channel = Lwt_io.output_channel
-
-  let from_string =
-    let enc = RequestMessage.enc Dap_commands.launch LaunchRequestArguments.enc in
-    fun input ->
-      JsMsg.from_string input
-      |> Result.map (JsMsg.destruct enc)
-      |> Result.map (fun x -> LaunchRequest x)
-      |> Dap_flow.from_result
+  include MakeReqRespIncludes_withEvent
+      (struct
+        type ('command, 'args, 'presence) t = ('command, 'args, 'presence) RequestMessage.t
+        type command = Dap_commands.launch
+        let command = Dap_commands.launch
+        type args = LaunchRequestArguments.t
+        type presence = RequestMessage.req
+        let enc = RequestMessage.enc command LaunchRequestArguments.enc
+        let ctor = fun req -> LaunchRequest req
+        let extract = Dap_flow.to_request
+      end)
+      (struct
+        type ('command, 'body, 'presence) t = ('command, 'body, 'presence) ResponseMessage.t
+        type command = Dap_commands.launch
+        let command = Dap_commands.launch
+        type body = EmptyObject.t option
+        type presence = ResponseMessage.opt
+        let enc = ResponseMessage.enc_opt command EmptyObject.enc
+        let ctor = fun resp -> LaunchResponse resp
+        let extract = Dap_flow.to_response
+      end)
+      (struct
+        type ('event, 'body, 'presence) t = ('event, 'body, 'presence) EventMessage.t
+        type event = Dap_events.process
+        let event = Dap_events.process
+        type body = ProcessEvent_body.t
+        type presence = EventMessage.req
+        let enc = EventMessage.enc event ProcessEvent_body.enc
+        let ctor = fun ev -> ProcessEvent ev
+        let extract = Dap_flow.to_event
+      end)
 
   let on_launch_request ~config = function
   | LaunchRequest req when config.launch_mode = `Launch ->
@@ -433,111 +507,311 @@ module Launch : HANDLER = struct
   let handle ~config req =
     let open Dap_flow in
     let response = on_request req (on_launch_request ~config) in
-    let event = on_response response (on_launch_response ~config) in
+    let event = Option.some @@ on_response response (on_launch_response ~config) in
     Lwt.return {response; event}
-
-  let to_string =
-    let enc_resp = ResponseMessage.enc_opt Dap_commands.launch EmptyObject.enc in
-    let enc_ev = EventMessage.enc Dap_events.process ProcessEvent_body.enc in
-    fun {response; event} ->
-      match Dap_flow.(to_result response, to_result event) with
-      | Result.Ok (LaunchResponse resp), Result.Ok (ProcessEvent ev) ->
-        let resp = JsMsg.construct enc_resp resp |> JsMsg.to_string in
-        let ev = JsMsg.construct enc_ev ev |> JsMsg.to_string in
-        Result.ok @@ resp^ev
-        |> Lwt.return
-      | Result.Error _, Result.Ok (ProcessEvent _)
-      | Result.Ok (LaunchResponse _), Result.Error _
-      | Result.Error _, Result.Error _ ->
-        failwith "TODO"
-      | _, _ -> assert false
 
 end
 
-(*   | AttachRequest req when config.launch_mode = `Attach -> *)
-(*       let resp = *)
-(*         let command = RequestMessage.command req in *)
-(*         let body = EmptyObject.make () in *)
-(*         default_response command body *)
-(*       in *)
-(*       (\* let ev = *\) *)
-(*       (\*   let event = Dap_events.process in *\) *)
-(*       (\*   let startMethod = ProcessEvent_body_startMethod.Attach in *\) *)
-(*       (\*   let body = *\) *)
-(*       (\*     ProcessEvent_body.make *\) *)
-(*       (\*       ~name:"TODO PROCESS EVENT NAME e.g. test.tz" *\) *)
-(*       (\*       ~startMethod *\) *)
-(*       (\*       () *\) *)
-(*       (\*   in *\) *)
-(*       (\*   EventMessage.make ~seq ~event ~body () *\) *)
-(*       (\* in *\) *)
 
-(*       let ret = AttachResponse resp in *)
-(*       Result.ok ret *)
-(*   | AttachRequest _req when config.launch_mode = `Launch -> *)
-(*       Logs.err (fun m -> *)
-(*           m *)
-(*             "wrong launch mode - config is set to Launch but got a Attach \ *)
-(*              request message") ; *)
-(*       let error = *)
-(*         Message.make *)
-(*           ~id:0 *)
-(*           ~format: *)
-(*             "wrong launch mode - config is set to Launch but got a Attach \ *)
-(*              request message" *)
-(*           () *)
-(*       in *)
-(*       let error = ErrorResponse_body.make ~error () in *)
-(*       Result.error error *)
-(*   | RestartRequest req -> *)
-(*       let resp = *)
-(*         let command = RequestMessage.command req in *)
-(*         let body = EmptyObject.make () in *)
-(*         default_response command body *)
-(*       in *)
-(*       (\* TODO any events to raise? *\) *)
-(*       let ret = RestartResponse resp in *)
-(*       Result.ok ret *)
-(*   (\* *)
-(*  Debug session end *)
+module Attach : HANDLER = struct
+  include MakeReqRespIncludes_withEvent
+      (struct
+        type ('command, 'args, 'presence) t = ('command, 'args, 'presence) RequestMessage.t
+        type command = Dap_commands.attach
+        let command = Dap_commands.attach
+        type args = AttachRequestArguments.t
+        type presence = RequestMessage.req
+        let enc = RequestMessage.enc command AttachRequestArguments.enc
+        let ctor = fun req -> AttachRequest req
+        let extract = Dap_flow.to_request
+      end)
+      (struct
+        type ('command, 'body, 'presence) t = ('command, 'body, 'presence) ResponseMessage.t
+        type command = Dap_commands.attach
+        let command = Dap_commands.attach
+        type body = EmptyObject.t option
+        type presence = ResponseMessage.opt
+        let enc = ResponseMessage.enc_opt command EmptyObject.enc
+        let ctor = fun resp -> AttachResponse resp
+        let extract = Dap_flow.to_response
+      end)
+      (struct
+        type ('event, 'body, 'presence) t = ('event, 'body, 'presence) EventMessage.t
+        type event = Dap_events.process
+        let event = Dap_events.process
+        type body = ProcessEvent_body.t
+        type presence = EventMessage.req
+        let enc = EventMessage.enc event ProcessEvent_body.enc
+        let ctor = fun ev -> ProcessEvent ev
+        let extract = Dap_flow.to_event
+      end)
+
+  let on_attach_request ~config = function
+  | AttachRequest req when config.launch_mode = `Attach ->
+      let resp =
+        let command = RequestMessage.command req in
+        let body = EmptyObject.make () in
+        default_response_opt command body
+      in
+      let ret = AttachResponse resp in
+      Dap_flow.from_response ret
+  | AttachRequest _req when config.launch_mode = `Launch ->
+    let err = "wrong attach mode - config is set to Launch but got an Attach request message" in
+    Logs.err (fun m -> m "%s" err) ;
+    Dap_flow.from_result @@ Result.error err
+  | _ -> assert false
+
+  let on_attach_response ~config = function
+  | AttachResponse _ when config.launch_mode = `Attach ->
+      let ev =
+        let event = Dap_events.process in
+        let startMethod = ProcessEvent_body_startMethod.Attach in
+        let body =
+          ProcessEvent_body.make
+            ~name:"TODO PROCESS EVENT NAME e.g. test.tz"
+            ~startMethod
+            ()
+        in
+        default_event_req event body
+      in
+      let ret = ProcessEvent ev in
+      Dap_flow.from_event ret
+  | _ -> assert false
+
+  let handle ~config req =
+    let open Dap_flow in
+    let response = on_request req (on_attach_request ~config) in
+    let event = Option.some @@ on_response response (on_attach_response ~config) in
+    Lwt.return {response; event}
+
+end
+
+module Restart : HANDLER = struct
+  include MakeReqRespIncludes
+      (struct
+        type ('command, 'args, 'presence) t = ('command, 'args, 'presence) RequestMessage.t
+        type command = Dap_commands.restart
+        let command = Dap_commands.restart
+        type args = RestartArguments.t option
+        type presence = RequestMessage.opt
+        let enc = RequestMessage.enc_opt command RestartArguments.enc
+        let ctor = fun req -> RestartRequest req
+        let extract = Dap_flow.to_request
+      end)
+      (struct
+        type ('command, 'body, 'presence) t = ('command, 'body, 'presence) ResponseMessage.t
+        type command = Dap_commands.restart
+        let command = Dap_commands.restart
+        type body = EmptyObject.t option
+        type presence = ResponseMessage.opt
+        let enc = ResponseMessage.enc_opt command EmptyObject.enc
+        let ctor = fun resp -> RestartResponse resp
+        let extract = Dap_flow.to_response
+      end)
+
+  let on_restart_request = function
+      | RestartRequest req ->
+        let resp =
+          let command = RequestMessage.command req in
+          let body = EmptyObject.make () in
+          default_response_opt command body
+        in
+        let ret = RestartResponse resp in
+        Dap_flow.from_response ret
+      | _ -> assert false
+
+
+  let handle ~config:_ req =
+    let response = Dap_flow.on_request req on_restart_request in
+    Lwt.return {response}
+
+end
 
 (* When the development tool ends a debug session, the sequence of events is slightly different based on whether the session has been initially “launched” or “attached”: *)
 
-(*     Debuggee launched: if a debug adapter supports the terminate request, the development tool uses it to terminate the debuggee gracefully, i.e. it gives the debuggee a chance to cleanup everything before terminating. If the debuggee does not terminate but continues to run (or hits a breakpoint), the debug session will continue, but if the development tool tries again to terminate the debuggee, it will then use the disconnect request to end the debug session unconditionally. The disconnect request is expected to terminate the debuggee (and any child processes) forcefully. *)
-(*     Debuggee attached: If the debuggee has been “attached” initially, the development tool issues a disconnect request. This should detach the debugger from the debuggee but will allow it to continue. *)
+(*     Debuggee launched: if a debug adapter supports the terminate request, the development tool uses it to terminate the debuggee gracefully,
+       i.e. it gives the debuggee a chance to cleanup everything before terminating.
+
+       If the debuggee does not terminate but continues to run (or hits a breakpoint), the debug session will continue,
+       but if the development tool tries again to terminate the debuggee, it will then use the disconnect request to end the debug session unconditionally.
+
+       The disconnect request is expected to terminate the debuggee (and any child processes) forcefully. *)
+
+(*     Debuggee attached: If the debuggee has been “attached” initially, the development tool issues a disconnect request.
+       This should detach the debugger from the debuggee but will allow it to continue. *)
 
 (* In all situations where a debug adapter wants to end the debug session, a terminated event must be fired. *)
 
 (* If the debuggee has ended (and the debug adapter is able to detect this), an optional exited event can be issued to return the exit code to the development tool.Debug session end *)
 
-(* When the development tool ends a debug session, the sequence of events is slightly different based on whether the session has been initially “launched” or “attached”: *)
 
-(*     Debuggee launched: if a debug adapter supports the terminate request, the development tool uses it to terminate the debuggee gracefully, i.e. it gives the debuggee a chance to cleanup everything before terminating. If the debuggee does not terminate but continues to run (or hits a breakpoint), the debug session will continue, but if the development tool tries again to terminate the debuggee, it will then use the disconnect request to end the debug session unconditionally. The disconnect request is expected to terminate the debuggee (and any child processes) forcefully. *)
-(*     Debuggee attached: If the debuggee has been “attached” initially, the development tool issues a disconnect request. This should detach the debugger from the debuggee but will allow it to continue. *)
 
-(* In all situations where a debug adapter wants to end the debug session, a terminated event must be fired. *)
+(* The disconnect request asks the debug adapter to disconnect from the debuggee (thus ending the debug session) and then to shut down itself (the debug adapter). *)
 
-(* If the debuggee has ended (and the debug adapter is able to detect this), an optional exited event can be issued to return the exit code to the development tool. *)
-(*   *\) *)
-(*   | DisconnectRequest req -> *)
-(*       let resp = *)
-(*         let command = RequestMessage.command req in *)
-(*         let body = EmptyObject.make () in *)
-(*         default_response command body *)
-(*       in *)
-(*       (\* TODO any events to raise? *\) *)
-(*       let ret = DisconnectResponse resp in *)
-(*       Result.ok ret *)
-(*   | TerminateRequest req -> *)
-(*       let resp = *)
-(*         let command = RequestMessage.command req in *)
-(*         let body = EmptyObject.make () in *)
-(*         default_response command body *)
-(*       in *)
-(*       (\* TODO any events to raise? *\) *)
-(*       let ret = TerminateResponse resp in *)
-(*       Result.ok ret *)
-(*   | _ -> failwith "TODO: every request should have a response" *)
+(* In addition, the debug adapter must terminate the debuggee if it was started with the launch request. If an attach request was used to connect to the debuggee, then the debug adapter must not terminate the debuggee. *)
+
+(* This implicit behavior of when to terminate the debuggee can be overridden with the terminateDebuggee argument (which is only supported by a debug adapter if the corresponding capability supportTerminateDebuggee is true). *)
+
+module Disconnect : HANDLER = struct
+  include MakeReqRespIncludes_withEvent
+      (struct
+        type ('command, 'args, 'presence) t = ('command, 'args, 'presence) RequestMessage.t
+        type command = Dap_commands.disconnect
+        let command = Dap_commands.disconnect
+        type args = DisconnectArguments.t option
+        type presence = RequestMessage.opt
+        let enc = RequestMessage.enc_opt command DisconnectArguments.enc
+        let ctor = fun req -> DisconnectRequest req
+        let extract = Dap_flow.to_request
+      end)
+      (struct
+        type ('command, 'body, 'presence) t = ('command, 'body, 'presence) ResponseMessage.t
+        type command = Dap_commands.disconnect
+        let command = Dap_commands.disconnect
+        type body = EmptyObject.t option
+        type presence = ResponseMessage.opt
+        let enc = ResponseMessage.enc_opt command EmptyObject.enc
+        let ctor = fun resp -> DisconnectResponse resp
+        let extract = Dap_flow.to_response
+      end)
+      (struct
+        type ('event, 'body, 'presence) t = ('event, 'body, 'presence) EventMessage.t
+        type event = Dap_events.exited
+        let event = Dap_events.exited
+        type body = ExitedEvent_body.t
+        type presence = EventMessage.req
+        let enc = EventMessage.enc event ExitedEvent_body.enc
+        let ctor = fun ev -> ExitedEvent ev
+        let extract = Dap_flow.to_event
+      end)
+
+
+  let on_disconnect_request = function
+    | DisconnectRequest req ->
+      let resp =
+        let command = RequestMessage.command req in
+        let body = EmptyObject.make () in
+        default_response_opt command body
+      in
+      let ret = DisconnectResponse resp in
+      Dap_flow.from_response ret
+    | _ -> assert false
+
+  (* If the debuggee has ended (and the debug adapter is able to detect this), *)
+  (* an optional exited event can be issued to return the exit code to the development tool. *)
+  let on_disconnect_response exitCode = function
+  | DisconnectResponse _ ->
+    let ev =
+      let event = Dap_events.exited in
+      let body =
+        ExitedEvent_body.make
+          ~exitCode
+          ()
+      in
+      default_event_req event body
+    in
+    let ret = ExitedEvent ev in
+    Dap_flow.from_event ret
+  | _ -> assert false
+
+  let handle ~config req =
+    let open Dap_flow in
+    let response = on_request req on_disconnect_request in
+    (* diconnect when launched - terminate debuggee forcefully  *)
+    (* disconnect when attached - dont terminate the debuggee *)
+    let event = match config.launch_mode with
+      | `Launch ->
+        Logs.warn (fun m -> m "TODO: shutdown debuggee forcefully; shutdown channel");
+        let exitCode = 0 in
+        Option.some @@ on_response response (on_disconnect_response exitCode)
+      | `Attach | `AttachForSuspendedLaunch ->
+        Logs.warn (fun m -> m "TODO: shutdown channel");
+        None
+      in
+    Lwt.return {response; event}
+
+end
+
+(* The terminate request is sent from the client to the debug adapter in order to shut down the debuggee gracefully. Clients should only call this request if the capability supportsTerminateRequest is true. *)
+
+(* Typically a debug adapter implements terminate by sending a software signal which the debuggee intercepts in order to clean things up properly before terminating itself. *)
+
+(* Please note that this request does not directly affect the state of the debug session: if the debuggee decides to veto the graceful shutdown for any reason by not terminating itself, then the debug session just continues. *)
+
+(* Clients can surface the terminate request as an explicit command or they can integrate it into a two stage Stop command that first sends terminate to request a graceful shutdown, and if that fails uses disconnect for a forceful shutdown. *)
+
+module Terminate : HANDLER = struct
+  include MakeReqRespIncludes_withEvent
+      (struct
+        type ('command, 'args, 'presence) t = ('command, 'args, 'presence) RequestMessage.t
+        type command = Dap_commands.terminate
+        let command = Dap_commands.terminate
+        type args = TerminateArguments.t option
+        type presence = RequestMessage.opt
+        let enc = RequestMessage.enc_opt command TerminateArguments.enc
+        let ctor = fun req -> TerminateRequest req
+        let extract = Dap_flow.to_request
+      end)
+      (struct
+        type ('command, 'body, 'presence) t = ('command, 'body, 'presence) ResponseMessage.t
+        type command = Dap_commands.terminate
+        let command = Dap_commands.terminate
+        type body = EmptyObject.t option
+        type presence = ResponseMessage.opt
+        let enc = ResponseMessage.enc_opt command EmptyObject.enc
+        let ctor = fun resp -> TerminateResponse resp
+        let extract = Dap_flow.to_response
+      end)
+      (struct
+        type ('event, 'body, 'presence) t = ('event, 'body, 'presence) EventMessage.t
+        type event = Dap_events.exited
+        let event = Dap_events.exited
+        type body = ExitedEvent_body.t
+        type presence = EventMessage.req
+        let enc = EventMessage.enc event ExitedEvent_body.enc
+        let ctor = fun ev -> ExitedEvent ev
+        let extract = Dap_flow.to_event
+      end)
+
+
+  let on_terminate_request = function
+    | TerminateRequest req ->
+      let resp =
+        let command = RequestMessage.command req in
+        let body = EmptyObject.make () in
+        default_response_opt command body
+      in
+      let ret = TerminateResponse resp in
+      Dap_flow.from_response ret
+    | _ -> assert false
+
+  (* If the debuggee has ended (and the debug adapter is able to detect this), *)
+  (* an optional exited event can be issued to return the exit code to the development tool. *)
+  let on_terminate_response exitCode = function
+  | TerminateResponse _ ->
+    let ev =
+      let event = Dap_events.exited in
+      let body =
+        ExitedEvent_body.make
+          ~exitCode
+          ()
+      in
+      default_event_req event body
+    in
+    let ret = ExitedEvent ev in
+    Dap_flow.from_event ret
+  | _ -> assert false
+
+  let handle ~config:_ req =
+    let open Dap_flow in
+    let response = on_request req on_terminate_request in
+    Logs.warn (fun m -> m "TODO: shutdown debuggee gracefully; shutdown channel");
+    let event =
+        let exitCode = 0 in
+        Option.some @@ on_response response (on_terminate_response exitCode)
+    in
+    Lwt.return {response; event}
+end
 
 module type MAKE_HANDLER = sig
   type input
