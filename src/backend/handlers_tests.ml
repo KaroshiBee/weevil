@@ -1,6 +1,6 @@
 include Test_utils
 
-open Dap_handlers
+open Handlers
 
 let config : config = {launch_mode=`Attach}
 
@@ -24,7 +24,7 @@ let%expect_test "Check cancel handler" =
   let%lwt s = try%lwt
       CancelH.handle hdl ~config s
     with
-      | JsMsg.Wrong_encoder err ->
+      | Js_msg.Wrong_encoder err ->
         Lwt.return err
   in
   Printf.printf "%s" s;
@@ -51,7 +51,7 @@ let%expect_test "Check initialize handler" =
   let%lwt s = try%lwt
       InitializeH.handle hdl ~config s
     with
-      | JsMsg.Wrong_encoder err ->
+      | Js_msg.Wrong_encoder err ->
         Lwt.return err
   in
   Printf.printf "%s" s;

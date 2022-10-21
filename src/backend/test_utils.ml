@@ -1,3 +1,4 @@
+(* config to make expect_ppx work with Lwt  *)
 module Lwt_io_run = struct
   type 'a t = 'a Lwt.t
 end
