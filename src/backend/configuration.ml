@@ -1,32 +1,33 @@
-open Handlers
+open Handler_t
 open Dapper.Dap_message
 module Dap_commands = Dapper.Dap_commands
 module Dap_events = Dapper.Dap_events
 module Dap_flow = Dapper.Dap_flow
 
+module Request = struct
+  type ('command, 'args, 'presence) t = ('command, 'args, 'presence) RequestMessage.t
+  type command = Dap_commands.configurationDone
+  let command = Dap_commands.configurationDone
+  type args = ConfigurationDoneArguments.t option
+  type presence = RequestMessage.opt
+  let enc = RequestMessage.enc_opt command ConfigurationDoneArguments.enc
+  let ctor = fun req -> ConfigurationDoneRequest req
+  let extract = Dap_flow.to_request
+end
 
-include MakeReqRespIncludes
-    (struct
-      type ('command, 'args, 'presence) t = ('command, 'args, 'presence) RequestMessage.t
-      type command = Dap_commands.configurationDone
-      let command = Dap_commands.configurationDone
-      type args = ConfigurationDoneArguments.t option
-      type presence = RequestMessage.opt
-      let enc = RequestMessage.enc_opt command ConfigurationDoneArguments.enc
-      let ctor = fun req -> ConfigurationDoneRequest req
-      let extract = Dap_flow.to_request
-    end)
-    (struct
-      type ('command, 'body, 'presence) t = ('command, 'body, 'presence) ResponseMessage.t
-      type command = Dap_commands.configurationDone
-      let command = Dap_commands.configurationDone
-      type body = EmptyObject.t option
-      type presence = ResponseMessage.opt
-      let enc = ResponseMessage.enc_opt command EmptyObject.enc
-      let ctor = fun resp -> ConfigurationDoneResponse resp
-      let extract = Dap_flow.to_response
-    end)
+module Response = struct
+  type ('command, 'body, 'presence) t = ('command, 'body, 'presence) ResponseMessage.t
+  type command = Dap_commands.configurationDone
+  let command = Dap_commands.configurationDone
+  type body = EmptyObject.t option
+  type presence = ResponseMessage.opt
+  let enc = ResponseMessage.enc_opt command EmptyObject.enc
+  let ctor = fun resp -> ConfigurationDoneResponse resp
+  let extract = Dap_flow.to_response
+end
 
+
+include MakeReqRespIncludes (Request) (Response)
 
 let on_configurationDone_request = function
   | ConfigurationDoneRequest req ->

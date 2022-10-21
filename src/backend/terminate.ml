@@ -1,4 +1,4 @@
-open Handlers
+open Handler_t
 open Dapper.Dap_message
 module Dap_commands = Dapper.Dap_commands
 module Dap_events = Dapper.Dap_events
@@ -13,38 +13,41 @@ module Dap_flow = Dapper.Dap_flow
 (* Clients can surface the terminate request as an explicit command or they can integrate it into a two stage Stop command that first sends terminate to request a graceful shutdown, and if that fails uses disconnect for a forceful shutdown. *)
 
 
-include MakeReqRespIncludes_withEvent
-    (struct
-      type ('command, 'args, 'presence) t = ('command, 'args, 'presence) RequestMessage.t
-      type command = Dap_commands.terminate
-      let command = Dap_commands.terminate
-      type args = TerminateArguments.t option
-      type presence = RequestMessage.opt
-      let enc = RequestMessage.enc_opt command TerminateArguments.enc
-      let ctor = fun req -> TerminateRequest req
-      let extract = Dap_flow.to_request
-    end)
-    (struct
-      type ('command, 'body, 'presence) t = ('command, 'body, 'presence) ResponseMessage.t
-      type command = Dap_commands.terminate
-      let command = Dap_commands.terminate
-      type body = EmptyObject.t option
-      type presence = ResponseMessage.opt
-      let enc = ResponseMessage.enc_opt command EmptyObject.enc
-      let ctor = fun resp -> TerminateResponse resp
-      let extract = Dap_flow.to_response
-    end)
-    (struct
-      type ('event, 'body, 'presence) t = ('event, 'body, 'presence) EventMessage.t
-      type event = Dap_events.exited
-      let event = Dap_events.exited
-      type body = ExitedEvent_body.t
-      type presence = EventMessage.req
-      let enc = EventMessage.enc event ExitedEvent_body.enc
-      let ctor = fun ev -> ExitedEvent ev
-      let extract = Dap_flow.to_event
-    end)
+module Request = struct
+  type ('command, 'args, 'presence) t = ('command, 'args, 'presence) RequestMessage.t
+  type command = Dap_commands.terminate
+  let command = Dap_commands.terminate
+  type args = TerminateArguments.t option
+  type presence = RequestMessage.opt
+  let enc = RequestMessage.enc_opt command TerminateArguments.enc
+  let ctor = fun req -> TerminateRequest req
+  let extract = Dap_flow.to_request
+end
 
+module Response = struct
+  type ('command, 'body, 'presence) t = ('command, 'body, 'presence) ResponseMessage.t
+  type command = Dap_commands.terminate
+  let command = Dap_commands.terminate
+  type body = EmptyObject.t option
+  type presence = ResponseMessage.opt
+  let enc = ResponseMessage.enc_opt command EmptyObject.enc
+  let ctor = fun resp -> TerminateResponse resp
+  let extract = Dap_flow.to_response
+end
+
+module Event = struct
+  type ('event, 'body, 'presence) t = ('event, 'body, 'presence) EventMessage.t
+  type event = Dap_events.exited
+  let event = Dap_events.exited
+  type body = ExitedEvent_body.t
+  type presence = EventMessage.req
+  let enc = EventMessage.enc event ExitedEvent_body.enc
+  let ctor = fun ev -> ExitedEvent ev
+  let extract = Dap_flow.to_event
+end
+
+
+include MakeReqRespIncludes_withEvent (Request) (Response) (Event)
 
 let on_terminate_request = function
   | TerminateRequest req ->

@@ -1,4 +1,4 @@
-open Handlers
+open Handler_t
 open Dapper.Dap_message
 module Dap_commands = Dapper.Dap_commands
 module Dap_events = Dapper.Dap_events
@@ -29,39 +29,41 @@ module Dap_flow = Dapper.Dap_flow
 
 (* This implicit behavior of when to terminate the debuggee can be overridden with the terminateDebuggee argument (which is only supported by a debug adapter if the corresponding capability supportTerminateDebuggee is true). *)
 
+module Request = struct
+  type ('command, 'args, 'presence) t = ('command, 'args, 'presence) RequestMessage.t
+  type command = Dap_commands.disconnect
+  let command = Dap_commands.disconnect
+  type args = DisconnectArguments.t option
+  type presence = RequestMessage.opt
+  let enc = RequestMessage.enc_opt command DisconnectArguments.enc
+  let ctor = fun req -> DisconnectRequest req
+  let extract = Dap_flow.to_request
+end
 
-include MakeReqRespIncludes_withEvent
-    (struct
-      type ('command, 'args, 'presence) t = ('command, 'args, 'presence) RequestMessage.t
-      type command = Dap_commands.disconnect
-      let command = Dap_commands.disconnect
-      type args = DisconnectArguments.t option
-      type presence = RequestMessage.opt
-      let enc = RequestMessage.enc_opt command DisconnectArguments.enc
-      let ctor = fun req -> DisconnectRequest req
-      let extract = Dap_flow.to_request
-    end)
-    (struct
-      type ('command, 'body, 'presence) t = ('command, 'body, 'presence) ResponseMessage.t
-      type command = Dap_commands.disconnect
-      let command = Dap_commands.disconnect
-      type body = EmptyObject.t option
-      type presence = ResponseMessage.opt
-      let enc = ResponseMessage.enc_opt command EmptyObject.enc
-      let ctor = fun resp -> DisconnectResponse resp
-      let extract = Dap_flow.to_response
-    end)
-    (struct
-      type ('event, 'body, 'presence) t = ('event, 'body, 'presence) EventMessage.t
-      type event = Dap_events.exited
-      let event = Dap_events.exited
-      type body = ExitedEvent_body.t
-      type presence = EventMessage.req
-      let enc = EventMessage.enc event ExitedEvent_body.enc
-      let ctor = fun ev -> ExitedEvent ev
-      let extract = Dap_flow.to_event
-    end)
+module Response = struct
+  type ('command, 'body, 'presence) t = ('command, 'body, 'presence) ResponseMessage.t
+  type command = Dap_commands.disconnect
+  let command = Dap_commands.disconnect
+  type body = EmptyObject.t option
+  type presence = ResponseMessage.opt
+  let enc = ResponseMessage.enc_opt command EmptyObject.enc
+  let ctor = fun resp -> DisconnectResponse resp
+  let extract = Dap_flow.to_response
+end
 
+module Event = struct
+  type ('event, 'body, 'presence) t = ('event, 'body, 'presence) EventMessage.t
+  type event = Dap_events.exited
+  let event = Dap_events.exited
+  type body = ExitedEvent_body.t
+  type presence = EventMessage.req
+  let enc = EventMessage.enc event ExitedEvent_body.enc
+  let ctor = fun ev -> ExitedEvent ev
+  let extract = Dap_flow.to_event
+end
+
+
+include MakeReqRespIncludes_withEvent (Request) (Response) (Event)
 
 let on_disconnect_request = function
   | DisconnectRequest req ->

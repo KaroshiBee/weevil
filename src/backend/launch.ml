@@ -1,4 +1,4 @@
-open Handlers
+open Handler_t
 open Dapper.Dap_message
 module Dap_commands = Dapper.Dap_commands
 module Dap_events = Dapper.Dap_events
@@ -15,37 +15,41 @@ module Dap_flow = Dapper.Dap_flow
 (* Since arguments for both requests are highly dependent on a specific debugger and debug adapter implementation, the Debug Adapter Protocol does not specify any arguments for these requests. Instead, the development tool is expected to get information about debugger specific arguments from elsewhere (e.g. contributed by some plugin or extension mechanism) and to build a UI and validation mechanism on top of that. *)
 (*   *\) *)
 
-include MakeReqRespIncludes_withEvent
-    (struct
-      type ('command, 'args, 'presence) t = ('command, 'args, 'presence) RequestMessage.t
-      type command = Dap_commands.launch
-      let command = Dap_commands.launch
-      type args = LaunchRequestArguments.t
-      type presence = RequestMessage.req
-      let enc = RequestMessage.enc command LaunchRequestArguments.enc
-      let ctor = fun req -> LaunchRequest req
-      let extract = Dap_flow.to_request
-    end)
-    (struct
-      type ('command, 'body, 'presence) t = ('command, 'body, 'presence) ResponseMessage.t
-      type command = Dap_commands.launch
-      let command = Dap_commands.launch
-      type body = EmptyObject.t option
-      type presence = ResponseMessage.opt
-      let enc = ResponseMessage.enc_opt command EmptyObject.enc
-      let ctor = fun resp -> LaunchResponse resp
-      let extract = Dap_flow.to_response
-    end)
-    (struct
-      type ('event, 'body, 'presence) t = ('event, 'body, 'presence) EventMessage.t
-      type event = Dap_events.process
-      let event = Dap_events.process
-      type body = ProcessEvent_body.t
-      type presence = EventMessage.req
-      let enc = EventMessage.enc event ProcessEvent_body.enc
-      let ctor = fun ev -> ProcessEvent ev
-      let extract = Dap_flow.to_event
-    end)
+module Request = struct
+  type ('command, 'args, 'presence) t = ('command, 'args, 'presence) RequestMessage.t
+  type command = Dap_commands.launch
+  let command = Dap_commands.launch
+  type args = LaunchRequestArguments.t
+  type presence = RequestMessage.req
+  let enc = RequestMessage.enc command LaunchRequestArguments.enc
+  let ctor = fun req -> LaunchRequest req
+  let extract = Dap_flow.to_request
+end
+
+module Response = struct
+  type ('command, 'body, 'presence) t = ('command, 'body, 'presence) ResponseMessage.t
+  type command = Dap_commands.launch
+  let command = Dap_commands.launch
+  type body = EmptyObject.t option
+  type presence = ResponseMessage.opt
+  let enc = ResponseMessage.enc_opt command EmptyObject.enc
+  let ctor = fun resp -> LaunchResponse resp
+  let extract = Dap_flow.to_response
+end
+
+module Event = struct
+  type ('event, 'body, 'presence) t = ('event, 'body, 'presence) EventMessage.t
+  type event = Dap_events.process
+  let event = Dap_events.process
+  type body = ProcessEvent_body.t
+  type presence = EventMessage.req
+  let enc = EventMessage.enc event ProcessEvent_body.enc
+  let ctor = fun ev -> ProcessEvent ev
+  let extract = Dap_flow.to_event
+end
+
+
+include MakeReqRespIncludes_withEvent (Request) (Response) (Event)
 
 let on_launch_request ~config = function
   | LaunchRequest req when config.launch_mode = `Launch ->

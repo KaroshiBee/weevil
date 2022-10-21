@@ -1,6 +1,6 @@
 include Test_utils
-
-open Handlers
+open Handler_t
+module Handler = Handlers.Handler
 
 let config : config = {launch_mode=`Attach}
 

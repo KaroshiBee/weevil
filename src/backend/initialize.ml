@@ -1,4 +1,4 @@
-open Handlers
+open Handler_t
 open Dapper.Dap_message
 module Dap_commands = Dapper.Dap_commands
 module Dap_events = Dapper.Dap_events
@@ -23,37 +23,41 @@ The development tool capabilities are provided in the InitializeRequestArguments
 The debug adapter returns the supported capabilities in the InitializeResponse via the Capabilities type. It is not necessary to return an explicit false for unsupported capabilities.
  *)
 
-include MakeReqRespIncludes_withEvent
-    (struct
-      type ('command, 'args, 'presence) t = ('command, 'args, 'presence) RequestMessage.t
-      type command = Dap_commands.initialize
-      let command = Dap_commands.initialize
-      type args = InitializeRequestArguments.t
-      type presence = RequestMessage.req
-      let enc = RequestMessage.enc command InitializeRequestArguments.enc
-      let ctor = fun req -> InitializeRequest req
-      let extract = Dap_flow.to_request
-    end)
-    (struct
-      type ('command, 'body, 'presence) t = ('command, 'body, 'presence) ResponseMessage.t
-      type command = Dap_commands.initialize
-      let command = Dap_commands.initialize
-      type body = Capabilities.t option
-      type presence = ResponseMessage.opt
-      let enc = ResponseMessage.enc_opt command Capabilities.enc
-      let ctor = fun resp -> InitializeResponse resp
-      let extract = Dap_flow.to_response
-    end)
-    (struct
-      type ('event, 'body, 'presence) t = ('event, 'body, 'presence) EventMessage.t
-      type event = Dap_events.initialized
-      let event = Dap_events.initialized
-      type body = EmptyObject.t option
-      type presence = EventMessage.opt
-      let enc = EventMessage.enc_opt event EmptyObject.enc
-      let ctor = fun ev -> InitializedEvent ev
-      let extract = Dap_flow.to_event
-    end)
+module Request = struct
+  type ('command, 'args, 'presence) t = ('command, 'args, 'presence) RequestMessage.t
+  type command = Dap_commands.initialize
+  let command = Dap_commands.initialize
+  type args = InitializeRequestArguments.t
+  type presence = RequestMessage.req
+  let enc = RequestMessage.enc command InitializeRequestArguments.enc
+  let ctor = fun req -> InitializeRequest req
+  let extract = Dap_flow.to_request
+end
+
+module Response = struct
+  type ('command, 'body, 'presence) t = ('command, 'body, 'presence) ResponseMessage.t
+  type command = Dap_commands.initialize
+  let command = Dap_commands.initialize
+  type body = Capabilities.t option
+  type presence = ResponseMessage.opt
+  let enc = ResponseMessage.enc_opt command Capabilities.enc
+  let ctor = fun resp -> InitializeResponse resp
+  let extract = Dap_flow.to_response
+end
+
+module Event = struct
+  type ('event, 'body, 'presence) t = ('event, 'body, 'presence) EventMessage.t
+  type event = Dap_events.initialized
+  let event = Dap_events.initialized
+  type body = EmptyObject.t option
+  type presence = EventMessage.opt
+  let enc = EventMessage.enc_opt event EmptyObject.enc
+  let ctor = fun ev -> InitializedEvent ev
+  let extract = Dap_flow.to_event
+end
+
+
+include MakeReqRespIncludes_withEvent (Request) (Response) (Event)
 
 let on_initialize_request = function
   | InitializeRequest req ->
