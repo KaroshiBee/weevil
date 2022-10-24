@@ -9,7 +9,7 @@ module type MAKE_HANDLER = sig
   val handle : t -> config:config -> string -> string Lwt.t
 end
 
-module Handler (H:HANDLER) : (MAKE_HANDLER with type input := H.input and type output := H.output) = struct
+module MakeHandler (H:HANDLER) : (MAKE_HANDLER with type input := H.input and type output := H.output) = struct
 
   type t = {
     from_string : string -> H.input;
@@ -56,7 +56,7 @@ let handle_exn t config message =
   let aux command =
     Hashtbl.find_opt t command
       |> fun h -> Option.bind h (fun h ->
-        let module H = Handler (val h : HANDLER) in
+        let module H = MakeHandler (val h : HANDLER) in
         let h = H.make in
         (* First one that doesnt error is what we want *)
         try
