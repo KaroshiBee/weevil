@@ -40,20 +40,15 @@ end
 type t = (string, (module HANDLER)) Hashtbl.t
 
 let make : t = [
-  "Cancel", (module Cancel);
-  "Initialize", (module Initialize);
-  "ConfigurationDone", (module Configuration);
-  "Launch", (module Launch);
-  "Attach", (module Attach);
-  "Restart", (module Restart);
-  "Disconnect", (module Disconnect);
-  "Terminate", (module Terminate);
-] |> List.map (fun (name, m) ->
-    let module M = (val m : HANDLER) in
-    let key = String.uncapitalize_ascii name in
-    (key, m)
-  )
-  |> List.to_seq
+  "cancel", (module Cancel : HANDLER);
+  "initialize", (module Initialize : HANDLER);
+  "configurationDone", (module Configuration : HANDLER);
+  "launch", (module Launch : HANDLER);
+  "attach", (module Attach : HANDLER);
+  "restart", (module Restart : HANDLER);
+  "disconnect", (module Disconnect : HANDLER);
+  "terminate", (module Terminate : HANDLER);
+] |> List.to_seq
   |> Hashtbl.of_seq
 
 
@@ -63,9 +58,10 @@ let handle_exn t config message =
       |> fun h -> Option.bind h (fun h ->
         let module H = Handler (val h : HANDLER) in
         let h = H.make in
+        (* First one that doesnt error is what we want *)
         try
           Option.some @@ H.handle h ~config message
-        with _ ->
+        with Js_msg.Wrong_encoder _ ->
           None
       )
   in
