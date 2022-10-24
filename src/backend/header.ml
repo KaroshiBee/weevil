@@ -2,13 +2,10 @@
 let _HEADER_FIELD = "Content-Length: "
 let _HEADER_TOKEN = "\r\n\r\n"
 
-let field = _HEADER_FIELD
-let token = _HEADER_TOKEN
-
 let _replace input output =
   Str.global_replace (Str.regexp_string input) output
 
-let contains s1 s2 =
+let _contains s1 s2 =
     let re = Str.regexp_string s2 in
     try
       ignore (Str.search_forward re s1 0);
@@ -24,7 +21,7 @@ let wrap msg =
 let content_length =
   let rgx = Str.regexp_string _HEADER_FIELD in
   fun msg ->
-    if contains msg _HEADER_FIELD then
+    if _contains msg _HEADER_FIELD then
       match Str.split rgx msg with
       | [n] ->
         let i = int_of_string n in
