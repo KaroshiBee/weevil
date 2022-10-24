@@ -1,25 +1,16 @@
 module Js = Data_encoding.Json
 module Q = Json_query
 
-let _HEADER_FIELD = "Content-Length: "
-let _HEADER_TOKEN = "\r\n\r\n"
 
 type t = Js.json
 
 exception Wrong_encoder of string
 
-let _replace input output =
-  Str.global_replace (Str.regexp_string input) output
-
 let from_string = Js.from_string
 
 let to_string t =
-  let s = t
-          |> Js.to_string
-          |> _replace "\n" ""
-  in
-  let n = String.length s in
-  Printf.sprintf "%s%d%s%s" _HEADER_FIELD n _HEADER_TOKEN s
+  let s = Js.to_string t in
+  Header.wrap s
 
 let construct enc i =
   try

@@ -54,23 +54,32 @@ let make : t = [
 
 let handle_exn t config message =
   let aux command =
-    Hashtbl.find_opt t command
-      |> fun h -> Option.bind h (fun h ->
-        let module H = MakeHandler (val h : HANDLER) in
-        let h = H.make in
-        (* First one that doesnt error is what we want *)
-        try
-          Option.some @@ H.handle h ~config message
-        with Js_msg.Wrong_encoder _ ->
-          None
-      )
+    let h = Hashtbl.find t command in
+    let module H = MakeHandler (val h : HANDLER) in
+    let h = H.make in
+    try%lwt
+      let%lwt output = H.handle h ~config message in
+      Some output |> Lwt.return
+    with Js_msg.Wrong_encoder _ ->
+      None |> Lwt.return
   in
-  ["cancel";
-   "initialize";
-   "configurationDone";
-   "launch";
-   "attach";
-   "restart";
-   "disconnect";
-   "terminate";
-  ] |> List.find_map aux |> Option.get
+  let%lwt output =
+    let cmds = [
+        "cancel";
+        "initialize";
+        "configurationDone";
+        "launch";
+        "attach";
+        "restart";
+        "disconnect";
+        "terminate";
+      ] in
+    Lwt_list.filter_map_p aux cmds
+  in
+  (* First one that doesnt error is what we want *)
+  let ret =
+    match output with
+    | [] -> Printf.sprintf "Cannot handle message: '%s'" message |> Result.error
+    | output :: _ -> Result.ok output
+  in
+  Lwt.return ret

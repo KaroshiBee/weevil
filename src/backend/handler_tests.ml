@@ -1,7 +1,11 @@
 include Test_utils
 open Handler_t
 
-let config : config = {launch_mode=`Attach}
+let config : config = {
+  launch_mode=`Attach;
+  ic=None;
+  oc=None;
+}
 
 
 let%expect_test "Check cancel handler" =

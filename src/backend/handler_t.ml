@@ -6,7 +6,12 @@ module Dap_flow = Dapper.Dap_flow
 
 type launch_mode = [`Launch | `Attach | `AttachForSuspendedLaunch]
 
-type config = {launch_mode : launch_mode}
+type config = {
+  launch_mode : launch_mode;
+  ic : Lwt_io.input_channel option;
+  oc : Lwt_io.output_channel option;
+
+}
 
 let default_response_req
   = fun command body ->
