@@ -2,34 +2,6 @@ module Conduit = Conduit_lwt_unix
 open Lwt
 
 
-let handle_message hdl config msg =
-  match%lwt Handler.handle_exn hdl config msg with
-  | Ok _js -> failwith "TODO"
-  | Error _err -> failwith "TODO"
-
-
-let on_exn exn = Lwt.ignore_result @@ Logs_lwt.err (fun m -> m "%s" @@ Printexc.to_string exn)
-
-type content_length = int option
-
-let rec dap_handler hdl (config:Handler_t.config) ~content_length _flow ic _oc =
-  match content_length with
-  | Some count ->
-      Logs_lwt.info (fun m -> m "[DAP] got count %d" count) >>= fun _ ->
-      (* \r\n throw away *)
-      Lwt_io.read ~count:2 ic >>= fun header_break ->
-      assert (header_break = "\r\n") |> Lwt.return >>= fun _ ->
-      Lwt_io.read ~count ic >>= fun msg ->
-      Logs_lwt.info (fun m -> m "[DAP] Got message '%s'" msg) >>= fun _ ->
-      handle_message hdl config msg >>= fun _ ->
-      dap_handler hdl config ~content_length:None _flow ic _oc
-  | None -> (
-      Logs_lwt.info (fun m -> m "[DAP] no content length yet") >>= fun _ ->
-      Lwt_io.read_line_opt ic >>= function
-      | Some msg ->
-          let content_length = Header.content_length msg in
-          dap_handler hdl config ~content_length _flow ic _oc
-      | None -> Logs_lwt.info (fun m -> m "[DAP] connection closed"))
 
 (* let read_weevil_recs ln = *)
 (*   if 0 < String.length ln && String.get ln 0 != '#' then ( *)
@@ -57,6 +29,8 @@ let rec dap_handler hdl (config:Handler_t.config) ~content_length _flow ic _oc =
 (*     Logs_lwt.info (fun m -> m "[STEPPER] subprocess complete") *)
 
 let step_handler ~ic_process:_ = failwith "TODO"
+let on_exn exn = Lwt.ignore_result @@ Logs_lwt.err (fun m -> m "%s" @@ Printexc.to_string exn)
+let dap_handler = Handler.main_handler
 
 let main_handler ~mode ~content_length (process_full:Lwt_process.process_full) =
   let p = process_full in
