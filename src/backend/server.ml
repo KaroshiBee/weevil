@@ -36,7 +36,6 @@ module MichEvent = struct
   type t =
   | RunScript of string
   | Terminate
-  | Disconnect
   | Step of int
 
   let enc =
@@ -50,11 +49,7 @@ module MichEvent = struct
         empty
         (function Terminate -> Some () | _ -> None)
         (fun _ -> Terminate);
-      case ~title:"Disconnect" (Tag 2)
-        empty
-        (function Disconnect -> Some () | _ -> None)
-        (fun _ -> Disconnect);
-      case ~title:"Step" (Tag 3)
+      case ~title:"Step" (Tag 2)
         int31
         (function Step n -> Some n | _ -> None)
         (fun n -> Step n);
@@ -62,6 +57,7 @@ module MichEvent = struct
 
   let from_msg_opt msg =
     try
+      (* TODO be better *)
       Option.some @@ Js.(from_string msg |> Result.get_ok |> destruct enc)
     with _ ->
       None
@@ -75,13 +71,16 @@ let rec main_handler ~oc_process _flow ic oc =
   | Some msg -> (
     let%lwt _ = Logs_lwt.info (fun m -> m "[MICH] got msg '%s'" msg) in
     match (MichEvent.from_msg_opt msg, oc_process) with
+
     | Some (RunScript _), Some _ ->
       let%lwt _ = Logs_lwt.err (fun m -> m "[MICH] trying to start a new stepper with old one still running, ignore") in
       main_handler ~oc_process _flow ic oc
+
     | Some (RunScript cmd), None ->
       let%lwt _ = Logs_lwt.info (fun m -> m "[MICH] starting new stepper with cmd '%s'" cmd) in
       let cmd = ("", String.split_on_char ' ' cmd |> Array.of_list) in
       Lwt_process.with_process_full cmd (subprocess_start _flow ic oc)
+
     | Some (Step 1), Some oc_process ->
       let _ =
         try
@@ -99,13 +98,16 @@ let rec main_handler ~oc_process _flow ic oc =
           )
       in
       main_handler ~oc_process:(Some oc_process) _flow ic oc
+
     | Some _, _ ->
       let%lwt _ = Logs_lwt.debug (fun m -> m "TODO '%s'" msg) in
       main_handler ~oc_process _flow ic oc
+
     | None, _ ->
       let%lwt _ = Logs_lwt.warn (fun m -> m "[MICH] couldn't decode '%s'" msg) in
       main_handler ~oc_process _flow ic oc
   )
+
   | None -> Logs_lwt.info (fun m -> m "[MICH] connection closed")
 
 and subprocess_start _flow ic oc process_full =
