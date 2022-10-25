@@ -1,33 +1,6 @@
 module Conduit = Conduit_lwt_unix
 open Lwt
 
-
-
-(* let read_weevil_recs ln = *)
-(*   if 0 < String.length ln && String.get ln 0 != '#' then ( *)
-(*     match from_string ln with *)
-(*     | Ok ln -> *)
-(*       let ln = destruct Model.Weevil_json.enc ln in *)
-(*       Some ln *)
-(*     | Error e -> *)
-(*       Logs.warn (fun m -> m "Cannot decode '%s': %s" ln e); *)
-(*       None *)
-(*   ) else None *)
-
-(* let rec step_handler ~ic_process = *)
-(*   Lwt_io.read_line_opt ic_process >>= function *)
-(*   | Some msg -> *)
-(*     Logs_lwt.info (fun m -> m "[STEPPER] got msg from subprocess '%s'" msg) >>= fun _ -> ( *)
-(*       match read_weevil_recs msg with *)
-(*       | Some wrec -> *)
-(*         recs := wrec :: !recs; *)
-(*         Logs_lwt.info (fun m -> m "[STEPPER] got weevil log record from subprocess '%s'" msg) *)
-(*       | None -> Lwt.return_unit *)
-(*     ) >>= fun _ -> *)
-(*     step_handler ~ic_process *)
-(*   | None -> *)
-(*     Logs_lwt.info (fun m -> m "[STEPPER] subprocess complete") *)
-
 let step_handler ~ic_process:_ = failwith "TODO"
 let on_exn exn = Lwt.ignore_result @@ Logs_lwt.err (fun m -> m "%s" @@ Printexc.to_string exn)
 let dap_handler = Dap_handler.main_handler
