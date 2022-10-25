@@ -1,4 +1,8 @@
-let make_address addr_str = match Defaults._DEFAULT_LISTEN_ADDRESS = addr_str with
+module Defaults = Defaults.Vals
+let default_listen_address = Defaults._DEFAULT_LISTEN_ADDRESS
+let default_port = Defaults._DEFAULT_ADAPTER_PORT
+
+let make_address addr_str = match default_listen_address = addr_str with
   | true ->
     Unix.inet_addr_loopback
   | false ->
@@ -6,8 +10,8 @@ let make_address addr_str = match Defaults._DEFAULT_LISTEN_ADDRESS = addr_str wi
 
 let process listen_address_arg port_arg =
   let p
-      ?listen_address_arg:(listen_address:string=Defaults._DEFAULT_LISTEN_ADDRESS)
-      ?port_arg:(port:int=Defaults._DEFAULT_PORT)
+      ?listen_address_arg:(listen_address:string=default_listen_address)
+      ?port_arg:(port:int=default_port)
       () =
     let listen_address = make_address listen_address in
     Server.svc ~listen_address ~port
@@ -20,8 +24,8 @@ module Term = struct
     let open Cmdliner in
     let doc =
       Format.sprintf
-        "The address that the weevil svc will use for IO.  \
-        If not given defaults to <%s>" Defaults._DEFAULT_LISTEN_ADDRESS
+        "The address that the weevil DAP svc will use for IO.  \
+        If not given defaults to <%s>" default_listen_address
 
     in
     Arg.(
@@ -32,8 +36,8 @@ module Term = struct
     let open Cmdliner in
     let doc =
       Format.sprintf
-        "The port that the weevil svc will use for IO.  \
-        If not given defaults to %d" Defaults._DEFAULT_PORT
+        "The port that the weevil DAP svc will use for IO.  \
+        If not given defaults to %d" default_port
 
     in
     Arg.(
@@ -50,13 +54,13 @@ end
 
 module Manpage = struct
   let command_description =
-    "Run the Weevil service for the debugger"
+    "Run the Weevil DAP service"
 
   let description = [`S "DESCRIPTION"; `P command_description]
 
   let man = description
 
-  let info = Cmdliner.Cmd.info ~doc:command_description ~man "svc"
+  let info = Cmdliner.Cmd.info ~doc:command_description ~man "adapter"
 end
 
 let cmd = Cmdliner.Cmd.v Manpage.info Term.term

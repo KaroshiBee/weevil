@@ -59,7 +59,7 @@ end
 
 module Manpage = struct
   let command_description =
-    "Run the Weevil stepper for the debugger (used by the Weevil service)"
+    "Run the Weevil Michelson stepper for the backend service"
 
   let description = [`S "DESCRIPTION"; `P command_description]
 

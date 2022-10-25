@@ -33,12 +33,16 @@ let rec step_handler ~ic_process =
 
 module MichEvent = struct
 
-  type t =
+  type ev =
   | RunScript of string
   | Terminate
   | Step of int
 
-  let enc =
+  type t = {
+    event: ev;
+  }
+
+  let enc_ev =
     let open Data_encoding in
     union [
       case ~title:"RunScript" (Tag 0)
@@ -55,34 +59,45 @@ module MichEvent = struct
         (fun n -> Step n);
     ]
 
+  let enc =
+    let open Data_encoding in
+    conv
+      (function {event;} -> event)
+      (fun event -> {event;})
+      (obj1
+         (req "event" enc_ev))
+
   let from_msg_opt msg =
     try
       (* TODO be better *)
-      Option.some @@ Js.(from_string msg |> Result.get_ok |> destruct enc)
+      let r : t = Js.(from_string msg |> Result.get_ok |> destruct enc) in
+      Option.Some (r.event)
     with _ ->
       None
 
 
 end
 
-let rec main_handler ~oc_process _flow ic oc =
+let rec main_handler ~sub_process _flow ic oc =
   let%lwt ln = Lwt_io.read_line_opt ic in
   match ln with
   | Some msg -> (
     let%lwt _ = Logs_lwt.info (fun m -> m "[MICH] got msg '%s'" msg) in
-    match (MichEvent.from_msg_opt msg, oc_process) with
+    match (MichEvent.from_msg_opt msg, sub_process) with
 
-    | Some (RunScript _), Some _ ->
+    | Some (RunScript _), Some process when process#state = Lwt_process.Running ->
       let%lwt _ = Logs_lwt.err (fun m -> m "[MICH] trying to start a new stepper with old one still running, ignore") in
-      main_handler ~oc_process _flow ic oc
+      main_handler ~sub_process _flow ic oc
 
+    | Some (RunScript cmd), Some _
     | Some (RunScript cmd), None ->
       let%lwt _ = Logs_lwt.info (fun m -> m "[MICH] starting new stepper with cmd '%s'" cmd) in
       let cmd = ("", String.split_on_char ' ' cmd |> Array.of_list) in
       Lwt_process.with_process_full cmd (subprocess_start _flow ic oc)
 
-    | Some (Step 1), Some oc_process ->
+    | Some (Step 1), Some process ->
       let _ =
+        let oc_process = process#stdin in
         try
           Lwt_io.write oc_process "step\n" >>= fun _ ->
           Lwt_io.write oc "0" >>= fun _ ->
@@ -97,22 +112,32 @@ let rec main_handler ~oc_process _flow ic oc =
               Logs_lwt.warn (fun m -> m "[MICH] Process finished: unix error")
           )
       in
-      main_handler ~oc_process:(Some oc_process) _flow ic oc
+      main_handler ~sub_process _flow ic oc
+
+    | Some Terminate, Some process when process#state = Lwt_process.Running ->
+      let%lwt _ = Logs_lwt.info (fun m -> m "[MICH] Terminating pid '%d'" process#pid) in
+      let _ = process#terminate in
+      main_handler ~sub_process:None _flow ic oc
+
+    | Some Terminate, Some _
+    | Some Terminate, None ->
+      let%lwt _ = Logs_lwt.info (fun m -> m "[MICH] already terminated") in
+      main_handler ~sub_process:None _flow ic oc
 
     | Some _, _ ->
-      let%lwt _ = Logs_lwt.debug (fun m -> m "TODO '%s'" msg) in
-      main_handler ~oc_process _flow ic oc
+      let%lwt _ = Logs_lwt.debug (fun m -> m "[MICH] TODO '%s'" msg) in
+      main_handler ~sub_process _flow ic oc
 
     | None, _ ->
       let%lwt _ = Logs_lwt.warn (fun m -> m "[MICH] couldn't decode '%s'" msg) in
-      main_handler ~oc_process _flow ic oc
+      main_handler ~sub_process _flow ic oc
   )
 
   | None -> Logs_lwt.info (fun m -> m "[MICH] connection closed")
 
 and subprocess_start _flow ic oc process_full =
   let st = step_handler ~ic_process:process_full#stdout in
-  let m = main_handler ~oc_process:(Some process_full#stdin) _flow ic oc in
+  let m = main_handler ~sub_process:(Some process_full) _flow ic oc in
   Lwt.join [st; m]
 
 
@@ -125,5 +150,7 @@ let svc ~listen_address ~port =
   let mode = `TCP (`Port port) in
   Lwt_main.run (
     Conduit.init () >>= fun ctx ->
-    Conduit.serve ~on_exn ~ctx ~mode (main_handler ~oc_process:None)
+    Conduit.serve ~on_exn ~ctx ~mode (main_handler ~sub_process:None)
+    >|= fun _ ->
+    `Ok ()
   )

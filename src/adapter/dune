@@ -2,6 +2,7 @@
  (name adapter)
  (libraries
      dapper
+     defaults
      lwt
      conduit-lwt-unix
      data-encoding
