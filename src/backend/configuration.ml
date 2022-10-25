@@ -1,4 +1,4 @@
-open Handler_t
+open Dapper.Dap_handler_t
 open Dapper.Dap_message
 module Dap_commands = Dapper.Dap_commands
 module Dap_events = Dapper.Dap_events

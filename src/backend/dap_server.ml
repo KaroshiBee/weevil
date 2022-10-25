@@ -30,16 +30,14 @@ open Lwt
 
 let step_handler ~ic_process:_ = failwith "TODO"
 let on_exn exn = Lwt.ignore_result @@ Logs_lwt.err (fun m -> m "%s" @@ Printexc.to_string exn)
-let dap_handler = Handler.main_handler
+let dap_handler = Dap_handler.main_handler
 
 let main_handler ~mode ~content_length (process_full:Lwt_process.process_full) =
   let p = process_full in
-  let config : Handler_t.config = {
+  let config : Dapper.Dap_handler_t.config = {
     launch_mode=`Attach;
-    ic=None;
-    oc=None;
   } in
-  let hdl = Handler.make in
+  let hdl = Dap_handler.make in
   let dap_svc =
     Conduit.init () >>= fun ctx ->
     Conduit.serve ~on_exn ~ctx ~mode (dap_handler hdl config ~content_length)

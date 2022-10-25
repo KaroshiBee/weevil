@@ -1,5 +1,7 @@
-open Handler_t
+open Dapper.Dap_handler_t
 module Dap_commands = Dapper.Dap_commands
+module Js_msg = Dapper.Dap_js_msg
+module Dap_header = Dapper.Dap_header
 
 module type MAKE_HANDLER = sig
   type input
@@ -91,7 +93,7 @@ let handle_message t config msg =
   | Error _err -> failwith "TODO"
 
 
-let rec main_handler t (config:Handler_t.config) ~content_length _flow ic _oc =
+let rec main_handler t (config:Dapper.Dap_handler_t.config) ~content_length _flow ic _oc =
   let open Lwt in
   match content_length with
   | Some count ->
@@ -107,6 +109,7 @@ let rec main_handler t (config:Handler_t.config) ~content_length _flow ic _oc =
       Logs_lwt.info (fun m -> m "[DAP] no content length yet") >>= fun _ ->
       Lwt_io.read_line_opt ic >>= function
       | Some msg ->
-          let content_length = Header.content_length msg in
+          let content_length = Dap_header.content_length msg in
           main_handler t config ~content_length _flow ic _oc
-      | None -> Logs_lwt.info (fun m -> m "[DAP] connection closed"))
+      | None -> Logs_lwt.info (fun m -> m "[DAP] connection closed")
+          )

@@ -1,15 +1,15 @@
-open Dapper.Dap_message
-module Dap_commands = Dapper.Dap_commands
-module Dap_events = Dapper.Dap_events
-module Dap_flow = Dapper.Dap_flow
+open Dap_message
 
 
-type launch_mode = [`Launch | `Attach | `AttachForSuspendedLaunch]
+type launch_mode = [`Launch | `Attach | `AttachForSuspendedLaunch ]
+  (* | `Launch of string -> Lwt_io.input_channel * Lwt_io.output_channel *)
+  (* | `Attach of Lwt_io.input_channel * Lwt_io.output_channel *)
+  (* | `AttachForSuspendedLaunch *)
+  (* ] *)
+
 
 type config = {
   launch_mode : launch_mode;
-  ic : Lwt_io.input_channel option;
-  oc : Lwt_io.output_channel option;
 
 }
 
@@ -74,8 +74,6 @@ module type HANDLER = sig
   type input
   type output
 
-  type backend_channel
-
   val from_string : string -> input
   (* NOTE when handling a request we will be interacting with the backend, hence the Lwt.t  *)
   val handle : config:config -> input -> output Lwt.t
@@ -112,8 +110,8 @@ module type EV_T = sig
   type body
   type presence
   val enc : (event, body, presence) t Data_encoding.t
-  val ctor : (event, body, presence) t -> (event, body, presence) Dapper.Dap_message.event
-  val extract : (event, body, presence) Dapper.Dap_message.event -> (event, body, presence) t
+  val ctor : (event, body, presence) t -> (event, body, presence) Dap_message.event
+  val extract : (event, body, presence) Dap_message.event -> (event, body, presence) t
 end
 
 module MakeReqRespIncludes
@@ -130,12 +128,10 @@ module MakeReqRespIncludes
     response: resp Dap_flow.t;
   }
 
-  type backend_channel = Lwt_io.output_channel
-
   let from_string =
     fun input ->
-      Js_msg.from_string input
-      |> Result.map (Js_msg.destruct REQ.enc)
+      Dap_js_msg.from_string input
+      |> Result.map (Dap_js_msg.destruct REQ.enc)
       |> Result.map (fun x -> REQ.ctor x)
       |> Dap_flow.from_result
 
@@ -143,7 +139,7 @@ module MakeReqRespIncludes
     fun {response; } ->
       match Dap_flow.(to_result response) with
       | Result.Ok response ->
-        let resp = RESP.extract response |> Js_msg.construct RESP.enc |> Js_msg.to_string in
+        let resp = RESP.extract response |> Dap_js_msg.construct RESP.enc |> Dap_js_msg.to_string in
         Result.ok resp
         |> Lwt.return
 
@@ -170,12 +166,10 @@ module MakeReqRespIncludes_withEvent
     event: ev Dap_flow.t option;
   }
 
-  type backend_channel = Lwt_io.output_channel
-
   let from_string =
     fun input ->
-      Js_msg.from_string input
-      |> Result.map (Js_msg.destruct REQ.enc)
+      Dap_js_msg.from_string input
+      |> Result.map (Dap_js_msg.destruct REQ.enc)
       |> Result.map (fun x -> REQ.ctor x)
       |> Dap_flow.from_result
 
@@ -183,8 +177,8 @@ module MakeReqRespIncludes_withEvent
     | {response; event=Some event} -> (
       match Dap_flow.(to_result response, to_result event) with
       | Result.Ok response, Result.Ok event ->
-        let resp = RESP.extract response |> Js_msg.construct RESP.enc |> Js_msg.to_string in
-        let ev = EV.extract event |> Js_msg.construct EV.enc |> Js_msg.to_string in
+        let resp = RESP.extract response |> Dap_js_msg.construct RESP.enc |> Dap_js_msg.to_string in
+        let ev = EV.extract event |> Dap_js_msg.construct EV.enc |> Dap_js_msg.to_string in
         Result.ok @@ resp^ev
         |> Lwt.return
 
@@ -200,7 +194,7 @@ module MakeReqRespIncludes_withEvent
     | {response; event=None} -> (
       match Dap_flow.(to_result response) with
       | Result.Ok response ->
-        let resp = RESP.extract response |> Js_msg.construct RESP.enc |> Js_msg.to_string in
+        let resp = RESP.extract response |> Dap_js_msg.construct RESP.enc |> Dap_js_msg.to_string in
         Result.ok @@ resp
         |> Lwt.return
 

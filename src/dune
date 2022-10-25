@@ -4,7 +4,7 @@
 ;    (:standard -ccopt -static))))
 
 (executables
- (names main dapgen)
+ (names main)
  (modes byte native)
  (libraries
   tezos-base
@@ -20,6 +20,7 @@
   cmdliner
   dapper_old
   dapper
+  backend
  )
 
  (flags

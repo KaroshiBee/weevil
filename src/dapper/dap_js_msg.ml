@@ -10,7 +10,7 @@ let from_string = Js.from_string
 
 let to_string t =
   let s = Js.to_string t in
-  Header.wrap s
+  Dap_header.wrap s
 
 let construct enc i =
   try

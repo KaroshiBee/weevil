@@ -1,10 +1,9 @@
 include Test_utils
-open Handler_t
+open Dapper.Dap_handler_t
+module Js_msg = Dapper.Dap_js_msg
 
 let config : config = {
   launch_mode=`Attach;
-  ic=None;
-  oc=None;
 }
 
 
