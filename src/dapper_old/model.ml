@@ -64,7 +64,7 @@ module Weevil_record = struct
       let r = Str.regexp {|(Pair "tz1.+" "\(.+\)")|} in
       Str.replace_first tkt {|(Ticket "tz1.."|} s
       |> Str.replace_first r {|\1|}
-      |> Defaults._replace "\n" ""
+      |> Str.global_replace (Str.regexp "\n") ""
       |> Str.global_replace spaces " "
     else
       s

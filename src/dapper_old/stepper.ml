@@ -155,7 +155,7 @@ module Traced_interpreter = struct
         let js = Data_encoding.Json.(
             construct Model.Weevil_json.enc wrec
             |> to_string
-            |> Defaults._replace "\n" ""
+            |> Str.(global_replace (regexp "\n") "")
           ) in
         return @@ Printf.fprintf oc "%s\n" js
       in

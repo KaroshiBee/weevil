@@ -7,7 +7,7 @@ module DRs = Dapper_old.Dap_response
 module DEv = Dapper_old.Dap_event
 module Db = Dapper_old.Dap_base
 
-let recs : Model.Weevil_json.t list ref  = ref []
+let recs : Dapper_old.Model.Weevil_json.t list ref  = ref []
 
 type event =
   | InitReq of DRq.InitializeRequest.cls_t
@@ -320,7 +320,7 @@ let handle_msg :
         match List.nth_opt !recs 0 with
         | None -> []
         | Some wrec ->
-          let loc = Model.Weevil_json.relative_loc wrec in
+          let loc = Dapper_old.Model.Weevil_json.relative_loc wrec in
           let source = Some (Db.Source.make ~name:"example.tz" ~path:"/home/wyn/dev/weevil/example.tz" ()) in
           [Db.StackFrame.{id=Defaults._THE_FRAME_ID; name=Defaults._THE_FRAME_NAME; source; line=loc; column=0}]
       in
@@ -363,7 +363,7 @@ let handle_msg :
       let gas_val, stack_val =
         match List.nth_opt !recs 0 with
         | None -> "", []
-        | Some wrec -> Model.Weevil_json.(wrec.gas, wrec.stack)
+        | Some wrec -> Dapper_old.Model.Weevil_json.(wrec.gas, wrec.stack)
       in
       let variables = [
         [Db.Variable_.{name=gas_name; value=gas_val; variablesReference=0}]; (* 0 here means not structured ie no children? *)
@@ -435,7 +435,7 @@ let read_weevil_recs ln =
   if 0 < String.length ln && String.get ln 0 != '#' then (
     match from_string ln with
     | Ok ln ->
-      let ln = destruct Model.Weevil_json.enc ln in
+      let ln = destruct Dapper_old.Model.Weevil_json.enc ln in
       Some ln
     | Error e ->
       Logs.warn (fun m -> m "Cannot decode '%s': %s" ln e);

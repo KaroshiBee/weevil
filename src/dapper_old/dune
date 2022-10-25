@@ -1,4 +1,20 @@
 (library
  (name dapper_old)
- (libraries data-encoding str)
+ (libraries
+  tezos-base
+  tezos-base.unix
+  tezos-micheline
+  tezos-protocol-environment
+  tezos-stdlib-unix
+  tezos-protocol-014-PtKathma
+  tezos-014-PtKathma-test-helpers
+  data-encoding str)
+ (flags
+  (:standard
+   -linkall
+   -open
+   Tezos_protocol_014_PtKathma
+   -open
+   Tezos_014_PtKathma_test_helpers
+ ))
 )

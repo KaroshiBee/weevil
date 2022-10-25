@@ -26,11 +26,11 @@ let process contract_file_arg =
     String.concat " " lns
   in
 
-  let logger = Dapper_old.Stepper.Traced_interpreter.trace_logger stdout () in
+  let logger = Stepper.Traced_interpreter.trace_logger stdout () in
 
   let stepper =
     let open Tezos_base.TzPervasives.Error_monad.Legacy_monad_globals in
-    Dapper_old.Stepper.test_stepping contract_text logger >|= (fun _ -> `Ok ()) in
+    Stepper.test_stepping contract_text logger >|= (fun _ -> `Ok ()) in
 
   Lwt_main.run stepper
 

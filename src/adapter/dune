@@ -1,0 +1,15 @@
+(library
+ (name adapter)
+ (libraries
+     dapper
+     lwt
+     conduit-lwt-unix
+     data-encoding
+     cmdliner
+     logs
+     logs.lwt
+     ppx_expect
+     str)
+ (inline_tests (deps (glob_files data/*.json)))
+  (preprocess (pps lwt_ppx ppx_deriving.show ppx_expect))
+)
