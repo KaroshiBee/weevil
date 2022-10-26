@@ -6,12 +6,15 @@ let config : config = {
   launch_mode=`Attach;
 }
 
+let mock_backend = Lwt_io.(zero, null)
 
 let%expect_test "Check cancel handler" =
   let open Cancel in
   let s = {| { "seq": 10, "type": "request", "command": "cancel", "arguments": { "requestId": 1 } } |} in
-  let%lwt o = from_string s |> handle ~config in
-  let%lwt ss = to_string o in
+  let (ic, oc) = mock_backend in
+  let backend = Cancel.from_channels ic oc in
+  let%lwt o = string_to_input s |> handle backend ~config in
+  let%lwt ss = output_to_string o in
   Printf.printf "%s" @@ Result.get_ok ss;
 
   let%lwt _ = [%expect {|
@@ -24,7 +27,7 @@ let%expect_test "Check cancel handler" =
   let s = {| { "seq": 10, "type": "request", "command": "initialize", "arguments": { "requestId": 1 } } |} in
   let ss =
     try
-      let _ = from_string s in ""
+      let _ = string_to_input s in ""
     with
     | Js_msg.Wrong_encoder err -> err
   in
@@ -35,8 +38,10 @@ let%expect_test "Check cancel handler" =
 let%expect_test "Check initialize handler" =
   let open Initialize in
   let s = {| { "seq": 10, "type": "request", "command": "initialize", "arguments": { "adapterID": "weevil", "clientID":"1" } } |} in
-  let%lwt o = from_string s |> handle ~config in
-  let%lwt ss = to_string o in
+  let (ic, oc) = mock_backend in
+  let backend = Initialize.from_channels ic oc in
+  let%lwt o = string_to_input s |> handle backend ~config in
+  let%lwt ss = output_to_string o in
   Printf.printf "%s" @@ Result.get_ok ss;
 
   let%lwt _ =
@@ -51,7 +56,7 @@ let%expect_test "Check initialize handler" =
   let s = {| { "seq": 10, "type": "request", "command": "initialize", "arguments": { "adapterID": "weevil", "clientId":"1" } } |} in
   let ss =
     try
-      let _ = from_string s in ""
+      let _ = string_to_input s in ""
     with
     | Js_msg.Wrong_encoder err -> err
   in

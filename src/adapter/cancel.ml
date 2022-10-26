@@ -27,7 +27,7 @@ module Response = struct
 end
 
 
-include MakeReqRespIncludes (Request) (Response)
+include MakeReqRespIncludes (Backend_io) (Request) (Response)
 
 let on_cancel_request = function
   | CancelRequest req ->
@@ -40,6 +40,6 @@ let on_cancel_request = function
     Dap_flow.from_response ret
   | _ -> assert false
 
-let handle ~config:_ req =
-  let response = Dap_flow.on_request req on_cancel_request in
+let handle _t ~config:_ req =
+  let response = Dap_flow.bind_request req on_cancel_request in
   Lwt.return {response;}

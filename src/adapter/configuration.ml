@@ -27,7 +27,7 @@ module Response = struct
 end
 
 
-include MakeReqRespIncludes (Request) (Response)
+include MakeReqRespIncludes (Backend_io) (Request) (Response)
 
 let on_configurationDone_request = function
   | ConfigurationDoneRequest req ->
@@ -41,6 +41,6 @@ let on_configurationDone_request = function
   | _ -> assert false
 
 
-let handle ~config:_ req =
-  let response = Dap_flow.on_request req on_configurationDone_request in
+let handle _t ~config:_ req =
+  let response = Dap_flow.bind_request req on_configurationDone_request in
   Lwt.return {response}

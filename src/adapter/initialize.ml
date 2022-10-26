@@ -57,7 +57,7 @@ module Event = struct
 end
 
 
-include MakeReqRespIncludes_withEvent (Request) (Response) (Event)
+include MakeReqRespIncludes_withEvent (Backend_io) (Request) (Response) (Event)
 
 let on_initialize_request = function
   | InitializeRequest req ->
@@ -82,8 +82,8 @@ let on_initialization_response = function
     Dap_flow.from_event ret
   | _ -> assert false
 
-let handle ~config:_ req =
+let handle _t ~config:_ req =
   let open Dap_flow in
-  let response = on_request req on_initialize_request in
-  let event = Option.some @@ on_response response on_initialization_response in
+  let response = bind_request  req on_initialize_request in
+  let event = Option.some @@ bind_response response on_initialization_response in
   Lwt.return {response; event}

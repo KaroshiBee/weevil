@@ -71,14 +71,21 @@ Previous handler func:
 *)
 module type HANDLER = sig
 
+  type ('ic, 'oc) t
+  val from_channels : 'ic -> 'oc -> ('ic, 'oc) t
+
   type input
   type output
-
-  val from_string : string -> input
+  val string_to_input : string -> input
   (* NOTE when handling a request we will be interacting with the backend, hence the Lwt.t  *)
-  val handle : config:config -> input -> output Lwt.t
-  val to_string : output -> (string, string) Result.t Lwt.t
+  val handle : ('ic, 'oc) t -> config:config -> input -> output Lwt.t
+  val output_to_string : output -> (string, string) Result.t Lwt.t
 
+end
+
+module type BACKEND_T = sig
+  type ('ic, 'oc) t
+  val from_channels : 'ic -> 'oc -> ('ic, 'oc) t
 end
 
 module type REQ_T = sig
@@ -115,9 +122,12 @@ module type EV_T = sig
 end
 
 module MakeReqRespIncludes
+    (B:BACKEND_T)
     (REQ:REQ_T)
     (RESP:RESP_T with type command = REQ.command)
     = struct
+
+  include B
 
   type req = (REQ.command, REQ.args, REQ.presence) request
   type input = req Dap_flow.t
@@ -128,14 +138,14 @@ module MakeReqRespIncludes
     response: resp Dap_flow.t;
   }
 
-  let from_string =
+  let string_to_input =
     fun input ->
       Dap_js_msg.from_string input
       |> Result.map (Dap_js_msg.destruct REQ.enc)
       |> Result.map (fun x -> REQ.ctor x)
       |> Dap_flow.from_result
 
-  let to_string =
+  let output_to_string =
     fun {response; } ->
       match Dap_flow.(to_result response) with
       | Result.Ok response ->
@@ -150,10 +160,13 @@ end
 
 
 module MakeReqRespIncludes_withEvent
+    (B:BACKEND_T)
     (REQ:REQ_T)
     (RESP:RESP_T with type command = REQ.command)
     (EV:EV_T)
     = struct
+
+  include B
 
   type req = (REQ.command, REQ.args, REQ.presence) request
   type input = req Dap_flow.t
@@ -166,14 +179,14 @@ module MakeReqRespIncludes_withEvent
     event: ev Dap_flow.t option;
   }
 
-  let from_string =
+  let string_to_input =
     fun input ->
       Dap_js_msg.from_string input
       |> Result.map (Dap_js_msg.destruct REQ.enc)
       |> Result.map (fun x -> REQ.ctor x)
       |> Dap_flow.from_result
 
-  let to_string = function
+  let output_to_string = function
     | {response; event=Some event} -> (
       match Dap_flow.(to_result response, to_result event) with
       | Result.Ok response, Result.Ok event ->

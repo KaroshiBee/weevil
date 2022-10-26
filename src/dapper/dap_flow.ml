@@ -192,7 +192,7 @@ module Response = struct
       | DisassembleResponse resp -> DisassembleResponse (aux resp seqr)
 end
 
-let on_request (type cmd args pargs) :
+let bind_request (type cmd args pargs) :
   (cmd, args, pargs) request t ->
   ((cmd, args, pargs) request -> (cmd, _, _) response t) ->
   (cmd, _, _) response t
@@ -248,6 +248,7 @@ let on_request (type cmd args pargs) :
        | DisassembleRequest req as v -> Response.map (f v) @@ seqr req
   )
 
+
 module Event = struct
 
 let map (type ev body pbody) :
@@ -284,7 +285,7 @@ let set_seqr (type ev body pbody) :
 
 end
 
-let on_response (type cmd body pbody) :
+let bind_response (type cmd body pbody) :
   (cmd, body, pbody) response t ->
   ((cmd, body, pbody) response -> (_, _, _) event t) ->
   (_, _, _) event t
@@ -342,7 +343,7 @@ let on_response (type cmd body pbody) :
      )
 
 
-let raise_event (type ev body pbody) :
+let bind_event (type ev body pbody) :
   (ev, body, pbody) event t ->
   ((ev, body, pbody) event -> (_, _, _) event t) ->
   (_, _, _) event t

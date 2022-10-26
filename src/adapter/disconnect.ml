@@ -63,7 +63,7 @@ module Event = struct
 end
 
 
-include MakeReqRespIncludes_withEvent (Request) (Response) (Event)
+include MakeReqRespIncludes_withEvent (Backend_io) (Request) (Response) (Event)
 
 let on_disconnect_request = function
   | DisconnectRequest req ->
@@ -93,16 +93,16 @@ let on_disconnect_response exitCode = function
     Dap_flow.from_event ret
   | _ -> assert false
 
-let handle ~config req =
+let handle _t ~config req =
   let open Dap_flow in
-  let response = on_request req on_disconnect_request in
+  let response = bind_request  req on_disconnect_request in
   (* diconnect when launched - terminate debuggee forcefully  *)
   (* disconnect when attached - dont terminate the debuggee *)
   let event = match config.launch_mode with
     | `Launch ->
       Logs.warn (fun m -> m "TODO: shutdown debuggee forcefully; shutdown channel");
       let exitCode = 0 in
-      Option.some @@ on_response response (on_disconnect_response exitCode)
+      Option.some @@ bind_response response (on_disconnect_response exitCode)
     | `Attach | `AttachForSuspendedLaunch ->
       Logs.warn (fun m -> m "TODO: shutdown channel");
       None

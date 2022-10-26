@@ -6,31 +6,41 @@ module Dap_header = Dapper.Dap_header
 module type MAKE_HANDLER = sig
   type input
   type output
-  type t
-  val make : t
-  val handle : t -> config:config -> string -> string Lwt.t
+  type ('ic, 'oc) backend
+
+  type ('ic, 'oc) t
+  val make : 'ic -> 'oc -> ('ic, 'oc) t
+  val handle : ('ic, 'oc) t -> config:config -> string -> string Lwt.t
 end
 
-module MakeHandler (H:HANDLER) : (MAKE_HANDLER with type input := H.input and type output := H.output) = struct
+module MakeHandler (H:HANDLER) :
+  (MAKE_HANDLER with
+    type input := H.input and
+    type output := H.output and
+    type ('ic, 'oc) backend := ('ic, 'oc) H.t)
 
-  type t = {
-    from_string : string -> H.input;
-    to_string : H.output -> (string, string) Result.t Lwt.t ;
-    handle : config:config -> H.input -> H.output Lwt.t;
+    = struct
+
+  type ('ic, 'oc) t = {
+    backend: ('ic, 'oc) H.t;
+    string_to_input : string -> H.input;
+    output_to_string : H.output -> (string, string) Result.t Lwt.t ;
+    handle : ('ic, 'oc) H.t -> config:config -> H.input -> H.output Lwt.t;
   }
 
-  let make = {
-    from_string = H.from_string;
-    to_string = H.to_string;
+  let make ic oc = {
+    backend=H.from_channels ic oc;
+    string_to_input = H.string_to_input;
+    output_to_string = H.output_to_string;
     handle = H.handle;
   }
 
   let handle t ~config s =
     let%lwt output =
-      t.from_string s
-      |> t.handle ~config
+      t.string_to_input s
+      |> t.handle t.backend ~config
     in
-    match%lwt t.to_string output with
+    match%lwt t.output_to_string output with
     | Result.Ok msg ->
       Lwt.return msg
     | Result.Error err ->
@@ -54,11 +64,12 @@ let make : t = [
   |> Hashtbl.of_seq
 
 
-let handle_exn t config message =
+let handle_exn t ic oc config message =
   let aux command =
     let h = Hashtbl.find t command in
-    let module H = MakeHandler (val h : HANDLER) in
-    let h = H.make in
+    let module Handler = (val h : HANDLER) in
+    let module H = MakeHandler (Handler) in
+    let h = H.make ic oc in
     try%lwt
       let%lwt output = H.handle h ~config message in
       Some output |> Lwt.return
@@ -87,13 +98,15 @@ let handle_exn t config message =
   Lwt.return ret
 
 
-let handle_message t config msg =
-  match%lwt handle_exn t config msg with
+let handle_message t ic oc config msg =
+  match%lwt handle_exn t ic oc config msg with
   | Ok _js -> failwith "TODO"
   | Error _err -> failwith "TODO"
 
 
 let rec main_handler t (config:Dapper.Dap_handler_t.config) ~content_length _flow ic _oc =
+  let backend_ic = Lwt_io.zero in
+  let backend_oc = Lwt_io.null in
   let open Lwt in
   match content_length with
   | Some count ->
@@ -103,7 +116,7 @@ let rec main_handler t (config:Dapper.Dap_handler_t.config) ~content_length _flo
       assert (header_break = "\r\n") |> Lwt.return >>= fun _ ->
       Lwt_io.read ~count ic >>= fun msg ->
       Logs_lwt.info (fun m -> m "[DAP] Got message '%s'" msg) >>= fun _ ->
-      handle_message t config msg >>= fun _ ->
+      handle_message t backend_ic backend_oc config msg >>= fun _ ->
       main_handler t config ~content_length:None _flow ic _oc
   | None -> (
       Logs_lwt.info (fun m -> m "[DAP] no content length yet") >>= fun _ ->

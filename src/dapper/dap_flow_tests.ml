@@ -33,7 +33,7 @@ let%expect_test "Check sequencing request/response/event" =
   in
   let v = Dap_flow.(
       from_request @@ CancelRequest cancel
-      |> fun v -> on_request v f
+      |> fun v -> bind_request v f
     )
   in
   let s =
@@ -60,7 +60,7 @@ let%expect_test "Check sequencing request/response/event" =
     )
     |> Dap_flow.from_event
   in
-  let v = Dap_flow.on_response v f in
+  let v = Dap_flow.bind_response v f in
   let s =
     match Dap_flow.to_result v with
     | Result.Ok (TerminatedEvent ev) ->
@@ -83,7 +83,7 @@ let%expect_test "Check sequencing request/response/event" =
     )
     |> Dap_flow.from_event
   in
-  let v = Dap_flow.raise_event v f in
+  let v = Dap_flow.bind_event v f in
   let s = match Dap_flow.to_result v with
     | Result.Ok (ExitedEvent ev) ->
       let enc = EventMessage.enc Dap_events.exited ExitedEvent_body.enc in

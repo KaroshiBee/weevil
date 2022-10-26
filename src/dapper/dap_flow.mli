@@ -33,17 +33,17 @@ val to_event :
   ('event, 'body, 'presence) Dap_message.EventMessage.t
 
 (* NOTE in req_resp there is only one 'command type ie NextRequest -> NextResponse *)
-val on_request :
+val bind_request :
   ('cmd, 'args, 'pargs) Dap_message.request t ->
   (('cmd, 'args, 'pargs) Dap_message.request -> ('cmd, 'body, 'pbody) Dap_message.response t) ->
   ('cmd, 'body, 'pbody) Dap_message.response t
 
-val on_response :
+val bind_response :
   ('command, 'body, 'pbody) Dap_message.response t ->
   (('command, 'body, 'pbody) Dap_message.response -> ('event, 'evbody, 'pevbody) Dap_message.event t) ->
   ('event, 'evbody, 'pevbody) Dap_message.event t
 
-val raise_event :
+val bind_event :
   ('event, 'evbody, 'pevbody) Dap_message.event t ->
   (('event, 'evbody, 'pevbody) Dap_message.event -> ('event_, 'evbody_, 'pevbody_) Dap_message.event t) ->
   ('event_, 'evbody_, 'pevbody_) Dap_message.event t

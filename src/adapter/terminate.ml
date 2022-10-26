@@ -47,7 +47,7 @@ module Event = struct
 end
 
 
-include MakeReqRespIncludes_withEvent (Request) (Response) (Event)
+include MakeReqRespIncludes_withEvent (Backend_io) (Request) (Response) (Event)
 
 let on_terminate_request = function
   | TerminateRequest req ->
@@ -77,12 +77,12 @@ let on_terminate_response exitCode = function
     Dap_flow.from_event ret
   | _ -> assert false
 
-let handle ~config:_ req =
+let handle _t ~config:_ req =
   let open Dap_flow in
-  let response = on_request req on_terminate_request in
+  let response = bind_request req on_terminate_request in
   Logs.warn (fun m -> m "TODO: shutdown debuggee gracefully; shutdown channel");
   let event =
     let exitCode = 0 in
-    Option.some @@ on_response response (on_terminate_response exitCode)
+    Option.some @@ bind_response response (on_terminate_response exitCode)
   in
   Lwt.return {response; event}

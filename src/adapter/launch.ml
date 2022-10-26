@@ -49,7 +49,7 @@ module Event = struct
 end
 
 
-include MakeReqRespIncludes_withEvent (Request) (Response) (Event)
+include MakeReqRespIncludes_withEvent (Backend_io) (Request) (Response) (Event)
 
 let on_launch_request ~config = function
   | LaunchRequest req when config.launch_mode = `Launch ->
@@ -83,8 +83,13 @@ let on_launch_response ~config = function
     Dap_flow.from_event ret
   | _ -> assert false
 
-let handle ~config req =
+let handle _t ~config req =
   let open Dap_flow in
-  let response = on_request req (on_launch_request ~config) in
-  let event = Option.some @@ on_response response (on_launch_response ~config) in
+  let response = bind_request req (on_launch_request ~config) in
+  let event =
+    match to_result response with
+    | Result.Ok _ -> (* TODO send launch cmd to backend *)
+      Option.some @@ bind_response response (on_launch_response ~config)
+    | Result.Error _ -> None
+  in
   Lwt.return {response; event}
