@@ -84,12 +84,10 @@ let on_launch_response Dap_config.{launch_mode; _} = function
     Dap_flow.from_event ret
   | _ -> assert false
 
-let on_bad_request e = function
-  | LaunchRequest _req ->
-    let resp = default_response_error e in
-    let ret = ErrorResponse resp in
-    Dap_flow.from_response ret
-  | _ -> assert false
+let on_bad_request e _request =
+  let resp = default_response_error e in
+  let ret = ErrorResponse resp in
+  Dap_flow.from_response ret
 
 let handle t config req =
   let open Dap_flow in

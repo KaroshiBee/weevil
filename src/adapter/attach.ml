@@ -41,8 +41,8 @@ end
 
 include MakeReqRespIncludes_withEvent (Request) (Response) (Event)
 
-let on_attach_request config = function
-  | AttachRequest req when Dap_config.(config.launch_mode = `Attach) ->
+let on_attach_request Dap_config.{launch_mode; _} = function
+  | AttachRequest req when launch_mode = `Attach ->
     let resp =
       let command = RequestMessage.command req in
       let body = EmptyObject.make () in
@@ -50,14 +50,14 @@ let on_attach_request config = function
     in
     let ret = AttachResponse resp in
     Dap_flow.from_response ret
-  | AttachRequest _req when config.launch_mode = `Launch ->
+  | AttachRequest _req when launch_mode = `Launch ->
     let err = "wrong attach mode - config is set to Launch but got an Attach request message" in
     Logs.err (fun m -> m "%s" err) ;
     Dap_flow.from_result @@ Result.error err
   | _ -> assert false
 
-let on_attach_response config = function
-  | AttachResponse _ when Dap_config.(config.launch_mode = `Attach) ->
+let on_attach_response Dap_config.{launch_mode; _} = function
+  | AttachResponse _ when launch_mode = `Attach ->
     let ev =
       let event = Dap_events.process in
       let startMethod = ProcessEvent_body_startMethod.Attach in
@@ -73,8 +73,20 @@ let on_attach_response config = function
     Dap_flow.from_event ret
   | _ -> assert false
 
-let handle _t config req =
+let on_bad_request e _request =
+  let resp = default_response_error e in
+  let ret = ErrorResponse resp in
+  Dap_flow.from_response ret
+
+let handle t config req =
   let open Dap_flow in
-  let response = bind_request  req (on_attach_request config) in
-  let event = Option.some @@ bind_response response (on_attach_response config) in
-  Lwt.return {response; event; error=None}
+  let response = bind_request req (on_attach_request config) in
+  match to_result response with
+  | Result.Ok _ ->
+    let backend_oc = oc t in
+    let%lwt _ = Lwt_io.write backend_oc config.backend_echo in
+    let event = Option.some @@ bind_response response (on_attach_response config) in
+    {response; event; error=None} |> Lwt.return
+  | Result.Error err ->
+    let error = Option.some @@ raise_error req (on_bad_request err) in
+    {response; event=None; error} |> Lwt.return

@@ -5,10 +5,7 @@ open Lwt
 let on_exn exn = Lwt.ignore_result @@ Logs_lwt.err (fun m -> m "%s" @@ Printexc.to_string exn)
 
 let main_handler ~mode ~content_length =
-  let config : Dapper.Dap_config.t = {
-    launch_mode=`Attach;
-    backend_cmd="TODO";
-  } in
+  let config = Dapper.Dap_config.make ~launch_mode:`Attach () in
   let hdl = Handler.make in
   let dap_svc =
     Conduit.init () >>= fun ctx ->
@@ -24,8 +21,8 @@ let svc ~listen_address ~port =
   let () = Logs.set_level (Some Logs.Debug) in
   let mode = `TCP (`Port port) in
   let content_length = None in
-  let the_svc = (main_handler ~mode ~content_length) >|= fun _ ->
+  let the_adapter_svc = (main_handler ~mode ~content_length) >|= fun _ ->
     `Ok ()
   in
 
-  Lwt_main.run the_svc
+  Lwt_main.run the_adapter_svc

@@ -1,10 +1,7 @@
 include Test_utils
 module Js_msg = Dapper.Dap_js_msg
 
-let config : Dapper.Dap_config.t = {
-  launch_mode=`Attach;
-  backend_cmd="";
-}
+let config = Dapper.Dap_config.make ~launch_mode:`Attach ()
 
 let mock_backend = Lwt_io.(zero, null)
 
