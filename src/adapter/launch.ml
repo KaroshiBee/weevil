@@ -50,10 +50,10 @@ module Event = struct
 end
 
 
-include MakeReqRespIncludes_withEvent (Backend_io) (Request) (Response) (Event)
+include MakeReqRespIncludes_withEvent (Request) (Response) (Event)
 
-let on_launch_request config = function
-  | LaunchRequest req when Dap_config.(config.launch_mode = `Launch) ->
+let on_launch_request Dap_config.{launch_mode; _} = function
+  | LaunchRequest req when launch_mode = `Launch ->
     let resp =
       let command = RequestMessage.command req in
       let body = EmptyObject.make () in
@@ -61,14 +61,14 @@ let on_launch_request config = function
     in
     let ret = LaunchResponse resp in
     Dap_flow.from_response ret
-  | LaunchRequest _req when config.launch_mode = `Attach ->
+  | LaunchRequest _req when launch_mode = `Attach ->
     let err = "wrong launch mode - config is set to Attach but got a Launch request message" in
     Logs.err (fun m -> m "%s" err) ;
     Dap_flow.from_result @@ Result.error err
   | _ -> assert false
 
-let on_launch_response config = function
-  | LaunchResponse _ when Dap_config.(config.launch_mode = `Launch) ->
+let on_launch_response Dap_config.{launch_mode; _} = function
+  | LaunchResponse _ when launch_mode = `Launch ->
     let ev =
       let event = Dap_events.process in
       let startMethod = ProcessEvent_body_startMethod.Launch in
@@ -87,12 +87,12 @@ let on_launch_response config = function
 let handle t config req =
   let open Dap_flow in
   let response = bind_request req (on_launch_request config) in
-  let event =
+  let%lwt event =
     match to_result response with
-    | Result.Ok _ -> (* TODO send launch cmd to backend *)
-      let _backend_oc = oc t in
-      (* let%lwt _ = Lwt_io.write backend_oc config.backend_cmd in *)
-      Option.some @@ bind_response response (on_launch_response config)
-    | Result.Error _ -> None
+    | Result.Ok _ ->
+      let backend_oc = oc t in
+      let%lwt _ = Lwt_io.write backend_oc config.backend_cmd in
+      Option.some @@ bind_response response (on_launch_response config) |> Lwt.return
+    | Result.Error _ -> None |> Lwt.return
   in
   Lwt.return {response; event}

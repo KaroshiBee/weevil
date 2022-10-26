@@ -56,23 +56,18 @@ Previous handler func:
   backend:Lwt_io.output Lwt_io.channel ->
   unit Lwt.t
 *)
-module type BACKEND_T = sig
-  type ('ic, 'oc) t
-  val from_channels : 'ic -> 'oc -> ('ic, 'oc) t
-  val ic : ('ic, 'oc) t -> 'ic
-  val oc : ('ic, 'oc) t -> 'oc
-
-end
-
 module type HANDLER = sig
 
-  include BACKEND_T
+  type t
+  val from_channels : Lwt_io.input_channel -> Lwt_io.output_channel -> t
+  val ic : t -> Lwt_io.input_channel
+  val oc : t -> Lwt_io.output_channel
 
   type input
   type output
   val string_to_input : string -> input
   (* NOTE when handling a request we will be interacting with the backend, hence the Lwt.t  *)
-  val handle : ('ic, 'oc) t -> Dap_config.t -> input -> output Lwt.t
+  val handle : t -> Dap_config.t -> input -> output Lwt.t
   val output_to_string : output -> (string, string) Result.t Lwt.t
 
 end
@@ -110,13 +105,24 @@ module type EV_T = sig
   val extract : (event, body, presence) Dap_message.event -> (event, body, presence) t
 end
 
-module MakeReqRespIncludes
-    (B:BACKEND_T)
-    (REQ:REQ_T)
-    (RESP:RESP_T with type command = REQ.command)
-    = struct
+module Backend = struct
+  type t = {
+    backend_ic: Lwt_io.input_channel;
+    backend_oc: Lwt_io.output_channel;
+  }
 
-  include B
+  let from_channels backend_ic backend_oc =
+    {backend_ic; backend_oc}
+
+  let ic t = t.backend_ic
+  let oc t = t.backend_oc
+end
+
+module MakeReqRespIncludes
+    (REQ:REQ_T)
+    (RESP:RESP_T with type command = REQ.command) = struct
+
+  include Backend
 
   type req = (REQ.command, REQ.args, REQ.presence) request
   type input = req Dap_flow.t
@@ -145,17 +151,18 @@ module MakeReqRespIncludes
       | Result.Error _ ->
         failwith "TODO - response errored, need to make an error response str from the initial request seq#"
 
+  let handle _ _ _ = failwith "TODO: override"
+
 end
 
 
 module MakeReqRespIncludes_withEvent
-    (B:BACKEND_T)
     (REQ:REQ_T)
     (RESP:RESP_T with type command = REQ.command)
     (EV:EV_T)
     = struct
 
-  include B
+  include Backend
 
   type req = (REQ.command, REQ.args, REQ.presence) request
   type input = req Dap_flow.t

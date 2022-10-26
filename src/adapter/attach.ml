@@ -39,7 +39,7 @@ module Event = struct
   let extract = Dap_flow.to_event
 end
 
-include MakeReqRespIncludes_withEvent (Backend_io) (Request) (Response) (Event)
+include MakeReqRespIncludes_withEvent (Request) (Response) (Event)
 
 let on_attach_request config = function
   | AttachRequest req when Dap_config.(config.launch_mode = `Attach) ->

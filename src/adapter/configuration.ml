@@ -27,7 +27,7 @@ module Response = struct
 end
 
 
-include MakeReqRespIncludes (Backend_io) (Request) (Response)
+include MakeReqRespIncludes (Request) (Response)
 
 let on_configurationDone_request = function
   | ConfigurationDoneRequest req ->

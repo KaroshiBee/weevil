@@ -6,26 +6,26 @@ module Dap_header = Dapper.Dap_header
 module type MAKE_HANDLER = sig
   type input
   type output
-  type ('ic, 'oc) backend
+  type backend
 
-  type ('ic, 'oc) t
-  val make : 'ic -> 'oc -> ('ic, 'oc) t
-  val handle : ('ic, 'oc) t -> Dapper.Dap_config.t -> string -> string Lwt.t
+  type t
+  val make : Lwt_io.input_channel -> Lwt_io.output_channel -> t
+  val handle : t -> Dapper.Dap_config.t -> string -> string Lwt.t
 end
 
 module MakeHandler (H:HANDLER) :
   (MAKE_HANDLER with
     type input := H.input and
     type output := H.output and
-    type ('ic, 'oc) backend := ('ic, 'oc) H.t)
+    type backend := H.t)
 
     = struct
 
-  type ('ic, 'oc) t = {
-    backend: ('ic, 'oc) H.t;
+  type t = {
+    backend: H.t;
     string_to_input : string -> H.input;
     output_to_string : H.output -> (string, string) Result.t Lwt.t ;
-    handle : ('ic, 'oc) H.t -> Dapper.Dap_config.t -> H.input -> H.output Lwt.t;
+    handle : H.t -> Dapper.Dap_config.t -> H.input -> H.output Lwt.t;
   }
 
   let make ic oc = {

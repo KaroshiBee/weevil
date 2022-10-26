@@ -11,6 +11,7 @@
      dapper
      defaults
      lwt
+     lwt.unix
      conduit-lwt-unix
      data-encoding
      cmdliner
