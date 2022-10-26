@@ -84,15 +84,22 @@ let on_launch_response Dap_config.{launch_mode; _} = function
     Dap_flow.from_event ret
   | _ -> assert false
 
+let on_bad_request e = function
+  | LaunchRequest _req ->
+    let resp = default_response_error e in
+    let ret = ErrorResponse resp in
+    Dap_flow.from_response ret
+  | _ -> assert false
+
 let handle t config req =
   let open Dap_flow in
   let response = bind_request req (on_launch_request config) in
-  let%lwt event =
-    match to_result response with
-    | Result.Ok _ ->
-      let backend_oc = oc t in
-      let%lwt _ = Lwt_io.write backend_oc config.backend_cmd in
-      Option.some @@ bind_response response (on_launch_response config) |> Lwt.return
-    | Result.Error _ -> None |> Lwt.return
-  in
-  Lwt.return {response; event}
+  match to_result response with
+  | Result.Ok _ ->
+    let backend_oc = oc t in
+    let%lwt _ = Lwt_io.write backend_oc config.backend_cmd in
+    let event = Option.some @@ bind_response response (on_launch_response config) in
+    {response; event; error=None} |> Lwt.return
+  | Result.Error err ->
+    let error = Option.some @@ raise_error req (on_bad_request err) in
+    {response; event=None; error} |> Lwt.return

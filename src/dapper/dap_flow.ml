@@ -246,7 +246,63 @@ let bind_request (type cmd args pargs) :
        | ReadMemoryRequest req as v -> Response.map (f v) @@ seqr req
        | WriteMemoryRequest req as v -> Response.map (f v) @@ seqr req
        | DisassembleRequest req as v -> Response.map (f v) @@ seqr req
-  )
+     )
+
+let raise_error (type cmd args pargs) :
+  (cmd, args, pargs) request t ->
+  ((cmd, args, pargs) request -> (Dap_commands.error, ErrorResponse_body.t, ResponseMessage.req) response t) ->
+  (Dap_commands.error, ErrorResponse_body.t, ResponseMessage.req) response t
+  = fun v f ->
+   let seqr req =
+     let request_seq = RequestMessage.seq req in
+     let seq = succ request_seq in
+     Response.set_seqr {seq; request_seq}
+   in
+   Result.bind v (function
+       | CancelRequest req as v -> Response.map (f v) @@ seqr req
+       | RunInTerminalRequest req as v -> Response.map (f v) @@ seqr req
+       | InitializeRequest req as v -> Response.map (f v) @@ seqr req
+       | ConfigurationDoneRequest req as v -> Response.map (f v) @@ seqr req
+       | LaunchRequest req as v -> Response.map (f v) @@ seqr req
+       | AttachRequest req as v -> Response.map (f v) @@ seqr req
+       | RestartRequest req as v -> Response.map (f v) @@ seqr req
+       | DisconnectRequest req as v -> Response.map (f v) @@ seqr req
+       | TerminateRequest req as v -> Response.map (f v) @@ seqr req
+       | BreakpointLocationsRequest req as v -> Response.map (f v) @@ seqr req
+       | SetBreakpointsRequest req as v -> Response.map (f v) @@ seqr req
+       | SetFunctionBreakpointsRequest req as v -> Response.map (f v) @@ seqr req
+       | SetExceptionBreakpointsRequest req as v -> Response.map (f v) @@ seqr req
+       | DataBreakpointInfoRequest req as v -> Response.map (f v) @@ seqr req
+       | SetDataBreakpointsRequest req as v -> Response.map (f v) @@ seqr req
+       | SetInstructionBreakpointsRequest req as v -> Response.map (f v) @@ seqr req
+       | ContinueRequest req as v -> Response.map (f v) @@ seqr req
+       | NextRequest req as v -> Response.map (f v) @@ seqr req
+       | StepInRequest req as v -> Response.map (f v) @@ seqr req
+       | StepOutRequest req as v -> Response.map (f v) @@ seqr req
+       | StepBackRequest req as v -> Response.map (f v) @@ seqr req
+       | ReverseContinueRequest req as v -> Response.map (f v) @@ seqr req
+       | RestartFrameRequest req as v -> Response.map (f v) @@ seqr req
+       | GotoRequest req as v -> Response.map (f v) @@ seqr req
+       | PauseRequest req as v -> Response.map (f v) @@ seqr req
+       | StackTraceRequest req as v -> Response.map (f v) @@ seqr req
+       | ScopesRequest req as v -> Response.map (f v) @@ seqr req
+       | VariablesRequest req as v -> Response.map (f v) @@ seqr req
+       | SetVariableRequest req as v -> Response.map (f v) @@ seqr req
+       | SourceRequest req as v -> Response.map (f v) @@ seqr req
+       | ThreadsRequest req as v -> Response.map (f v) @@ seqr req
+       | TerminateThreadsRequest req as v -> Response.map (f v) @@ seqr req
+       | ModulesRequest req as v -> Response.map (f v) @@ seqr req
+       | LoadedSourcesRequest req as v -> Response.map (f v) @@ seqr req
+       | EvaluateRequest req as v -> Response.map (f v) @@ seqr req
+       | SetExpressionRequest req as v -> Response.map (f v) @@ seqr req
+       | StepInTargetsRequest req as v -> Response.map (f v) @@ seqr req
+       | GotoTargetsRequest req as v -> Response.map (f v) @@ seqr req
+       | CompletionsRequest req as v -> Response.map (f v) @@ seqr req
+       | ExceptionInfoRequest req as v -> Response.map (f v) @@ seqr req
+       | ReadMemoryRequest req as v -> Response.map (f v) @@ seqr req
+       | WriteMemoryRequest req as v -> Response.map (f v) @@ seqr req
+       | DisassembleRequest req as v -> Response.map (f v) @@ seqr req
+     )
 
 
 module Event = struct
@@ -341,7 +397,6 @@ let bind_response (type cmd body pbody) :
        | WriteMemoryResponse resp as v -> Event.map (f v) @@ seqr resp
        | DisassembleResponse resp as v -> Event.map (f v) @@ seqr resp
      )
-
 
 let bind_event (type ev body pbody) :
   (ev, body, pbody) event t ->

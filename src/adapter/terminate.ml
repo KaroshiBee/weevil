@@ -85,4 +85,4 @@ let handle _t _config req =
     let exitCode = 0 in
     Option.some @@ bind_response response (on_terminate_response exitCode)
   in
-  Lwt.return {response; event}
+  Lwt.return {response; event; error=None}

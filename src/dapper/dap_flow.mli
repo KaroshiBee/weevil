@@ -47,3 +47,10 @@ val bind_event :
   ('event, 'evbody, 'pevbody) Dap_message.event t ->
   (('event, 'evbody, 'pevbody) Dap_message.event -> ('event_, 'evbody_, 'pevbody_) Dap_message.event t) ->
   ('event_, 'evbody_, 'pevbody_) Dap_message.event t
+
+
+
+val raise_error :
+  ('cmd, 'args, 'pargs) Dap_message.request t ->
+  (('cmd, 'args, 'pargs) Dap_message.request -> (Dap_commands.error, Dap_message.ErrorResponse_body.t, Dap_message.ResponseMessage.req) Dap_message.response t) ->
+  (Dap_commands.error, Dap_message.ErrorResponse_body.t, Dap_message.ResponseMessage.req) Dap_message.response t

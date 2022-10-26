@@ -1,11 +1,10 @@
 open Dap_message
 
-let default_response_req
+let default_response_req ?(success=true)
   = fun command body ->
   (* NOTE for use in the Flow monad so seq and request_seq get taken care of there *)
   let seq = -1 in
   let request_seq = -1 in
-  let success = true in
   ResponseMessage.make
     ~seq
     ~request_seq
@@ -14,12 +13,11 @@ let default_response_req
     ~body
     ()
 
-let default_response_opt
+let default_response_opt ?(success=true)
   = fun command body ->
   (* NOTE for use in the Flow monad so seq and request_seq get taken care of there *)
   let seq = -1 in
   let request_seq = -1 in
-  let success = true in
   ResponseMessage.make_opt
     ~seq
     ~request_seq
@@ -27,6 +25,13 @@ let default_response_opt
     ~command
     ~body
     ()
+
+let default_response_error e =
+  let id = Hashtbl.hash e in
+  let variables = `O [("error", `String e)] in
+  let error = Message.make ~id ~format:"{error}" ~variables () in
+  let body = ErrorResponse_body.make ~error () in
+  default_response_req ~success:false Dap_commands.error body
 
 let default_event_req
   = fun event body ->
@@ -118,6 +123,8 @@ module Backend = struct
   let oc t = t.backend_oc
 end
 
+type error = (Dap_commands.error, ErrorResponse_body.t, ResponseMessage.req) response
+
 module MakeReqRespIncludes
     (REQ:REQ_T)
     (RESP:RESP_T with type command = REQ.command) = struct
@@ -131,6 +138,7 @@ module MakeReqRespIncludes
 
   type output = {
     response: resp Dap_flow.t;
+    error: error Dap_flow.t option;
   }
 
   let string_to_input =
@@ -140,18 +148,23 @@ module MakeReqRespIncludes
       |> Result.map (fun x -> REQ.ctor x)
       |> Dap_flow.from_result
 
-  let output_to_string =
-    fun {response; } ->
+  let output_to_string = 
+    fun {response; _} ->
       match Dap_flow.(to_result response) with
       | Result.Ok response ->
         let resp = RESP.extract response |> Dap_js_msg.construct RESP.enc |> Dap_js_msg.to_string in
         Result.ok resp
         |> Lwt.return
 
-      | Result.Error _ ->
-        failwith "TODO - response errored, need to make an error response str from the initial request seq#"
-
-  let handle _ _ _ = failwith "TODO: override"
+      | Result.Error e -> Result.error e |> Lwt.return
+        (* let id = Hashtbl.hash e in *)
+        (* let variables = `O [("error", `String e)] in *)
+        (* let error = Message.make ~id ~format:"{error}" ~variables () in *)
+        (* let body = ErrorResponse_body.make ~error () in *)
+        (* let err = RESP.make ~seq:0 ~request_seq:0 ~success:false ~command:Dap_commands.error ~body () in *)
+        (* let err_resp = err |> Dap_js_msg.construct RESP.enc |> Dap_js_msg.to_string in *)
+        (* Result.Error err_resp *)
+        (* |> Lwt.return *)
 
 end
 
@@ -173,6 +186,7 @@ module MakeReqRespIncludes_withEvent
   type output = {
     response: resp Dap_flow.t;
     event: ev Dap_flow.t option;
+    error: error Dap_flow.t option;
   }
 
   let string_to_input =
@@ -183,7 +197,7 @@ module MakeReqRespIncludes_withEvent
       |> Dap_flow.from_result
 
   let output_to_string = function
-    | {response; event=Some event} -> (
+    | {response; event=Some event; _} -> (
       match Dap_flow.(to_result response, to_result event) with
       | Result.Ok response, Result.Ok event ->
         let resp = RESP.extract response |> Dap_js_msg.construct RESP.enc |> Dap_js_msg.to_string in
@@ -200,7 +214,7 @@ module MakeReqRespIncludes_withEvent
       | _, _ -> assert false
     )
 
-    | {response; event=None} -> (
+    | {response; event=None; _} -> (
       match Dap_flow.(to_result response) with
       | Result.Ok response ->
         let resp = RESP.extract response |> Dap_js_msg.construct RESP.enc |> Dap_js_msg.to_string in

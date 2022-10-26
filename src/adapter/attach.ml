@@ -77,4 +77,4 @@ let handle _t config req =
   let open Dap_flow in
   let response = bind_request  req (on_attach_request config) in
   let event = Option.some @@ bind_response response (on_attach_response config) in
-  Lwt.return {response; event}
+  Lwt.return {response; event; error=None}

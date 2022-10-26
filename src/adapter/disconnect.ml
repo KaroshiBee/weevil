@@ -108,4 +108,4 @@ let handle _t {Dap_config.launch_mode; _} req =
       Logs.warn (fun m -> m "TODO: shutdown channel");
       None
   in
-  Lwt.return {response; event}
+  Lwt.return {response; event; error=None}
