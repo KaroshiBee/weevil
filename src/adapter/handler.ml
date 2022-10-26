@@ -49,26 +49,29 @@ module MakeHandler (H:HANDLER) :
 
 end
 
-type t = (string, (module HANDLER)) Hashtbl.t
+type t = {
+  handlers: (string, (module HANDLER)) Hashtbl.t;
+}
 
-let make : t = [
-  "cancel", (module Cancel : HANDLER);
-  "initialize", (module Initialize : HANDLER);
-  "configurationDone", (module Configuration : HANDLER);
-  "launch", (module Launch : HANDLER);
-  "attach", (module Attach : HANDLER);
-  "restart", (module Restart : HANDLER);
-  "disconnect", (module Disconnect : HANDLER);
-  "terminate", (module Terminate : HANDLER);
-] |> List.to_seq
-  |> Hashtbl.of_seq
+let make = {
+  handlers = [
+    "cancel", (module Cancel : HANDLER);
+    "initialize", (module Initialize : HANDLER);
+    "configurationDone", (module Configuration : HANDLER);
+    "launch", (module Launch : HANDLER);
+    "attach", (module Attach : HANDLER);
+    "restart", (module Restart : HANDLER);
+    "disconnect", (module Disconnect : HANDLER);
+    "terminate", (module Terminate : HANDLER);
+  ] |> List.to_seq
+    |> Hashtbl.of_seq;
+}
 
-
-let handle_exn t ic oc config message =
+let handle_exn t backend_io config message =
+  let ic, oc = backend_io in
   let aux command =
-    let h = Hashtbl.find t command in
-    let module Handler = (val h : HANDLER) in
-    let module H = MakeHandler (Handler) in
+    let h = Hashtbl.find t.handlers command in
+    let module H = MakeHandler (val h : HANDLER) in
     let h = H.make ic oc in
     try%lwt
       let%lwt output = H.handle h config message in
@@ -92,21 +95,25 @@ let handle_exn t ic oc config message =
   (* First one that doesnt error is what we want *)
   let ret =
     match output with
-    | [] -> Printf.sprintf "Cannot handle message: '%s'" message |> Result.error
+    | [] -> Printf.sprintf "[DAP] Cannot handle message: '%s'" message |> Result.error
     | output :: _ -> Result.ok output
   in
   Lwt.return ret
 
 
-let handle_message t ic oc config msg =
-  match%lwt handle_exn t ic oc config msg with
-  | Ok _js -> failwith "TODO"
-  | Error _err -> failwith "TODO"
+let handle_message t frontend_io backend_io config msg =
+  let _ic, oc = frontend_io in
+  match%lwt handle_exn t backend_io config msg with
+  | Ok js ->
+    let%lwt _ = Logs_lwt.info (fun m -> m "[DAP] got response: '%s'" js) in
+    Lwt_io.write oc js
+  | Error err ->
+    Logs_lwt.err (fun m -> m "[DAP] %s" err)
 
 
-let rec main_handler t (config:Dapper.Dap_config.t) ~content_length _flow ic _oc =
-  let backend_ic = Lwt_io.zero in
-  let backend_oc = Lwt_io.null in
+let rec main_handler t (config:Dapper.Dap_config.t) content_length _flow ic oc =
+  let backend_io = Lwt_io.(zero, null) in
+  let frontend_io = (ic, oc) in
   let open Lwt in
   match content_length with
   | Some count ->
@@ -116,13 +123,14 @@ let rec main_handler t (config:Dapper.Dap_config.t) ~content_length _flow ic _oc
       assert (header_break = "\r\n") |> Lwt.return >>= fun _ ->
       Lwt_io.read ~count ic >>= fun msg ->
       Logs_lwt.info (fun m -> m "[DAP] Got message '%s'" msg) >>= fun _ ->
-      handle_message t backend_ic backend_oc config msg >>= fun _ ->
-      main_handler t config ~content_length:None _flow ic _oc
+      handle_message t frontend_io backend_io config msg >>= fun _ ->
+      let content_length = None in
+      main_handler t config content_length _flow ic oc
   | None -> (
       Logs_lwt.info (fun m -> m "[DAP] no content length yet") >>= fun _ ->
       Lwt_io.read_line_opt ic >>= function
       | Some msg ->
           let content_length = Dap_header.content_length msg in
-          main_handler t config ~content_length _flow ic _oc
+          main_handler t config content_length _flow ic oc
       | None -> Logs_lwt.info (fun m -> m "[DAP] connection closed")
           )

@@ -12,7 +12,7 @@ let main_handler ~mode ~content_length =
   let hdl = Handler.make in
   let dap_svc =
     Conduit.init () >>= fun ctx ->
-    Conduit.serve ~on_exn ~ctx ~mode (Handler.main_handler hdl config ~content_length)
+    Conduit.serve ~on_exn ~ctx ~mode (Handler.main_handler hdl config content_length)
   in
 
   Lwt.return dap_svc
