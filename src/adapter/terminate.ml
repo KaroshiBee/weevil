@@ -77,7 +77,7 @@ let on_terminate_response exitCode = function
     Dap_flow.from_event ret
   | _ -> assert false
 
-let handle _t ~config:_ req =
+let handle _t _config req =
   let open Dap_flow in
   let response = bind_request req on_terminate_request in
   Logs.warn (fun m -> m "TODO: shutdown debuggee gracefully; shutdown channel");

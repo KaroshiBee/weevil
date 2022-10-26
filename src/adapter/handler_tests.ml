@@ -1,9 +1,9 @@
 include Test_utils
-open Dapper.Dap_handler_t
 module Js_msg = Dapper.Dap_js_msg
 
-let config : config = {
+let config : Dapper.Dap_config.t = {
   launch_mode=`Attach;
+  backend_cmd="";
 }
 
 let mock_backend = Lwt_io.(zero, null)
@@ -13,7 +13,7 @@ let%expect_test "Check cancel handler" =
   let s = {| { "seq": 10, "type": "request", "command": "cancel", "arguments": { "requestId": 1 } } |} in
   let (ic, oc) = mock_backend in
   let backend = Cancel.from_channels ic oc in
-  let%lwt o = string_to_input s |> handle backend ~config in
+  let%lwt o = string_to_input s |> handle backend config in
   let%lwt ss = output_to_string o in
   Printf.printf "%s" @@ Result.get_ok ss;
 
@@ -40,7 +40,7 @@ let%expect_test "Check initialize handler" =
   let s = {| { "seq": 10, "type": "request", "command": "initialize", "arguments": { "adapterID": "weevil", "clientID":"1" } } |} in
   let (ic, oc) = mock_backend in
   let backend = Initialize.from_channels ic oc in
-  let%lwt o = string_to_input s |> handle backend ~config in
+  let%lwt o = string_to_input s |> handle backend config in
   let%lwt ss = output_to_string o in
   Printf.printf "%s" @@ Result.get_ok ss;
 

@@ -3,6 +3,7 @@ open Dapper.Dap_message
 module Dap_commands = Dapper.Dap_commands
 module Dap_events = Dapper.Dap_events
 module Dap_flow = Dapper.Dap_flow
+module Dap_config = Dapper.Dap_config
 
 (* When the development tool ends a debug session, the sequence of events is slightly different based on whether the session has been initially “launched” or “attached”: *)
 
@@ -93,12 +94,12 @@ let on_disconnect_response exitCode = function
     Dap_flow.from_event ret
   | _ -> assert false
 
-let handle _t ~config req =
+let handle _t {Dap_config.launch_mode; _} req =
   let open Dap_flow in
   let response = bind_request  req on_disconnect_request in
   (* diconnect when launched - terminate debuggee forcefully  *)
   (* disconnect when attached - dont terminate the debuggee *)
-  let event = match config.launch_mode with
+  let event = match launch_mode with
     | `Launch ->
       Logs.warn (fun m -> m "TODO: shutdown debuggee forcefully; shutdown channel");
       let exitCode = 0 in

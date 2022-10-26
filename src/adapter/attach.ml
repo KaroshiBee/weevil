@@ -3,6 +3,7 @@ open Dapper.Dap_message
 module Dap_commands = Dapper.Dap_commands
 module Dap_events = Dapper.Dap_events
 module Dap_flow = Dapper.Dap_flow
+module Dap_config = Dapper.Dap_config
 
 
 module Request = struct
@@ -40,8 +41,8 @@ end
 
 include MakeReqRespIncludes_withEvent (Backend_io) (Request) (Response) (Event)
 
-let on_attach_request ~config = function
-  | AttachRequest req when config.launch_mode = `Attach ->
+let on_attach_request config = function
+  | AttachRequest req when Dap_config.(config.launch_mode = `Attach) ->
     let resp =
       let command = RequestMessage.command req in
       let body = EmptyObject.make () in
@@ -55,8 +56,8 @@ let on_attach_request ~config = function
     Dap_flow.from_result @@ Result.error err
   | _ -> assert false
 
-let on_attach_response ~config = function
-  | AttachResponse _ when config.launch_mode = `Attach ->
+let on_attach_response config = function
+  | AttachResponse _ when Dap_config.(config.launch_mode = `Attach) ->
     let ev =
       let event = Dap_events.process in
       let startMethod = ProcessEvent_body_startMethod.Attach in
@@ -72,8 +73,8 @@ let on_attach_response ~config = function
     Dap_flow.from_event ret
   | _ -> assert false
 
-let handle _t ~config req =
+let handle _t config req =
   let open Dap_flow in
-  let response = bind_request  req (on_attach_request ~config) in
-  let event = Option.some @@ bind_response response (on_attach_response ~config) in
+  let response = bind_request  req (on_attach_request config) in
+  let event = Option.some @@ bind_response response (on_attach_response config) in
   Lwt.return {response; event}

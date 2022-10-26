@@ -5,8 +5,9 @@ open Lwt
 let on_exn exn = Lwt.ignore_result @@ Logs_lwt.err (fun m -> m "%s" @@ Printexc.to_string exn)
 
 let main_handler ~mode ~content_length =
-  let config : Dapper.Dap_handler_t.config = {
+  let config : Dapper.Dap_config.t = {
     launch_mode=`Attach;
+    backend_cmd="TODO";
   } in
   let hdl = Handler.make in
   let dap_svc =

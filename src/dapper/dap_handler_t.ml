@@ -1,18 +1,5 @@
 open Dap_message
 
-
-type launch_mode = [`Launch | `Attach | `AttachForSuspendedLaunch ]
-  (* | `Launch of string -> Lwt_io.input_channel * Lwt_io.output_channel *)
-  (* | `Attach of Lwt_io.input_channel * Lwt_io.output_channel *)
-  (* | `AttachForSuspendedLaunch *)
-  (* ] *)
-
-
-type config = {
-  launch_mode : launch_mode;
-
-}
-
 let default_response_req
   = fun command body ->
   (* NOTE for use in the Flow monad so seq and request_seq get taken care of there *)
@@ -69,23 +56,25 @@ Previous handler func:
   backend:Lwt_io.output Lwt_io.channel ->
   unit Lwt.t
 *)
-module type HANDLER = sig
-
+module type BACKEND_T = sig
   type ('ic, 'oc) t
   val from_channels : 'ic -> 'oc -> ('ic, 'oc) t
+  val ic : ('ic, 'oc) t -> 'ic
+  val oc : ('ic, 'oc) t -> 'oc
+
+end
+
+module type HANDLER = sig
+
+  include BACKEND_T
 
   type input
   type output
   val string_to_input : string -> input
   (* NOTE when handling a request we will be interacting with the backend, hence the Lwt.t  *)
-  val handle : ('ic, 'oc) t -> config:config -> input -> output Lwt.t
+  val handle : ('ic, 'oc) t -> Dap_config.t -> input -> output Lwt.t
   val output_to_string : output -> (string, string) Result.t Lwt.t
 
-end
-
-module type BACKEND_T = sig
-  type ('ic, 'oc) t
-  val from_channels : 'ic -> 'oc -> ('ic, 'oc) t
 end
 
 module type REQ_T = sig

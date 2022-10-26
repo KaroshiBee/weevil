@@ -10,7 +10,7 @@ module type MAKE_HANDLER = sig
 
   type ('ic, 'oc) t
   val make : 'ic -> 'oc -> ('ic, 'oc) t
-  val handle : ('ic, 'oc) t -> config:config -> string -> string Lwt.t
+  val handle : ('ic, 'oc) t -> Dapper.Dap_config.t -> string -> string Lwt.t
 end
 
 module MakeHandler (H:HANDLER) :
@@ -25,7 +25,7 @@ module MakeHandler (H:HANDLER) :
     backend: ('ic, 'oc) H.t;
     string_to_input : string -> H.input;
     output_to_string : H.output -> (string, string) Result.t Lwt.t ;
-    handle : ('ic, 'oc) H.t -> config:config -> H.input -> H.output Lwt.t;
+    handle : ('ic, 'oc) H.t -> Dapper.Dap_config.t -> H.input -> H.output Lwt.t;
   }
 
   let make ic oc = {
@@ -35,10 +35,10 @@ module MakeHandler (H:HANDLER) :
     handle = H.handle;
   }
 
-  let handle t ~config s =
+  let handle t config s =
     let%lwt output =
       t.string_to_input s
-      |> t.handle t.backend ~config
+      |> t.handle t.backend config
     in
     match%lwt t.output_to_string output with
     | Result.Ok msg ->
@@ -71,7 +71,7 @@ let handle_exn t ic oc config message =
     let module H = MakeHandler (Handler) in
     let h = H.make ic oc in
     try%lwt
-      let%lwt output = H.handle h ~config message in
+      let%lwt output = H.handle h config message in
       Some output |> Lwt.return
     with Js_msg.Wrong_encoder _ ->
       None |> Lwt.return
@@ -104,7 +104,7 @@ let handle_message t ic oc config msg =
   | Error _err -> failwith "TODO"
 
 
-let rec main_handler t (config:Dapper.Dap_handler_t.config) ~content_length _flow ic _oc =
+let rec main_handler t (config:Dapper.Dap_config.t) ~content_length _flow ic _oc =
   let backend_ic = Lwt_io.zero in
   let backend_oc = Lwt_io.null in
   let open Lwt in

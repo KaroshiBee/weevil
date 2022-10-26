@@ -82,7 +82,7 @@ let on_initialization_response = function
     Dap_flow.from_event ret
   | _ -> assert false
 
-let handle _t ~config:_ req =
+let handle _t _config req =
   let open Dap_flow in
   let response = bind_request  req on_initialize_request in
   let event = Option.some @@ bind_response response on_initialization_response in

@@ -41,6 +41,6 @@ let on_restart_request = function
   | _ -> assert false
 
 
-let handle _t ~config:_ req =
+let handle _t _config req =
   let response = Dap_flow.bind_request req on_restart_request in
   Lwt.return {response}
