@@ -258,30 +258,30 @@ let map (type ev body pbody) :
  = fun v f ->
    Result.map (fun v -> f v) v
 
-let set_seqr (type ev body pbody) :
-  seqr -> (ev, body, pbody) event -> (ev, body, pbody) event
-  =
-  let aux ev {seq; _} =
-    EventMessage.set_seq ev ~seq
-  in
-  fun seqr -> function
-    | InitializedEvent ev -> InitializedEvent (aux ev seqr)
-    | StoppedEvent ev -> StoppedEvent (aux ev seqr)
-    | ContinuedEvent ev -> ContinuedEvent (aux ev seqr)
-    | ExitedEvent ev -> ExitedEvent (aux ev seqr)
-    | TerminatedEvent ev -> TerminatedEvent (aux ev seqr)
-    | ThreadEvent ev -> ThreadEvent (aux ev seqr)
-    | OutputEvent ev -> OutputEvent (aux ev seqr)
-    | BreakpointEvent ev -> BreakpointEvent (aux ev seqr)
-    | ModuleEvent ev -> ModuleEvent (aux ev seqr)
-    | LoadedSourceEvent ev -> LoadedSourceEvent (aux ev seqr)
-    | ProcessEvent ev -> ProcessEvent (aux ev seqr)
-    | CapabilitiesEvent ev -> CapabilitiesEvent (aux ev seqr)
-    | ProgressStartEvent ev -> ProgressStartEvent (aux ev seqr)
-    | ProgressUpdateEvent ev -> ProgressUpdateEvent (aux ev seqr)
-    | ProgressEndEvent ev -> ProgressEndEvent (aux ev seqr)
-    | InvalidatedEvent ev -> InvalidatedEvent (aux ev seqr)
-    | MemoryEvent ev -> MemoryEvent (aux ev seqr)
+  let set_seqr (type ev body pbody) :
+    seqr -> (ev, body, pbody) event -> (ev, body, pbody) event
+    =
+    let aux ev {seq; _} =
+      EventMessage.set_seq ev ~seq
+    in
+    fun seqr -> function
+      | InitializedEvent ev -> InitializedEvent (aux ev seqr)
+      | StoppedEvent ev -> StoppedEvent (aux ev seqr)
+      | ContinuedEvent ev -> ContinuedEvent (aux ev seqr)
+      | ExitedEvent ev -> ExitedEvent (aux ev seqr)
+      | TerminatedEvent ev -> TerminatedEvent (aux ev seqr)
+      | ThreadEvent ev -> ThreadEvent (aux ev seqr)
+      | OutputEvent ev -> OutputEvent (aux ev seqr)
+      | BreakpointEvent ev -> BreakpointEvent (aux ev seqr)
+      | ModuleEvent ev -> ModuleEvent (aux ev seqr)
+      | LoadedSourceEvent ev -> LoadedSourceEvent (aux ev seqr)
+      | ProcessEvent ev -> ProcessEvent (aux ev seqr)
+      | CapabilitiesEvent ev -> CapabilitiesEvent (aux ev seqr)
+      | ProgressStartEvent ev -> ProgressStartEvent (aux ev seqr)
+      | ProgressUpdateEvent ev -> ProgressUpdateEvent (aux ev seqr)
+      | ProgressEndEvent ev -> ProgressEndEvent (aux ev seqr)
+      | InvalidatedEvent ev -> InvalidatedEvent (aux ev seqr)
+      | MemoryEvent ev -> MemoryEvent (aux ev seqr)
 
 end
 
