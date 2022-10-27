@@ -20,6 +20,20 @@ module Message : sig
     ?urlLabel:string ->
     unit ->
     t
+
+  val id : t -> int
+
+  val format : t -> string
+
+  val variables : t -> Data_encoding.json option
+
+  val sendTelemetry : t -> bool option
+
+  val showUser : t -> bool option
+
+  val url : t -> string option
+
+  val urlLabel : t -> string option
 end = struct
   type t = {
     id : int;
@@ -50,6 +64,20 @@ end = struct
 
   let make ~id ~format ?variables ?sendTelemetry ?showUser ?url ?urlLabel () =
     {id; format; variables; sendTelemetry; showUser; url; urlLabel}
+
+  let id t = t.id
+
+  let format t = t.format
+
+  let variables t = t.variables
+
+  let sendTelemetry t = t.sendTelemetry
+
+  let showUser t = t.showUser
+
+  let url t = t.url
+
+  let urlLabel t = t.urlLabel
 end
 
 module ErrorResponse_body : sig
@@ -58,6 +86,8 @@ module ErrorResponse_body : sig
   val enc : t Data_encoding.t
 
   val make : ?error:Message.t -> unit -> t
+
+  val error : t -> Message.t option
 end = struct
   type t = {error : Message.t option}
 
@@ -70,6 +100,8 @@ end = struct
       (obj1 (opt "error" Message.enc))
 
   let make ?error () = {error}
+
+  let error t = t.error
 end
 
 module CancelArguments : sig
@@ -78,6 +110,10 @@ module CancelArguments : sig
   val enc : t Data_encoding.t
 
   val make : ?requestId:int -> ?progressId:string -> unit -> t
+
+  val requestId : t -> int option
+
+  val progressId : t -> string option
 end = struct
   type t = {requestId : int option; progressId : string option}
 
@@ -90,6 +126,10 @@ end = struct
       (obj2 (opt "requestId" int31) (opt "progressId" string))
 
   let make ?requestId ?progressId () = {requestId; progressId}
+
+  let requestId t = t.requestId
+
+  let progressId t = t.progressId
 end
 
 (* dont bother with a sig for enums, the inferred one is fine *)
@@ -149,6 +189,20 @@ module StoppedEvent_body : sig
     ?hitBreakpointIds:int list ->
     unit ->
     t
+
+  val reason : t -> StoppedEvent_body_reason.t
+
+  val description : t -> string option
+
+  val threadId : t -> int option
+
+  val preserveFocusHint : t -> bool option
+
+  val text : t -> string option
+
+  val allThreadsStopped : t -> bool option
+
+  val hitBreakpointIds : t -> int list option
 end = struct
   type t = {
     reason : StoppedEvent_body_reason.t;
@@ -216,6 +270,20 @@ end = struct
       allThreadsStopped;
       hitBreakpointIds;
     }
+
+  let reason t = t.reason
+
+  let description t = t.description
+
+  let threadId t = t.threadId
+
+  let preserveFocusHint t = t.preserveFocusHint
+
+  let text t = t.text
+
+  let allThreadsStopped t = t.allThreadsStopped
+
+  let hitBreakpointIds t = t.hitBreakpointIds
 end
 
 module ContinuedEvent_body : sig
@@ -224,6 +292,10 @@ module ContinuedEvent_body : sig
   val enc : t Data_encoding.t
 
   val make : threadId:int -> ?allThreadsContinued:bool -> unit -> t
+
+  val threadId : t -> int
+
+  val allThreadsContinued : t -> bool option
 end = struct
   type t = {threadId : int; allThreadsContinued : bool option}
 
@@ -236,6 +308,10 @@ end = struct
       (obj2 (req "threadId" int31) (opt "allThreadsContinued" bool))
 
   let make ~threadId ?allThreadsContinued () = {threadId; allThreadsContinued}
+
+  let threadId t = t.threadId
+
+  let allThreadsContinued t = t.allThreadsContinued
 end
 
 module ExitedEvent_body : sig
@@ -244,6 +320,8 @@ module ExitedEvent_body : sig
   val enc : t Data_encoding.t
 
   val make : exitCode:int -> unit -> t
+
+  val exitCode : t -> int
 end = struct
   type t = {exitCode : int}
 
@@ -256,6 +334,8 @@ end = struct
       (obj1 (req "exitCode" int31))
 
   let make ~exitCode () = {exitCode}
+
+  let exitCode t = t.exitCode
 end
 
 module TerminatedEvent_body : sig
@@ -264,6 +344,8 @@ module TerminatedEvent_body : sig
   val enc : t Data_encoding.t
 
   val make : ?restart:Data_encoding.json -> unit -> t
+
+  val restart : t -> Data_encoding.json option
 end = struct
   type t = {restart : Data_encoding.json option}
 
@@ -276,6 +358,8 @@ end = struct
       (obj1 (opt "restart" json))
 
   let make ?restart () = {restart}
+
+  let restart t = t.restart
 end
 
 (* dont bother with a sig for enums, the inferred one is fine *)
@@ -299,6 +383,10 @@ module ThreadEvent_body : sig
   val enc : t Data_encoding.t
 
   val make : reason:ThreadEvent_body_reason.t -> threadId:int -> unit -> t
+
+  val reason : t -> ThreadEvent_body_reason.t
+
+  val threadId : t -> int
 end = struct
   type t = {reason : ThreadEvent_body_reason.t; threadId : int}
 
@@ -311,6 +399,10 @@ end = struct
       (obj2 (req "reason" ThreadEvent_body_reason.enc) (req "threadId" int31))
 
   let make ~reason ~threadId () = {reason; threadId}
+
+  let reason t = t.reason
+
+  let threadId t = t.threadId
 end
 
 (* dont bother with a sig for enums, the inferred one is fine *)
@@ -400,6 +492,10 @@ module Checksum : sig
   val enc : t Data_encoding.t
 
   val make : algorithm:ChecksumAlgorithm.t -> checksum:string -> unit -> t
+
+  val algorithm : t -> ChecksumAlgorithm.t
+
+  val checksum : t -> string
 end = struct
   type t = {algorithm : ChecksumAlgorithm.t; checksum : string}
 
@@ -412,6 +508,10 @@ end = struct
       (obj2 (req "algorithm" ChecksumAlgorithm.enc) (req "checksum" string))
 
   let make ~algorithm ~checksum () = {algorithm; checksum}
+
+  let algorithm t = t.algorithm
+
+  let checksum t = t.checksum
 end
 
 module Source : sig
@@ -430,6 +530,22 @@ module Source : sig
     ?checksums:Checksum.t list ->
     unit ->
     t
+
+  val name : t -> string option
+
+  val path : t -> string option
+
+  val sourceReference : t -> int option
+
+  val presentationHint : t -> Source_presentationHint.t option
+
+  val origin : t -> string option
+
+  val sources : t -> t list option
+
+  val adapterData : t -> Data_encoding.json option
+
+  val checksums : t -> Checksum.t list option
 end = struct
   type t = {
     name : string option;
@@ -504,6 +620,22 @@ end = struct
       adapterData;
       checksums;
     }
+
+  let name t = t.name
+
+  let path t = t.path
+
+  let sourceReference t = t.sourceReference
+
+  let presentationHint t = t.presentationHint
+
+  let origin t = t.origin
+
+  let sources t = t.sources
+
+  let adapterData t = t.adapterData
+
+  let checksums t = t.checksums
 end
 
 module OutputEvent_body : sig
@@ -522,6 +654,22 @@ module OutputEvent_body : sig
     ?data:Data_encoding.json ->
     unit ->
     t
+
+  val category : t -> OutputEvent_body_category.t option
+
+  val output : t -> string
+
+  val group : t -> OutputEvent_body_group.t option
+
+  val variablesReference : t -> int option
+
+  val source : t -> Source.t option
+
+  val line : t -> int option
+
+  val column : t -> int option
+
+  val data : t -> Data_encoding.json option
 end = struct
   type t = {
     category : OutputEvent_body_category.t option;
@@ -580,6 +728,22 @@ end = struct
   let make ?category ~output ?group ?variablesReference ?source ?line ?column
       ?data () =
     {category; output; group; variablesReference; source; line; column; data}
+
+  let category t = t.category
+
+  let output t = t.output
+
+  let group t = t.group
+
+  let variablesReference t = t.variablesReference
+
+  let source t = t.source
+
+  let line t = t.line
+
+  let column t = t.column
+
+  let data t = t.data
 end
 
 (* dont bother with a sig for enums, the inferred one is fine *)
@@ -620,6 +784,26 @@ module Breakpoint : sig
     ?offset:int ->
     unit ->
     t
+
+  val id : t -> int option
+
+  val verified : t -> bool
+
+  val message : t -> string option
+
+  val source : t -> Source.t option
+
+  val line : t -> int option
+
+  val column : t -> int option
+
+  val endLine : t -> int option
+
+  val endColumn : t -> int option
+
+  val instructionReference : t -> string option
+
+  val offset : t -> int option
 end = struct
   type t = {
     id : int option;
@@ -708,6 +892,26 @@ end = struct
       instructionReference;
       offset;
     }
+
+  let id t = t.id
+
+  let verified t = t.verified
+
+  let message t = t.message
+
+  let source t = t.source
+
+  let line t = t.line
+
+  let column t = t.column
+
+  let endLine t = t.endLine
+
+  let endColumn t = t.endColumn
+
+  let instructionReference t = t.instructionReference
+
+  let offset t = t.offset
 end
 
 module BreakpointEvent_body : sig
@@ -717,6 +921,10 @@ module BreakpointEvent_body : sig
 
   val make :
     reason:BreakpointEvent_body_reason.t -> breakpoint:Breakpoint.t -> unit -> t
+
+  val reason : t -> BreakpointEvent_body_reason.t
+
+  val breakpoint : t -> Breakpoint.t
 end = struct
   type t = {reason : BreakpointEvent_body_reason.t; breakpoint : Breakpoint.t}
 
@@ -731,6 +939,10 @@ end = struct
          (req "breakpoint" Breakpoint.enc))
 
   let make ~reason ~breakpoint () = {reason; breakpoint}
+
+  let reason t = t.reason
+
+  let breakpoint t = t.breakpoint
 end
 
 (* dont bother with a sig for enums, the inferred one is fine *)
@@ -767,6 +979,26 @@ module Module_ : sig
     ?addressRange:string ->
     unit ->
     t
+
+  val id : t -> IntString.t
+
+  val name : t -> string
+
+  val path : t -> string option
+
+  val isOptimized : t -> bool option
+
+  val isUserCode : t -> bool option
+
+  val version : t -> string option
+
+  val symbolStatus : t -> string option
+
+  val symbolFilePath : t -> string option
+
+  val dateTimeStamp : t -> string option
+
+  val addressRange : t -> string option
 end = struct
   type t = {
     id : IntString.t;
@@ -855,6 +1087,26 @@ end = struct
       dateTimeStamp;
       addressRange;
     }
+
+  let id t = t.id
+
+  let name t = t.name
+
+  let path t = t.path
+
+  let isOptimized t = t.isOptimized
+
+  let isUserCode t = t.isUserCode
+
+  let version t = t.version
+
+  let symbolStatus t = t.symbolStatus
+
+  let symbolFilePath t = t.symbolFilePath
+
+  let dateTimeStamp t = t.dateTimeStamp
+
+  let addressRange t = t.addressRange
 end
 
 module ModuleEvent_body : sig
@@ -863,6 +1115,10 @@ module ModuleEvent_body : sig
   val enc : t Data_encoding.t
 
   val make : reason:ModuleEvent_body_reason.t -> module_:Module_.t -> unit -> t
+
+  val reason : t -> ModuleEvent_body_reason.t
+
+  val module_ : t -> Module_.t
 end = struct
   type t = {reason : ModuleEvent_body_reason.t; module_ : Module_.t}
 
@@ -877,6 +1133,10 @@ end = struct
          (req "module" Module_.enc))
 
   let make ~reason ~module_ () = {reason; module_}
+
+  let reason t = t.reason
+
+  let module_ t = t.module_
 end
 
 (* dont bother with a sig for enums, the inferred one is fine *)
@@ -902,6 +1162,10 @@ module LoadedSourceEvent_body : sig
 
   val make :
     reason:LoadedSourceEvent_body_reason.t -> source:Source.t -> unit -> t
+
+  val reason : t -> LoadedSourceEvent_body_reason.t
+
+  val source : t -> Source.t
 end = struct
   type t = {reason : LoadedSourceEvent_body_reason.t; source : Source.t}
 
@@ -916,6 +1180,10 @@ end = struct
          (req "source" Source.enc))
 
   let make ~reason ~source () = {reason; source}
+
+  let reason t = t.reason
+
+  let source t = t.source
 end
 
 (* dont bother with a sig for enums, the inferred one is fine *)
@@ -950,6 +1218,16 @@ module ProcessEvent_body : sig
     ?pointerSize:int ->
     unit ->
     t
+
+  val name : t -> string
+
+  val systemProcessId : t -> int option
+
+  val isLocalProcess : t -> bool option
+
+  val startMethod : t -> ProcessEvent_body_startMethod.t option
+
+  val pointerSize : t -> int option
 end = struct
   type t = {
     name : string;
@@ -976,6 +1254,16 @@ end = struct
 
   let make ~name ?systemProcessId ?isLocalProcess ?startMethod ?pointerSize () =
     {name; systemProcessId; isLocalProcess; startMethod; pointerSize}
+
+  let name t = t.name
+
+  let systemProcessId t = t.systemProcessId
+
+  let isLocalProcess t = t.isLocalProcess
+
+  let startMethod t = t.startMethod
+
+  let pointerSize t = t.pointerSize
 end
 
 module ExceptionBreakpointsFilter : sig
@@ -992,6 +1280,18 @@ module ExceptionBreakpointsFilter : sig
     ?conditionDescription:string ->
     unit ->
     t
+
+  val filter : t -> string
+
+  val label : t -> string
+
+  val description : t -> string option
+
+  val default : t -> bool option
+
+  val supportsCondition : t -> bool option
+
+  val conditionDescription : t -> string option
 end = struct
   type t = {
     filter : string;
@@ -1052,6 +1352,18 @@ end = struct
       supportsCondition;
       conditionDescription;
     }
+
+  let filter t = t.filter
+
+  let label t = t.label
+
+  let description t = t.description
+
+  let default t = t.default
+
+  let supportsCondition t = t.supportsCondition
+
+  let conditionDescription t = t.conditionDescription
 end
 
 (* dont bother with a sig for enums, the inferred one is fine *)
@@ -1088,6 +1400,16 @@ module ColumnDescriptor : sig
     ?width:int ->
     unit ->
     t
+
+  val attributeName : t -> string
+
+  val label : t -> string
+
+  val format : t -> string option
+
+  val type_ : t -> ColumnDescriptor_type_.t option
+
+  val width : t -> int option
 end = struct
   type t = {
     attributeName : string;
@@ -1114,6 +1436,16 @@ end = struct
 
   let make ~attributeName ~label ?format ?type_ ?width () =
     {attributeName; label; format; type_; width}
+
+  let attributeName t = t.attributeName
+
+  let label t = t.label
+
+  let format t = t.format
+
+  let type_ t = t.type_
+
+  let width t = t.width
 end
 
 module Capabilities : sig
@@ -1163,6 +1495,84 @@ module Capabilities : sig
     ?supportsSingleThreadExecutionRequests:bool ->
     unit ->
     t
+
+  val supportsConfigurationDoneRequest : t -> bool option
+
+  val supportsFunctionBreakpoints : t -> bool option
+
+  val supportsConditionalBreakpoints : t -> bool option
+
+  val supportsHitConditionalBreakpoints : t -> bool option
+
+  val supportsEvaluateForHovers : t -> bool option
+
+  val exceptionBreakpointFilters : t -> ExceptionBreakpointsFilter.t list option
+
+  val supportsStepBack : t -> bool option
+
+  val supportsSetVariable : t -> bool option
+
+  val supportsRestartFrame : t -> bool option
+
+  val supportsGotoTargetsRequest : t -> bool option
+
+  val supportsStepInTargetsRequest : t -> bool option
+
+  val supportsCompletionsRequest : t -> bool option
+
+  val completionTriggerCharacters : t -> string list option
+
+  val supportsModulesRequest : t -> bool option
+
+  val additionalModuleColumns : t -> ColumnDescriptor.t list option
+
+  val supportedChecksumAlgorithms : t -> ChecksumAlgorithm.t list option
+
+  val supportsRestartRequest : t -> bool option
+
+  val supportsExceptionOptions : t -> bool option
+
+  val supportsValueFormattingOptions : t -> bool option
+
+  val supportsExceptionInfoRequest : t -> bool option
+
+  val supportTerminateDebuggee : t -> bool option
+
+  val supportSuspendDebuggee : t -> bool option
+
+  val supportsDelayedStackTraceLoading : t -> bool option
+
+  val supportsLoadedSourcesRequest : t -> bool option
+
+  val supportsLogPoints : t -> bool option
+
+  val supportsTerminateThreadsRequest : t -> bool option
+
+  val supportsSetExpression : t -> bool option
+
+  val supportsTerminateRequest : t -> bool option
+
+  val supportsDataBreakpoints : t -> bool option
+
+  val supportsReadMemoryRequest : t -> bool option
+
+  val supportsWriteMemoryRequest : t -> bool option
+
+  val supportsDisassembleRequest : t -> bool option
+
+  val supportsCancelRequest : t -> bool option
+
+  val supportsBreakpointLocationsRequest : t -> bool option
+
+  val supportsClipboardContext : t -> bool option
+
+  val supportsSteppingGranularity : t -> bool option
+
+  val supportsInstructionBreakpoints : t -> bool option
+
+  val supportsExceptionFilterOptions : t -> bool option
+
+  val supportsSingleThreadExecutionRequests : t -> bool option
 end = struct
   module Capabilities_0 : sig
     type t
@@ -1182,6 +1592,27 @@ end = struct
       ?supportsGotoTargetsRequest:bool ->
       unit ->
       t
+
+    val supportsConfigurationDoneRequest : t -> bool option
+
+    val supportsFunctionBreakpoints : t -> bool option
+
+    val supportsConditionalBreakpoints : t -> bool option
+
+    val supportsHitConditionalBreakpoints : t -> bool option
+
+    val supportsEvaluateForHovers : t -> bool option
+
+    val exceptionBreakpointFilters :
+      t -> ExceptionBreakpointsFilter.t list option
+
+    val supportsStepBack : t -> bool option
+
+    val supportsSetVariable : t -> bool option
+
+    val supportsRestartFrame : t -> bool option
+
+    val supportsGotoTargetsRequest : t -> bool option
   end = struct
     type t = {
       supportsConfigurationDoneRequest : bool option;
@@ -1275,6 +1706,27 @@ end = struct
         supportsRestartFrame;
         supportsGotoTargetsRequest;
       }
+
+    let supportsConfigurationDoneRequest t = t.supportsConfigurationDoneRequest
+
+    let supportsFunctionBreakpoints t = t.supportsFunctionBreakpoints
+
+    let supportsConditionalBreakpoints t = t.supportsConditionalBreakpoints
+
+    let supportsHitConditionalBreakpoints t =
+      t.supportsHitConditionalBreakpoints
+
+    let supportsEvaluateForHovers t = t.supportsEvaluateForHovers
+
+    let exceptionBreakpointFilters t = t.exceptionBreakpointFilters
+
+    let supportsStepBack t = t.supportsStepBack
+
+    let supportsSetVariable t = t.supportsSetVariable
+
+    let supportsRestartFrame t = t.supportsRestartFrame
+
+    let supportsGotoTargetsRequest t = t.supportsGotoTargetsRequest
   end
 
   module Capabilities_10 : sig
@@ -1295,6 +1747,26 @@ end = struct
       ?supportsExceptionInfoRequest:bool ->
       unit ->
       t
+
+    val supportsStepInTargetsRequest : t -> bool option
+
+    val supportsCompletionsRequest : t -> bool option
+
+    val completionTriggerCharacters : t -> string list option
+
+    val supportsModulesRequest : t -> bool option
+
+    val additionalModuleColumns : t -> ColumnDescriptor.t list option
+
+    val supportedChecksumAlgorithms : t -> ChecksumAlgorithm.t list option
+
+    val supportsRestartRequest : t -> bool option
+
+    val supportsExceptionOptions : t -> bool option
+
+    val supportsValueFormattingOptions : t -> bool option
+
+    val supportsExceptionInfoRequest : t -> bool option
   end = struct
     type t = {
       supportsStepInTargetsRequest : bool option;
@@ -1386,6 +1858,26 @@ end = struct
         supportsValueFormattingOptions;
         supportsExceptionInfoRequest;
       }
+
+    let supportsStepInTargetsRequest t = t.supportsStepInTargetsRequest
+
+    let supportsCompletionsRequest t = t.supportsCompletionsRequest
+
+    let completionTriggerCharacters t = t.completionTriggerCharacters
+
+    let supportsModulesRequest t = t.supportsModulesRequest
+
+    let additionalModuleColumns t = t.additionalModuleColumns
+
+    let supportedChecksumAlgorithms t = t.supportedChecksumAlgorithms
+
+    let supportsRestartRequest t = t.supportsRestartRequest
+
+    let supportsExceptionOptions t = t.supportsExceptionOptions
+
+    let supportsValueFormattingOptions t = t.supportsValueFormattingOptions
+
+    let supportsExceptionInfoRequest t = t.supportsExceptionInfoRequest
   end
 
   module Capabilities_20 : sig
@@ -1406,6 +1898,26 @@ end = struct
       ?supportsReadMemoryRequest:bool ->
       unit ->
       t
+
+    val supportTerminateDebuggee : t -> bool option
+
+    val supportSuspendDebuggee : t -> bool option
+
+    val supportsDelayedStackTraceLoading : t -> bool option
+
+    val supportsLoadedSourcesRequest : t -> bool option
+
+    val supportsLogPoints : t -> bool option
+
+    val supportsTerminateThreadsRequest : t -> bool option
+
+    val supportsSetExpression : t -> bool option
+
+    val supportsTerminateRequest : t -> bool option
+
+    val supportsDataBreakpoints : t -> bool option
+
+    val supportsReadMemoryRequest : t -> bool option
   end = struct
     type t = {
       supportTerminateDebuggee : bool option;
@@ -1497,6 +2009,26 @@ end = struct
         supportsDataBreakpoints;
         supportsReadMemoryRequest;
       }
+
+    let supportTerminateDebuggee t = t.supportTerminateDebuggee
+
+    let supportSuspendDebuggee t = t.supportSuspendDebuggee
+
+    let supportsDelayedStackTraceLoading t = t.supportsDelayedStackTraceLoading
+
+    let supportsLoadedSourcesRequest t = t.supportsLoadedSourcesRequest
+
+    let supportsLogPoints t = t.supportsLogPoints
+
+    let supportsTerminateThreadsRequest t = t.supportsTerminateThreadsRequest
+
+    let supportsSetExpression t = t.supportsSetExpression
+
+    let supportsTerminateRequest t = t.supportsTerminateRequest
+
+    let supportsDataBreakpoints t = t.supportsDataBreakpoints
+
+    let supportsReadMemoryRequest t = t.supportsReadMemoryRequest
   end
 
   module Capabilities_30 : sig
@@ -1516,6 +2048,24 @@ end = struct
       ?supportsSingleThreadExecutionRequests:bool ->
       unit ->
       t
+
+    val supportsWriteMemoryRequest : t -> bool option
+
+    val supportsDisassembleRequest : t -> bool option
+
+    val supportsCancelRequest : t -> bool option
+
+    val supportsBreakpointLocationsRequest : t -> bool option
+
+    val supportsClipboardContext : t -> bool option
+
+    val supportsSteppingGranularity : t -> bool option
+
+    val supportsInstructionBreakpoints : t -> bool option
+
+    val supportsExceptionFilterOptions : t -> bool option
+
+    val supportsSingleThreadExecutionRequests : t -> bool option
   end = struct
     type t = {
       supportsWriteMemoryRequest : bool option;
@@ -1600,6 +2150,26 @@ end = struct
         supportsExceptionFilterOptions;
         supportsSingleThreadExecutionRequests;
       }
+
+    let supportsWriteMemoryRequest t = t.supportsWriteMemoryRequest
+
+    let supportsDisassembleRequest t = t.supportsDisassembleRequest
+
+    let supportsCancelRequest t = t.supportsCancelRequest
+
+    let supportsBreakpointLocationsRequest t =
+      t.supportsBreakpointLocationsRequest
+
+    let supportsClipboardContext t = t.supportsClipboardContext
+
+    let supportsSteppingGranularity t = t.supportsSteppingGranularity
+
+    let supportsInstructionBreakpoints t = t.supportsInstructionBreakpoints
+
+    let supportsExceptionFilterOptions t = t.supportsExceptionFilterOptions
+
+    let supportsSingleThreadExecutionRequests t =
+      t.supportsSingleThreadExecutionRequests
   end
 
   type t =
@@ -1691,6 +2261,123 @@ end = struct
     in
 
     (t0, (t1, (t2, t3)))
+
+  let supportsConfigurationDoneRequest (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_0.supportsConfigurationDoneRequest _t0
+
+  let supportsFunctionBreakpoints (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_0.supportsFunctionBreakpoints _t0
+
+  let supportsConditionalBreakpoints (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_0.supportsConditionalBreakpoints _t0
+
+  let supportsHitConditionalBreakpoints (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_0.supportsHitConditionalBreakpoints _t0
+
+  let supportsEvaluateForHovers (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_0.supportsEvaluateForHovers _t0
+
+  let exceptionBreakpointFilters (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_0.exceptionBreakpointFilters _t0
+
+  let supportsStepBack (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_0.supportsStepBack _t0
+
+  let supportsSetVariable (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_0.supportsSetVariable _t0
+
+  let supportsRestartFrame (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_0.supportsRestartFrame _t0
+
+  let supportsGotoTargetsRequest (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_0.supportsGotoTargetsRequest _t0
+
+  let supportsStepInTargetsRequest (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_10.supportsStepInTargetsRequest _t1
+
+  let supportsCompletionsRequest (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_10.supportsCompletionsRequest _t1
+
+  let completionTriggerCharacters (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_10.completionTriggerCharacters _t1
+
+  let supportsModulesRequest (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_10.supportsModulesRequest _t1
+
+  let additionalModuleColumns (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_10.additionalModuleColumns _t1
+
+  let supportedChecksumAlgorithms (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_10.supportedChecksumAlgorithms _t1
+
+  let supportsRestartRequest (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_10.supportsRestartRequest _t1
+
+  let supportsExceptionOptions (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_10.supportsExceptionOptions _t1
+
+  let supportsValueFormattingOptions (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_10.supportsValueFormattingOptions _t1
+
+  let supportsExceptionInfoRequest (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_10.supportsExceptionInfoRequest _t1
+
+  let supportTerminateDebuggee (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_20.supportTerminateDebuggee _t2
+
+  let supportSuspendDebuggee (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_20.supportSuspendDebuggee _t2
+
+  let supportsDelayedStackTraceLoading (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_20.supportsDelayedStackTraceLoading _t2
+
+  let supportsLoadedSourcesRequest (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_20.supportsLoadedSourcesRequest _t2
+
+  let supportsLogPoints (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_20.supportsLogPoints _t2
+
+  let supportsTerminateThreadsRequest (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_20.supportsTerminateThreadsRequest _t2
+
+  let supportsSetExpression (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_20.supportsSetExpression _t2
+
+  let supportsTerminateRequest (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_20.supportsTerminateRequest _t2
+
+  let supportsDataBreakpoints (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_20.supportsDataBreakpoints _t2
+
+  let supportsReadMemoryRequest (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_20.supportsReadMemoryRequest _t2
+
+  let supportsWriteMemoryRequest (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_30.supportsWriteMemoryRequest _t3
+
+  let supportsDisassembleRequest (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_30.supportsDisassembleRequest _t3
+
+  let supportsCancelRequest (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_30.supportsCancelRequest _t3
+
+  let supportsBreakpointLocationsRequest (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_30.supportsBreakpointLocationsRequest _t3
+
+  let supportsClipboardContext (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_30.supportsClipboardContext _t3
+
+  let supportsSteppingGranularity (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_30.supportsSteppingGranularity _t3
+
+  let supportsInstructionBreakpoints (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_30.supportsInstructionBreakpoints _t3
+
+  let supportsExceptionFilterOptions (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_30.supportsExceptionFilterOptions _t3
+
+  let supportsSingleThreadExecutionRequests (_t0, (_t1, (_t2, _t3))) =
+    Capabilities_30.supportsSingleThreadExecutionRequests _t3
 end
 
 module CapabilitiesEvent_body : sig
@@ -1699,6 +2386,8 @@ module CapabilitiesEvent_body : sig
   val enc : t Data_encoding.t
 
   val make : capabilities:Capabilities.t -> unit -> t
+
+  val capabilities : t -> Capabilities.t
 end = struct
   type t = {capabilities : Capabilities.t}
 
@@ -1711,6 +2400,8 @@ end = struct
       (obj1 (req "capabilities" Capabilities.enc))
 
   let make ~capabilities () = {capabilities}
+
+  let capabilities t = t.capabilities
 end
 
 module ProgressStartEvent_body : sig
@@ -1727,6 +2418,18 @@ module ProgressStartEvent_body : sig
     ?percentage:int ->
     unit ->
     t
+
+  val progressId : t -> string
+
+  val title : t -> string
+
+  val requestId : t -> int option
+
+  val cancellable : t -> bool option
+
+  val message : t -> string option
+
+  val percentage : t -> int option
 end = struct
   type t = {
     progressId : string;
@@ -1755,6 +2458,18 @@ end = struct
 
   let make ~progressId ~title ?requestId ?cancellable ?message ?percentage () =
     {progressId; title; requestId; cancellable; message; percentage}
+
+  let progressId t = t.progressId
+
+  let title t = t.title
+
+  let requestId t = t.requestId
+
+  let cancellable t = t.cancellable
+
+  let message t = t.message
+
+  let percentage t = t.percentage
 end
 
 module ProgressUpdateEvent_body : sig
@@ -1764,6 +2479,12 @@ module ProgressUpdateEvent_body : sig
 
   val make :
     progressId:string -> ?message:string -> ?percentage:int -> unit -> t
+
+  val progressId : t -> string
+
+  val message : t -> string option
+
+  val percentage : t -> int option
 end = struct
   type t = {
     progressId : string;
@@ -1786,6 +2507,12 @@ end = struct
 
   let make ~progressId ?message ?percentage () =
     {progressId; message; percentage}
+
+  let progressId t = t.progressId
+
+  let message t = t.message
+
+  let percentage t = t.percentage
 end
 
 module ProgressEndEvent_body : sig
@@ -1794,6 +2521,10 @@ module ProgressEndEvent_body : sig
   val enc : t Data_encoding.t
 
   val make : progressId:string -> ?message:string -> unit -> t
+
+  val progressId : t -> string
+
+  val message : t -> string option
 end = struct
   type t = {progressId : string; message : string option}
 
@@ -1806,6 +2537,10 @@ end = struct
       (obj2 (req "progressId" string) (opt "message" string))
 
   let make ~progressId ?message () = {progressId; message}
+
+  let progressId t = t.progressId
+
+  let message t = t.message
 end
 
 (* dont bother with a sig for enums, the inferred one is fine *)
@@ -1841,6 +2576,12 @@ module InvalidatedEvent_body : sig
     ?stackFrameId:int ->
     unit ->
     t
+
+  val areas : t -> InvalidatedAreas.t list option
+
+  val threadId : t -> int option
+
+  val stackFrameId : t -> int option
 end = struct
   type t = {
     areas : InvalidatedAreas.t list option;
@@ -1860,6 +2601,12 @@ end = struct
          (opt "stackFrameId" int31))
 
   let make ?areas ?threadId ?stackFrameId () = {areas; threadId; stackFrameId}
+
+  let areas t = t.areas
+
+  let threadId t = t.threadId
+
+  let stackFrameId t = t.stackFrameId
 end
 
 module MemoryEvent_body : sig
@@ -1868,6 +2615,12 @@ module MemoryEvent_body : sig
   val enc : t Data_encoding.t
 
   val make : memoryReference:string -> offset:int -> count:int -> unit -> t
+
+  val memoryReference : t -> string
+
+  val offset : t -> int
+
+  val count : t -> int
 end = struct
   type t = {memoryReference : string; offset : int; count : int}
 
@@ -1883,6 +2636,12 @@ end = struct
          (req "count" int31))
 
   let make ~memoryReference ~offset ~count () = {memoryReference; offset; count}
+
+  let memoryReference t = t.memoryReference
+
+  let offset t = t.offset
+
+  let count t = t.count
 end
 
 (* dont bother with a sig for enums, the inferred one is fine *)
@@ -1913,6 +2672,16 @@ module RunInTerminalRequestArguments : sig
     ?env:Data_encoding.json ->
     unit ->
     t
+
+  val kind : t -> RunInTerminalRequestArguments_kind.t option
+
+  val title : t -> string option
+
+  val cwd : t -> string
+
+  val args : t -> string list
+
+  val env : t -> Data_encoding.json option
 end = struct
   type t = {
     kind : RunInTerminalRequestArguments_kind.t option;
@@ -1936,6 +2705,16 @@ end = struct
          (opt "env" json))
 
   let make ?kind ?title ~cwd ~args ?env () = {kind; title; cwd; args; env}
+
+  let kind t = t.kind
+
+  let title t = t.title
+
+  let cwd t = t.cwd
+
+  let args t = t.args
+
+  let env t = t.env
 end
 
 module RunInTerminalResponse_body : sig
@@ -1944,6 +2723,10 @@ module RunInTerminalResponse_body : sig
   val enc : t Data_encoding.t
 
   val make : ?processId:int -> ?shellProcessId:int -> unit -> t
+
+  val processId : t -> int option
+
+  val shellProcessId : t -> int option
 end = struct
   type t = {processId : int option; shellProcessId : int option}
 
@@ -1956,6 +2739,10 @@ end = struct
       (obj2 (opt "processId" int31) (opt "shellProcessId" int31))
 
   let make ?processId ?shellProcessId () = {processId; shellProcessId}
+
+  let processId t = t.processId
+
+  let shellProcessId t = t.shellProcessId
 end
 
 (* dont bother with a sig for enums, the inferred one is fine *)
@@ -1992,6 +2779,34 @@ module InitializeRequestArguments : sig
     ?supportsMemoryEvent:bool ->
     unit ->
     t
+
+  val clientID : t -> string option
+
+  val clientName : t -> string option
+
+  val adapterID : t -> string
+
+  val locale : t -> string option
+
+  val linesStartAt1 : t -> bool option
+
+  val columnsStartAt1 : t -> bool option
+
+  val pathFormat : t -> InitializeRequestArguments_pathFormat.t option
+
+  val supportsVariableType : t -> bool option
+
+  val supportsVariablePaging : t -> bool option
+
+  val supportsRunInTerminalRequest : t -> bool option
+
+  val supportsMemoryReferences : t -> bool option
+
+  val supportsProgressReporting : t -> bool option
+
+  val supportsInvalidatedEvent : t -> bool option
+
+  val supportsMemoryEvent : t -> bool option
 end = struct
   module InitializeRequestArguments_0 : sig
     type t
@@ -2011,6 +2826,26 @@ end = struct
       ?supportsRunInTerminalRequest:bool ->
       unit ->
       t
+
+    val clientID : t -> string option
+
+    val clientName : t -> string option
+
+    val adapterID : t -> string
+
+    val locale : t -> string option
+
+    val linesStartAt1 : t -> bool option
+
+    val columnsStartAt1 : t -> bool option
+
+    val pathFormat : t -> InitializeRequestArguments_pathFormat.t option
+
+    val supportsVariableType : t -> bool option
+
+    val supportsVariablePaging : t -> bool option
+
+    val supportsRunInTerminalRequest : t -> bool option
   end = struct
     type t = {
       clientID : string option;
@@ -2100,6 +2935,26 @@ end = struct
         supportsVariablePaging;
         supportsRunInTerminalRequest;
       }
+
+    let clientID t = t.clientID
+
+    let clientName t = t.clientName
+
+    let adapterID t = t.adapterID
+
+    let locale t = t.locale
+
+    let linesStartAt1 t = t.linesStartAt1
+
+    let columnsStartAt1 t = t.columnsStartAt1
+
+    let pathFormat t = t.pathFormat
+
+    let supportsVariableType t = t.supportsVariableType
+
+    let supportsVariablePaging t = t.supportsVariablePaging
+
+    let supportsRunInTerminalRequest t = t.supportsRunInTerminalRequest
   end
 
   module InitializeRequestArguments_10 : sig
@@ -2114,6 +2969,14 @@ end = struct
       ?supportsMemoryEvent:bool ->
       unit ->
       t
+
+    val supportsMemoryReferences : t -> bool option
+
+    val supportsProgressReporting : t -> bool option
+
+    val supportsInvalidatedEvent : t -> bool option
+
+    val supportsMemoryEvent : t -> bool option
   end = struct
     type t = {
       supportsMemoryReferences : bool option;
@@ -2160,6 +3023,14 @@ end = struct
         supportsInvalidatedEvent;
         supportsMemoryEvent;
       }
+
+    let supportsMemoryReferences t = t.supportsMemoryReferences
+
+    let supportsProgressReporting t = t.supportsProgressReporting
+
+    let supportsInvalidatedEvent t = t.supportsInvalidatedEvent
+
+    let supportsMemoryEvent t = t.supportsMemoryEvent
   end
 
   type t = InitializeRequestArguments_0.t * InitializeRequestArguments_10.t
@@ -2200,6 +3071,42 @@ end = struct
     in
 
     (t0, t1)
+
+  let clientID (_t0, _t1) = InitializeRequestArguments_0.clientID _t0
+
+  let clientName (_t0, _t1) = InitializeRequestArguments_0.clientName _t0
+
+  let adapterID (_t0, _t1) = InitializeRequestArguments_0.adapterID _t0
+
+  let locale (_t0, _t1) = InitializeRequestArguments_0.locale _t0
+
+  let linesStartAt1 (_t0, _t1) = InitializeRequestArguments_0.linesStartAt1 _t0
+
+  let columnsStartAt1 (_t0, _t1) =
+    InitializeRequestArguments_0.columnsStartAt1 _t0
+
+  let pathFormat (_t0, _t1) = InitializeRequestArguments_0.pathFormat _t0
+
+  let supportsVariableType (_t0, _t1) =
+    InitializeRequestArguments_0.supportsVariableType _t0
+
+  let supportsVariablePaging (_t0, _t1) =
+    InitializeRequestArguments_0.supportsVariablePaging _t0
+
+  let supportsRunInTerminalRequest (_t0, _t1) =
+    InitializeRequestArguments_0.supportsRunInTerminalRequest _t0
+
+  let supportsMemoryReferences (_t0, _t1) =
+    InitializeRequestArguments_10.supportsMemoryReferences _t1
+
+  let supportsProgressReporting (_t0, _t1) =
+    InitializeRequestArguments_10.supportsProgressReporting _t1
+
+  let supportsInvalidatedEvent (_t0, _t1) =
+    InitializeRequestArguments_10.supportsInvalidatedEvent _t1
+
+  let supportsMemoryEvent (_t0, _t1) =
+    InitializeRequestArguments_10.supportsMemoryEvent _t1
 end
 
 module ConfigurationDoneArguments : sig
@@ -2227,6 +3134,12 @@ module DisconnectArguments : sig
     ?suspendDebuggee:bool ->
     unit ->
     t
+
+  val restart : t -> bool option
+
+  val terminateDebuggee : t -> bool option
+
+  val suspendDebuggee : t -> bool option
 end = struct
   type t = {
     restart : bool option;
@@ -2249,6 +3162,12 @@ end = struct
 
   let make ?restart ?terminateDebuggee ?suspendDebuggee () =
     {restart; terminateDebuggee; suspendDebuggee}
+
+  let restart t = t.restart
+
+  let terminateDebuggee t = t.terminateDebuggee
+
+  let suspendDebuggee t = t.suspendDebuggee
 end
 
 module TerminateArguments : sig
@@ -2257,6 +3176,8 @@ module TerminateArguments : sig
   val enc : t Data_encoding.t
 
   val make : ?restart:bool -> unit -> t
+
+  val restart : t -> bool option
 end = struct
   type t = {restart : bool option}
 
@@ -2269,6 +3190,8 @@ end = struct
       (obj1 (opt "restart" bool))
 
   let make ?restart () = {restart}
+
+  let restart t = t.restart
 end
 
 module BreakpointLocationsArguments : sig
@@ -2284,6 +3207,16 @@ module BreakpointLocationsArguments : sig
     ?endColumn:int ->
     unit ->
     t
+
+  val source : t -> Source.t
+
+  val line : t -> int
+
+  val column : t -> int option
+
+  val endLine : t -> int option
+
+  val endColumn : t -> int option
 end = struct
   type t = {
     source : Source.t;
@@ -2310,6 +3243,16 @@ end = struct
 
   let make ~source ~line ?column ?endLine ?endColumn () =
     {source; line; column; endLine; endColumn}
+
+  let source t = t.source
+
+  let line t = t.line
+
+  let column t = t.column
+
+  let endLine t = t.endLine
+
+  let endColumn t = t.endColumn
 end
 
 module BreakpointLocation : sig
@@ -2319,6 +3262,14 @@ module BreakpointLocation : sig
 
   val make :
     line:int -> ?column:int -> ?endLine:int -> ?endColumn:int -> unit -> t
+
+  val line : t -> int
+
+  val column : t -> int option
+
+  val endLine : t -> int option
+
+  val endColumn : t -> int option
 end = struct
   type t = {
     line : int;
@@ -2343,6 +3294,14 @@ end = struct
 
   let make ~line ?column ?endLine ?endColumn () =
     {line; column; endLine; endColumn}
+
+  let line t = t.line
+
+  let column t = t.column
+
+  let endLine t = t.endLine
+
+  let endColumn t = t.endColumn
 end
 
 module BreakpointLocationsResponse_body : sig
@@ -2351,6 +3310,8 @@ module BreakpointLocationsResponse_body : sig
   val enc : t Data_encoding.t
 
   val make : breakpoints:BreakpointLocation.t list -> unit -> t
+
+  val breakpoints : t -> BreakpointLocation.t list
 end = struct
   type t = {breakpoints : BreakpointLocation.t list}
 
@@ -2363,6 +3324,8 @@ end = struct
       (obj1 (req "breakpoints" (list BreakpointLocation.enc)))
 
   let make ~breakpoints () = {breakpoints}
+
+  let breakpoints t = t.breakpoints
 end
 
 module SourceBreakpoint : sig
@@ -2378,6 +3341,16 @@ module SourceBreakpoint : sig
     ?logMessage:string ->
     unit ->
     t
+
+  val line : t -> int
+
+  val column : t -> int option
+
+  val condition : t -> string option
+
+  val hitCondition : t -> string option
+
+  val logMessage : t -> string option
 end = struct
   type t = {
     line : int;
@@ -2404,6 +3377,16 @@ end = struct
 
   let make ~line ?column ?condition ?hitCondition ?logMessage () =
     {line; column; condition; hitCondition; logMessage}
+
+  let line t = t.line
+
+  let column t = t.column
+
+  let condition t = t.condition
+
+  let hitCondition t = t.hitCondition
+
+  let logMessage t = t.logMessage
 end
 
 module SetBreakpointsArguments : sig
@@ -2418,6 +3401,14 @@ module SetBreakpointsArguments : sig
     ?sourceModified:bool ->
     unit ->
     t
+
+  val source : t -> Source.t
+
+  val breakpoints : t -> SourceBreakpoint.t list option
+
+  val lines : t -> int list option
+
+  val sourceModified : t -> bool option
 end = struct
   type t = {
     source : Source.t;
@@ -2442,6 +3433,14 @@ end = struct
 
   let make ~source ?breakpoints ?lines ?sourceModified () =
     {source; breakpoints; lines; sourceModified}
+
+  let source t = t.source
+
+  let breakpoints t = t.breakpoints
+
+  let lines t = t.lines
+
+  let sourceModified t = t.sourceModified
 end
 
 module SetBreakpointsResponse_body : sig
@@ -2450,6 +3449,8 @@ module SetBreakpointsResponse_body : sig
   val enc : t Data_encoding.t
 
   val make : breakpoints:Breakpoint.t list -> unit -> t
+
+  val breakpoints : t -> Breakpoint.t list
 end = struct
   type t = {breakpoints : Breakpoint.t list}
 
@@ -2462,6 +3463,8 @@ end = struct
       (obj1 (req "breakpoints" (list Breakpoint.enc)))
 
   let make ~breakpoints () = {breakpoints}
+
+  let breakpoints t = t.breakpoints
 end
 
 module FunctionBreakpoint : sig
@@ -2471,6 +3474,12 @@ module FunctionBreakpoint : sig
 
   val make :
     name:string -> ?condition:string -> ?hitCondition:string -> unit -> t
+
+  val name : t -> string
+
+  val condition : t -> string option
+
+  val hitCondition : t -> string option
 end = struct
   type t = {
     name : string;
@@ -2490,6 +3499,12 @@ end = struct
          (opt "hitCondition" string))
 
   let make ~name ?condition ?hitCondition () = {name; condition; hitCondition}
+
+  let name t = t.name
+
+  let condition t = t.condition
+
+  let hitCondition t = t.hitCondition
 end
 
 module SetFunctionBreakpointsArguments : sig
@@ -2498,6 +3513,8 @@ module SetFunctionBreakpointsArguments : sig
   val enc : t Data_encoding.t
 
   val make : breakpoints:FunctionBreakpoint.t list -> unit -> t
+
+  val breakpoints : t -> FunctionBreakpoint.t list
 end = struct
   type t = {breakpoints : FunctionBreakpoint.t list}
 
@@ -2510,6 +3527,8 @@ end = struct
       (obj1 (req "breakpoints" (list FunctionBreakpoint.enc)))
 
   let make ~breakpoints () = {breakpoints}
+
+  let breakpoints t = t.breakpoints
 end
 
 module SetFunctionBreakpointsResponse_body : sig
@@ -2518,6 +3537,8 @@ module SetFunctionBreakpointsResponse_body : sig
   val enc : t Data_encoding.t
 
   val make : breakpoints:Breakpoint.t list -> unit -> t
+
+  val breakpoints : t -> Breakpoint.t list
 end = struct
   type t = {breakpoints : Breakpoint.t list}
 
@@ -2530,6 +3551,8 @@ end = struct
       (obj1 (req "breakpoints" (list Breakpoint.enc)))
 
   let make ~breakpoints () = {breakpoints}
+
+  let breakpoints t = t.breakpoints
 end
 
 module ExceptionFilterOptions : sig
@@ -2538,6 +3561,10 @@ module ExceptionFilterOptions : sig
   val enc : t Data_encoding.t
 
   val make : filterId:string -> ?condition:string -> unit -> t
+
+  val filterId : t -> string
+
+  val condition : t -> string option
 end = struct
   type t = {filterId : string; condition : string option}
 
@@ -2550,6 +3577,10 @@ end = struct
       (obj2 (req "filterId" string) (opt "condition" string))
 
   let make ~filterId ?condition () = {filterId; condition}
+
+  let filterId t = t.filterId
+
+  let condition t = t.condition
 end
 
 module ExceptionPathSegment : sig
@@ -2558,6 +3589,10 @@ module ExceptionPathSegment : sig
   val enc : t Data_encoding.t
 
   val make : ?negate:bool -> names:string list -> unit -> t
+
+  val negate : t -> bool option
+
+  val names : t -> string list
 end = struct
   type t = {negate : bool option; names : string list}
 
@@ -2570,6 +3605,10 @@ end = struct
       (obj2 (opt "negate" bool) (req "names" (list string)))
 
   let make ?negate ~names () = {negate; names}
+
+  let negate t = t.negate
+
+  let names t = t.names
 end
 
 (* dont bother with a sig for enums, the inferred one is fine *)
@@ -2603,6 +3642,10 @@ module ExceptionOptions : sig
     breakMode:ExceptionBreakMode.t ->
     unit ->
     t
+
+  val path : t -> ExceptionPathSegment.t list option
+
+  val breakMode : t -> ExceptionBreakMode.t
 end = struct
   type t = {
     path : ExceptionPathSegment.t list option;
@@ -2620,6 +3663,10 @@ end = struct
          (req "breakMode" ExceptionBreakMode.enc))
 
   let make ?path ~breakMode () = {path; breakMode}
+
+  let path t = t.path
+
+  let breakMode t = t.breakMode
 end
 
 module SetExceptionBreakpointsArguments : sig
@@ -2633,6 +3680,12 @@ module SetExceptionBreakpointsArguments : sig
     ?exceptionOptions:ExceptionOptions.t list ->
     unit ->
     t
+
+  val filters : t -> string list
+
+  val filterOptions : t -> ExceptionFilterOptions.t list option
+
+  val exceptionOptions : t -> ExceptionOptions.t list option
 end = struct
   type t = {
     filters : string list;
@@ -2655,6 +3708,12 @@ end = struct
 
   let make ~filters ?filterOptions ?exceptionOptions () =
     {filters; filterOptions; exceptionOptions}
+
+  let filters t = t.filters
+
+  let filterOptions t = t.filterOptions
+
+  let exceptionOptions t = t.exceptionOptions
 end
 
 module SetExceptionBreakpointsResponse_body : sig
@@ -2663,6 +3722,8 @@ module SetExceptionBreakpointsResponse_body : sig
   val enc : t Data_encoding.t
 
   val make : ?breakpoints:Breakpoint.t list -> unit -> t
+
+  val breakpoints : t -> Breakpoint.t list option
 end = struct
   type t = {breakpoints : Breakpoint.t list option}
 
@@ -2675,6 +3736,8 @@ end = struct
       (obj1 (opt "breakpoints" (list Breakpoint.enc)))
 
   let make ?breakpoints () = {breakpoints}
+
+  let breakpoints t = t.breakpoints
 end
 
 module DataBreakpointInfoArguments : sig
@@ -2683,6 +3746,10 @@ module DataBreakpointInfoArguments : sig
   val enc : t Data_encoding.t
 
   val make : ?variablesReference:int -> name:string -> unit -> t
+
+  val variablesReference : t -> int option
+
+  val name : t -> string
 end = struct
   type t = {variablesReference : int option; name : string}
 
@@ -2695,6 +3762,10 @@ end = struct
       (obj2 (opt "variablesReference" int31) (req "name" string))
 
   let make ?variablesReference ~name () = {variablesReference; name}
+
+  let variablesReference t = t.variablesReference
+
+  let name t = t.name
 end
 
 (* dont bother with a sig for enums, the inferred one is fine *)
@@ -2725,6 +3796,14 @@ module DataBreakpointInfoResponse_body : sig
     ?canPersist:bool ->
     unit ->
     t
+
+  val dataId : t -> string option
+
+  val description : t -> string
+
+  val accessTypes : t -> DataBreakpointAccessType.t list option
+
+  val canPersist : t -> bool option
 end = struct
   type t = {
     dataId : string option;
@@ -2749,6 +3828,14 @@ end = struct
 
   let make ~dataId ~description ?accessTypes ?canPersist () =
     {dataId; description; accessTypes; canPersist}
+
+  let dataId t = t.dataId
+
+  let description t = t.description
+
+  let accessTypes t = t.accessTypes
+
+  let canPersist t = t.canPersist
 end
 
 module DataBreakpoint : sig
@@ -2763,6 +3850,14 @@ module DataBreakpoint : sig
     ?hitCondition:string ->
     unit ->
     t
+
+  val dataId : t -> string
+
+  val accessType : t -> DataBreakpointAccessType.t option
+
+  val condition : t -> string option
+
+  val hitCondition : t -> string option
 end = struct
   type t = {
     dataId : string;
@@ -2787,6 +3882,14 @@ end = struct
 
   let make ~dataId ?accessType ?condition ?hitCondition () =
     {dataId; accessType; condition; hitCondition}
+
+  let dataId t = t.dataId
+
+  let accessType t = t.accessType
+
+  let condition t = t.condition
+
+  let hitCondition t = t.hitCondition
 end
 
 module SetDataBreakpointsArguments : sig
@@ -2795,6 +3898,8 @@ module SetDataBreakpointsArguments : sig
   val enc : t Data_encoding.t
 
   val make : breakpoints:DataBreakpoint.t list -> unit -> t
+
+  val breakpoints : t -> DataBreakpoint.t list
 end = struct
   type t = {breakpoints : DataBreakpoint.t list}
 
@@ -2807,6 +3912,8 @@ end = struct
       (obj1 (req "breakpoints" (list DataBreakpoint.enc)))
 
   let make ~breakpoints () = {breakpoints}
+
+  let breakpoints t = t.breakpoints
 end
 
 module SetDataBreakpointsResponse_body : sig
@@ -2815,6 +3922,8 @@ module SetDataBreakpointsResponse_body : sig
   val enc : t Data_encoding.t
 
   val make : breakpoints:Breakpoint.t list -> unit -> t
+
+  val breakpoints : t -> Breakpoint.t list
 end = struct
   type t = {breakpoints : Breakpoint.t list}
 
@@ -2827,6 +3936,8 @@ end = struct
       (obj1 (req "breakpoints" (list Breakpoint.enc)))
 
   let make ~breakpoints () = {breakpoints}
+
+  let breakpoints t = t.breakpoints
 end
 
 module InstructionBreakpoint : sig
@@ -2841,6 +3952,14 @@ module InstructionBreakpoint : sig
     ?hitCondition:string ->
     unit ->
     t
+
+  val instructionReference : t -> string
+
+  val offset : t -> int option
+
+  val condition : t -> string option
+
+  val hitCondition : t -> string option
 end = struct
   type t = {
     instructionReference : string;
@@ -2865,6 +3984,14 @@ end = struct
 
   let make ~instructionReference ?offset ?condition ?hitCondition () =
     {instructionReference; offset; condition; hitCondition}
+
+  let instructionReference t = t.instructionReference
+
+  let offset t = t.offset
+
+  let condition t = t.condition
+
+  let hitCondition t = t.hitCondition
 end
 
 module SetInstructionBreakpointsArguments : sig
@@ -2873,6 +4000,8 @@ module SetInstructionBreakpointsArguments : sig
   val enc : t Data_encoding.t
 
   val make : breakpoints:InstructionBreakpoint.t list -> unit -> t
+
+  val breakpoints : t -> InstructionBreakpoint.t list
 end = struct
   type t = {breakpoints : InstructionBreakpoint.t list}
 
@@ -2885,6 +4014,8 @@ end = struct
       (obj1 (req "breakpoints" (list InstructionBreakpoint.enc)))
 
   let make ~breakpoints () = {breakpoints}
+
+  let breakpoints t = t.breakpoints
 end
 
 module SetInstructionBreakpointsResponse_body : sig
@@ -2893,6 +4024,8 @@ module SetInstructionBreakpointsResponse_body : sig
   val enc : t Data_encoding.t
 
   val make : breakpoints:Breakpoint.t list -> unit -> t
+
+  val breakpoints : t -> Breakpoint.t list
 end = struct
   type t = {breakpoints : Breakpoint.t list}
 
@@ -2905,6 +4038,8 @@ end = struct
       (obj1 (req "breakpoints" (list Breakpoint.enc)))
 
   let make ~breakpoints () = {breakpoints}
+
+  let breakpoints t = t.breakpoints
 end
 
 module ContinueArguments : sig
@@ -2913,6 +4048,10 @@ module ContinueArguments : sig
   val enc : t Data_encoding.t
 
   val make : threadId:int -> ?singleThread:bool -> unit -> t
+
+  val threadId : t -> int
+
+  val singleThread : t -> bool option
 end = struct
   type t = {threadId : int; singleThread : bool option}
 
@@ -2925,6 +4064,10 @@ end = struct
       (obj2 (req "threadId" int31) (opt "singleThread" bool))
 
   let make ~threadId ?singleThread () = {threadId; singleThread}
+
+  let threadId t = t.threadId
+
+  let singleThread t = t.singleThread
 end
 
 module ContinueResponse_body : sig
@@ -2933,6 +4076,8 @@ module ContinueResponse_body : sig
   val enc : t Data_encoding.t
 
   val make : ?allThreadsContinued:bool -> unit -> t
+
+  val allThreadsContinued : t -> bool option
 end = struct
   type t = {allThreadsContinued : bool option}
 
@@ -2945,6 +4090,8 @@ end = struct
       (obj1 (opt "allThreadsContinued" bool))
 
   let make ?allThreadsContinued () = {allThreadsContinued}
+
+  let allThreadsContinued t = t.allThreadsContinued
 end
 
 (* dont bother with a sig for enums, the inferred one is fine *)
@@ -2977,6 +4124,12 @@ module NextArguments : sig
     ?granularity:SteppingGranularity.t ->
     unit ->
     t
+
+  val threadId : t -> int
+
+  val singleThread : t -> bool option
+
+  val granularity : t -> SteppingGranularity.t option
 end = struct
   type t = {
     threadId : int;
@@ -2999,6 +4152,12 @@ end = struct
 
   let make ~threadId ?singleThread ?granularity () =
     {threadId; singleThread; granularity}
+
+  let threadId t = t.threadId
+
+  let singleThread t = t.singleThread
+
+  let granularity t = t.granularity
 end
 
 module StepInArguments : sig
@@ -3013,6 +4172,14 @@ module StepInArguments : sig
     ?granularity:SteppingGranularity.t ->
     unit ->
     t
+
+  val threadId : t -> int
+
+  val singleThread : t -> bool option
+
+  val targetId : t -> int option
+
+  val granularity : t -> SteppingGranularity.t option
 end = struct
   type t = {
     threadId : int;
@@ -3037,6 +4204,14 @@ end = struct
 
   let make ~threadId ?singleThread ?targetId ?granularity () =
     {threadId; singleThread; targetId; granularity}
+
+  let threadId t = t.threadId
+
+  let singleThread t = t.singleThread
+
+  let targetId t = t.targetId
+
+  let granularity t = t.granularity
 end
 
 module StepOutArguments : sig
@@ -3050,6 +4225,12 @@ module StepOutArguments : sig
     ?granularity:SteppingGranularity.t ->
     unit ->
     t
+
+  val threadId : t -> int
+
+  val singleThread : t -> bool option
+
+  val granularity : t -> SteppingGranularity.t option
 end = struct
   type t = {
     threadId : int;
@@ -3072,6 +4253,12 @@ end = struct
 
   let make ~threadId ?singleThread ?granularity () =
     {threadId; singleThread; granularity}
+
+  let threadId t = t.threadId
+
+  let singleThread t = t.singleThread
+
+  let granularity t = t.granularity
 end
 
 module StepBackArguments : sig
@@ -3085,6 +4272,12 @@ module StepBackArguments : sig
     ?granularity:SteppingGranularity.t ->
     unit ->
     t
+
+  val threadId : t -> int
+
+  val singleThread : t -> bool option
+
+  val granularity : t -> SteppingGranularity.t option
 end = struct
   type t = {
     threadId : int;
@@ -3107,6 +4300,12 @@ end = struct
 
   let make ~threadId ?singleThread ?granularity () =
     {threadId; singleThread; granularity}
+
+  let threadId t = t.threadId
+
+  let singleThread t = t.singleThread
+
+  let granularity t = t.granularity
 end
 
 module ReverseContinueArguments : sig
@@ -3115,6 +4314,10 @@ module ReverseContinueArguments : sig
   val enc : t Data_encoding.t
 
   val make : threadId:int -> ?singleThread:bool -> unit -> t
+
+  val threadId : t -> int
+
+  val singleThread : t -> bool option
 end = struct
   type t = {threadId : int; singleThread : bool option}
 
@@ -3127,6 +4330,10 @@ end = struct
       (obj2 (req "threadId" int31) (opt "singleThread" bool))
 
   let make ~threadId ?singleThread () = {threadId; singleThread}
+
+  let threadId t = t.threadId
+
+  let singleThread t = t.singleThread
 end
 
 module RestartFrameArguments : sig
@@ -3135,6 +4342,8 @@ module RestartFrameArguments : sig
   val enc : t Data_encoding.t
 
   val make : frameId:int -> unit -> t
+
+  val frameId : t -> int
 end = struct
   type t = {frameId : int}
 
@@ -3147,6 +4356,8 @@ end = struct
       (obj1 (req "frameId" int31))
 
   let make ~frameId () = {frameId}
+
+  let frameId t = t.frameId
 end
 
 module GotoArguments : sig
@@ -3155,6 +4366,10 @@ module GotoArguments : sig
   val enc : t Data_encoding.t
 
   val make : threadId:int -> targetId:int -> unit -> t
+
+  val threadId : t -> int
+
+  val targetId : t -> int
 end = struct
   type t = {threadId : int; targetId : int}
 
@@ -3167,6 +4382,10 @@ end = struct
       (obj2 (req "threadId" int31) (req "targetId" int31))
 
   let make ~threadId ~targetId () = {threadId; targetId}
+
+  let threadId t = t.threadId
+
+  let targetId t = t.targetId
 end
 
 module PauseArguments : sig
@@ -3175,6 +4394,8 @@ module PauseArguments : sig
   val enc : t Data_encoding.t
 
   val make : threadId:int -> unit -> t
+
+  val threadId : t -> int
 end = struct
   type t = {threadId : int}
 
@@ -3187,6 +4408,8 @@ end = struct
       (obj1 (req "threadId" int31))
 
   let make ~threadId () = {threadId}
+
+  let threadId t = t.threadId
 end
 
 module ValueFormat : sig
@@ -3195,6 +4418,8 @@ module ValueFormat : sig
   val enc : t Data_encoding.t
 
   val make : ?hex:bool -> unit -> t
+
+  val hex : t -> bool option
 end = struct
   type t = {hex : bool option}
 
@@ -3204,6 +4429,8 @@ end = struct
     conv (fun {hex} -> hex) (fun hex -> {hex}) (obj1 (opt "hex" bool))
 
   let make ?hex () = {hex}
+
+  let hex t = t.hex
 end
 
 module StackFrameFormat : sig
@@ -3222,6 +4449,22 @@ module StackFrameFormat : sig
     ?includeAll:bool ->
     unit ->
     t
+
+  val hex : t -> bool option
+
+  val parameters : t -> bool option
+
+  val parameterTypes : t -> bool option
+
+  val parameterNames : t -> bool option
+
+  val parameterValues : t -> bool option
+
+  val line : t -> bool option
+
+  val module_ : t -> bool option
+
+  val includeAll : t -> bool option
 end = struct
   type t = {
     hex : bool option;
@@ -3296,6 +4539,22 @@ end = struct
       module_;
       includeAll;
     }
+
+  let hex t = t.hex
+
+  let parameters t = t.parameters
+
+  let parameterTypes t = t.parameterTypes
+
+  let parameterNames t = t.parameterNames
+
+  let parameterValues t = t.parameterValues
+
+  let line t = t.line
+
+  let module_ t = t.module_
+
+  let includeAll t = t.includeAll
 end
 
 module StackTraceArguments : sig
@@ -3310,6 +4569,14 @@ module StackTraceArguments : sig
     ?format:StackFrameFormat.t ->
     unit ->
     t
+
+  val threadId : t -> int
+
+  val startFrame : t -> int option
+
+  val levels : t -> int option
+
+  val format : t -> StackFrameFormat.t option
 end = struct
   type t = {
     threadId : int;
@@ -3334,6 +4601,14 @@ end = struct
 
   let make ~threadId ?startFrame ?levels ?format () =
     {threadId; startFrame; levels; format}
+
+  let threadId t = t.threadId
+
+  let startFrame t = t.startFrame
+
+  let levels t = t.levels
+
+  let format t = t.format
 end
 
 (* dont bother with a sig for enums, the inferred one is fine *)
@@ -3371,6 +4646,28 @@ module StackFrame : sig
     ?presentationHint:StackFrame_presentationHint.t ->
     unit ->
     t
+
+  val id : t -> int
+
+  val name : t -> string
+
+  val source : t -> Source.t option
+
+  val line : t -> int
+
+  val column : t -> int
+
+  val endLine : t -> int option
+
+  val endColumn : t -> int option
+
+  val canRestart : t -> bool option
+
+  val instructionPointerReference : t -> string option
+
+  val moduleId : t -> IntString.t option
+
+  val presentationHint : t -> StackFrame_presentationHint.t option
 end = struct
   module StackFrame_0 : sig
     type t
@@ -3390,6 +4687,26 @@ end = struct
       ?moduleId:IntString.t ->
       unit ->
       t
+
+    val id : t -> int
+
+    val name : t -> string
+
+    val source : t -> Source.t option
+
+    val line : t -> int
+
+    val column : t -> int
+
+    val endLine : t -> int option
+
+    val endColumn : t -> int option
+
+    val canRestart : t -> bool option
+
+    val instructionPointerReference : t -> string option
+
+    val moduleId : t -> IntString.t option
   end = struct
     type t = {
       id : int;
@@ -3478,6 +4795,26 @@ end = struct
         instructionPointerReference;
         moduleId;
       }
+
+    let id t = t.id
+
+    let name t = t.name
+
+    let source t = t.source
+
+    let line t = t.line
+
+    let column t = t.column
+
+    let endLine t = t.endLine
+
+    let endColumn t = t.endColumn
+
+    let canRestart t = t.canRestart
+
+    let instructionPointerReference t = t.instructionPointerReference
+
+    let moduleId t = t.moduleId
   end
 
   module StackFrame_10 : sig
@@ -3486,6 +4823,8 @@ end = struct
     val enc : t Data_encoding.t
 
     val make : ?presentationHint:StackFrame_presentationHint.t -> unit -> t
+
+    val presentationHint : t -> StackFrame_presentationHint.t option
   end = struct
     type t = {presentationHint : StackFrame_presentationHint.t option}
 
@@ -3498,6 +4837,8 @@ end = struct
         (obj1 (opt "presentationHint" StackFrame_presentationHint.enc))
 
     let make ?presentationHint () = {presentationHint}
+
+    let presentationHint t = t.presentationHint
   end
 
   type t = StackFrame_0.t * StackFrame_10.t
@@ -3526,6 +4867,29 @@ end = struct
     let t1 = StackFrame_10.make ?presentationHint () in
 
     (t0, t1)
+
+  let id (_t0, _t1) = StackFrame_0.id _t0
+
+  let name (_t0, _t1) = StackFrame_0.name _t0
+
+  let source (_t0, _t1) = StackFrame_0.source _t0
+
+  let line (_t0, _t1) = StackFrame_0.line _t0
+
+  let column (_t0, _t1) = StackFrame_0.column _t0
+
+  let endLine (_t0, _t1) = StackFrame_0.endLine _t0
+
+  let endColumn (_t0, _t1) = StackFrame_0.endColumn _t0
+
+  let canRestart (_t0, _t1) = StackFrame_0.canRestart _t0
+
+  let instructionPointerReference (_t0, _t1) =
+    StackFrame_0.instructionPointerReference _t0
+
+  let moduleId (_t0, _t1) = StackFrame_0.moduleId _t0
+
+  let presentationHint (_t0, _t1) = StackFrame_10.presentationHint _t1
 end
 
 module StackTraceResponse_body : sig
@@ -3534,6 +4898,10 @@ module StackTraceResponse_body : sig
   val enc : t Data_encoding.t
 
   val make : stackFrames:StackFrame.t list -> ?totalFrames:int -> unit -> t
+
+  val stackFrames : t -> StackFrame.t list
+
+  val totalFrames : t -> int option
 end = struct
   type t = {stackFrames : StackFrame.t list; totalFrames : int option}
 
@@ -3546,6 +4914,10 @@ end = struct
       (obj2 (req "stackFrames" (list StackFrame.enc)) (opt "totalFrames" int31))
 
   let make ~stackFrames ?totalFrames () = {stackFrames; totalFrames}
+
+  let stackFrames t = t.stackFrames
+
+  let totalFrames t = t.totalFrames
 end
 
 module ScopesArguments : sig
@@ -3554,6 +4926,8 @@ module ScopesArguments : sig
   val enc : t Data_encoding.t
 
   val make : frameId:int -> unit -> t
+
+  val frameId : t -> int
 end = struct
   type t = {frameId : int}
 
@@ -3566,6 +4940,8 @@ end = struct
       (obj1 (req "frameId" int31))
 
   let make ~frameId () = {frameId}
+
+  let frameId t = t.frameId
 end
 
 (* dont bother with a sig for enums, the inferred one is fine *)
@@ -3607,6 +4983,28 @@ module Scope : sig
     ?endColumn:int ->
     unit ->
     t
+
+  val name : t -> string
+
+  val presentationHint : t -> Scope_presentationHint.t option
+
+  val variablesReference : t -> int
+
+  val namedVariables : t -> int option
+
+  val indexedVariables : t -> int option
+
+  val expensive : t -> bool
+
+  val source : t -> Source.t option
+
+  val line : t -> int option
+
+  val column : t -> int option
+
+  val endLine : t -> int option
+
+  val endColumn : t -> int option
 end = struct
   module Scope_0 : sig
     type t
@@ -3626,6 +5024,26 @@ end = struct
       ?endLine:int ->
       unit ->
       t
+
+    val name : t -> string
+
+    val presentationHint : t -> Scope_presentationHint.t option
+
+    val variablesReference : t -> int
+
+    val namedVariables : t -> int option
+
+    val indexedVariables : t -> int option
+
+    val expensive : t -> bool
+
+    val source : t -> Source.t option
+
+    val line : t -> int option
+
+    val column : t -> int option
+
+    val endLine : t -> int option
   end = struct
     type t = {
       name : string;
@@ -3714,6 +5132,26 @@ end = struct
         column;
         endLine;
       }
+
+    let name t = t.name
+
+    let presentationHint t = t.presentationHint
+
+    let variablesReference t = t.variablesReference
+
+    let namedVariables t = t.namedVariables
+
+    let indexedVariables t = t.indexedVariables
+
+    let expensive t = t.expensive
+
+    let source t = t.source
+
+    let line t = t.line
+
+    let column t = t.column
+
+    let endLine t = t.endLine
   end
 
   module Scope_10 : sig
@@ -3722,6 +5160,8 @@ end = struct
     val enc : t Data_encoding.t
 
     val make : ?endColumn:int -> unit -> t
+
+    val endColumn : t -> int option
   end = struct
     type t = {endColumn : int option}
 
@@ -3734,6 +5174,8 @@ end = struct
         (obj1 (opt "endColumn" int31))
 
     let make ?endColumn () = {endColumn}
+
+    let endColumn t = t.endColumn
   end
 
   type t = Scope_0.t * Scope_10.t
@@ -3763,6 +5205,28 @@ end = struct
     let t1 = Scope_10.make ?endColumn () in
 
     (t0, t1)
+
+  let name (_t0, _t1) = Scope_0.name _t0
+
+  let presentationHint (_t0, _t1) = Scope_0.presentationHint _t0
+
+  let variablesReference (_t0, _t1) = Scope_0.variablesReference _t0
+
+  let namedVariables (_t0, _t1) = Scope_0.namedVariables _t0
+
+  let indexedVariables (_t0, _t1) = Scope_0.indexedVariables _t0
+
+  let expensive (_t0, _t1) = Scope_0.expensive _t0
+
+  let source (_t0, _t1) = Scope_0.source _t0
+
+  let line (_t0, _t1) = Scope_0.line _t0
+
+  let column (_t0, _t1) = Scope_0.column _t0
+
+  let endLine (_t0, _t1) = Scope_0.endLine _t0
+
+  let endColumn (_t0, _t1) = Scope_10.endColumn _t1
 end
 
 module ScopesResponse_body : sig
@@ -3771,6 +5235,8 @@ module ScopesResponse_body : sig
   val enc : t Data_encoding.t
 
   val make : scopes:Scope.t list -> unit -> t
+
+  val scopes : t -> Scope.t list
 end = struct
   type t = {scopes : Scope.t list}
 
@@ -3783,6 +5249,8 @@ end = struct
       (obj1 (req "scopes" (list Scope.enc)))
 
   let make ~scopes () = {scopes}
+
+  let scopes t = t.scopes
 end
 
 (* dont bother with a sig for enums, the inferred one is fine *)
@@ -3813,6 +5281,16 @@ module VariablesArguments : sig
     ?format:ValueFormat.t ->
     unit ->
     t
+
+  val variablesReference : t -> int
+
+  val filter : t -> VariablesArguments_filter.t option
+
+  val start : t -> int option
+
+  val count : t -> int option
+
+  val format : t -> ValueFormat.t option
 end = struct
   type t = {
     variablesReference : int;
@@ -3839,6 +5317,16 @@ end = struct
 
   let make ~variablesReference ?filter ?start ?count ?format () =
     {variablesReference; filter; start; count; format}
+
+  let variablesReference t = t.variablesReference
+
+  let filter t = t.filter
+
+  let start t = t.start
+
+  let count t = t.count
+
+  let format t = t.format
 end
 
 (* dont bother with a sig for enums, the inferred one is fine *)
@@ -3964,6 +5452,14 @@ module VariablePresentationHint : sig
     ?lazy_:bool ->
     unit ->
     t
+
+  val kind : t -> VariablePresentationHint_kind.t option
+
+  val attributes : t -> VariablePresentationHint_attributes_items.t list option
+
+  val visibility : t -> VariablePresentationHint_visibility.t option
+
+  val lazy_ : t -> bool option
 end = struct
   type t = {
     kind : VariablePresentationHint_kind.t option;
@@ -3988,6 +5484,14 @@ end = struct
 
   let make ?kind ?attributes ?visibility ?lazy_ () =
     {kind; attributes; visibility; lazy_}
+
+  let kind t = t.kind
+
+  let attributes t = t.attributes
+
+  let visibility t = t.visibility
+
+  let lazy_ t = t.lazy_
 end
 
 module Variable_ : sig
@@ -4007,6 +5511,24 @@ module Variable_ : sig
     ?memoryReference:string ->
     unit ->
     t
+
+  val name : t -> string
+
+  val value : t -> string
+
+  val type_ : t -> string option
+
+  val presentationHint : t -> VariablePresentationHint.t option
+
+  val evaluateName : t -> string option
+
+  val variablesReference : t -> int
+
+  val namedVariables : t -> int option
+
+  val indexedVariables : t -> int option
+
+  val memoryReference : t -> string option
 end = struct
   type t = {
     name : string;
@@ -4089,6 +5611,24 @@ end = struct
       indexedVariables;
       memoryReference;
     }
+
+  let name t = t.name
+
+  let value t = t.value
+
+  let type_ t = t.type_
+
+  let presentationHint t = t.presentationHint
+
+  let evaluateName t = t.evaluateName
+
+  let variablesReference t = t.variablesReference
+
+  let namedVariables t = t.namedVariables
+
+  let indexedVariables t = t.indexedVariables
+
+  let memoryReference t = t.memoryReference
 end
 
 module VariablesResponse_body : sig
@@ -4097,6 +5637,8 @@ module VariablesResponse_body : sig
   val enc : t Data_encoding.t
 
   val make : variables:Variable_.t list -> unit -> t
+
+  val variables : t -> Variable_.t list
 end = struct
   type t = {variables : Variable_.t list}
 
@@ -4109,6 +5651,8 @@ end = struct
       (obj1 (req "variables" (list Variable_.enc)))
 
   let make ~variables () = {variables}
+
+  let variables t = t.variables
 end
 
 module SetVariableArguments : sig
@@ -4123,6 +5667,14 @@ module SetVariableArguments : sig
     ?format:ValueFormat.t ->
     unit ->
     t
+
+  val variablesReference : t -> int
+
+  val name : t -> string
+
+  val value : t -> string
+
+  val format : t -> ValueFormat.t option
 end = struct
   type t = {
     variablesReference : int;
@@ -4147,6 +5699,14 @@ end = struct
 
   let make ~variablesReference ~name ~value ?format () =
     {variablesReference; name; value; format}
+
+  let variablesReference t = t.variablesReference
+
+  let name t = t.name
+
+  let value t = t.value
+
+  let format t = t.format
 end
 
 module SetVariableResponse_body : sig
@@ -4162,6 +5722,16 @@ module SetVariableResponse_body : sig
     ?indexedVariables:int ->
     unit ->
     t
+
+  val value : t -> string
+
+  val type_ : t -> string option
+
+  val variablesReference : t -> int option
+
+  val namedVariables : t -> int option
+
+  val indexedVariables : t -> int option
 end = struct
   type t = {
     value : string;
@@ -4189,6 +5759,16 @@ end = struct
   let make ~value ?type_ ?variablesReference ?namedVariables ?indexedVariables
       () =
     {value; type_; variablesReference; namedVariables; indexedVariables}
+
+  let value t = t.value
+
+  let type_ t = t.type_
+
+  let variablesReference t = t.variablesReference
+
+  let namedVariables t = t.namedVariables
+
+  let indexedVariables t = t.indexedVariables
 end
 
 module SourceArguments : sig
@@ -4197,6 +5777,10 @@ module SourceArguments : sig
   val enc : t Data_encoding.t
 
   val make : ?source:Source.t -> sourceReference:int -> unit -> t
+
+  val source : t -> Source.t option
+
+  val sourceReference : t -> int
 end = struct
   type t = {source : Source.t option; sourceReference : int}
 
@@ -4209,6 +5793,10 @@ end = struct
       (obj2 (opt "source" Source.enc) (req "sourceReference" int31))
 
   let make ?source ~sourceReference () = {source; sourceReference}
+
+  let source t = t.source
+
+  let sourceReference t = t.sourceReference
 end
 
 module SourceResponse_body : sig
@@ -4217,6 +5805,10 @@ module SourceResponse_body : sig
   val enc : t Data_encoding.t
 
   val make : content:string -> ?mimeType:string -> unit -> t
+
+  val content : t -> string
+
+  val mimeType : t -> string option
 end = struct
   type t = {content : string; mimeType : string option}
 
@@ -4229,6 +5821,10 @@ end = struct
       (obj2 (req "content" string) (opt "mimeType" string))
 
   let make ~content ?mimeType () = {content; mimeType}
+
+  let content t = t.content
+
+  let mimeType t = t.mimeType
 end
 
 module Thread : sig
@@ -4237,6 +5833,10 @@ module Thread : sig
   val enc : t Data_encoding.t
 
   val make : id:int -> name:string -> unit -> t
+
+  val id : t -> int
+
+  val name : t -> string
 end = struct
   type t = {id : int; name : string}
 
@@ -4249,6 +5849,10 @@ end = struct
       (obj2 (req "id" int31) (req "name" string))
 
   let make ~id ~name () = {id; name}
+
+  let id t = t.id
+
+  let name t = t.name
 end
 
 module ThreadsResponse_body : sig
@@ -4257,6 +5861,8 @@ module ThreadsResponse_body : sig
   val enc : t Data_encoding.t
 
   val make : threads:Thread.t list -> unit -> t
+
+  val threads : t -> Thread.t list
 end = struct
   type t = {threads : Thread.t list}
 
@@ -4269,6 +5875,8 @@ end = struct
       (obj1 (req "threads" (list Thread.enc)))
 
   let make ~threads () = {threads}
+
+  let threads t = t.threads
 end
 
 module TerminateThreadsArguments : sig
@@ -4277,6 +5885,8 @@ module TerminateThreadsArguments : sig
   val enc : t Data_encoding.t
 
   val make : ?threadIds:int list -> unit -> t
+
+  val threadIds : t -> int list option
 end = struct
   type t = {threadIds : int list option}
 
@@ -4289,6 +5899,8 @@ end = struct
       (obj1 (opt "threadIds" (list int31)))
 
   let make ?threadIds () = {threadIds}
+
+  let threadIds t = t.threadIds
 end
 
 module ModulesArguments : sig
@@ -4297,6 +5909,10 @@ module ModulesArguments : sig
   val enc : t Data_encoding.t
 
   val make : ?startModule:int -> ?moduleCount:int -> unit -> t
+
+  val startModule : t -> int option
+
+  val moduleCount : t -> int option
 end = struct
   type t = {startModule : int option; moduleCount : int option}
 
@@ -4309,6 +5925,10 @@ end = struct
       (obj2 (opt "startModule" int31) (opt "moduleCount" int31))
 
   let make ?startModule ?moduleCount () = {startModule; moduleCount}
+
+  let startModule t = t.startModule
+
+  let moduleCount t = t.moduleCount
 end
 
 module ModulesResponse_body : sig
@@ -4317,6 +5937,10 @@ module ModulesResponse_body : sig
   val enc : t Data_encoding.t
 
   val make : modules:Module_.t list -> ?totalModules:int -> unit -> t
+
+  val modules : t -> Module_.t list
+
+  val totalModules : t -> int option
 end = struct
   type t = {modules : Module_.t list; totalModules : int option}
 
@@ -4329,6 +5953,10 @@ end = struct
       (obj2 (req "modules" (list Module_.enc)) (opt "totalModules" int31))
 
   let make ~modules ?totalModules () = {modules; totalModules}
+
+  let modules t = t.modules
+
+  let totalModules t = t.totalModules
 end
 
 module LoadedSourcesArguments : sig
@@ -4351,6 +5979,8 @@ module LoadedSourcesResponse_body : sig
   val enc : t Data_encoding.t
 
   val make : sources:Source.t list -> unit -> t
+
+  val sources : t -> Source.t list
 end = struct
   type t = {sources : Source.t list}
 
@@ -4363,6 +5993,8 @@ end = struct
       (obj1 (req "sources" (list Source.enc)))
 
   let make ~sources () = {sources}
+
+  let sources t = t.sources
 end
 
 (* dont bother with a sig for enums, the inferred one is fine *)
@@ -4401,6 +6033,14 @@ module EvaluateArguments : sig
     ?format:ValueFormat.t ->
     unit ->
     t
+
+  val expression : t -> string
+
+  val frameId : t -> int option
+
+  val context : t -> EvaluateArguments_context.t option
+
+  val format : t -> ValueFormat.t option
 end = struct
   type t = {
     expression : string;
@@ -4425,6 +6065,14 @@ end = struct
 
   let make ~expression ?frameId ?context ?format () =
     {expression; frameId; context; format}
+
+  let expression t = t.expression
+
+  let frameId t = t.frameId
+
+  let context t = t.context
+
+  let format t = t.format
 end
 
 module EvaluateResponse_body : sig
@@ -4442,6 +6090,20 @@ module EvaluateResponse_body : sig
     ?memoryReference:string ->
     unit ->
     t
+
+  val result : t -> string
+
+  val type_ : t -> string option
+
+  val presentationHint : t -> VariablePresentationHint.t option
+
+  val variablesReference : t -> int
+
+  val namedVariables : t -> int option
+
+  val indexedVariables : t -> int option
+
+  val memoryReference : t -> string option
 end = struct
   type t = {
     result : string;
@@ -4509,6 +6171,20 @@ end = struct
       indexedVariables;
       memoryReference;
     }
+
+  let result t = t.result
+
+  let type_ t = t.type_
+
+  let presentationHint t = t.presentationHint
+
+  let variablesReference t = t.variablesReference
+
+  let namedVariables t = t.namedVariables
+
+  let indexedVariables t = t.indexedVariables
+
+  let memoryReference t = t.memoryReference
 end
 
 module SetExpressionArguments : sig
@@ -4523,6 +6199,14 @@ module SetExpressionArguments : sig
     ?format:ValueFormat.t ->
     unit ->
     t
+
+  val expression : t -> string
+
+  val value : t -> string
+
+  val frameId : t -> int option
+
+  val format : t -> ValueFormat.t option
 end = struct
   type t = {
     expression : string;
@@ -4547,6 +6231,14 @@ end = struct
 
   let make ~expression ~value ?frameId ?format () =
     {expression; value; frameId; format}
+
+  let expression t = t.expression
+
+  let value t = t.value
+
+  let frameId t = t.frameId
+
+  let format t = t.format
 end
 
 module SetExpressionResponse_body : sig
@@ -4563,6 +6255,18 @@ module SetExpressionResponse_body : sig
     ?indexedVariables:int ->
     unit ->
     t
+
+  val value : t -> string
+
+  val type_ : t -> string option
+
+  val presentationHint : t -> VariablePresentationHint.t option
+
+  val variablesReference : t -> int option
+
+  val namedVariables : t -> int option
+
+  val indexedVariables : t -> int option
 end = struct
   type t = {
     value : string;
@@ -4623,6 +6327,18 @@ end = struct
       namedVariables;
       indexedVariables;
     }
+
+  let value t = t.value
+
+  let type_ t = t.type_
+
+  let presentationHint t = t.presentationHint
+
+  let variablesReference t = t.variablesReference
+
+  let namedVariables t = t.namedVariables
+
+  let indexedVariables t = t.indexedVariables
 end
 
 module StepInTargetsArguments : sig
@@ -4631,6 +6347,8 @@ module StepInTargetsArguments : sig
   val enc : t Data_encoding.t
 
   val make : frameId:int -> unit -> t
+
+  val frameId : t -> int
 end = struct
   type t = {frameId : int}
 
@@ -4643,6 +6361,8 @@ end = struct
       (obj1 (req "frameId" int31))
 
   let make ~frameId () = {frameId}
+
+  let frameId t = t.frameId
 end
 
 module StepInTarget : sig
@@ -4659,6 +6379,18 @@ module StepInTarget : sig
     ?endColumn:int ->
     unit ->
     t
+
+  val id : t -> int
+
+  val label : t -> string
+
+  val line : t -> int option
+
+  val column : t -> int option
+
+  val endLine : t -> int option
+
+  val endColumn : t -> int option
 end = struct
   type t = {
     id : int;
@@ -4687,6 +6419,18 @@ end = struct
 
   let make ~id ~label ?line ?column ?endLine ?endColumn () =
     {id; label; line; column; endLine; endColumn}
+
+  let id t = t.id
+
+  let label t = t.label
+
+  let line t = t.line
+
+  let column t = t.column
+
+  let endLine t = t.endLine
+
+  let endColumn t = t.endColumn
 end
 
 module StepInTargetsResponse_body : sig
@@ -4695,6 +6439,8 @@ module StepInTargetsResponse_body : sig
   val enc : t Data_encoding.t
 
   val make : targets:StepInTarget.t list -> unit -> t
+
+  val targets : t -> StepInTarget.t list
 end = struct
   type t = {targets : StepInTarget.t list}
 
@@ -4707,6 +6453,8 @@ end = struct
       (obj1 (req "targets" (list StepInTarget.enc)))
 
   let make ~targets () = {targets}
+
+  let targets t = t.targets
 end
 
 module GotoTargetsArguments : sig
@@ -4715,6 +6463,12 @@ module GotoTargetsArguments : sig
   val enc : t Data_encoding.t
 
   val make : source:Source.t -> line:int -> ?column:int -> unit -> t
+
+  val source : t -> Source.t
+
+  val line : t -> int
+
+  val column : t -> int option
 end = struct
   type t = {source : Source.t; line : int; column : int option}
 
@@ -4727,6 +6481,12 @@ end = struct
       (obj3 (req "source" Source.enc) (req "line" int31) (opt "column" int31))
 
   let make ~source ~line ?column () = {source; line; column}
+
+  let source t = t.source
+
+  let line t = t.line
+
+  let column t = t.column
 end
 
 module GotoTarget : sig
@@ -4744,6 +6504,20 @@ module GotoTarget : sig
     ?instructionPointerReference:string ->
     unit ->
     t
+
+  val id : t -> int
+
+  val label : t -> string
+
+  val line : t -> int
+
+  val column : t -> int option
+
+  val endLine : t -> int option
+
+  val endColumn : t -> int option
+
+  val instructionPointerReference : t -> string option
 end = struct
   type t = {
     id : int;
@@ -4803,6 +6577,20 @@ end = struct
   let make ~id ~label ~line ?column ?endLine ?endColumn
       ?instructionPointerReference () =
     {id; label; line; column; endLine; endColumn; instructionPointerReference}
+
+  let id t = t.id
+
+  let label t = t.label
+
+  let line t = t.line
+
+  let column t = t.column
+
+  let endLine t = t.endLine
+
+  let endColumn t = t.endColumn
+
+  let instructionPointerReference t = t.instructionPointerReference
 end
 
 module GotoTargetsResponse_body : sig
@@ -4811,6 +6599,8 @@ module GotoTargetsResponse_body : sig
   val enc : t Data_encoding.t
 
   val make : targets:GotoTarget.t list -> unit -> t
+
+  val targets : t -> GotoTarget.t list
 end = struct
   type t = {targets : GotoTarget.t list}
 
@@ -4823,6 +6613,8 @@ end = struct
       (obj1 (req "targets" (list GotoTarget.enc)))
 
   let make ~targets () = {targets}
+
+  let targets t = t.targets
 end
 
 module CompletionsArguments : sig
@@ -4831,6 +6623,14 @@ module CompletionsArguments : sig
   val enc : t Data_encoding.t
 
   val make : ?frameId:int -> text:string -> column:int -> ?line:int -> unit -> t
+
+  val frameId : t -> int option
+
+  val text : t -> string
+
+  val column : t -> int
+
+  val line : t -> int option
 end = struct
   type t = {
     frameId : int option;
@@ -4852,6 +6652,14 @@ end = struct
          (opt "line" int31))
 
   let make ?frameId ~text ~column ?line () = {frameId; text; column; line}
+
+  let frameId t = t.frameId
+
+  let text t = t.text
+
+  let column t = t.column
+
+  let line t = t.line
 end
 
 (* dont bother with a sig for enums, the inferred one is fine *)
@@ -4941,6 +6749,24 @@ module CompletionItem : sig
     ?selectionLength:int ->
     unit ->
     t
+
+  val label : t -> string
+
+  val text : t -> string option
+
+  val sortText : t -> string option
+
+  val detail : t -> string option
+
+  val type_ : t -> CompletionItemType.t option
+
+  val start : t -> int option
+
+  val length : t -> int option
+
+  val selectionStart : t -> int option
+
+  val selectionLength : t -> int option
 end = struct
   type t = {
     label : string;
@@ -5022,6 +6848,24 @@ end = struct
       selectionStart;
       selectionLength;
     }
+
+  let label t = t.label
+
+  let text t = t.text
+
+  let sortText t = t.sortText
+
+  let detail t = t.detail
+
+  let type_ t = t.type_
+
+  let start t = t.start
+
+  let length t = t.length
+
+  let selectionStart t = t.selectionStart
+
+  let selectionLength t = t.selectionLength
 end
 
 module CompletionsResponse_body : sig
@@ -5030,6 +6874,8 @@ module CompletionsResponse_body : sig
   val enc : t Data_encoding.t
 
   val make : targets:CompletionItem.t list -> unit -> t
+
+  val targets : t -> CompletionItem.t list
 end = struct
   type t = {targets : CompletionItem.t list}
 
@@ -5042,6 +6888,8 @@ end = struct
       (obj1 (req "targets" (list CompletionItem.enc)))
 
   let make ~targets () = {targets}
+
+  let targets t = t.targets
 end
 
 module ExceptionInfoArguments : sig
@@ -5050,6 +6898,8 @@ module ExceptionInfoArguments : sig
   val enc : t Data_encoding.t
 
   val make : threadId:int -> unit -> t
+
+  val threadId : t -> int
 end = struct
   type t = {threadId : int}
 
@@ -5062,6 +6912,8 @@ end = struct
       (obj1 (req "threadId" int31))
 
   let make ~threadId () = {threadId}
+
+  let threadId t = t.threadId
 end
 
 module ExceptionDetails : sig
@@ -5078,6 +6930,18 @@ module ExceptionDetails : sig
     ?innerException:t list ->
     unit ->
     t
+
+  val message : t -> string option
+
+  val typeName : t -> string option
+
+  val fullTypeName : t -> string option
+
+  val evaluateName : t -> string option
+
+  val stackTrace : t -> string option
+
+  val innerException : t -> t list option
 end = struct
   type t = {
     message : string option;
@@ -5131,6 +6995,18 @@ end = struct
   let make ?message ?typeName ?fullTypeName ?evaluateName ?stackTrace
       ?innerException () =
     {message; typeName; fullTypeName; evaluateName; stackTrace; innerException}
+
+  let message t = t.message
+
+  let typeName t = t.typeName
+
+  let fullTypeName t = t.fullTypeName
+
+  let evaluateName t = t.evaluateName
+
+  let stackTrace t = t.stackTrace
+
+  let innerException t = t.innerException
 end
 
 module ExceptionInfoResponse_body : sig
@@ -5145,6 +7021,14 @@ module ExceptionInfoResponse_body : sig
     ?details:ExceptionDetails.t ->
     unit ->
     t
+
+  val exceptionId : t -> string
+
+  val description : t -> string option
+
+  val breakMode : t -> ExceptionBreakMode.t
+
+  val details : t -> ExceptionDetails.t option
 end = struct
   type t = {
     exceptionId : string;
@@ -5169,6 +7053,14 @@ end = struct
 
   let make ~exceptionId ?description ~breakMode ?details () =
     {exceptionId; description; breakMode; details}
+
+  let exceptionId t = t.exceptionId
+
+  let description t = t.description
+
+  let breakMode t = t.breakMode
+
+  let details t = t.details
 end
 
 module ReadMemoryArguments : sig
@@ -5177,6 +7069,12 @@ module ReadMemoryArguments : sig
   val enc : t Data_encoding.t
 
   val make : memoryReference:string -> ?offset:int -> count:int -> unit -> t
+
+  val memoryReference : t -> string
+
+  val offset : t -> int option
+
+  val count : t -> int
 end = struct
   type t = {memoryReference : string; offset : int option; count : int}
 
@@ -5192,6 +7090,12 @@ end = struct
          (req "count" int31))
 
   let make ~memoryReference ?offset ~count () = {memoryReference; offset; count}
+
+  let memoryReference t = t.memoryReference
+
+  let offset t = t.offset
+
+  let count t = t.count
 end
 
 module ReadMemoryResponse_body : sig
@@ -5200,6 +7104,12 @@ module ReadMemoryResponse_body : sig
   val enc : t Data_encoding.t
 
   val make : address:string -> ?unreadableBytes:int -> ?data:string -> unit -> t
+
+  val address : t -> string
+
+  val unreadableBytes : t -> int option
+
+  val data : t -> string option
 end = struct
   type t = {
     address : string;
@@ -5219,6 +7129,12 @@ end = struct
          (opt "data" string))
 
   let make ~address ?unreadableBytes ?data () = {address; unreadableBytes; data}
+
+  let address t = t.address
+
+  let unreadableBytes t = t.unreadableBytes
+
+  let data t = t.data
 end
 
 module WriteMemoryArguments : sig
@@ -5233,6 +7149,14 @@ module WriteMemoryArguments : sig
     data:string ->
     unit ->
     t
+
+  val memoryReference : t -> string
+
+  val offset : t -> int option
+
+  val allowPartial : t -> bool option
+
+  val data : t -> string
 end = struct
   type t = {
     memoryReference : string;
@@ -5257,6 +7181,14 @@ end = struct
 
   let make ~memoryReference ?offset ?allowPartial ~data () =
     {memoryReference; offset; allowPartial; data}
+
+  let memoryReference t = t.memoryReference
+
+  let offset t = t.offset
+
+  let allowPartial t = t.allowPartial
+
+  let data t = t.data
 end
 
 module WriteMemoryResponse_body : sig
@@ -5265,6 +7197,10 @@ module WriteMemoryResponse_body : sig
   val enc : t Data_encoding.t
 
   val make : ?offset:int -> ?bytesWritten:int -> unit -> t
+
+  val offset : t -> int option
+
+  val bytesWritten : t -> int option
 end = struct
   type t = {offset : int option; bytesWritten : int option}
 
@@ -5277,6 +7213,10 @@ end = struct
       (obj2 (opt "offset" int31) (opt "bytesWritten" int31))
 
   let make ?offset ?bytesWritten () = {offset; bytesWritten}
+
+  let offset t = t.offset
+
+  let bytesWritten t = t.bytesWritten
 end
 
 module DisassembleArguments : sig
@@ -5292,6 +7232,16 @@ module DisassembleArguments : sig
     ?resolveSymbols:bool ->
     unit ->
     t
+
+  val memoryReference : t -> string
+
+  val offset : t -> int option
+
+  val instructionOffset : t -> int option
+
+  val instructionCount : t -> int
+
+  val resolveSymbols : t -> bool option
 end = struct
   type t = {
     memoryReference : string;
@@ -5345,6 +7295,16 @@ end = struct
       instructionCount;
       resolveSymbols;
     }
+
+  let memoryReference t = t.memoryReference
+
+  let offset t = t.offset
+
+  let instructionOffset t = t.instructionOffset
+
+  let instructionCount t = t.instructionCount
+
+  let resolveSymbols t = t.resolveSymbols
 end
 
 module DisassembledInstruction : sig
@@ -5364,6 +7324,24 @@ module DisassembledInstruction : sig
     ?endColumn:int ->
     unit ->
     t
+
+  val address : t -> string
+
+  val instructionBytes : t -> string option
+
+  val instruction : t -> string
+
+  val symbol : t -> string option
+
+  val location : t -> Source.t option
+
+  val line : t -> int option
+
+  val column : t -> int option
+
+  val endLine : t -> int option
+
+  val endColumn : t -> int option
 end = struct
   type t = {
     address : string;
@@ -5445,6 +7423,24 @@ end = struct
       endLine;
       endColumn;
     }
+
+  let address t = t.address
+
+  let instructionBytes t = t.instructionBytes
+
+  let instruction t = t.instruction
+
+  let symbol t = t.symbol
+
+  let location t = t.location
+
+  let line t = t.line
+
+  let column t = t.column
+
+  let endLine t = t.endLine
+
+  let endColumn t = t.endColumn
 end
 
 module DisassembleResponse_body : sig
@@ -5453,6 +7449,8 @@ module DisassembleResponse_body : sig
   val enc : t Data_encoding.t
 
   val make : instructions:DisassembledInstruction.t list -> unit -> t
+
+  val instructions : t -> DisassembledInstruction.t list
 end = struct
   type t = {instructions : DisassembledInstruction.t list}
 
@@ -5465,6 +7463,8 @@ end = struct
       (obj1 (req "instructions" (list DisassembledInstruction.enc)))
 
   let make ~instructions () = {instructions}
+
+  let instructions t = t.instructions
 end
 
 module ModulesViewDescriptor : sig
@@ -5473,6 +7473,8 @@ module ModulesViewDescriptor : sig
   val enc : t Data_encoding.t
 
   val make : columns:ColumnDescriptor.t list -> unit -> t
+
+  val columns : t -> ColumnDescriptor.t list
 end = struct
   type t = {columns : ColumnDescriptor.t list}
 
@@ -5485,6 +7487,8 @@ end = struct
       (obj1 (req "columns" (list ColumnDescriptor.enc)))
 
   let make ~columns () = {columns}
+
+  let columns t = t.columns
 end
 
 type (_, _, _) request =

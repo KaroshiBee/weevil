@@ -191,6 +191,12 @@ module RenderObjectField = struct
   let req_enc_str ~required = if required then "req" else "opt"
   let seq_enc_str ~seq name = if seq then Printf.sprintf "(list %s)" name else name
 
+  let render_accessor_sig = function
+    | Sp.Field_spec.{ safe_name; type_; required; cyclic; seq; _ } when not cyclic ->
+        Printf.sprintf "val %s : t -> %s" safe_name @@ typ_str ~required ~seq type_
+    | Sp.Field_spec.{ safe_name; required; seq; _ } ->
+        Printf.sprintf "val %s : t -> %s" safe_name @@ typ_str ~required ~seq "t"
+
   let render_t = function
     (* for the type t decl
        NOTE if it is cyclic field then hardcode type name to 't' *)
@@ -211,6 +217,14 @@ module RenderObjectField = struct
     (* for the make function *)
     Printf.sprintf "%s%s" (if t.required then "~" else "?") t.safe_name
 
+  let render_accessor = function
+    | Sp.Field_spec.{ safe_name; _ } ->
+        Printf.sprintf "let %s t = t.%s" safe_name safe_name
+
+  let render_sub_accessor ~tt ~modname ~t = function
+    | Sp.Field_spec.{ safe_name; _ } ->
+        Printf.sprintf "let %s %s = %s.%s %s" safe_name tt modname safe_name t
+
 end
 
 
@@ -225,12 +239,14 @@ module RenderObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
 
   let render (t:t) ~name =
     let sig_str =
-      let lns = t.fields |> List.map RenderObjectField.render_sig |> String.concat " -> " in
+      let make_sig = t.fields |> List.map RenderObjectField.render_sig |> String.concat " -> " in
+      let accessors_sig = t.fields |> List.map RenderObjectField.render_accessor_sig |> String.concat "\n" in
       Printf.sprintf
         "type t \n \
          val enc : t Data_encoding.t \n \
-         val make : %s -> unit -> t"
-        lns
+         val make : %s -> unit -> t \n \
+         %s"
+        make_sig accessors_sig
     in
     let t_str =
       let lns = t.fields |> List.map RenderObjectField.render_t |> String.concat "\n" in
@@ -276,12 +292,16 @@ module RenderObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
     let make_str = Printf.sprintf
         "let make %s () = \n%s" args_str rec_str
     in
+    let accessors_str =
+      t.fields |> List.map RenderObjectField.render_accessor |> String.concat "\n" in
+
     Printf.sprintf
         "module %s : sig \n%s\nend = struct \n \
          %s\n\n \
          %s\n\n \
          %s\n\n \
-         end\n" name sig_str t_str enc_str make_str, ""
+         %s\n\n \
+         end\n" name sig_str t_str enc_str make_str accessors_str, ""
 
 end
 
@@ -359,12 +379,14 @@ module RenderLargeObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
            %s" ln
     in
     let sig_str =
-      let lns = spec.fields |> List.map RenderObjectField.render_sig |> String.concat " -> " in
+      let make_sig = spec.fields |> List.map RenderObjectField.render_sig |> String.concat " -> " in
+      let accessors_sig = spec.fields |> List.map RenderObjectField.render_accessor_sig |> String.concat "\n" in
       Printf.sprintf
         "type t \n \
          val enc : t Data_encoding.t \n \
-         val make : %s -> unit -> t"
-        lns
+         val make : %s -> unit -> t \n \
+         %s"
+        make_sig accessors_sig
     in
     let args_str =
       spec.fields |> List.map RenderObjectField.render_arg |> String.concat " "
@@ -381,13 +403,23 @@ module RenderLargeObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
     let make_str = Printf.sprintf
         "let make %s () = \n%s" args_str rec_str
     in
+
+    let accessors_str =
+      let tt = aux_brkts ~sep:"," (modstrs |> List.mapi (fun i _ -> Printf.sprintf "_t%d" i)) in
+      modstrs |> List.mapi (fun i (modname, _, fields) ->
+          let t = Printf.sprintf "_t%d" i in
+          fields |> List.map (RenderObjectField.render_sub_accessor ~tt ~modname ~t) |> String.concat "\n"
+        ) |> String.concat "\n"
+    in
+
     Printf.sprintf
       "module %s : sig \n%s\nend = struct \n \
        %s\n\n \
        %s\n\n \
        %s\n\n \
        %s\n\n \
-       end\n" name sig_str internal_mods t_str enc_str make_str, ""
+       %s\n\n \
+       end\n" name sig_str internal_mods t_str enc_str make_str accessors_str, ""
 
 end
 

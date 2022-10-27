@@ -147,6 +147,14 @@ let%expect_test "Check ErrorResponse example" =
     type t
      val enc : t Data_encoding.t
      val make : id:int -> format:string -> ?variables:Data_encoding.json -> ?sendTelemetry:bool -> ?showUser:bool -> ?url:string -> ?urlLabel:string -> ?lines:int list -> unit -> t
+     val id : t -> int
+    val format : t -> string
+    val variables : t -> Data_encoding.json option
+    val sendTelemetry : t -> bool option
+    val showUser : t -> bool option
+    val url : t -> string option
+    val urlLabel : t -> string option
+    val lines : t -> int list option
     end = struct
      type t = { id: int;
     format: string;
@@ -177,6 +185,15 @@ let%expect_test "Check ErrorResponse example" =
      let make ~id ~format ?variables ?sendTelemetry ?showUser ?url ?urlLabel ?lines () =
     {id; format; variables; sendTelemetry; showUser; url; urlLabel; lines}
 
+     let id t = t.id
+    let format t = t.format
+    let variables t = t.variables
+    let sendTelemetry t = t.sendTelemetry
+    let showUser t = t.showUser
+    let url t = t.url
+    let urlLabel t = t.urlLabel
+    let lines t = t.lines
+
      end
 
 
@@ -184,6 +201,7 @@ let%expect_test "Check ErrorResponse example" =
     type t
      val enc : t Data_encoding.t
      val make : ?error:Message.t -> unit -> t
+     val error : t -> Message.t option
     end = struct
      type t = { error: Message.t option; }
 
@@ -199,6 +217,8 @@ let%expect_test "Check ErrorResponse example" =
 
      let make ?error () =
     {error}
+
+     let error t = t.error
 
      end
 
@@ -232,6 +252,8 @@ let%expect_test "Check CancelRequest example" =
     type t
      val enc : t Data_encoding.t
      val make : ?requestId:int -> ?progressId:string -> unit -> t
+     val requestId : t -> int option
+    val progressId : t -> string option
     end = struct
      type t = { requestId: int option;
     progressId: string option; }
@@ -249,6 +271,9 @@ let%expect_test "Check CancelRequest example" =
 
      let make ?requestId ?progressId () =
     {requestId; progressId}
+
+     let requestId t = t.requestId
+    let progressId t = t.progressId
 
      end
 
@@ -296,6 +321,13 @@ let%expect_test "Check StoppedEvent example" =
     type t
      val enc : t Data_encoding.t
      val make : reason:StoppedEvent_body_reason.t -> ?description:string -> ?threadId:int -> ?preserveFocusHint:bool -> ?text:string -> ?allThreadsStopped:bool -> ?hitBreakpointIds:int list -> unit -> t
+     val reason : t -> StoppedEvent_body_reason.t
+    val description : t -> string option
+    val threadId : t -> int option
+    val preserveFocusHint : t -> bool option
+    val text : t -> string option
+    val allThreadsStopped : t -> bool option
+    val hitBreakpointIds : t -> int list option
     end = struct
      type t = { reason: StoppedEvent_body_reason.t;
     description: string option;
@@ -323,6 +355,14 @@ let%expect_test "Check StoppedEvent example" =
 
      let make ~reason ?description ?threadId ?preserveFocusHint ?text ?allThreadsStopped ?hitBreakpointIds () =
     {reason; description; threadId; preserveFocusHint; text; allThreadsStopped; hitBreakpointIds}
+
+     let reason t = t.reason
+    let description t = t.description
+    let threadId t = t.threadId
+    let preserveFocusHint t = t.preserveFocusHint
+    let text t = t.text
+    let allThreadsStopped t = t.allThreadsStopped
+    let hitBreakpointIds t = t.hitBreakpointIds
 
      end
 
@@ -357,6 +397,12 @@ let%expect_test "Check cyclic example" =
     type t
      val enc : t Data_encoding.t
      val make : ?message:string -> ?typeName:string -> ?fullTypeName:string -> ?evaluateName:string -> ?stackTrace:string -> ?innerException:t list -> unit -> t
+     val message : t -> string option
+    val typeName : t -> string option
+    val fullTypeName : t -> string option
+    val evaluateName : t -> string option
+    val stackTrace : t -> string option
+    val innerException : t -> t list option
     end = struct
      type t = { message: string option;
     typeName: string option;
@@ -383,6 +429,13 @@ let%expect_test "Check cyclic example" =
 
      let make ?message ?typeName ?fullTypeName ?evaluateName ?stackTrace ?innerException () =
     {message; typeName; fullTypeName; evaluateName; stackTrace; innerException}
+
+     let message t = t.message
+    let typeName t = t.typeName
+    let fullTypeName t = t.fullTypeName
+    let evaluateName t = t.evaluateName
+    let stackTrace t = t.stackTrace
+    let innerException t = t.innerException
 
      end
 
@@ -413,11 +466,57 @@ let%expect_test "Check large example" =
     type t
      val enc : t Data_encoding.t
      val make : ?supportsConfigurationDoneRequest:bool -> ?supportsFunctionBreakpoints:bool -> ?supportsConditionalBreakpoints:bool -> ?supportsHitConditionalBreakpoints:bool -> ?supportsEvaluateForHovers:bool -> ?supportsStepBack:bool -> ?supportsSetVariable:bool -> ?supportsRestartFrame:bool -> ?supportsGotoTargetsRequest:bool -> ?supportsStepInTargetsRequest:bool -> ?supportsCompletionsRequest:bool -> ?completionTriggerCharacters:string list -> ?supportsModulesRequest:bool -> ?supportsRestartRequest:bool -> ?supportsExceptionOptions:bool -> ?supportsValueFormattingOptions:bool -> ?supportsExceptionInfoRequest:bool -> ?supportTerminateDebuggee:bool -> ?supportSuspendDebuggee:bool -> ?supportsDelayedStackTraceLoading:bool -> ?supportsLoadedSourcesRequest:bool -> ?supportsLogPoints:bool -> ?supportsTerminateThreadsRequest:bool -> ?supportsSetExpression:bool -> ?supportsTerminateRequest:bool -> ?supportsDataBreakpoints:bool -> ?supportsReadMemoryRequest:bool -> ?supportsWriteMemoryRequest:bool -> ?supportsDisassembleRequest:bool -> ?supportsCancelRequest:bool -> ?supportsBreakpointLocationsRequest:bool -> ?supportsClipboardContext:bool -> ?supportsSteppingGranularity:bool -> ?supportsInstructionBreakpoints:bool -> ?supportsExceptionFilterOptions:bool -> ?supportsSingleThreadExecutionRequests:bool -> unit -> t
+     val supportsConfigurationDoneRequest : t -> bool option
+    val supportsFunctionBreakpoints : t -> bool option
+    val supportsConditionalBreakpoints : t -> bool option
+    val supportsHitConditionalBreakpoints : t -> bool option
+    val supportsEvaluateForHovers : t -> bool option
+    val supportsStepBack : t -> bool option
+    val supportsSetVariable : t -> bool option
+    val supportsRestartFrame : t -> bool option
+    val supportsGotoTargetsRequest : t -> bool option
+    val supportsStepInTargetsRequest : t -> bool option
+    val supportsCompletionsRequest : t -> bool option
+    val completionTriggerCharacters : t -> string list option
+    val supportsModulesRequest : t -> bool option
+    val supportsRestartRequest : t -> bool option
+    val supportsExceptionOptions : t -> bool option
+    val supportsValueFormattingOptions : t -> bool option
+    val supportsExceptionInfoRequest : t -> bool option
+    val supportTerminateDebuggee : t -> bool option
+    val supportSuspendDebuggee : t -> bool option
+    val supportsDelayedStackTraceLoading : t -> bool option
+    val supportsLoadedSourcesRequest : t -> bool option
+    val supportsLogPoints : t -> bool option
+    val supportsTerminateThreadsRequest : t -> bool option
+    val supportsSetExpression : t -> bool option
+    val supportsTerminateRequest : t -> bool option
+    val supportsDataBreakpoints : t -> bool option
+    val supportsReadMemoryRequest : t -> bool option
+    val supportsWriteMemoryRequest : t -> bool option
+    val supportsDisassembleRequest : t -> bool option
+    val supportsCancelRequest : t -> bool option
+    val supportsBreakpointLocationsRequest : t -> bool option
+    val supportsClipboardContext : t -> bool option
+    val supportsSteppingGranularity : t -> bool option
+    val supportsInstructionBreakpoints : t -> bool option
+    val supportsExceptionFilterOptions : t -> bool option
+    val supportsSingleThreadExecutionRequests : t -> bool option
     end = struct
      module Capabilities_0 : sig
     type t
      val enc : t Data_encoding.t
      val make : ?supportsConfigurationDoneRequest:bool -> ?supportsFunctionBreakpoints:bool -> ?supportsConditionalBreakpoints:bool -> ?supportsHitConditionalBreakpoints:bool -> ?supportsEvaluateForHovers:bool -> ?supportsStepBack:bool -> ?supportsSetVariable:bool -> ?supportsRestartFrame:bool -> ?supportsGotoTargetsRequest:bool -> ?supportsStepInTargetsRequest:bool -> unit -> t
+     val supportsConfigurationDoneRequest : t -> bool option
+    val supportsFunctionBreakpoints : t -> bool option
+    val supportsConditionalBreakpoints : t -> bool option
+    val supportsHitConditionalBreakpoints : t -> bool option
+    val supportsEvaluateForHovers : t -> bool option
+    val supportsStepBack : t -> bool option
+    val supportsSetVariable : t -> bool option
+    val supportsRestartFrame : t -> bool option
+    val supportsGotoTargetsRequest : t -> bool option
+    val supportsStepInTargetsRequest : t -> bool option
     end = struct
      type t = { supportsConfigurationDoneRequest: bool option;
     supportsFunctionBreakpoints: bool option;
@@ -452,6 +551,17 @@ let%expect_test "Check large example" =
      let make ?supportsConfigurationDoneRequest ?supportsFunctionBreakpoints ?supportsConditionalBreakpoints ?supportsHitConditionalBreakpoints ?supportsEvaluateForHovers ?supportsStepBack ?supportsSetVariable ?supportsRestartFrame ?supportsGotoTargetsRequest ?supportsStepInTargetsRequest () =
     {supportsConfigurationDoneRequest; supportsFunctionBreakpoints; supportsConditionalBreakpoints; supportsHitConditionalBreakpoints; supportsEvaluateForHovers; supportsStepBack; supportsSetVariable; supportsRestartFrame; supportsGotoTargetsRequest; supportsStepInTargetsRequest}
 
+     let supportsConfigurationDoneRequest t = t.supportsConfigurationDoneRequest
+    let supportsFunctionBreakpoints t = t.supportsFunctionBreakpoints
+    let supportsConditionalBreakpoints t = t.supportsConditionalBreakpoints
+    let supportsHitConditionalBreakpoints t = t.supportsHitConditionalBreakpoints
+    let supportsEvaluateForHovers t = t.supportsEvaluateForHovers
+    let supportsStepBack t = t.supportsStepBack
+    let supportsSetVariable t = t.supportsSetVariable
+    let supportsRestartFrame t = t.supportsRestartFrame
+    let supportsGotoTargetsRequest t = t.supportsGotoTargetsRequest
+    let supportsStepInTargetsRequest t = t.supportsStepInTargetsRequest
+
      end
 
 
@@ -459,6 +569,16 @@ let%expect_test "Check large example" =
     type t
      val enc : t Data_encoding.t
      val make : ?supportsCompletionsRequest:bool -> ?completionTriggerCharacters:string list -> ?supportsModulesRequest:bool -> ?supportsRestartRequest:bool -> ?supportsExceptionOptions:bool -> ?supportsValueFormattingOptions:bool -> ?supportsExceptionInfoRequest:bool -> ?supportTerminateDebuggee:bool -> ?supportSuspendDebuggee:bool -> ?supportsDelayedStackTraceLoading:bool -> unit -> t
+     val supportsCompletionsRequest : t -> bool option
+    val completionTriggerCharacters : t -> string list option
+    val supportsModulesRequest : t -> bool option
+    val supportsRestartRequest : t -> bool option
+    val supportsExceptionOptions : t -> bool option
+    val supportsValueFormattingOptions : t -> bool option
+    val supportsExceptionInfoRequest : t -> bool option
+    val supportTerminateDebuggee : t -> bool option
+    val supportSuspendDebuggee : t -> bool option
+    val supportsDelayedStackTraceLoading : t -> bool option
     end = struct
      type t = { supportsCompletionsRequest: bool option;
     completionTriggerCharacters: string list option;
@@ -493,6 +613,17 @@ let%expect_test "Check large example" =
      let make ?supportsCompletionsRequest ?completionTriggerCharacters ?supportsModulesRequest ?supportsRestartRequest ?supportsExceptionOptions ?supportsValueFormattingOptions ?supportsExceptionInfoRequest ?supportTerminateDebuggee ?supportSuspendDebuggee ?supportsDelayedStackTraceLoading () =
     {supportsCompletionsRequest; completionTriggerCharacters; supportsModulesRequest; supportsRestartRequest; supportsExceptionOptions; supportsValueFormattingOptions; supportsExceptionInfoRequest; supportTerminateDebuggee; supportSuspendDebuggee; supportsDelayedStackTraceLoading}
 
+     let supportsCompletionsRequest t = t.supportsCompletionsRequest
+    let completionTriggerCharacters t = t.completionTriggerCharacters
+    let supportsModulesRequest t = t.supportsModulesRequest
+    let supportsRestartRequest t = t.supportsRestartRequest
+    let supportsExceptionOptions t = t.supportsExceptionOptions
+    let supportsValueFormattingOptions t = t.supportsValueFormattingOptions
+    let supportsExceptionInfoRequest t = t.supportsExceptionInfoRequest
+    let supportTerminateDebuggee t = t.supportTerminateDebuggee
+    let supportSuspendDebuggee t = t.supportSuspendDebuggee
+    let supportsDelayedStackTraceLoading t = t.supportsDelayedStackTraceLoading
+
      end
 
 
@@ -500,6 +631,16 @@ let%expect_test "Check large example" =
     type t
      val enc : t Data_encoding.t
      val make : ?supportsLoadedSourcesRequest:bool -> ?supportsLogPoints:bool -> ?supportsTerminateThreadsRequest:bool -> ?supportsSetExpression:bool -> ?supportsTerminateRequest:bool -> ?supportsDataBreakpoints:bool -> ?supportsReadMemoryRequest:bool -> ?supportsWriteMemoryRequest:bool -> ?supportsDisassembleRequest:bool -> ?supportsCancelRequest:bool -> unit -> t
+     val supportsLoadedSourcesRequest : t -> bool option
+    val supportsLogPoints : t -> bool option
+    val supportsTerminateThreadsRequest : t -> bool option
+    val supportsSetExpression : t -> bool option
+    val supportsTerminateRequest : t -> bool option
+    val supportsDataBreakpoints : t -> bool option
+    val supportsReadMemoryRequest : t -> bool option
+    val supportsWriteMemoryRequest : t -> bool option
+    val supportsDisassembleRequest : t -> bool option
+    val supportsCancelRequest : t -> bool option
     end = struct
      type t = { supportsLoadedSourcesRequest: bool option;
     supportsLogPoints: bool option;
@@ -534,6 +675,17 @@ let%expect_test "Check large example" =
      let make ?supportsLoadedSourcesRequest ?supportsLogPoints ?supportsTerminateThreadsRequest ?supportsSetExpression ?supportsTerminateRequest ?supportsDataBreakpoints ?supportsReadMemoryRequest ?supportsWriteMemoryRequest ?supportsDisassembleRequest ?supportsCancelRequest () =
     {supportsLoadedSourcesRequest; supportsLogPoints; supportsTerminateThreadsRequest; supportsSetExpression; supportsTerminateRequest; supportsDataBreakpoints; supportsReadMemoryRequest; supportsWriteMemoryRequest; supportsDisassembleRequest; supportsCancelRequest}
 
+     let supportsLoadedSourcesRequest t = t.supportsLoadedSourcesRequest
+    let supportsLogPoints t = t.supportsLogPoints
+    let supportsTerminateThreadsRequest t = t.supportsTerminateThreadsRequest
+    let supportsSetExpression t = t.supportsSetExpression
+    let supportsTerminateRequest t = t.supportsTerminateRequest
+    let supportsDataBreakpoints t = t.supportsDataBreakpoints
+    let supportsReadMemoryRequest t = t.supportsReadMemoryRequest
+    let supportsWriteMemoryRequest t = t.supportsWriteMemoryRequest
+    let supportsDisassembleRequest t = t.supportsDisassembleRequest
+    let supportsCancelRequest t = t.supportsCancelRequest
+
      end
 
 
@@ -541,6 +693,12 @@ let%expect_test "Check large example" =
     type t
      val enc : t Data_encoding.t
      val make : ?supportsBreakpointLocationsRequest:bool -> ?supportsClipboardContext:bool -> ?supportsSteppingGranularity:bool -> ?supportsInstructionBreakpoints:bool -> ?supportsExceptionFilterOptions:bool -> ?supportsSingleThreadExecutionRequests:bool -> unit -> t
+     val supportsBreakpointLocationsRequest : t -> bool option
+    val supportsClipboardContext : t -> bool option
+    val supportsSteppingGranularity : t -> bool option
+    val supportsInstructionBreakpoints : t -> bool option
+    val supportsExceptionFilterOptions : t -> bool option
+    val supportsSingleThreadExecutionRequests : t -> bool option
     end = struct
      type t = { supportsBreakpointLocationsRequest: bool option;
     supportsClipboardContext: bool option;
@@ -567,6 +725,13 @@ let%expect_test "Check large example" =
      let make ?supportsBreakpointLocationsRequest ?supportsClipboardContext ?supportsSteppingGranularity ?supportsInstructionBreakpoints ?supportsExceptionFilterOptions ?supportsSingleThreadExecutionRequests () =
     {supportsBreakpointLocationsRequest; supportsClipboardContext; supportsSteppingGranularity; supportsInstructionBreakpoints; supportsExceptionFilterOptions; supportsSingleThreadExecutionRequests}
 
+     let supportsBreakpointLocationsRequest t = t.supportsBreakpointLocationsRequest
+    let supportsClipboardContext t = t.supportsClipboardContext
+    let supportsSteppingGranularity t = t.supportsSteppingGranularity
+    let supportsInstructionBreakpoints t = t.supportsInstructionBreakpoints
+    let supportsExceptionFilterOptions t = t.supportsExceptionFilterOptions
+    let supportsSingleThreadExecutionRequests t = t.supportsSingleThreadExecutionRequests
+
      end
 
 
@@ -586,6 +751,43 @@ let%expect_test "Check large example" =
     let t3 = Capabilities_30.make ?supportsBreakpointLocationsRequest ?supportsClipboardContext ?supportsSteppingGranularity ?supportsInstructionBreakpoints ?supportsExceptionFilterOptions ?supportsSingleThreadExecutionRequests () in
 
     (t0 , (t1 , (t2 , t3)))
+
+     let supportsConfigurationDoneRequest (_t0 , (_t1 , (_t2 , _t3))) = Capabilities_0.supportsConfigurationDoneRequest _t0
+    let supportsFunctionBreakpoints (_t0 , (_t1 , (_t2 , _t3))) = Capabilities_0.supportsFunctionBreakpoints _t0
+    let supportsConditionalBreakpoints (_t0 , (_t1 , (_t2 , _t3))) = Capabilities_0.supportsConditionalBreakpoints _t0
+    let supportsHitConditionalBreakpoints (_t0 , (_t1 , (_t2 , _t3))) = Capabilities_0.supportsHitConditionalBreakpoints _t0
+    let supportsEvaluateForHovers (_t0 , (_t1 , (_t2 , _t3))) = Capabilities_0.supportsEvaluateForHovers _t0
+    let supportsStepBack (_t0 , (_t1 , (_t2 , _t3))) = Capabilities_0.supportsStepBack _t0
+    let supportsSetVariable (_t0 , (_t1 , (_t2 , _t3))) = Capabilities_0.supportsSetVariable _t0
+    let supportsRestartFrame (_t0 , (_t1 , (_t2 , _t3))) = Capabilities_0.supportsRestartFrame _t0
+    let supportsGotoTargetsRequest (_t0 , (_t1 , (_t2 , _t3))) = Capabilities_0.supportsGotoTargetsRequest _t0
+    let supportsStepInTargetsRequest (_t0 , (_t1 , (_t2 , _t3))) = Capabilities_0.supportsStepInTargetsRequest _t0
+    let supportsCompletionsRequest (_t0 , (_t1 , (_t2 , _t3))) = Capabilities_10.supportsCompletionsRequest _t1
+    let completionTriggerCharacters (_t0 , (_t1 , (_t2 , _t3))) = Capabilities_10.completionTriggerCharacters _t1
+    let supportsModulesRequest (_t0 , (_t1 , (_t2 , _t3))) = Capabilities_10.supportsModulesRequest _t1
+    let supportsRestartRequest (_t0 , (_t1 , (_t2 , _t3))) = Capabilities_10.supportsRestartRequest _t1
+    let supportsExceptionOptions (_t0 , (_t1 , (_t2 , _t3))) = Capabilities_10.supportsExceptionOptions _t1
+    let supportsValueFormattingOptions (_t0 , (_t1 , (_t2 , _t3))) = Capabilities_10.supportsValueFormattingOptions _t1
+    let supportsExceptionInfoRequest (_t0 , (_t1 , (_t2 , _t3))) = Capabilities_10.supportsExceptionInfoRequest _t1
+    let supportTerminateDebuggee (_t0 , (_t1 , (_t2 , _t3))) = Capabilities_10.supportTerminateDebuggee _t1
+    let supportSuspendDebuggee (_t0 , (_t1 , (_t2 , _t3))) = Capabilities_10.supportSuspendDebuggee _t1
+    let supportsDelayedStackTraceLoading (_t0 , (_t1 , (_t2 , _t3))) = Capabilities_10.supportsDelayedStackTraceLoading _t1
+    let supportsLoadedSourcesRequest (_t0 , (_t1 , (_t2 , _t3))) = Capabilities_20.supportsLoadedSourcesRequest _t2
+    let supportsLogPoints (_t0 , (_t1 , (_t2 , _t3))) = Capabilities_20.supportsLogPoints _t2
+    let supportsTerminateThreadsRequest (_t0 , (_t1 , (_t2 , _t3))) = Capabilities_20.supportsTerminateThreadsRequest _t2
+    let supportsSetExpression (_t0 , (_t1 , (_t2 , _t3))) = Capabilities_20.supportsSetExpression _t2
+    let supportsTerminateRequest (_t0 , (_t1 , (_t2 , _t3))) = Capabilities_20.supportsTerminateRequest _t2
+    let supportsDataBreakpoints (_t0 , (_t1 , (_t2 , _t3))) = Capabilities_20.supportsDataBreakpoints _t2
+    let supportsReadMemoryRequest (_t0 , (_t1 , (_t2 , _t3))) = Capabilities_20.supportsReadMemoryRequest _t2
+    let supportsWriteMemoryRequest (_t0 , (_t1 , (_t2 , _t3))) = Capabilities_20.supportsWriteMemoryRequest _t2
+    let supportsDisassembleRequest (_t0 , (_t1 , (_t2 , _t3))) = Capabilities_20.supportsDisassembleRequest _t2
+    let supportsCancelRequest (_t0 , (_t1 , (_t2 , _t3))) = Capabilities_20.supportsCancelRequest _t2
+    let supportsBreakpointLocationsRequest (_t0 , (_t1 , (_t2 , _t3))) = Capabilities_30.supportsBreakpointLocationsRequest _t3
+    let supportsClipboardContext (_t0 , (_t1 , (_t2 , _t3))) = Capabilities_30.supportsClipboardContext _t3
+    let supportsSteppingGranularity (_t0 , (_t1 , (_t2 , _t3))) = Capabilities_30.supportsSteppingGranularity _t3
+    let supportsInstructionBreakpoints (_t0 , (_t1 , (_t2 , _t3))) = Capabilities_30.supportsInstructionBreakpoints _t3
+    let supportsExceptionFilterOptions (_t0 , (_t1 , (_t2 , _t3))) = Capabilities_30.supportsExceptionFilterOptions _t3
+    let supportsSingleThreadExecutionRequests (_t0 , (_t1 , (_t2 , _t3))) = Capabilities_30.supportsSingleThreadExecutionRequests _t3
 
      end
 
@@ -617,6 +819,8 @@ let%expect_test "Check anyOf example" =
     type t
      val enc : t Data_encoding.t
      val make : ?moduleId:IntString.t -> ?adapterData:Data_encoding.json -> unit -> t
+     val moduleId : t -> IntString.t option
+    val adapterData : t -> Data_encoding.json option
     end = struct
      type t = { moduleId: IntString.t option;
     adapterData: Data_encoding.json option; }
@@ -634,6 +838,9 @@ let%expect_test "Check anyOf example" =
 
      let make ?moduleId ?adapterData () =
     {moduleId; adapterData}
+
+     let moduleId t = t.moduleId
+    let adapterData t = t.adapterData
 
      end
 
@@ -689,6 +896,8 @@ let%expect_test "Check nullable example" =
     type t
      val enc : t Data_encoding.t
      val make : ?message:string -> typeName:string option -> unit -> t
+     val message : t -> string option
+    val typeName : t -> string option
     end = struct
      type t = { message: string option;
     typeName: string option; }
@@ -706,6 +915,9 @@ let%expect_test "Check nullable example" =
 
      let make ?message ~typeName () =
     {message; typeName}
+
+     let message t = t.message
+    let typeName t = t.typeName
 
      end
 
@@ -737,6 +949,7 @@ let%expect_test "Check valueFormat example" =
     type t
      val enc : t Data_encoding.t
      val make : ?hex:bool -> unit -> t
+     val hex : t -> bool option
     end = struct
      type t = { hex: bool option; }
 
@@ -753,6 +966,8 @@ let%expect_test "Check valueFormat example" =
      let make ?hex () =
     {hex}
 
+     let hex t = t.hex
+
      end
 
 
@@ -760,6 +975,14 @@ let%expect_test "Check valueFormat example" =
     type t
      val enc : t Data_encoding.t
      val make : ?hex:bool -> ?parameters:bool -> ?parameterTypes:bool -> ?parameterNames:bool -> ?parameterValues:bool -> ?line:bool -> ?module_:bool -> ?includeAll:bool -> unit -> t
+     val hex : t -> bool option
+    val parameters : t -> bool option
+    val parameterTypes : t -> bool option
+    val parameterNames : t -> bool option
+    val parameterValues : t -> bool option
+    val line : t -> bool option
+    val module_ : t -> bool option
+    val includeAll : t -> bool option
     end = struct
      type t = { hex: bool option;
     parameters: bool option;
@@ -789,6 +1012,15 @@ let%expect_test "Check valueFormat example" =
 
      let make ?hex ?parameters ?parameterTypes ?parameterNames ?parameterValues ?line ?module_ ?includeAll () =
     {hex; parameters; parameterTypes; parameterNames; parameterValues; line; module_; includeAll}
+
+     let hex t = t.hex
+    let parameters t = t.parameters
+    let parameterTypes t = t.parameterTypes
+    let parameterNames t = t.parameterNames
+    let parameterValues t = t.parameterValues
+    let line t = t.line
+    let module_ t = t.module_
+    let includeAll t = t.includeAll
 
      end
 

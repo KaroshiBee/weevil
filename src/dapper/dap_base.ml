@@ -102,15 +102,45 @@ end = struct
 end
 
 
-module RestartRequestArguments (M:sig val module_name : string end) : sig
+module LaunchRequestArguments : sig
+  type t
+  val module_name : string
+  val enc : t Data_encoding.t
+  val make : ?restart:Data_encoding.json -> ?noDebug:bool -> unit -> t
+  val restart : t -> Data_encoding.json option
+  val noDebug : t -> bool option
+end = struct
+
+  let module_name = "LaunchRequestArguments"
+  type t = {restart: Data_encoding.json option; noDebug: bool option}
+
+  let enc =
+    let open Data_encoding in
+    conv
+      (fun {restart; noDebug} -> (restart, noDebug))
+      (fun (restart, noDebug) -> {restart; noDebug})
+      (obj2
+         (opt "__restart" json)
+         (opt "noDebug" bool)
+      )
+
+  let make ?restart ?noDebug () =
+    {restart; noDebug}
+
+  let restart t = t.restart
+  let noDebug t = t.noDebug
+
+end
+
+module AttachRequestArguments : sig
   type t
   val module_name : string
   val enc : t Data_encoding.t
   val make : ?restart:Data_encoding.json -> unit -> t
+  val restart : t -> Data_encoding.json option
 end = struct
 
-  (* NOTE Launch/Attach request arguments are the same types *)
-  let module_name = M.module_name
+  let module_name = "AttachRequestArguments"
   type t = {restart: Data_encoding.json option}
 
   let enc =
@@ -124,11 +154,10 @@ end = struct
 
   let make ?restart () =
     {restart}
+
+  let restart t = t.restart
+
 end
-
-module LaunchRequestArguments = RestartRequestArguments (struct let module_name = "LaunchRequestArguments" end)
-module AttachRequestArguments = RestartRequestArguments (struct let module_name = "AttachRequestArguments" end)
-
 
 module RestartArguments : sig
   type t
