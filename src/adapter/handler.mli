@@ -4,6 +4,7 @@ val make : t
 (* NOTE the IO channels here are for the backend *)
 val handle_exn :
   t ->
+  Lwt_process.process_full option ->
   (Lwt_process.process_full -> unit Lwt.t) ->
   Dapper.Dap_config.t ->
   string ->

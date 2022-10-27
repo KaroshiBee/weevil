@@ -69,8 +69,8 @@ module Backend = struct
     callback: Lwt_process.process_full -> unit Lwt.t;
   }
 
-  let make_empty f = {
-    process=None; io=None; callback=f;
+  let make_empty process f = {
+    process; io=None; callback=f;
   }
   let process_full t = t.process
   let set_process_full t process = t.process <- Some process
@@ -85,7 +85,7 @@ end
 module type HANDLER = sig
 
   type t
-  val make_empty : (Lwt_process.process_full -> unit Lwt.t) -> t
+  val make_empty : Lwt_process.process_full option -> (Lwt_process.process_full -> unit Lwt.t) -> t
   val process_full : t -> Lwt_process.process_full option
   val set_process_full : t -> Lwt_process.process_full -> unit
   val callback : t -> (Lwt_process.process_full -> unit Lwt.t)

@@ -2,15 +2,10 @@ module Dap_header = Dapper.Dap_header
 module Conduit = Conduit_lwt_unix
 open Lwt
 
-(* TODO pass this creator func down to where it is needed *)
-type subprocess_start_t =
-  unit ->
-  Lwt_process.process_full ->
-  unit Lwt.t
 
-let handle_message hdl frontend_io callback config msg =
+let handle_message hdl frontend_io sub_process callback config msg =
   let _ic, oc = frontend_io in
-  match%lwt Handler.handle_exn hdl callback config msg with
+  match%lwt Handler.handle_exn hdl sub_process callback config msg with
   | Ok js ->
     let%lwt _ = Logs_lwt.info (fun m -> m "[DAP] got response: '%s'" js) in
     Lwt_io.write oc js
@@ -29,7 +24,7 @@ let rec main_handler ~sub_process hdl (config:Dapper.Dap_config.t) content_lengt
       assert (header_break = "\r\n") |> Lwt.return >>= fun _ ->
       Lwt_io.read ~count ic >>= fun msg ->
       Logs_lwt.info (fun m -> m "[DAP] Got message '%s'" msg) >>= fun _ ->
-      handle_message hdl frontend_io callback config msg >>= fun _ ->
+      handle_message hdl frontend_io sub_process callback config msg >>= fun _ ->
       let content_length = None in
       main_handler ~sub_process hdl config content_length flow ic oc
   | None -> (
@@ -41,6 +36,7 @@ let rec main_handler ~sub_process hdl (config:Dapper.Dap_config.t) content_lengt
       | None -> Logs_lwt.info (fun m -> m "[DAP] connection closed")
     )
 and subprocess_start hdl config content_length flow ic oc process_full =
+  (* sets the subprocess to somethinf, should stay that way forever (for now) *)
   main_handler ~sub_process:(Some process_full) hdl config content_length flow ic oc
 
 
