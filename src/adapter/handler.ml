@@ -9,7 +9,7 @@ module type MAKE_HANDLER = sig
   type backend
 
   type t
-  val make : Lwt_io.input_channel -> Lwt_io.output_channel -> t
+  val make : Lwt_process.process_full option -> t
   val handle : t -> Dapper.Dap_config.t -> string -> string Lwt.t
 end
 
@@ -28,8 +28,8 @@ module MakeHandler (H:HANDLER) :
     handle : H.t -> Dapper.Dap_config.t -> H.input -> H.output Lwt.t;
   }
 
-  let make ic oc = {
-    backend=H.from_channels ic oc;
+  let make sub_process = {
+    backend=H.from_sub_process sub_process;
     string_to_input = H.string_to_input;
     output_to_string = H.output_to_string;
     handle = H.handle;
@@ -67,12 +67,11 @@ let make = {
     |> Hashtbl.of_seq;
 }
 
-let handle_exn t backend_io config message =
-  let ic, oc = backend_io in
+let handle_exn t sub_process config message =
   let aux command =
     let h = Hashtbl.find t.handlers command in
     let module H = MakeHandler (val h : HANDLER) in
-    let h = H.make ic oc in
+    let h = H.make sub_process in
     try%lwt
       let%lwt output = H.handle h config message in
       Some output |> Lwt.return
@@ -101,36 +100,3 @@ let handle_exn t backend_io config message =
   Lwt.return ret
 
 
-let handle_message t frontend_io backend_io config msg =
-  let _ic, oc = frontend_io in
-  match%lwt handle_exn t backend_io config msg with
-  | Ok js ->
-    let%lwt _ = Logs_lwt.info (fun m -> m "[DAP] got response: '%s'" js) in
-    Lwt_io.write oc js
-  | Error err ->
-    Logs_lwt.err (fun m -> m "[DAP] %s" err)
-
-
-let rec main_handler t (config:Dapper.Dap_config.t) content_length _flow ic oc =
-  let backend_io = Lwt_io.(zero, null) in
-  let frontend_io = (ic, oc) in
-  let open Lwt in
-  match content_length with
-  | Some count ->
-      Logs_lwt.info (fun m -> m "[DAP] got count %d" count) >>= fun _ ->
-      (* \r\n throw away *)
-      Lwt_io.read ~count:2 ic >>= fun header_break ->
-      assert (header_break = "\r\n") |> Lwt.return >>= fun _ ->
-      Lwt_io.read ~count ic >>= fun msg ->
-      Logs_lwt.info (fun m -> m "[DAP] Got message '%s'" msg) >>= fun _ ->
-      handle_message t frontend_io backend_io config msg >>= fun _ ->
-      let content_length = None in
-      main_handler t config content_length _flow ic oc
-  | None -> (
-      Logs_lwt.info (fun m -> m "[DAP] no content length yet") >>= fun _ ->
-      Lwt_io.read_line_opt ic >>= function
-      | Some msg ->
-          let content_length = Dap_header.content_length msg in
-          main_handler t config content_length _flow ic oc
-      | None -> Logs_lwt.info (fun m -> m "[DAP] connection closed")
-          )

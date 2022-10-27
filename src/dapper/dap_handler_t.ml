@@ -64,9 +64,11 @@ Previous handler func:
 module type HANDLER = sig
 
   type t
-  val from_channels : Lwt_io.input_channel -> Lwt_io.output_channel -> t
-  val ic : t -> Lwt_io.input_channel
-  val oc : t -> Lwt_io.output_channel
+  val from_sub_process : Lwt_process.process_full option -> t
+  val process_full : t -> Lwt_process.process_full option
+  val ic : t -> Lwt_io.input_channel option
+  val oc : t -> Lwt_io.output_channel option
+
 
   type input
   type output
@@ -112,15 +114,15 @@ end
 
 module Backend = struct
   type t = {
-    backend_ic: Lwt_io.input_channel;
-    backend_oc: Lwt_io.output_channel;
+    p: Lwt_process.process_full option;
   }
 
-  let from_channels backend_ic backend_oc =
-    {backend_ic; backend_oc}
+  let from_sub_process p = {p}
+  let process_full t = t.p
+  let ic t = Option.map (fun p -> p#stdout) t.p
+  let oc t = Option.map (fun p -> p#stdin) t.p
 
-  let ic t = t.backend_ic
-  let oc t = t.backend_oc
+
 end
 
 type error = (Dap_commands.error, ErrorResponse_body.t, ResponseMessage.req) response

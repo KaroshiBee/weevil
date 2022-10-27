@@ -92,12 +92,16 @@ let on_bad_request e _request =
 let handle t config req =
   let open Dap_flow in
   let response = bind_request req (on_launch_request config) in
-  match to_result response with
-  | Result.Ok _ ->
-    let backend_oc = oc t in
+  match to_result response, oc t with
+  | Result.Ok _, Some backend_oc ->
     let%lwt _ = Lwt_io.write backend_oc config.backend_cmd in
     let event = Option.some @@ bind_response response (on_launch_response config) in
     {response; event; error=None} |> Lwt.return
-  | Result.Error err ->
+  | Result.Ok _, None ->
+    (* TODO launch backend server *)
+    (* let%lwt _ = Lwt_process.with_process_full ("", [|""|]) t.subprocess_start in *)
+    let event = Option.some @@ bind_response response (on_launch_response config) in
+    {response; event; error=None} |> Lwt.return
+  | Result.Error err, _ ->
     let error = Option.some @@ raise_error req (on_bad_request err) in
     {response; event=None; error} |> Lwt.return
