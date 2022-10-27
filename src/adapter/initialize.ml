@@ -94,8 +94,8 @@ let handle t Dap_config.{backend_cmd; _} req =
   match to_result response, Backend.process_full t with
   | Result.Ok _, None ->
     let cmd = Dap_config.to_command backend_cmd in
-    let callback = Backend.callback t in
-    let%lwt _ = Lwt_process.with_process_full cmd callback in
+    let process = Lwt_process.open_process_full cmd in
+    let _ = Backend.set_process_full t process in
     let event = Option.some @@ response_event response on_initialization_response in
     Lwt.return {response; event; error=None}
   | Result.Ok _, Some _ ->
@@ -103,4 +103,4 @@ let handle t Dap_config.{backend_cmd; _} req =
     Lwt.return {response; event; error=None}
   | Result.Error err, _ ->
     let error = Option.some @@ raise_error req (on_bad_request err) in
-    {response; event=None; error} |> Lwt.return
+    Lwt.return {response; event=None; error}
