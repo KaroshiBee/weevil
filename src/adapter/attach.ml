@@ -1,3 +1,4 @@
+open Conduit_lwt_unix
 open Dapper.Dap_handler_t
 open Dapper.Dap_message
 module Dap_commands = Dapper.Dap_commands
@@ -41,8 +42,9 @@ end
 
 include MakeReqRespIncludes_withEvent (Request) (Response) (Event)
 
-let on_attach_request Dap_config.{launch_mode; _} = function
-  | AttachRequest req when launch_mode = `Attach ->
+let on_attach_request Dap_config.{launch_mode; _} request =
+  match request, launch_mode with
+  | AttachRequest req, `Attach _ ->
     let resp =
       let command = RequestMessage.command req in
       let body = EmptyObject.make () in
@@ -50,14 +52,19 @@ let on_attach_request Dap_config.{launch_mode; _} = function
     in
     let ret = AttachResponse resp in
     Dap_flow.from_response ret
-  | AttachRequest _req when launch_mode = `Launch ->
+  | AttachRequest _, `Launch _ ->
     let err = "wrong attach mode - config is set to Launch but got an Attach request message" in
     Logs.err (fun m -> m "%s" err) ;
     Dap_flow.from_result @@ Result.error err
-  | _ -> assert false
+  | AttachRequest _, `AttachForSuspendedLaunch _ ->
+    let err = "wrong attach mode - config is set to Launch but got an AttachForSuspendedLaunch request message" in
+    Logs.err (fun m -> m "%s" err) ;
+    Dap_flow.from_result @@ Result.error err
+  | _, _ -> assert false
 
-let on_attach_response Dap_config.{launch_mode; _} = function
-  | AttachResponse _ when launch_mode = `Attach ->
+let on_attach_response Dap_config.{launch_mode; _} response =
+  match response, launch_mode with
+  | AttachResponse _, `Attach _ ->
     let ev =
       let event = Dap_events.process in
       let startMethod = ProcessEvent_body_startMethod.Attach in
@@ -71,7 +78,8 @@ let on_attach_response Dap_config.{launch_mode; _} = function
     in
     let ret = ProcessEvent ev in
     Dap_flow.from_event ret
-  | _ -> assert false
+  | _, _ -> assert false
+
 
 let on_bad_request e _request =
   let resp = default_response_error e in
@@ -81,14 +89,27 @@ let on_bad_request e _request =
 let handle t config req =
   let open Dap_flow in
   let response = request_response req (on_attach_request config) in
-  match to_result response, oc t with
+  match to_result response, Backend.oc t with
   | Result.Ok _, Some backend_oc ->
     let%lwt _ = Lwt_io.write backend_oc config.backend_echo in
     let event = Option.some @@ response_event response (on_attach_response config) in
     {response; event; error=None} |> Lwt.return
-  | Result.Ok _, None ->
-    let error = Option.some @@ raise_error req (on_bad_request "Cannot attach, no backend server running") in
-    {response; event=None; error} |> Lwt.return
+  | Result.Ok _, None -> (
+      let port = Dap_config.backend_port config in
+      let ip = Unix.inet_addr_loopback |> Ipaddr_unix.of_inet_addr in
+      let client = `TCP (`IP ip, `Port port) in
+      let%lwt ctx = init () in
+      let%lwt (_, ic, oc) = connect ~ctx client in
+      let _ = Backend.set_io t ic oc in
+      match Backend.oc t with
+      | Some _ ->
+        (* NOTE dont need to start the stepper as we are in attach mode *)
+        let event = Option.some @@ response_event response (on_attach_response config) in
+        {response; event; error=None} |> Lwt.return
+      | None ->
+        let error = Option.some @@ raise_error req (on_bad_request @@ Printf.sprintf "failed to connect to backend svc on localhost port %d" port) in
+        {response; event=None; error} |> Lwt.return
+    )
   | Result.Error err, _ ->
     let error = Option.some @@ raise_error req (on_bad_request err) in
     {response; event=None; error} |> Lwt.return

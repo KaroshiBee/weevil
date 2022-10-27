@@ -61,13 +61,38 @@ Previous handler func:
   backend:Lwt_io.output Lwt_io.channel ->
   unit Lwt.t
 *)
+module Backend = struct
+  type io = Lwt_io.input_channel * Lwt_io.output_channel
+  type t = {
+    mutable process: Lwt_process.process_full option; (* the backend svc process, None if attaching to already running one *)
+    mutable io: io option;
+    callback: Lwt_process.process_full -> unit Lwt.t;
+  }
+
+  let make_empty f = {
+    process=None; io=None; callback=f;
+  }
+  let process_full t = t.process
+  let set_process_full t process = t.process <- Some process
+  let callback t = t.callback
+
+  let ic t = t.io |> Option.map fst
+  let oc t = t.io |> Option.map snd
+  let set_io t ic oc = t.io <- Some (ic, oc)
+
+end
+
 module type HANDLER = sig
 
   type t
-  val from_sub_process : Lwt_process.process_full option -> t
+  val make_empty : (Lwt_process.process_full -> unit Lwt.t) -> t
   val process_full : t -> Lwt_process.process_full option
+  val set_process_full : t -> Lwt_process.process_full -> unit
+  val callback : t -> (Lwt_process.process_full -> unit Lwt.t)
+
   val ic : t -> Lwt_io.input_channel option
   val oc : t -> Lwt_io.output_channel option
+  val set_io : t -> Lwt_io.input_channel -> Lwt_io.output_channel -> unit
 
 
   type input
@@ -110,19 +135,6 @@ module type EV_T = sig
   val enc : (event, body, presence) t Data_encoding.t
   val ctor : (event, body, presence) t -> (event, body, presence) Dap_message.event
   val extract : (event, body, presence) Dap_message.event -> (event, body, presence) t
-end
-
-module Backend = struct
-  type t = {
-    p: Lwt_process.process_full option;
-  }
-
-  let from_sub_process p = {p}
-  let process_full t = t.p
-  let ic t = Option.map (fun p -> p#stdout) t.p
-  let oc t = Option.map (fun p -> p#stdin) t.p
-
-
 end
 
 type error = (Dap_commands.error, ErrorResponse_body.t, ResponseMessage.req) response

@@ -3,6 +3,7 @@ open Dapper.Dap_message
 module Dap_commands = Dapper.Dap_commands
 module Dap_events = Dapper.Dap_events
 module Dap_flow = Dapper.Dap_flow
+module Dap_config = Dapper.Dap_config
 
   (*
 Initialization
@@ -82,8 +83,24 @@ let on_initialization_response = function
     Dap_flow.from_event ret
   | _ -> assert false
 
-let handle _t _config req =
+let on_bad_request e _request =
+  let resp = default_response_error e in
+  let ret = ErrorResponse resp in
+  Dap_flow.from_response ret
+
+let handle t Dap_config.{backend_cmd; _} req =
   let open Dap_flow in
-  let response = request_response  req on_initialize_request in
-  let event = Option.some @@ response_event response on_initialization_response in
-  Lwt.return {response; event; error=None}
+  let response = request_response req on_initialize_request in
+  match to_result response, Backend.process_full t with
+  | Result.Ok _, None ->
+    let cmd = Dap_config.to_command backend_cmd in
+    let callback = Backend.callback t in
+    let%lwt _ = Lwt_process.with_process_full cmd callback in
+    let event = Option.some @@ response_event response on_initialization_response in
+    Lwt.return {response; event; error=None}
+  | Result.Ok _, Some _ ->
+    let event = Option.some @@ response_event response on_initialization_response in
+    Lwt.return {response; event; error=None}
+  | Result.Error err, _ ->
+    let error = Option.some @@ raise_error req (on_bad_request err) in
+    {response; event=None; error} |> Lwt.return

@@ -1,14 +1,15 @@
 include Test_utils
 module Js_msg = Dapper.Dap_js_msg
 
-let config = Dapper.Dap_config.make ~launch_mode:`Attach ()
+let config = Dapper.Dap_config.make ~launch_mode:(`Attach 9001) ()
 
 (* let mock_backend = Lwt_io.(zero, null) *)
+let mock_callback = fun _ -> Lwt.return_unit
 
 let%expect_test "Check cancel handler" =
   let open Cancel in
   let s = {| { "seq": 10, "type": "request", "command": "cancel", "arguments": { "requestId": 1 } } |} in
-  let backend = Cancel.from_sub_process None in
+  let backend = Cancel.make_empty mock_callback in
   let%lwt o = string_to_input s |> handle backend config in
   let%lwt ss = output_to_string o in
   Printf.printf "%s" @@ Result.get_ok ss;
@@ -34,7 +35,7 @@ let%expect_test "Check cancel handler" =
 let%expect_test "Check initialize handler" =
   let open Initialize in
   let s = {| { "seq": 10, "type": "request", "command": "initialize", "arguments": { "adapterID": "weevil", "clientID":"1" } } |} in
-  let backend = Initialize.from_sub_process None in
+  let backend = Initialize.make_empty mock_callback in
   let%lwt o = string_to_input s |> handle backend config in
   let%lwt ss = output_to_string o in
   Printf.printf "%s" @@ Result.get_ok ss;

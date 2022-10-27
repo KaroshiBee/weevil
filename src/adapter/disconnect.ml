@@ -100,11 +100,11 @@ let handle _t {Dap_config.launch_mode; _} req =
   (* diconnect when launched - terminate debuggee forcefully  *)
   (* disconnect when attached - dont terminate the debuggee *)
   let event = match launch_mode with
-    | `Launch ->
+    | `Launch _ ->
       Logs.warn (fun m -> m "TODO: shutdown debuggee forcefully; shutdown channel");
       let exitCode = 0 in
       Option.some @@ response_event response (on_disconnect_response exitCode)
-    | `Attach | `AttachForSuspendedLaunch ->
+    | `Attach _ | `AttachForSuspendedLaunch _ ->
       Logs.warn (fun m -> m "TODO: shutdown channel");
       None
   in

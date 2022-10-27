@@ -8,9 +8,9 @@ type subprocess_start_t =
   Lwt_process.process_full ->
   unit Lwt.t
 
-let handle_message hdl frontend_io sub_process config msg =
+let handle_message hdl frontend_io callback config msg =
   let _ic, oc = frontend_io in
-  match%lwt Handler.handle_exn hdl sub_process config msg with
+  match%lwt Handler.handle_exn hdl callback config msg with
   | Ok js ->
     let%lwt _ = Logs_lwt.info (fun m -> m "[DAP] got response: '%s'" js) in
     Lwt_io.write oc js
@@ -20,6 +20,7 @@ let handle_message hdl frontend_io sub_process config msg =
 
 let rec main_handler ~sub_process hdl (config:Dapper.Dap_config.t) content_length flow ic oc =
   let frontend_io = (ic, oc) in
+  let callback = subprocess_start hdl config content_length flow ic oc in
   match content_length with
   | Some count ->
       Logs_lwt.info (fun m -> m "[DAP] got count %d" count) >>= fun _ ->
@@ -28,7 +29,7 @@ let rec main_handler ~sub_process hdl (config:Dapper.Dap_config.t) content_lengt
       assert (header_break = "\r\n") |> Lwt.return >>= fun _ ->
       Lwt_io.read ~count ic >>= fun msg ->
       Logs_lwt.info (fun m -> m "[DAP] Got message '%s'" msg) >>= fun _ ->
-      handle_message hdl frontend_io sub_process config msg >>= fun _ ->
+      handle_message hdl frontend_io callback config msg >>= fun _ ->
       let content_length = None in
       main_handler ~sub_process hdl config content_length flow ic oc
   | None -> (
@@ -51,7 +52,7 @@ let svc ~listen_address ~port =
   let () = Logs.set_reporter (Logs.format_reporter ()) in
   let () = Logs.set_level (Some Logs.Debug) in
   let mode = `TCP (`Port port) in
-  let config = Dapper.Dap_config.make ~launch_mode:`Attach () in
+  let config = Dapper.Dap_config.make ~launch_mode:(`Attach 9001) () in
   let hdl = Handler.make in
   let content_length = None in
   Lwt_main.run (
