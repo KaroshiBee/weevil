@@ -129,14 +129,42 @@ let to_event (type ev body presence) :
     | InvalidatedEvent ev -> ev
     | MemoryEvent ev -> ev
 
-module Response = struct
+module Request = struct
 
-  let map (type cmd body pbody) :
-    (cmd, body, pbody) response t ->
-    ((cmd, body, pbody) response -> (cmd, body, pbody) response) ->
-    (cmd, body, pbody) response t
+  let map (type cmd args pargs a) :
+    (cmd, args, pargs) request t ->
+    ((cmd, args, pargs) request -> a) ->
+    a t
     = fun v f ->
       Result.map (fun v -> f v) v
+
+  let bind (type cmd args pargs a) :
+    (cmd, args, pargs) request t ->
+    ((cmd, args, pargs) request -> a t) ->
+    a t
+    = fun v f ->
+      Result.bind v (fun v -> f v)
+
+end
+
+let map_request = Request.map
+let bind_request = Request.bind
+
+module Response = struct
+
+  let map (type cmd body pbody a) :
+    (cmd, body, pbody) response t ->
+    ((cmd, body, pbody) response -> a) ->
+    a t
+    = fun v f ->
+      Result.map (fun v -> f v) v
+
+  let bind (type cmd body pbody a) :
+    (cmd, body, pbody) response t ->
+    ((cmd, body, pbody) response -> a t) ->
+    a t
+    = fun v f ->
+      Result.bind v (fun v -> f v)
 
   let set_seqr (type cmd body pbody) :
     seqr -> (cmd, body, pbody) response -> (cmd, body, pbody) response
@@ -192,7 +220,10 @@ module Response = struct
       | DisassembleResponse resp -> DisassembleResponse (aux resp seqr)
 end
 
-let bind_request (type cmd args pargs) :
+let map_response = Response.map
+let bind_response = Response.bind
+
+let request_response (type cmd args pargs) :
   (cmd, args, pargs) request t ->
   ((cmd, args, pargs) request -> (cmd, _, _) response t) ->
   (cmd, _, _) response t
@@ -203,49 +234,49 @@ let bind_request (type cmd args pargs) :
      Response.set_seqr {seq; request_seq}
    in
    Result.bind v (function
-       | CancelRequest req as v -> Response.map (f v) @@ seqr req
-       | RunInTerminalRequest req as v -> Response.map (f v) @@ seqr req
-       | InitializeRequest req as v -> Response.map (f v) @@ seqr req
-       | ConfigurationDoneRequest req as v -> Response.map (f v) @@ seqr req
-       | LaunchRequest req as v -> Response.map (f v) @@ seqr req
-       | AttachRequest req as v -> Response.map (f v) @@ seqr req
-       | RestartRequest req as v -> Response.map (f v) @@ seqr req
-       | DisconnectRequest req as v -> Response.map (f v) @@ seqr req
-       | TerminateRequest req as v -> Response.map (f v) @@ seqr req
-       | BreakpointLocationsRequest req as v -> Response.map (f v) @@ seqr req
-       | SetBreakpointsRequest req as v -> Response.map (f v) @@ seqr req
-       | SetFunctionBreakpointsRequest req as v -> Response.map (f v) @@ seqr req
-       | SetExceptionBreakpointsRequest req as v -> Response.map (f v) @@ seqr req
-       | DataBreakpointInfoRequest req as v -> Response.map (f v) @@ seqr req
-       | SetDataBreakpointsRequest req as v -> Response.map (f v) @@ seqr req
-       | SetInstructionBreakpointsRequest req as v -> Response.map (f v) @@ seqr req
-       | ContinueRequest req as v -> Response.map (f v) @@ seqr req
-       | NextRequest req as v -> Response.map (f v) @@ seqr req
-       | StepInRequest req as v -> Response.map (f v) @@ seqr req
-       | StepOutRequest req as v -> Response.map (f v) @@ seqr req
-       | StepBackRequest req as v -> Response.map (f v) @@ seqr req
-       | ReverseContinueRequest req as v -> Response.map (f v) @@ seqr req
-       | RestartFrameRequest req as v -> Response.map (f v) @@ seqr req
-       | GotoRequest req as v -> Response.map (f v) @@ seqr req
-       | PauseRequest req as v -> Response.map (f v) @@ seqr req
-       | StackTraceRequest req as v -> Response.map (f v) @@ seqr req
-       | ScopesRequest req as v -> Response.map (f v) @@ seqr req
-       | VariablesRequest req as v -> Response.map (f v) @@ seqr req
-       | SetVariableRequest req as v -> Response.map (f v) @@ seqr req
-       | SourceRequest req as v -> Response.map (f v) @@ seqr req
-       | ThreadsRequest req as v -> Response.map (f v) @@ seqr req
-       | TerminateThreadsRequest req as v -> Response.map (f v) @@ seqr req
-       | ModulesRequest req as v -> Response.map (f v) @@ seqr req
-       | LoadedSourcesRequest req as v -> Response.map (f v) @@ seqr req
-       | EvaluateRequest req as v -> Response.map (f v) @@ seqr req
-       | SetExpressionRequest req as v -> Response.map (f v) @@ seqr req
-       | StepInTargetsRequest req as v -> Response.map (f v) @@ seqr req
-       | GotoTargetsRequest req as v -> Response.map (f v) @@ seqr req
-       | CompletionsRequest req as v -> Response.map (f v) @@ seqr req
-       | ExceptionInfoRequest req as v -> Response.map (f v) @@ seqr req
-       | ReadMemoryRequest req as v -> Response.map (f v) @@ seqr req
-       | WriteMemoryRequest req as v -> Response.map (f v) @@ seqr req
-       | DisassembleRequest req as v -> Response.map (f v) @@ seqr req
+       | CancelRequest req as v -> map_response (f v) @@ seqr req
+       | RunInTerminalRequest req as v -> map_response (f v) @@ seqr req
+       | InitializeRequest req as v -> map_response (f v) @@ seqr req
+       | ConfigurationDoneRequest req as v -> map_response (f v) @@ seqr req
+       | LaunchRequest req as v -> map_response (f v) @@ seqr req
+       | AttachRequest req as v -> map_response (f v) @@ seqr req
+       | RestartRequest req as v -> map_response (f v) @@ seqr req
+       | DisconnectRequest req as v -> map_response (f v) @@ seqr req
+       | TerminateRequest req as v -> map_response (f v) @@ seqr req
+       | BreakpointLocationsRequest req as v -> map_response (f v) @@ seqr req
+       | SetBreakpointsRequest req as v -> map_response (f v) @@ seqr req
+       | SetFunctionBreakpointsRequest req as v -> map_response (f v) @@ seqr req
+       | SetExceptionBreakpointsRequest req as v -> map_response (f v) @@ seqr req
+       | DataBreakpointInfoRequest req as v -> map_response (f v) @@ seqr req
+       | SetDataBreakpointsRequest req as v -> map_response (f v) @@ seqr req
+       | SetInstructionBreakpointsRequest req as v -> map_response (f v) @@ seqr req
+       | ContinueRequest req as v -> map_response (f v) @@ seqr req
+       | NextRequest req as v -> map_response (f v) @@ seqr req
+       | StepInRequest req as v -> map_response (f v) @@ seqr req
+       | StepOutRequest req as v -> map_response (f v) @@ seqr req
+       | StepBackRequest req as v -> map_response (f v) @@ seqr req
+       | ReverseContinueRequest req as v -> map_response (f v) @@ seqr req
+       | RestartFrameRequest req as v -> map_response (f v) @@ seqr req
+       | GotoRequest req as v -> map_response (f v) @@ seqr req
+       | PauseRequest req as v -> map_response (f v) @@ seqr req
+       | StackTraceRequest req as v -> map_response (f v) @@ seqr req
+       | ScopesRequest req as v -> map_response (f v) @@ seqr req
+       | VariablesRequest req as v -> map_response (f v) @@ seqr req
+       | SetVariableRequest req as v -> map_response (f v) @@ seqr req
+       | SourceRequest req as v -> map_response (f v) @@ seqr req
+       | ThreadsRequest req as v -> map_response (f v) @@ seqr req
+       | TerminateThreadsRequest req as v -> map_response (f v) @@ seqr req
+       | ModulesRequest req as v -> map_response (f v) @@ seqr req
+       | LoadedSourcesRequest req as v -> map_response (f v) @@ seqr req
+       | EvaluateRequest req as v -> map_response (f v) @@ seqr req
+       | SetExpressionRequest req as v -> map_response (f v) @@ seqr req
+       | StepInTargetsRequest req as v -> map_response (f v) @@ seqr req
+       | GotoTargetsRequest req as v -> map_response (f v) @@ seqr req
+       | CompletionsRequest req as v -> map_response (f v) @@ seqr req
+       | ExceptionInfoRequest req as v -> map_response (f v) @@ seqr req
+       | ReadMemoryRequest req as v -> map_response (f v) @@ seqr req
+       | WriteMemoryRequest req as v -> map_response (f v) @@ seqr req
+       | DisassembleRequest req as v -> map_response (f v) @@ seqr req
      )
 
 let raise_error (type cmd args pargs) :
@@ -259,60 +290,67 @@ let raise_error (type cmd args pargs) :
      Response.set_seqr {seq; request_seq}
    in
    Result.bind v (function
-       | CancelRequest req as v -> Response.map (f v) @@ seqr req
-       | RunInTerminalRequest req as v -> Response.map (f v) @@ seqr req
-       | InitializeRequest req as v -> Response.map (f v) @@ seqr req
-       | ConfigurationDoneRequest req as v -> Response.map (f v) @@ seqr req
-       | LaunchRequest req as v -> Response.map (f v) @@ seqr req
-       | AttachRequest req as v -> Response.map (f v) @@ seqr req
-       | RestartRequest req as v -> Response.map (f v) @@ seqr req
-       | DisconnectRequest req as v -> Response.map (f v) @@ seqr req
-       | TerminateRequest req as v -> Response.map (f v) @@ seqr req
-       | BreakpointLocationsRequest req as v -> Response.map (f v) @@ seqr req
-       | SetBreakpointsRequest req as v -> Response.map (f v) @@ seqr req
-       | SetFunctionBreakpointsRequest req as v -> Response.map (f v) @@ seqr req
-       | SetExceptionBreakpointsRequest req as v -> Response.map (f v) @@ seqr req
-       | DataBreakpointInfoRequest req as v -> Response.map (f v) @@ seqr req
-       | SetDataBreakpointsRequest req as v -> Response.map (f v) @@ seqr req
-       | SetInstructionBreakpointsRequest req as v -> Response.map (f v) @@ seqr req
-       | ContinueRequest req as v -> Response.map (f v) @@ seqr req
-       | NextRequest req as v -> Response.map (f v) @@ seqr req
-       | StepInRequest req as v -> Response.map (f v) @@ seqr req
-       | StepOutRequest req as v -> Response.map (f v) @@ seqr req
-       | StepBackRequest req as v -> Response.map (f v) @@ seqr req
-       | ReverseContinueRequest req as v -> Response.map (f v) @@ seqr req
-       | RestartFrameRequest req as v -> Response.map (f v) @@ seqr req
-       | GotoRequest req as v -> Response.map (f v) @@ seqr req
-       | PauseRequest req as v -> Response.map (f v) @@ seqr req
-       | StackTraceRequest req as v -> Response.map (f v) @@ seqr req
-       | ScopesRequest req as v -> Response.map (f v) @@ seqr req
-       | VariablesRequest req as v -> Response.map (f v) @@ seqr req
-       | SetVariableRequest req as v -> Response.map (f v) @@ seqr req
-       | SourceRequest req as v -> Response.map (f v) @@ seqr req
-       | ThreadsRequest req as v -> Response.map (f v) @@ seqr req
-       | TerminateThreadsRequest req as v -> Response.map (f v) @@ seqr req
-       | ModulesRequest req as v -> Response.map (f v) @@ seqr req
-       | LoadedSourcesRequest req as v -> Response.map (f v) @@ seqr req
-       | EvaluateRequest req as v -> Response.map (f v) @@ seqr req
-       | SetExpressionRequest req as v -> Response.map (f v) @@ seqr req
-       | StepInTargetsRequest req as v -> Response.map (f v) @@ seqr req
-       | GotoTargetsRequest req as v -> Response.map (f v) @@ seqr req
-       | CompletionsRequest req as v -> Response.map (f v) @@ seqr req
-       | ExceptionInfoRequest req as v -> Response.map (f v) @@ seqr req
-       | ReadMemoryRequest req as v -> Response.map (f v) @@ seqr req
-       | WriteMemoryRequest req as v -> Response.map (f v) @@ seqr req
-       | DisassembleRequest req as v -> Response.map (f v) @@ seqr req
+       | CancelRequest req as v -> map_response (f v) @@ seqr req
+       | RunInTerminalRequest req as v -> map_response (f v) @@ seqr req
+       | InitializeRequest req as v -> map_response (f v) @@ seqr req
+       | ConfigurationDoneRequest req as v -> map_response (f v) @@ seqr req
+       | LaunchRequest req as v -> map_response (f v) @@ seqr req
+       | AttachRequest req as v -> map_response (f v) @@ seqr req
+       | RestartRequest req as v -> map_response (f v) @@ seqr req
+       | DisconnectRequest req as v -> map_response (f v) @@ seqr req
+       | TerminateRequest req as v -> map_response (f v) @@ seqr req
+       | BreakpointLocationsRequest req as v -> map_response (f v) @@ seqr req
+       | SetBreakpointsRequest req as v -> map_response (f v) @@ seqr req
+       | SetFunctionBreakpointsRequest req as v -> map_response (f v) @@ seqr req
+       | SetExceptionBreakpointsRequest req as v -> map_response (f v) @@ seqr req
+       | DataBreakpointInfoRequest req as v -> map_response (f v) @@ seqr req
+       | SetDataBreakpointsRequest req as v -> map_response (f v) @@ seqr req
+       | SetInstructionBreakpointsRequest req as v -> map_response (f v) @@ seqr req
+       | ContinueRequest req as v -> map_response (f v) @@ seqr req
+       | NextRequest req as v -> map_response (f v) @@ seqr req
+       | StepInRequest req as v -> map_response (f v) @@ seqr req
+       | StepOutRequest req as v -> map_response (f v) @@ seqr req
+       | StepBackRequest req as v -> map_response (f v) @@ seqr req
+       | ReverseContinueRequest req as v -> map_response (f v) @@ seqr req
+       | RestartFrameRequest req as v -> map_response (f v) @@ seqr req
+       | GotoRequest req as v -> map_response (f v) @@ seqr req
+       | PauseRequest req as v -> map_response (f v) @@ seqr req
+       | StackTraceRequest req as v -> map_response (f v) @@ seqr req
+       | ScopesRequest req as v -> map_response (f v) @@ seqr req
+       | VariablesRequest req as v -> map_response (f v) @@ seqr req
+       | SetVariableRequest req as v -> map_response (f v) @@ seqr req
+       | SourceRequest req as v -> map_response (f v) @@ seqr req
+       | ThreadsRequest req as v -> map_response (f v) @@ seqr req
+       | TerminateThreadsRequest req as v -> map_response (f v) @@ seqr req
+       | ModulesRequest req as v -> map_response (f v) @@ seqr req
+       | LoadedSourcesRequest req as v -> map_response (f v) @@ seqr req
+       | EvaluateRequest req as v -> map_response (f v) @@ seqr req
+       | SetExpressionRequest req as v -> map_response (f v) @@ seqr req
+       | StepInTargetsRequest req as v -> map_response (f v) @@ seqr req
+       | GotoTargetsRequest req as v -> map_response (f v) @@ seqr req
+       | CompletionsRequest req as v -> map_response (f v) @@ seqr req
+       | ExceptionInfoRequest req as v -> map_response (f v) @@ seqr req
+       | ReadMemoryRequest req as v -> map_response (f v) @@ seqr req
+       | WriteMemoryRequest req as v -> map_response (f v) @@ seqr req
+       | DisassembleRequest req as v -> map_response (f v) @@ seqr req
      )
 
 
 module Event = struct
 
-let map (type ev body pbody) :
-  (ev, body, pbody) event t ->
-  ((ev, body, pbody) event -> (ev, _, _) event) ->
-  (ev, _, _) event t
- = fun v f ->
-   Result.map (fun v -> f v) v
+  let map (type ev body pbody a) :
+    (ev, body, pbody) event t ->
+    ((ev, body, pbody) event -> a) ->
+    a t
+    = fun v f ->
+      Result.map (fun v -> f v) v
+
+  let bind (type ev body pbody a) :
+    (ev, body, pbody) event t ->
+    ((ev, body, pbody) event -> a t) ->
+    a t
+    = fun v f ->
+      Result.bind v (fun v -> f v)
 
   let set_seqr (type ev body pbody) :
     seqr -> (ev, body, pbody) event -> (ev, body, pbody) event
@@ -341,7 +379,10 @@ let map (type ev body pbody) :
 
 end
 
-let bind_response (type cmd body pbody) :
+let map_event = Event.map
+let bind_event = Event.bind
+
+let response_event (type cmd body pbody) :
   (cmd, body, pbody) response t ->
   ((cmd, body, pbody) response -> (_, _, _) event t) ->
   (_, _, _) event t
@@ -352,53 +393,53 @@ let bind_response (type cmd body pbody) :
      Event.set_seqr {seq; request_seq}
    in
    Result.bind v (function
-       | ErrorResponse resp as v -> Event.map (f v) @@ seqr resp
-       | CancelResponse resp as v -> Event.map (f v) @@ seqr resp
-       | RunInTerminalResponse resp as v -> Event.map (f v) @@ seqr resp
-       | InitializeResponse resp as v -> Event.map (f v) @@ seqr resp
-       | ConfigurationDoneResponse resp as v -> Event.map (f v) @@ seqr resp
-       | LaunchResponse resp as v -> Event.map (f v) @@ seqr resp
-       | AttachResponse resp as v -> Event.map (f v) @@ seqr resp
-       | RestartResponse resp as v -> Event.map (f v) @@ seqr resp
-       | DisconnectResponse resp as v -> Event.map (f v) @@ seqr resp
-       | TerminateResponse resp as v -> Event.map (f v) @@ seqr resp
-       | BreakpointLocationsResponse resp as v -> Event.map (f v) @@ seqr resp
-       | SetBreakpointsResponse resp as v -> Event.map (f v) @@ seqr resp
-       | SetFunctionBreakpointsResponse resp as v -> Event.map (f v) @@ seqr resp
-       | SetExceptionBreakpointsResponse resp as v -> Event.map (f v) @@ seqr resp
-       | DataBreakpointInfoResponse resp as v -> Event.map (f v) @@ seqr resp
-       | SetDataBreakpointsResponse resp as v -> Event.map (f v) @@ seqr resp
-       | SetInstructionBreakpointsResponse resp as v -> Event.map (f v) @@ seqr resp
-       | ContinueResponse resp as v -> Event.map (f v) @@ seqr resp
-       | NextResponse resp as v -> Event.map (f v) @@ seqr resp
-       | StepInResponse resp as v -> Event.map (f v) @@ seqr resp
-       | StepOutResponse resp as v -> Event.map (f v) @@ seqr resp
-       | StepBackResponse resp as v -> Event.map (f v) @@ seqr resp
-       | ReverseContinueResponse resp as v -> Event.map (f v) @@ seqr resp
-       | RestartFrameResponse resp as v -> Event.map (f v) @@ seqr resp
-       | GotoResponse resp as v -> Event.map (f v) @@ seqr resp
-       | PauseResponse resp as v -> Event.map (f v) @@ seqr resp
-       | StackTraceResponse resp as v -> Event.map (f v) @@ seqr resp
-       | ScopesResponse resp as v -> Event.map (f v) @@ seqr resp
-       | VariablesResponse resp as v -> Event.map (f v) @@ seqr resp
-       | SetVariableResponse resp as v -> Event.map (f v) @@ seqr resp
-       | SourceResponse resp as v -> Event.map (f v) @@ seqr resp
-       | ThreadsResponse resp as v -> Event.map (f v) @@ seqr resp
-       | TerminateThreadsResponse resp as v -> Event.map (f v) @@ seqr resp
-       | ModulesResponse resp as v -> Event.map (f v) @@ seqr resp
-       | LoadedSourcesResponse resp as v -> Event.map (f v) @@ seqr resp
-       | EvaluateResponse resp as v -> Event.map (f v) @@ seqr resp
-       | SetExpressionResponse resp as v -> Event.map (f v) @@ seqr resp
-       | StepInTargetsResponse resp as v -> Event.map (f v) @@ seqr resp
-       | GotoTargetsResponse resp as v -> Event.map (f v) @@ seqr resp
-       | CompletionsResponse resp as v -> Event.map (f v) @@ seqr resp
-       | ExceptionInfoResponse resp as v -> Event.map (f v) @@ seqr resp
-       | ReadMemoryResponse resp as v -> Event.map (f v) @@ seqr resp
-       | WriteMemoryResponse resp as v -> Event.map (f v) @@ seqr resp
-       | DisassembleResponse resp as v -> Event.map (f v) @@ seqr resp
+       | ErrorResponse resp as v -> map_event (f v) @@ seqr resp
+       | CancelResponse resp as v -> map_event (f v) @@ seqr resp
+       | RunInTerminalResponse resp as v -> map_event (f v) @@ seqr resp
+       | InitializeResponse resp as v -> map_event (f v) @@ seqr resp
+       | ConfigurationDoneResponse resp as v -> map_event (f v) @@ seqr resp
+       | LaunchResponse resp as v -> map_event (f v) @@ seqr resp
+       | AttachResponse resp as v -> map_event (f v) @@ seqr resp
+       | RestartResponse resp as v -> map_event (f v) @@ seqr resp
+       | DisconnectResponse resp as v -> map_event (f v) @@ seqr resp
+       | TerminateResponse resp as v -> map_event (f v) @@ seqr resp
+       | BreakpointLocationsResponse resp as v -> map_event (f v) @@ seqr resp
+       | SetBreakpointsResponse resp as v -> map_event (f v) @@ seqr resp
+       | SetFunctionBreakpointsResponse resp as v -> map_event (f v) @@ seqr resp
+       | SetExceptionBreakpointsResponse resp as v -> map_event (f v) @@ seqr resp
+       | DataBreakpointInfoResponse resp as v -> map_event (f v) @@ seqr resp
+       | SetDataBreakpointsResponse resp as v -> map_event (f v) @@ seqr resp
+       | SetInstructionBreakpointsResponse resp as v -> map_event (f v) @@ seqr resp
+       | ContinueResponse resp as v -> map_event (f v) @@ seqr resp
+       | NextResponse resp as v -> map_event (f v) @@ seqr resp
+       | StepInResponse resp as v -> map_event (f v) @@ seqr resp
+       | StepOutResponse resp as v -> map_event (f v) @@ seqr resp
+       | StepBackResponse resp as v -> map_event (f v) @@ seqr resp
+       | ReverseContinueResponse resp as v -> map_event (f v) @@ seqr resp
+       | RestartFrameResponse resp as v -> map_event (f v) @@ seqr resp
+       | GotoResponse resp as v -> map_event (f v) @@ seqr resp
+       | PauseResponse resp as v -> map_event (f v) @@ seqr resp
+       | StackTraceResponse resp as v -> map_event (f v) @@ seqr resp
+       | ScopesResponse resp as v -> map_event (f v) @@ seqr resp
+       | VariablesResponse resp as v -> map_event (f v) @@ seqr resp
+       | SetVariableResponse resp as v -> map_event (f v) @@ seqr resp
+       | SourceResponse resp as v -> map_event (f v) @@ seqr resp
+       | ThreadsResponse resp as v -> map_event (f v) @@ seqr resp
+       | TerminateThreadsResponse resp as v -> map_event (f v) @@ seqr resp
+       | ModulesResponse resp as v -> map_event (f v) @@ seqr resp
+       | LoadedSourcesResponse resp as v -> map_event (f v) @@ seqr resp
+       | EvaluateResponse resp as v -> map_event (f v) @@ seqr resp
+       | SetExpressionResponse resp as v -> map_event (f v) @@ seqr resp
+       | StepInTargetsResponse resp as v -> map_event (f v) @@ seqr resp
+       | GotoTargetsResponse resp as v -> map_event (f v) @@ seqr resp
+       | CompletionsResponse resp as v -> map_event (f v) @@ seqr resp
+       | ExceptionInfoResponse resp as v -> map_event (f v) @@ seqr resp
+       | ReadMemoryResponse resp as v -> map_event (f v) @@ seqr resp
+       | WriteMemoryResponse resp as v -> map_event (f v) @@ seqr resp
+       | DisassembleResponse resp as v -> map_event (f v) @@ seqr resp
      )
 
-let bind_event (type ev body pbody) :
+let raise_event (type ev body pbody) :
   (ev, body, pbody) event t ->
   ((ev, body, pbody) event -> (_, _, _) event t) ->
   (_, _, _) event t
@@ -409,21 +450,21 @@ let bind_event (type ev body pbody) :
      Event.set_seqr {seq; request_seq}
    in
    Result.bind v (function
-       | InitializedEvent ev as v -> Event.map (f v) @@ seqr ev
-       | StoppedEvent ev as v -> Event.map (f v) @@ seqr ev
-       | ContinuedEvent ev as v -> Event.map (f v) @@ seqr ev
-       | ExitedEvent ev as v -> Event.map (f v) @@ seqr ev
-       | TerminatedEvent ev as v -> Event.map (f v) @@ seqr ev
-       | ThreadEvent ev as v -> Event.map (f v) @@ seqr ev
-       | OutputEvent ev as v -> Event.map (f v) @@ seqr ev
-       | BreakpointEvent ev as v -> Event.map (f v) @@ seqr ev
-       | ModuleEvent ev as v -> Event.map (f v) @@ seqr ev
-       | LoadedSourceEvent ev as v -> Event.map (f v) @@ seqr ev
-       | ProcessEvent ev as v -> Event.map (f v) @@ seqr ev
-       | CapabilitiesEvent ev as v -> Event.map (f v) @@ seqr ev
-       | ProgressStartEvent ev as v -> Event.map (f v) @@ seqr ev
-       | ProgressUpdateEvent ev as v -> Event.map (f v) @@ seqr ev
-       | ProgressEndEvent ev as v -> Event.map (f v) @@ seqr ev
-       | InvalidatedEvent ev as v -> Event.map (f v) @@ seqr ev
-       | MemoryEvent ev as v -> Event.map (f v) @@ seqr ev
+       | InitializedEvent ev as v -> map_event (f v) @@ seqr ev
+       | StoppedEvent ev as v -> map_event (f v) @@ seqr ev
+       | ContinuedEvent ev as v -> map_event (f v) @@ seqr ev
+       | ExitedEvent ev as v -> map_event (f v) @@ seqr ev
+       | TerminatedEvent ev as v -> map_event (f v) @@ seqr ev
+       | ThreadEvent ev as v -> map_event (f v) @@ seqr ev
+       | OutputEvent ev as v -> map_event (f v) @@ seqr ev
+       | BreakpointEvent ev as v -> map_event (f v) @@ seqr ev
+       | ModuleEvent ev as v -> map_event (f v) @@ seqr ev
+       | LoadedSourceEvent ev as v -> map_event (f v) @@ seqr ev
+       | ProcessEvent ev as v -> map_event (f v) @@ seqr ev
+       | CapabilitiesEvent ev as v -> map_event (f v) @@ seqr ev
+       | ProgressStartEvent ev as v -> map_event (f v) @@ seqr ev
+       | ProgressUpdateEvent ev as v -> map_event (f v) @@ seqr ev
+       | ProgressEndEvent ev as v -> map_event (f v) @@ seqr ev
+       | InvalidatedEvent ev as v -> map_event (f v) @@ seqr ev
+       | MemoryEvent ev as v -> map_event (f v) @@ seqr ev
      )

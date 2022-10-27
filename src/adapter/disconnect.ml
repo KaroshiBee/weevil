@@ -96,14 +96,14 @@ let on_disconnect_response exitCode = function
 
 let handle _t {Dap_config.launch_mode; _} req =
   let open Dap_flow in
-  let response = bind_request  req on_disconnect_request in
+  let response = request_response  req on_disconnect_request in
   (* diconnect when launched - terminate debuggee forcefully  *)
   (* disconnect when attached - dont terminate the debuggee *)
   let event = match launch_mode with
     | `Launch ->
       Logs.warn (fun m -> m "TODO: shutdown debuggee forcefully; shutdown channel");
       let exitCode = 0 in
-      Option.some @@ bind_response response (on_disconnect_response exitCode)
+      Option.some @@ response_event response (on_disconnect_response exitCode)
     | `Attach | `AttachForSuspendedLaunch ->
       Logs.warn (fun m -> m "TODO: shutdown channel");
       None

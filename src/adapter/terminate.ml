@@ -79,10 +79,10 @@ let on_terminate_response exitCode = function
 
 let handle _t _config req =
   let open Dap_flow in
-  let response = bind_request req on_terminate_request in
+  let response = request_response req on_terminate_request in
   Logs.warn (fun m -> m "TODO: shutdown debuggee gracefully; shutdown channel");
   let event =
     let exitCode = 0 in
-    Option.some @@ bind_response response (on_terminate_response exitCode)
+    Option.some @@ response_event response (on_terminate_response exitCode)
   in
   Lwt.return {response; event; error=None}

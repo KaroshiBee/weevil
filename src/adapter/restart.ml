@@ -42,5 +42,5 @@ let on_restart_request = function
 
 
 let handle _t _config req =
-  let response = Dap_flow.bind_request req on_restart_request in
+  let response = Dap_flow.request_response req on_restart_request in
   Lwt.return {response; error=None}

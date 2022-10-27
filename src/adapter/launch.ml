@@ -52,8 +52,16 @@ end
 
 include MakeReqRespIncludes_withEvent (Request) (Response) (Event)
 
+let get_onDebug = function
+  | LaunchRequest req ->
+    let args = RequestMessage.arguments req in
+    LaunchRequestArguments.noDebug args |> Option.value ~default:false
+  | _ -> false
+
 let on_launch_request Dap_config.{launch_mode; _} = function
   | LaunchRequest req when launch_mode = `Launch ->
+    let args = RequestMessage.arguments req in
+    let _ = LaunchRequestArguments.noDebug args in
     let resp =
       let command = RequestMessage.command req in
       let body = EmptyObject.make () in
@@ -91,16 +99,17 @@ let on_bad_request e _request =
 
 let handle t config req =
   let open Dap_flow in
-  let response = bind_request req (on_launch_request config) in
+  let response = request_response req (on_launch_request config) in
+  let _onDebug = Dap_flow.to_result req |> Result.map get_onDebug in
   match to_result response, oc t with
   | Result.Ok _, Some backend_oc ->
     let%lwt _ = Lwt_io.write backend_oc config.backend_cmd in
-    let event = Option.some @@ bind_response response (on_launch_response config) in
+    let event = Option.some @@ response_event response (on_launch_response config) in
     {response; event; error=None} |> Lwt.return
   | Result.Ok _, None ->
     (* TODO launch backend server *)
     (* let%lwt _ = Lwt_process.with_process_full ("", [|""|]) t.subprocess_start in *)
-    let event = Option.some @@ bind_response response (on_launch_response config) in
+    let event = Option.some @@ response_event response (on_launch_response config) in
     {response; event; error=None} |> Lwt.return
   | Result.Error err, _ ->
     let error = Option.some @@ raise_error req (on_bad_request err) in

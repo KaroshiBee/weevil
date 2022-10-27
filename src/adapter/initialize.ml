@@ -84,6 +84,6 @@ let on_initialization_response = function
 
 let handle _t _config req =
   let open Dap_flow in
-  let response = bind_request  req on_initialize_request in
-  let event = Option.some @@ bind_response response on_initialization_response in
+  let response = request_response  req on_initialize_request in
+  let event = Option.some @@ response_event response on_initialization_response in
   Lwt.return {response; event; error=None}

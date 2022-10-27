@@ -41,5 +41,5 @@ let on_cancel_request = function
   | _ -> assert false
 
 let handle _t _config req =
-  let response = Dap_flow.bind_request req on_cancel_request in
+  let response = Dap_flow.request_response req on_cancel_request in
   Lwt.return {response; error=None}
