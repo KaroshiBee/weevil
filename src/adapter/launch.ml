@@ -59,9 +59,9 @@ let get_onDebug = function
     LaunchRequestArguments.noDebug args |> Option.value ~default:false
   | _ -> false
 
-let on_launch_request Dap_config.{launch_mode; _} request =
-  match request, launch_mode with
-  | LaunchRequest req, `Launch _ ->
+let on_launch_request request =
+  match request with
+  | LaunchRequest req ->
     let resp =
       let command = RequestMessage.command req in
       let body = EmptyObject.make () in
@@ -69,19 +69,11 @@ let on_launch_request Dap_config.{launch_mode; _} request =
     in
     let ret = LaunchResponse resp in
     Dap_flow.from_response ret
-  | LaunchRequest _req, `Attach _ ->
-    let err = "wrong launch mode - config is set to Attach but got a Launch request message" in
-    Logs.err (fun m -> m "%s" err) ;
-    Dap_flow.from_result @@ Result.error err
-  | LaunchRequest _req, `AttachForSuspendedLaunch _ ->
-    let err = "wrong launch mode - config is set to AttachForSuspendedLaunch but got a Launch request message" in
-    Logs.err (fun m -> m "%s" err) ;
-    Dap_flow.from_result @@ Result.error err
-  | _, _ -> assert false
+  | _ -> assert false
 
-let on_launch_response Dap_config.{launch_mode; _} response =
-  match response, launch_mode with
-  | LaunchResponse _, `Launch _ ->
+let on_launch_response response =
+  match response with
+  | LaunchResponse _ ->
     let ev =
       let event = Dap_events.process in
       let startMethod = ProcessEvent_body_startMethod.Launch in
@@ -95,7 +87,7 @@ let on_launch_response Dap_config.{launch_mode; _} response =
     in
     let ret = ProcessEvent ev in
     Dap_flow.from_event ret
-  | _, _ -> assert false
+  | _ -> assert false
 
 let on_bad_request e _request =
   let resp = default_response_error e in
@@ -112,7 +104,7 @@ let connect t config req response =
   match Backend.oc t with
   | Some backend_oc ->
     let%lwt () = Lwt_io.write backend_oc config.stepper_cmd in
-    let event = Option.some @@ Dap_flow.response_event response (on_launch_response config) in
+    let event = Option.some @@ Dap_flow.response_event response on_launch_response in
     {response; event; error=None} |> Lwt.return
   | None ->
     let error = Option.some @@ Dap_flow.raise_error req (
@@ -121,15 +113,17 @@ let connect t config req response =
     {response; event=None; error} |> Lwt.return
 
 let handle t config req =
-  let response = Dap_flow.request_response req (on_launch_request config) in
+  let response = Dap_flow.request_response req on_launch_request in
   let _onDebug = Dap_flow.map_request req get_onDebug in
   match Dap_flow.to_result response, Backend.process_full t with
   | Result.Ok _, None ->
-    let cmd = Dap_config.to_command config.backend_cmd in
+    let cmd = Dap_config.(to_command config.backend_cmd) in
     let process = Lwt_process.open_process_full cmd in
     let () = Backend.set_process_full t process in
+    let () = Backend.set_launch_mode t `Launch in
     connect t config req response
   | Result.Ok _, Some _ ->
+    let () = Backend.set_launch_mode t `Launch in
     connect t config req response
   | Result.Error err, _ ->
     let error = Option.some @@ Dap_flow.raise_error req (on_bad_request err) in

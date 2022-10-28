@@ -44,7 +44,7 @@ let svc ~listen_address ~port =
   let () = Logs.set_reporter (Logs.format_reporter ()) in
   let () = Logs.set_level (Some Logs.Debug) in
   let mode = `TCP (`Port port) in
-  let config = Dapper.Dap_config.make ~launch_mode:(`Attach 9001) () in
+  let config = Dapper.Dap_config.make () in
   let hdl = Handler.make in
   let content_length = None in
   Lwt_main.run (

@@ -1,7 +1,7 @@
 include Test_utils
 module Js_msg = Dapper.Dap_js_msg
 
-let config = Dapper.Dap_config.make ~launch_mode:(`Attach 9001) ()
+let config = Dapper.Dap_config.make ()
 
 let%expect_test "Check cancel handler" =
   let open Cancel in

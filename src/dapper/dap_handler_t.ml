@@ -61,15 +61,18 @@ Previous handler func:
   backend:Lwt_io.output Lwt_io.channel ->
   unit Lwt.t
 *)
+type launch_mode = [`Launch | `Attach | `AttachForSuspendedLaunch ]
+
 module Backend = struct
   type io = Lwt_io.input_channel * Lwt_io.output_channel
   type t = {
-    mutable process: Lwt_process.process_full option; (* the backend svc process, None if attaching to already running one *)
-    mutable io: io option;
+    mutable process: Lwt_process.process_full option; (* the backend svc process *)
+    mutable io: io option; (* the backend comms channels *)
+    mutable launch_mode: launch_mode option;
   }
 
   let make_empty = {
-    process=None; io=None;
+    process=None; io=None; launch_mode=None;
   }
   let process_full t = t.process
   let set_process_full t process = t.process <- Some process
@@ -77,6 +80,9 @@ module Backend = struct
   let ic t = t.io |> Option.map fst
   let oc t = t.io |> Option.map snd
   let set_io t ic oc = t.io <- Some (ic, oc)
+
+  let launch_mode t = t.launch_mode
+  let set_launch_mode t launch_mode = t.launch_mode <- Some launch_mode
 
 end
 
@@ -91,6 +97,8 @@ module type HANDLER = sig
   val oc : t -> Lwt_io.output_channel option
   val set_io : t -> Lwt_io.input_channel -> Lwt_io.output_channel -> unit
 
+  val launch_mode : t -> launch_mode option
+  val set_launch_mode : t ->  launch_mode -> unit
 
   type input
   type output
