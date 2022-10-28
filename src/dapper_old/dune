@@ -1,6 +1,7 @@
 (library
  (name dapper_old)
  (libraries
+  conduit-lwt-unix
   tezos-base
   tezos-base.unix
   tezos-micheline
@@ -8,7 +9,8 @@
   tezos-stdlib-unix
   tezos-protocol-014-PtKathma
   tezos-014-PtKathma-test-helpers
-  data-encoding str)
+  data-encoding str
+ )
  (flags
   (:standard
    -linkall
