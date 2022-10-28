@@ -66,15 +66,13 @@ module Backend = struct
   type t = {
     mutable process: Lwt_process.process_full option; (* the backend svc process, None if attaching to already running one *)
     mutable io: io option;
-    callback: Lwt_process.process_full -> unit Lwt.t;
   }
 
-  let make_empty process f = {
-    process; io=None; callback=f;
+  let make_empty = {
+    process=None; io=None;
   }
   let process_full t = t.process
   let set_process_full t process = t.process <- Some process
-  let callback t = t.callback
 
   let ic t = t.io |> Option.map fst
   let oc t = t.io |> Option.map snd
@@ -85,10 +83,9 @@ end
 module type HANDLER = sig
 
   type t
-  val make_empty : Lwt_process.process_full option -> (Lwt_process.process_full -> unit Lwt.t) -> t
+  val make_empty : t
   val process_full : t -> Lwt_process.process_full option
   val set_process_full : t -> Lwt_process.process_full -> unit
-  val callback : t -> (Lwt_process.process_full -> unit Lwt.t)
 
   val ic : t -> Lwt_io.input_channel option
   val oc : t -> Lwt_io.output_channel option

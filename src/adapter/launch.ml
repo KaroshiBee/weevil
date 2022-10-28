@@ -102,36 +102,35 @@ let on_bad_request e _request =
   let ret = ErrorResponse resp in
   Dap_flow.from_response ret
 
-(* TODO
-   if backend svc io not available then connect to svc with conduit
-   init the stepper
-   check status of stepper
-*)
-let handle t config req =
-  let open Dap_flow in
-  let response = request_response req (on_launch_request config) in
-  let _onDebug = map_request req get_onDebug in
-  match to_result response, Backend.oc t with
-  | Result.Ok _, Some backend_oc ->
-    let%lwt _ = Lwt_io.write backend_oc config.stepper_cmd in
-    let event = Option.some @@ response_event response (on_launch_response config) in
+let connect t config req response =
+  let port = Dap_config.backend_port config in
+  let ip = Unix.inet_addr_loopback |> Ipaddr_unix.of_inet_addr in
+  let client = `TCP (`IP ip, `Port port) in
+  let%lwt ctx = init () in
+  let%lwt (_, ic, oc) = connect ~ctx client in
+  let () = Backend.set_io t ic oc in
+  match Backend.oc t with
+  | Some backend_oc ->
+    let%lwt () = Lwt_io.write backend_oc config.stepper_cmd in
+    let event = Option.some @@ Dap_flow.response_event response (on_launch_response config) in
     {response; event; error=None} |> Lwt.return
-  | Result.Ok _, None -> (
-      let port = Dap_config.backend_port config in
-      let ip = Unix.inet_addr_loopback |> Ipaddr_unix.of_inet_addr in
-      let client = `TCP (`IP ip, `Port port) in
-      let%lwt ctx = init () in
-      let%lwt (_, ic, oc) = connect ~ctx client in
-      let _ = Backend.set_io t ic oc in
-      match Backend.oc t with
-      | Some backend_oc ->
-        let%lwt _ = Lwt_io.write backend_oc config.stepper_cmd in
-        let event = Option.some @@ response_event response (on_launch_response config) in
-        {response; event; error=None} |> Lwt.return
-      | None ->
-        let error = Option.some @@ raise_error req (on_bad_request @@ Printf.sprintf "failed to connect to backend svc on localhost port %d" port) in
-        {response; event=None; error} |> Lwt.return
-    )
+  | None ->
+    let error = Option.some @@ Dap_flow.raise_error req (
+        on_bad_request @@ Printf.sprintf "failed to connect to backend svc on localhost port %d" port
+      ) in
+    {response; event=None; error} |> Lwt.return
+
+let handle t config req =
+  let response = Dap_flow.request_response req (on_launch_request config) in
+  let _onDebug = Dap_flow.map_request req get_onDebug in
+  match Dap_flow.to_result response, Backend.process_full t with
+  | Result.Ok _, None ->
+    let cmd = Dap_config.to_command config.backend_cmd in
+    let process = Lwt_process.open_process_full cmd in
+    let () = Backend.set_process_full t process in
+    connect t config req response
+  | Result.Ok _, Some _ ->
+    connect t config req response
   | Result.Error err, _ ->
-    let error = Option.some @@ raise_error req (on_bad_request err) in
+    let error = Option.some @@ Dap_flow.raise_error req (on_bad_request err) in
     {response; event=None; error} |> Lwt.return

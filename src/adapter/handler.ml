@@ -9,7 +9,7 @@ module type MAKE_HANDLER = sig
   type backend
 
   type t
-  val make : Lwt_process.process_full option -> (Lwt_process.process_full -> unit Lwt.t) -> t
+  val make_empty : t
   val handle : t -> Dapper.Dap_config.t -> string -> string Lwt.t
 end
 
@@ -28,8 +28,8 @@ module MakeHandler (H:HANDLER) :
     handle : H.t -> Dapper.Dap_config.t -> H.input -> H.output Lwt.t;
   }
 
-  let make subprocess callback = {
-    backend=H.make_empty subprocess callback;
+  let make_empty = {
+    backend=H.make_empty;
     string_to_input = H.string_to_input;
     output_to_string = H.output_to_string;
     handle = H.handle;
@@ -67,11 +67,11 @@ let make = {
     |> Hashtbl.of_seq;
 }
 
-let handle_exn t subprocess callback config message =
+let handle_exn t config message =
   let aux command =
     let h = Hashtbl.find t.handlers command in
     let module H = MakeHandler (val h : HANDLER) in
-    let h = H.make subprocess callback in
+    let h = H.make_empty in
     try%lwt
       let%lwt output = H.handle h config message in
       Some output |> Lwt.return
