@@ -3,6 +3,7 @@
  (libraries
      dapper
      defaults
+     backend
      lwt
      lwt.unix
      conduit-lwt-unix

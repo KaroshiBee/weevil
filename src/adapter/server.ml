@@ -17,7 +17,7 @@ let rec main_handler hdl config content_length flow ic oc =
   let frontend_io = (ic, oc) in
   match content_length with
   | Some count ->
-      Logs_lwt.info (fun m -> m "[DAP] got count %d" count) >>= fun _ ->
+      Logs_lwt.info (fun m -> m "[DAP] got message with length %d" count) >>= fun _ ->
       (* \r\n throw away *)
       Lwt_io.read ~count:2 ic >>= fun header_break ->
       assert (header_break = "\r\n") |> Lwt.return >>= fun _ ->
@@ -27,7 +27,7 @@ let rec main_handler hdl config content_length flow ic oc =
       let content_length = None in
       main_handler hdl config content_length flow ic oc
   | None -> (
-      Logs_lwt.info (fun m -> m "[DAP] no content length yet") >>= fun _ ->
+      Logs_lwt.info (fun m -> m "[DAP] waiting for messages") >>= fun _ ->
       Lwt_io.read_line_opt ic >>= function
       | Some msg ->
           let content_length = Dap_header.content_length msg in
@@ -47,6 +47,7 @@ let svc ~listen_address ~port =
   let config = Dapper.Dap_config.make () in
   let hdl = Handler.make in
   let content_length = None in
+  let () = Logs.info (fun m -> m "[DAP] starting adapter server on port %d" port) in
   Lwt_main.run (
     Conduit.init () >>= fun ctx ->
     Conduit.serve ~on_exn ~ctx ~mode (main_handler hdl config content_length)

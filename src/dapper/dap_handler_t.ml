@@ -63,10 +63,10 @@ Previous handler func:
 *)
 type launch_mode = [`Launch | `Attach | `AttachForSuspendedLaunch ]
 
-module Backend = struct
+module State = struct
   type io = Lwt_io.input_channel * Lwt_io.output_channel
   type t = {
-    mutable process: Lwt_process.process_full option; (* the backend svc process *)
+    mutable process: Lwt_process.process_none option; (* the backend svc process *)
     mutable io: io option; (* the backend comms channels *)
     mutable launch_mode: launch_mode option;
   }
@@ -74,8 +74,8 @@ module Backend = struct
   let make_empty = {
     process=None; io=None; launch_mode=None;
   }
-  let process_full t = t.process
-  let set_process_full t process = t.process <- Some process
+  let process_none t = t.process
+  let set_process_none t process = t.process <- Some process
 
   let ic t = t.io |> Option.map fst
   let oc t = t.io |> Option.map snd
@@ -90,8 +90,8 @@ module type HANDLER = sig
 
   type t
   val make_empty : t
-  val process_full : t -> Lwt_process.process_full option
-  val set_process_full : t -> Lwt_process.process_full -> unit
+  val process_none : t -> Lwt_process.process_none option
+  val set_process_none : t -> Lwt_process.process_none -> unit
 
   val ic : t -> Lwt_io.input_channel option
   val oc : t -> Lwt_io.output_channel option
@@ -148,7 +148,7 @@ module MakeReqRespIncludes
     (REQ:REQ_T)
     (RESP:RESP_T with type command = REQ.command) = struct
 
-  include Backend
+  include State
 
   type req = (REQ.command, REQ.args, REQ.presence) request
   type input = req Dap_flow.t
@@ -194,7 +194,7 @@ module MakeReqRespIncludes_withEvent
     (EV:EV_T)
     = struct
 
-  include Backend
+  include State
 
   type req = (REQ.command, REQ.args, REQ.presence) request
   type input = req Dap_flow.t

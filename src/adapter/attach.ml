@@ -81,12 +81,12 @@ let on_bad_request e _request =
 let handle t config req =
   let open Dap_flow in
   let response = request_response req on_attach_request in
-  match to_result response, Backend.oc t with
+  match to_result response, State.oc t with
   | Result.Ok _, Some backend_oc ->
     (* send an echo command to backend *)
     let%lwt () = Lwt_io.write backend_oc Dap_config.(config.backend_echo) in
     let event = Option.some @@ response_event response on_attach_response in
-    let () = Backend.set_launch_mode t `Attach in
+    let () = State.set_launch_mode t `Attach in
     {response; event; error=None} |> Lwt.return
   | Result.Ok _, None -> (
       let port = Dap_config.backend_port config in
@@ -94,12 +94,12 @@ let handle t config req =
       let client = `TCP (`IP ip, `Port port) in
       let%lwt ctx = init () in
       let%lwt (_, ic, oc) = connect ~ctx client in
-      let _ = Backend.set_io t ic oc in
-      match Backend.oc t with
+      let _ = State.set_io t ic oc in
+      match State.oc t with
       | Some _ ->
         (* NOTE dont need to start the stepper as we are in attach mode *)
         let event = Option.some @@ response_event response on_attach_response in
-        let () = Backend.set_launch_mode t `Attach in
+        let () = State.set_launch_mode t `Attach in
         {response; event; error=None} |> Lwt.return
       | None ->
         let error = Option.some @@ raise_error req (on_bad_request @@ Printf.sprintf "failed to connect to backend svc on localhost port %d" port) in

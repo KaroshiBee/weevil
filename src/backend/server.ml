@@ -17,6 +17,7 @@ let read_weevil_recs ln =
   ) else None
 
 let rec step_handler ~ic_process =
+  let%lwt _ = Logs_lwt.info (fun m -> m "[STEPPER] step handler start, waiting for messages") in
   Lwt_io.read_line_opt ic_process >>= function
   | Some msg ->
     Logs_lwt.info (fun m -> m "[STEPPER] got msg from subprocess '%s'" msg) >>= fun _ -> (
@@ -41,6 +42,8 @@ module MichEvent = struct
   type t = {
     event: ev;
   }
+
+  let make ~event () = {event;}
 
   let enc_ev =
     let open Data_encoding in
@@ -100,10 +103,8 @@ let rec main_handler ~sub_process flow ic oc =
         let oc_process = process#stdin in
         try
           Lwt_io.write oc_process "step\n" >>= fun _ ->
-          Lwt_io.write oc "0" >>= fun _ ->
           Logs_lwt.debug (fun m -> m "[MICH] Got Next request\n%s\n" msg)
         with Sys_error _ -> (
-            Lwt_io.write oc "1" >>= fun _ ->
             (* run out of contract to step through *)
             try
               (* let _ = Unix.close_process (ic_process, oc_process) in (); *)
@@ -112,6 +113,9 @@ let rec main_handler ~sub_process flow ic oc =
               Logs_lwt.warn (fun m -> m "[MICH] Process finished: unix error")
           )
       in
+      main_handler ~sub_process flow ic oc
+    | Some (Step n), Some _ ->
+      let%lwt _ = Logs_lwt.debug (fun m -> m "[MICH] TODO Step %d" n) in
       main_handler ~sub_process flow ic oc
 
     | Some Terminate, Some process when process#state = Lwt_process.Running ->
@@ -124,8 +128,8 @@ let rec main_handler ~sub_process flow ic oc =
       let%lwt _ = Logs_lwt.info (fun m -> m "[MICH] already terminated") in
       main_handler ~sub_process:None flow ic oc
 
-    | Some _, _ ->
-      let%lwt _ = Logs_lwt.debug (fun m -> m "[MICH] TODO '%s'" msg) in
+    | Some _, None ->
+      let%lwt _ = Logs_lwt.warn (fun m -> m "[MICH] LOST PROCESS '%s'" msg) in
       main_handler ~sub_process flow ic oc
 
     | None, _ ->
@@ -136,6 +140,7 @@ let rec main_handler ~sub_process flow ic oc =
   | None -> Logs_lwt.info (fun m -> m "[MICH] connection closed")
 
 and subprocess_start flow ic oc process_full =
+  let%lwt _ = Logs_lwt.info (fun m -> m "[MICH] subprocess_start") in
   let st = step_handler ~ic_process:process_full#stdout in
   let m = main_handler ~sub_process:(Some process_full) flow ic oc in
   Lwt.join [st; m]
@@ -146,8 +151,9 @@ let on_exn exn = Lwt.ignore_result @@ Logs_lwt.err (fun m -> m "%s" @@ Printexc.
 let svc ~listen_address ~port =
   let () = assert (listen_address = Unix.inet_addr_loopback) in
   let () = Logs.set_reporter (Logs.format_reporter ()) in
-  let () = Logs.set_level (Some Logs.Info) in
+  let () = Logs.set_level (Some Logs.Debug) in
   let mode = `TCP (`Port port) in
+  let () = Logs.info (fun m -> m "[MICH] starting backend server on port %d" port) in
   Lwt_main.run (
     Conduit.init () >>= fun ctx ->
     Conduit.serve ~on_exn ~ctx ~mode (main_handler ~sub_process:None)

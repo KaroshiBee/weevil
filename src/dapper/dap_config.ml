@@ -5,7 +5,7 @@ type t = {
   backend_echo: string;
   stepper_cmd: string;
 }
-let _backend_port = 9001
+let _backend_port = Defaults.Vals._DEFAULT_BACKEND_PORT
 let _backend_cmd = "dune exec -- ./src/main.exe backend"
 let _stepper_cmd = "dune exec -- ./src/main.exe stepper"
 let _backend_echo = "echo 1"

@@ -100,7 +100,7 @@ let handle t _config req =
   let response = request_response  req on_disconnect_request in
   (* diconnect when launched - terminate debuggee forcefully  *)
   (* disconnect when attached - dont terminate the debuggee *)
-  let event = match Backend.launch_mode t with
+  let event = match State.launch_mode t with
     | Some `Launch ->
       Logs.warn (fun m -> m "TODO: shutdown debuggee forcefully; shutdown channel");
       let exitCode = 0 in
