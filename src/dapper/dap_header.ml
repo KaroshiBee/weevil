@@ -12,11 +12,14 @@ let _contains s1 s2 =
       true
     with Not_found -> false
 
-let wrap msg =
+let wrap ?(add_header=true) msg =
   let s = msg |> _replace "\n" ""
   in
-  let n = String.length s in
-  Printf.sprintf "%s%d%s%s" _HEADER_FIELD n _HEADER_TOKEN s
+  if add_header then
+    let n = String.length s in
+    Printf.sprintf "%s%d%s%s" _HEADER_FIELD n _HEADER_TOKEN s
+  else
+    s
 
 let content_length =
   let rgx = Str.regexp_string _HEADER_FIELD in
