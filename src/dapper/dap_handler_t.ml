@@ -66,8 +66,10 @@ type launch_mode = [`Launch | `Attach | `AttachForSuspendedLaunch ]
 module State = struct
   type io = Lwt_io.input_channel * Lwt_io.output_channel
   type t = {
-    mutable process: Lwt_process.process_none option; (* the backend svc process *)
-    mutable io: io option; (* the backend comms channels *)
+    (* the backend svc process, using process_none to allow for std redirection if needed later on *)
+    mutable process: Lwt_process.process_none option;
+    (* the backend comms channels *)
+    mutable io: io option;
     mutable launch_mode: launch_mode option;
   }
 
