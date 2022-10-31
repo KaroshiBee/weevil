@@ -72,7 +72,6 @@ let on_attach_response response =
     Dap_flow.from_event ret
   | _ -> assert false
 
-
 let on_bad_request e _request =
   let resp = default_response_error e in
   let ret = ErrorResponse resp in
@@ -82,9 +81,7 @@ let handle t config req =
   let open Dap_flow in
   let response = request_response req on_attach_request in
   match to_result response, State.oc t with
-  | Result.Ok _, Some backend_oc ->
-    (* send an echo command to backend *)
-    let%lwt () = Lwt_io.write backend_oc Dap_config.(config.backend_echo) in
+  | Result.Ok _, Some _ ->
     let event = Option.some @@ response_event response on_attach_response in
     let () = State.set_launch_mode t `Attach in
     {response; event; error=None} |> Lwt.return
