@@ -91,4 +91,25 @@ let enc ~value =
   in
   conv_with_guard
     to_str from_str string
-      
+
+let gen =
+  QCheck.Gen.(
+    map from_string @@ oneofl [
+      "invalidated";
+      "progressEnd";
+      "progressUpdate";
+      "progressStart";
+      "capabilities";
+      "process";
+      "loadedSource";
+      "module";
+      "breakpoint";
+      "output";
+      "thread";
+      "terminated";
+      "exited";
+      "continued";
+      "stopped";
+      "initialize";
+    ]
+  )

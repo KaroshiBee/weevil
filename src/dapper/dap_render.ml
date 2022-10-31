@@ -22,7 +22,7 @@ module RenderEnum : (RenderT with type spec := Sp.Enum_spec.t) = struct
     let t_str =
       let lns = t.enums |> List.map (fun (e:Sp.Enum_spec.enum_val) -> e.safe_name) |> String.concat " | " in
       let lns = if t.suggested then lns ^ " | Other of string" else lns in
-      Printf.sprintf "type t = %s " lns
+      Printf.sprintf "type t = %s [@@deriving qcheck]" lns
     in
 
     let enc_t_s =
@@ -244,13 +244,14 @@ module RenderObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
       Printf.sprintf
         "type t \n \
          val enc : t Data_encoding.t \n \
+         val gen : t QCheck.Gen.t \n \
          val make : %s -> unit -> t \n \
          %s"
         make_sig accessors_sig
     in
     let t_str =
       let lns = t.fields |> List.map RenderObjectField.render_t |> String.concat "\n" in
-      Printf.sprintf "type t = { %s }" lns
+      Printf.sprintf "type t = { %s } [@@deriving qcheck]" lns
     in
     let enc_obj_str =
       let lns = t.fields |> List.map RenderObjectField.render_enc |> String.concat "\n" in
@@ -362,7 +363,7 @@ module RenderLargeObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
       | [] -> ""
     in
     let t_str =
-      Printf.sprintf "type t = %s" @@ aux_brkts ~sep:"*" (modstrs |> List.map (fun (nm, _, _) -> nm^".t"))
+      Printf.sprintf "type t = %s [@@deriving qcheck]" @@ aux_brkts ~sep:"*" (modstrs |> List.map (fun (nm, _, _) -> nm^".t"))
     in
     let enc_str =
       let rec aux = function
@@ -384,6 +385,7 @@ module RenderLargeObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
       Printf.sprintf
         "type t \n \
          val enc : t Data_encoding.t \n \
+         val gen : t QCheck.Gen.t \n \
          val make : %s -> unit -> t \n \
          %s"
         make_sig accessors_sig
@@ -431,7 +433,7 @@ module RenderEmptyObject : (RenderT with type spec := unit) = struct
 
   let render _t ~name =
     let t_str =
-      "type t = unit"
+      "type t = unit [@@deriving qcheck]"
     in
 
     let enc_str =
@@ -444,6 +446,7 @@ module RenderEmptyObject : (RenderT with type spec := unit) = struct
       "module %s : sig \n \
        type t \n \
        val enc : t Data_encoding.t \n \
+       val gen : t QCheck.Gen.t \n \
        val make : unit -> t \n \
        end = struct \n \
        %s\n\n \

@@ -199,4 +199,54 @@ let enc ~value =
   in
   conv_with_guard
     to_str from_str string
-      
+
+
+let gen =
+  QCheck.Gen.(
+    map from_string @@ oneofl [
+      "disassemble";
+      "writeMemory";
+      "readMemory";
+      "exceptionInfo";
+      "completions";
+      "gotoTargets";
+      "stepInTargets";
+      "setExpression";
+      "evaluate";
+      "loadedSources";
+      "modules";
+      "terminateThreads";
+      "threads";
+      "source";
+      "setVariable";
+      "variables";
+      "scopes";
+      "stackTrace";
+      "pause";
+      "goto";
+      "restartFrame";
+      "reverseContinue";
+      "stepBack";
+      "stepOut";
+      "stepIn";
+      "next";
+      "continue";
+      "setInstructionBreakpoints";
+      "setDataBreakpoints";
+      "dataBreakpointInfo";
+      "setExceptionBreakpoints";
+      "setFunctionBreakpoints";
+      "setBreakpoints";
+      "breakpointLocations";
+      "terminate";
+      "disconnect";
+      "restart";
+      "attach";
+      "launch";
+      "configurationDone";
+      "initialize";
+      "runInTerminal";
+      "cancel";
+      "error";
+    ]
+  )
