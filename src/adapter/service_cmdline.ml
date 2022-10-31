@@ -1,29 +1,15 @@
 module Defaults = Defaults.Vals
-let default_listen_address = Defaults._DEFAULT_LISTEN_ADDRESS
 let default_port = Defaults._DEFAULT_ADAPTER_PORT
 
-let process listen_address_arg port_arg =
+let process port_arg =
   let p
-      ?listen_address_arg:(listen_address:string=default_listen_address)
       ?port_arg:(port:int=default_port)
       () =
-    Server.svc ~listen_address ~port
+    Server.svc ~port
   in
-  p ?listen_address_arg ?port_arg ()
+  p ?port_arg ()
 
 module Term = struct
-
-  let listen_address_arg =
-    let open Cmdliner in
-    let doc =
-      Format.sprintf
-        "The address that the weevil DAP svc will use for IO.  \
-        If not given defaults to <%s>" default_listen_address
-
-    in
-    Arg.(
-      value & pos 0 (some string) None & info [] ~doc ~docv:"ADDRESS"
-    )
 
   let listen_port_arg =
     let open Cmdliner in
@@ -34,20 +20,20 @@ module Term = struct
 
     in
     Arg.(
-      value & pos 1 (some int) None & info [] ~doc ~docv:"PORT"
+      value & pos 0 (some int) None & info [] ~doc ~docv:"PORT"
     )
 
   let term =
     Cmdliner.Term.(
       ret
-        (const process $ listen_address_arg $ listen_port_arg)
+        (const process $ listen_port_arg)
     )
 
 end
 
 module Manpage = struct
   let command_description =
-    "Run the Weevil DAP service"
+    "Run the Weevil DAP service locally"
 
   let description = [`S "DESCRIPTION"; `P command_description]
 

@@ -39,14 +39,14 @@ let rec main_handler hdl config content_length flow ic oc =
 let on_exn exn = Lwt.ignore_result @@ Logs_lwt.err (fun m -> m "%s" @@ Printexc.to_string exn)
 
 
-let svc ~listen_address ~port =
+let svc ~port =
   let () = Logs.set_reporter (Logs.format_reporter ()) in
   let () = Logs.set_level (Some Logs.Debug) in
   let mode = `TCP (`Port port) in
-  let config = Dapper.Dap_config.make ~backend_ip:listen_address ~backend_port:port () in
+  let config = Dapper.Dap_config.make () in
   let hdl = Handler.make in
   let content_length = None in
-  let () = Logs.info (fun m -> m "[DAP] starting adapter server on port %d on '%s'" port listen_address) in
+  let () = Logs.info (fun m -> m "[DAP] starting adapter server on port %d" port) in
   Lwt_main.run (
     Conduit.init () >>= fun ctx ->
     Conduit.serve ~on_exn ~ctx ~mode (main_handler hdl config content_length)
