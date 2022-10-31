@@ -153,6 +153,10 @@ and stepper_process_start flow ic oc process_full =
 
 let on_exn exn = Lwt.ignore_result @@ Logs_lwt.err (fun m -> m "%s" @@ Printexc.to_string exn)
 
+let on_connection flow ic oc =
+  let%lwt () = Logs_lwt.info (fun m -> m "[MICH] got connection") in
+  main_handler flow ic oc
+
 let svc ~port =
   let () = Logs.set_reporter (Logs.format_reporter ()) in
   let () = Logs.set_level (Some Logs.Debug) in
@@ -160,7 +164,7 @@ let svc ~port =
   let () = Logs.info (fun m -> m "[MICH] starting backend server on port %d" port) in
   Lwt_main.run (
     Conduit.init () >>= fun ctx ->
-    Conduit.serve ~on_exn ~ctx ~mode main_handler
+    Conduit.serve ~on_exn ~ctx ~mode on_connection
     >|= fun _ ->
     `Ok ()
   )

@@ -38,6 +38,9 @@ let rec main_handler hdl config content_length flow ic oc =
 
 let on_exn exn = Lwt.ignore_result @@ Logs_lwt.err (fun m -> m "%s" @@ Printexc.to_string exn)
 
+let on_connection hdl config content_length flow ic oc =
+  let%lwt () = Logs_lwt.info (fun m -> m "[DAP] got connection") in
+  main_handler hdl config content_length flow ic oc
 
 let svc ~port =
   let () = Logs.set_reporter (Logs.format_reporter ()) in
@@ -49,7 +52,7 @@ let svc ~port =
   let () = Logs.info (fun m -> m "[DAP] starting adapter server on port %d" port) in
   Lwt_main.run (
     Conduit.init () >>= fun ctx ->
-    Conduit.serve ~on_exn ~ctx ~mode (main_handler hdl config content_length)
+    Conduit.serve ~on_exn ~ctx ~mode (on_connection  hdl config content_length)
     >|= fun _ ->
     `Ok ()
   )

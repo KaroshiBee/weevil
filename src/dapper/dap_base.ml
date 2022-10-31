@@ -49,6 +49,8 @@
 
 *)
 
+type launch_mode = [`Launch | `Attach | `AttachForSuspendedLaunch ]
+
 
 (* some helper modules *)
 module EmptyObject : sig

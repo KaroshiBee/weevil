@@ -64,7 +64,7 @@ module Event = struct
 end
 
 
-include MakeReqRespIncludes_withEvent (Request) (Response) (Event)
+include MakeReqRespIncludes_withEvent (State) (Request) (Response) (Event)
 
 let on_disconnect_request = function
   | DisconnectRequest req ->

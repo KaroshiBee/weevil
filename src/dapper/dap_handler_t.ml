@@ -61,35 +61,19 @@ Previous handler func:
   backend:Lwt_io.output Lwt_io.channel ->
   unit Lwt.t
 *)
-type launch_mode = [`Launch | `Attach | `AttachForSuspendedLaunch ]
+module type HANDLER = sig
+  type t
+  type input
+  type output
 
-module State = struct
-  type io = Lwt_io.input_channel * Lwt_io.output_channel
-  type t = {
-    (* the backend svc process, using process_none to allow for std redirection if needed later on *)
-    mutable process: Lwt_process.process_none option;
-    (* the backend comms channels *)
-    mutable io: io option;
-    mutable launch_mode: launch_mode option;
-  }
-
-  let make_empty = {
-    process=None; io=None; launch_mode=None;
-  }
-  let process_none t = t.process
-  let set_process_none t process = t.process <- Some process
-
-  let ic t = t.io |> Option.map fst
-  let oc t = t.io |> Option.map snd
-  let set_io t ic oc = t.io <- Some (ic, oc)
-
-  let launch_mode t = t.launch_mode
-  let set_launch_mode t launch_mode = t.launch_mode <- Some launch_mode
-
+  val make_empty : t
+  val string_to_input : string -> input
+  (* NOTE when handling a request we will be interacting with the backend, hence the Lwt.t  *)
+  val handle : t -> Dap_config.t -> input -> output Lwt.t
+  val output_to_string : output -> (string, string) Result.t Lwt.t
 end
 
-module type HANDLER = sig
-
+module type STATE_T = sig
   type t
   val make_empty : t
   val process_none : t -> Lwt_process.process_none option
@@ -99,16 +83,8 @@ module type HANDLER = sig
   val oc : t -> Lwt_io.output_channel option
   val set_io : t -> Lwt_io.input_channel -> Lwt_io.output_channel -> unit
 
-  val launch_mode : t -> launch_mode option
-  val set_launch_mode : t ->  launch_mode -> unit
-
-  type input
-  type output
-  val string_to_input : string -> input
-  (* NOTE when handling a request we will be interacting with the backend, hence the Lwt.t  *)
-  val handle : t -> Dap_config.t -> input -> output Lwt.t
-  val output_to_string : output -> (string, string) Result.t Lwt.t
-
+  val launch_mode : t -> Dap_base.launch_mode option
+  val set_launch_mode : t ->  Dap_base.launch_mode -> unit
 end
 
 module type REQ_T = sig
@@ -147,11 +123,11 @@ end
 type error = (Dap_commands.error, ErrorResponse_body.t, ResponseMessage.req) response
 
 module MakeReqRespIncludes
+    (ST:STATE_T)
     (REQ:REQ_T)
     (RESP:RESP_T with type command = REQ.command) = struct
 
-  include State
-
+  type t = ST.t
   type req = (REQ.command, REQ.args, REQ.presence) request
   type input = req Dap_flow.t
 
@@ -161,6 +137,8 @@ module MakeReqRespIncludes
     response: resp Dap_flow.t;
     error: error Dap_flow.t option;
   }
+
+  let make_empty = ST.make_empty
 
   let string_to_input =
     fun input ->
@@ -191,13 +169,12 @@ end
 
 
 module MakeReqRespIncludes_withEvent
+    (ST:STATE_T)
     (REQ:REQ_T)
     (RESP:RESP_T with type command = REQ.command)
-    (EV:EV_T)
-    = struct
+    (EV:EV_T) = struct
 
-  include State
-
+  type t = ST.t
   type req = (REQ.command, REQ.args, REQ.presence) request
   type input = req Dap_flow.t
 
@@ -209,6 +186,8 @@ module MakeReqRespIncludes_withEvent
     event: ev Dap_flow.t option;
     error: error Dap_flow.t option;
   }
+
+  let make_empty = ST.make_empty
 
   let string_to_input =
     fun input ->

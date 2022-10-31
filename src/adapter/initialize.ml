@@ -58,7 +58,7 @@ module Event = struct
 end
 
 
-include MakeReqRespIncludes_withEvent (Request) (Response) (Event)
+include MakeReqRespIncludes_withEvent (State) (Request) (Response) (Event)
 
 let on_initialize_request = function
   | InitializeRequest req ->

@@ -27,7 +27,7 @@ module Response = struct
 end
 
 
-include MakeReqRespIncludes (Request) (Response)
+include MakeReqRespIncludes (State) (Request) (Response)
 
 let on_restart_request = function
   | RestartRequest req ->
