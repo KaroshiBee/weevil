@@ -98,7 +98,7 @@ let on_bad_request e _request =
 
 let connect t config req response =
   let port = Dap_config.backend_port config in
-  let ip = Unix.inet_addr_loopback |> Ipaddr_unix.of_inet_addr in
+  let ip = Dap_config.backend_ip config in
   let client = `TCP (`IP ip, `Port port) in
   let%lwt ctx = init () in
   let%lwt (_, ic, oc) =

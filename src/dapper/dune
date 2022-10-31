@@ -1,6 +1,6 @@
 (library
  (name dapper)
- (libraries defaults lwt lwt.unix data-encoding cmdliner logs ppx_expect str)
+ (libraries defaults lwt lwt.unix conduit-lwt-unix data-encoding cmdliner logs ppx_expect str)
  (inline_tests (deps (glob_files data/*.json)))
   (preprocess (pps ppx_deriving.show ppx_expect))
 )

@@ -2,18 +2,11 @@ module Defaults = Defaults.Vals
 let default_listen_address = Defaults._DEFAULT_LISTEN_ADDRESS
 let default_port = Defaults._DEFAULT_ADAPTER_PORT
 
-let make_address addr_str = match default_listen_address = addr_str with
-  | true ->
-    Unix.inet_addr_loopback
-  | false ->
-    Unix.inet_addr_of_string addr_str
-
 let process listen_address_arg port_arg =
   let p
       ?listen_address_arg:(listen_address:string=default_listen_address)
       ?port_arg:(port:int=default_port)
       () =
-    let listen_address = make_address listen_address in
     Server.svc ~listen_address ~port
   in
   p ?listen_address_arg ?port_arg ()

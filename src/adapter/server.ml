@@ -40,14 +40,13 @@ let on_exn exn = Lwt.ignore_result @@ Logs_lwt.err (fun m -> m "%s" @@ Printexc.
 
 
 let svc ~listen_address ~port =
-  let () = assert (listen_address = Unix.inet_addr_loopback) in
   let () = Logs.set_reporter (Logs.format_reporter ()) in
   let () = Logs.set_level (Some Logs.Debug) in
   let mode = `TCP (`Port port) in
-  let config = Dapper.Dap_config.make () in
+  let config = Dapper.Dap_config.make ~backend_ip:listen_address ~backend_port:port () in
   let hdl = Handler.make in
   let content_length = None in
-  let () = Logs.info (fun m -> m "[DAP] starting adapter server on port %d" port) in
+  let () = Logs.info (fun m -> m "[DAP] starting adapter server on port %d on '%s'" port listen_address) in
   Lwt_main.run (
     Conduit.init () >>= fun ctx ->
     Conduit.serve ~on_exn ~ctx ~mode (main_handler hdl config content_length)

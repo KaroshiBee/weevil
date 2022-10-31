@@ -1,18 +1,29 @@
 
 type t = {
+  backend_ip: string;
   backend_port: int;
   backend_cmd: string;
   backend_echo: string;
   stepper_cmd: string;
 }
+let _backend_ip = Defaults.Vals._DEFAULT_LISTEN_ADDRESS
 let _backend_port = Defaults.Vals._DEFAULT_BACKEND_PORT
 let _backend_cmd = "dune exec -- ./src/main.exe backend"
-let _stepper_cmd = "dune exec -- ./src/main.exe stepper"
+let _stepper_cmd = "dune exec -- ./src/main.exe stepper example.tz"
 let _backend_echo = "echo 1"
 
-let make ?(backend_port=_backend_port) ?(backend_cmd=_backend_cmd) ?(stepper_cmd=_stepper_cmd) ?(backend_echo=_backend_echo) () =
-  {backend_port; backend_cmd; stepper_cmd; backend_echo}
+let make ?(backend_ip=_backend_ip) ?(backend_port=_backend_port) ?(backend_cmd=_backend_cmd) ?(stepper_cmd=_stepper_cmd) ?(backend_echo=_backend_echo) () =
+  {backend_ip; backend_port; backend_cmd; stepper_cmd; backend_echo}
+
+
+let make_address addr_str = match _backend_ip = addr_str with
+  | true ->
+    Unix.inet_addr_loopback
+  | false ->
+    Unix.inet_addr_of_string addr_str
 
 let backend_port t = t.backend_port
+
+let backend_ip t = t.backend_ip |> make_address |> Ipaddr_unix.of_inet_addr
 
 let to_command s = ("", s |> String.split_on_char ' ' |> Array.of_list)

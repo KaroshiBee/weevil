@@ -153,8 +153,7 @@ and stepper_process_start flow ic oc process_full =
 
 let on_exn exn = Lwt.ignore_result @@ Logs_lwt.err (fun m -> m "%s" @@ Printexc.to_string exn)
 
-let svc ~listen_address ~port =
-  let () = assert (listen_address = Unix.inet_addr_loopback) in
+let svc ~port =
   let () = Logs.set_reporter (Logs.format_reporter ()) in
   let () = Logs.set_level (Some Logs.Debug) in
   let mode = `TCP (`Port port) in
