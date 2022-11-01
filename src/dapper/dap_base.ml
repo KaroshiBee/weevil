@@ -70,7 +70,7 @@ let gen_int31_list_opt =
   QCheck.Gen.(option @@ list gen_int31)
 
 (* TODO proper gen for json *)
-let gen_json = QCheck.Gen.(map (fun x -> `String x) string)
+let gen_json = QCheck.Gen.(map (fun x -> `String x) gen_utf8_str)
 let gen_json_opt = QCheck.Gen.option gen_json
 
 (* some helper modules *)
