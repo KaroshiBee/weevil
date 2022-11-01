@@ -155,7 +155,7 @@ module StoppedEvent_body_reason = struct
     | Function_breakpoint
     | Data_breakpoint
     | Instruction_breakpoint
-    | Other of string
+    | Other of (string [@gen gen_utf8_str])
   [@@deriving qcheck]
 
   let enc =
@@ -387,7 +387,7 @@ end
 
 (* dont bother with a sig for enums, the inferred one is fine *)
 module ThreadEvent_body_reason = struct
-  type t = Started | Exited | Other of string [@@deriving qcheck]
+  type t = Started | Exited | Other of (string [@gen gen_utf8_str]) [@@deriving qcheck]
 
   let enc =
     let open Data_encoding in
@@ -433,7 +433,7 @@ end
 
 (* dont bother with a sig for enums, the inferred one is fine *)
 module OutputEvent_body_category = struct
-  type t = Console | Important | Stdout | Stderr | Telemetry | Other of string
+  type t = Console | Important | Stdout | Stderr | Telemetry | Other of (string [@gen gen_utf8_str])
   [@@deriving qcheck]
 
   let enc =
@@ -787,7 +787,7 @@ end
 
 (* dont bother with a sig for enums, the inferred one is fine *)
 module BreakpointEvent_body_reason = struct
-  type t = Changed | New | Removed | Other of string [@@deriving qcheck]
+  type t = Changed | New | Removed | Other of (string [@gen gen_utf8_str]) [@@deriving qcheck]
 
   let enc =
     let open Data_encoding in
@@ -2638,7 +2638,7 @@ end
 
 (* dont bother with a sig for enums, the inferred one is fine *)
 module InvalidatedAreas = struct
-  type t = All | Stacks | Threads | Variables | Other of string
+  type t = All | Stacks | Threads | Variables | Other of (string [@gen gen_utf8_str])
   [@@deriving qcheck]
 
   let enc =
@@ -2860,7 +2860,7 @@ end
 
 (* dont bother with a sig for enums, the inferred one is fine *)
 module InitializeRequestArguments_pathFormat = struct
-  type t = Path | Uri | Other of string [@@deriving qcheck]
+  type t = Path | Uri | Other of (string [@gen gen_utf8_str]) [@@deriving qcheck]
 
   let enc =
     let open Data_encoding in
@@ -5189,7 +5189,7 @@ end
 
 (* dont bother with a sig for enums, the inferred one is fine *)
 module Scope_presentationHint = struct
-  type t = Arguments | Locals | Registers | Other of string
+  type t = Arguments | Locals | Registers | Other of (string [@gen gen_utf8_str])
   [@@deriving qcheck]
 
   let enc =
@@ -5599,7 +5599,7 @@ module VariablePresentationHint_kind = struct
     | MostDerivedClass
     | Virtual
     | DataBreakpoint
-    | Other of string
+    | Other of (string [@gen gen_utf8_str])
   [@@deriving qcheck]
 
   let enc =
@@ -5645,7 +5645,7 @@ module VariablePresentationHint_attributes_items = struct
     | CanHaveObjectId
     | HasSideEffects
     | HasDataBreakpoint
-    | Other of string
+    | Other of (string [@gen gen_utf8_str])
   [@@deriving qcheck]
 
   let enc =
@@ -5676,7 +5676,7 @@ end
 
 (* dont bother with a sig for enums, the inferred one is fine *)
 module VariablePresentationHint_visibility = struct
-  type t = Public | Private | Protected | Internal | Final | Other of string
+  type t = Public | Private | Protected | Internal | Final | Other of (string [@gen gen_utf8_str])
   [@@deriving qcheck]
 
   let enc =
@@ -6304,7 +6304,7 @@ end
 
 (* dont bother with a sig for enums, the inferred one is fine *)
 module EvaluateArguments_context = struct
-  type t = Variables | Watch | Repl | Hover | Clipboard | Other of string
+  type t = Variables | Watch | Repl | Hover | Clipboard | Other of (string [@gen gen_utf8_str])
   [@@deriving qcheck]
 
   let enc =
