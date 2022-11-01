@@ -471,8 +471,8 @@ module RenderRequest : (RenderT with type spec := Sp.Obj_spec.t) = struct
         in
         "",
         Printf.sprintf
-          "| %s : %s RequestMessage.t -> %s request"
-          name ty_params ty_params
+          "| %s : %s RequestMessage.t -> request"
+          name ty_params
 
     | Some args ->
         let ty_params = Printf.sprintf "(%s.%s, %s.t option, RequestMessage.opt)"
@@ -482,8 +482,8 @@ module RenderRequest : (RenderT with type spec := Sp.Obj_spec.t) = struct
         in
         "",
         Printf.sprintf
-          "| %s : %s RequestMessage.t -> %s request"
-          name ty_params ty_params
+          "| %s : %s RequestMessage.t -> request"
+          name ty_params
 
     | None ->
         let ty_params = Printf.sprintf "(%s.%s, %s.t option, RequestMessage.opt)"
@@ -493,8 +493,8 @@ module RenderRequest : (RenderT with type spec := Sp.Obj_spec.t) = struct
         in
         "",
         Printf.sprintf
-          "| %s : %s RequestMessage.t -> %s request"
-          name ty_params ty_params
+          "| %s : %s RequestMessage.t -> request"
+          name ty_params
 
 end
 
@@ -515,8 +515,8 @@ module RenderResponse : (RenderT with type spec := Sp.Obj_spec.t) = struct
         in
         "",
         Printf.sprintf
-          "| %s : %s ResponseMessage.t -> %s response"
-          name ty_params ty_params
+          "| %s : %s ResponseMessage.t -> response"
+          name ty_params
 
     | Some body ->
         let ty_params = Printf.sprintf "(%s.%s, %s.t option, ResponseMessage.opt)"
@@ -526,8 +526,8 @@ module RenderResponse : (RenderT with type spec := Sp.Obj_spec.t) = struct
         in
         "",
         Printf.sprintf
-          "| %s : %s ResponseMessage.t -> %s response"
-          name ty_params ty_params
+          "| %s : %s ResponseMessage.t -> response"
+          name ty_params
 
     | None ->
         let ty_params = Printf.sprintf "(%s.%s, %s.t option, ResponseMessage.opt)"
@@ -537,8 +537,8 @@ module RenderResponse : (RenderT with type spec := Sp.Obj_spec.t) = struct
         in
         "",
         Printf.sprintf
-          "| %s : %s ResponseMessage.t -> %s response"
-          name ty_params ty_params
+          "| %s : %s ResponseMessage.t -> response"
+          name ty_params
 
 end
 
@@ -559,8 +559,8 @@ module RenderEvent : (RenderT with type spec := Sp.Obj_spec.t) = struct
         in
         "",
         Printf.sprintf
-          "| %s : %s EventMessage.t -> %s event"
-          name ty_params ty_params
+          "| %s : %s EventMessage.t -> event"
+          name ty_params
 
     | Some body ->
         let ty_params = Printf.sprintf "(%s.%s, %s.t option, EventMessage.opt)"
@@ -570,8 +570,8 @@ module RenderEvent : (RenderT with type spec := Sp.Obj_spec.t) = struct
         in
         "",
         Printf.sprintf
-          "| %s : %s EventMessage.t -> %s event"
-          name ty_params ty_params
+          "| %s : %s EventMessage.t -> event"
+          name ty_params
 
     | None ->
         let ty_params = Printf.sprintf "(%s.%s, %s.t option, EventMessage.opt)"
@@ -581,8 +581,8 @@ module RenderEvent : (RenderT with type spec := Sp.Obj_spec.t) = struct
         in
         "",
         Printf.sprintf
-          "| %s : %s EventMessage.t -> %s event"
-          name ty_params ty_params
+          "| %s : %s EventMessage.t -> event"
+          name ty_params
 
 end
 
@@ -637,9 +637,9 @@ let render (dfs:Dfs.t) = function
        module ResponseMessage = Dap_response\n \
        module EventMessage = Dap_event\n\n \
        %s\n\n \
-       type (_,_,_) request = \n%s\n\n \
-       type (_,_,_) response = \n%s\n\n \
-       type (_,_,_) event = \n%s\n\n"
+       type request = \n%s\n\n \
+       type response = \n%s\n\n \
+       type event = \n%s\n\n"
       smods sreqs sresps sevents
   | Commands ML ->
     let ml, _ = RenderEnumWithPhantoms.(of_spec dfs.command_enum |> render ~name:CommandHelper.module_name) in

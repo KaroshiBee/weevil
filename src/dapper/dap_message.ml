@@ -8345,3 +8345,21 @@ type (_, _, _) event =
   | MemoryEvent :
       (Dap_events.memory, MemoryEvent_body.t, EventMessage.req) EventMessage.t
       -> (Dap_events.memory, MemoryEvent_body.t, EventMessage.req) event
+
+let initializedEvent ev = InitializedEvent ev
+let stoppedEvent ev = StoppedEvent ev
+let continuedEvent ev = ContinuedEvent ev
+let exitedEvent ev = ExitedEvent ev
+let terminatedEvent ev = TerminatedEvent ev
+let threadEvent ev = ThreadEvent ev
+let outputEvent ev = OutputEvent ev
+let breakpointEvent ev = BreakpointEvent ev
+let moduleEvent ev = ModuleEvent ev
+let loadedSourceEvent ev = LoadedSourceEvent ev
+let processEvent ev = ProcessEvent ev
+let capabilitiesEvent ev = CapabilitiesEvent ev
+let progressStartEvent ev = ProgressStartEvent ev
+let progressUpdateEvent ev = ProgressUpdateEvent ev
+let progressEndEvent ev = ProgressEndEvent ev
+let invalidatedEvent ev = InvalidatedEvent ev
+let memoryEvent ev = MemoryEvent ev
