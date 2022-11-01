@@ -9,7 +9,110 @@ let to_result x = x
 let from_request = Result.ok
 let from_response = Result.ok
 let from_event = Result.ok
+(* is there a way of lifting
+   (cmd, _, _) RequestMessage.t -> (cmd, _, _) ResponseMessage.t
+   into
+   request -> response
+   ?
+*)
 
+module type Handle_T = sig
+
+  type cmd
+  type args
+  type pargs
+  type body
+  type pbody
+
+  type t
+  val make : ((cmd, args, pargs) RequestMessage.t -> (cmd, body, pbody) ResponseMessage.t) -> t
+  val lift : t -> (request -> (response, string) Result.t)
+end
+
+
+
+module Seqr (H:Handle_T)
+  : sig
+
+    type t
+    val make : ((H.cmd, H.args, H.pargs) RequestMessage.t -> (H.cmd, H.body, H.pbody) ResponseMessage.t) -> t
+    val sequence : t -> request -> (response, string) Result.t
+
+  end
+= struct
+
+  type t = H.t
+
+  let make f =
+    let f' = fun req ->
+      let request_seq = RequestMessage.seq req in
+      let seq = 1 + request_seq in
+      let resp = f req in
+      let resp = ResponseMessage.set_request_seq resp ~request_seq in
+      let resp = ResponseMessage.set_seq resp ~seq in
+      resp
+    in
+    H.make f'
+
+  let sequence t req =
+    H.lift t req
+
+end
+
+module Launch = Seqr (struct
+  type cmd = Dap_commands.launch
+  type args = LaunchRequestArguments.t
+  type pargs = Dap_base.Presence.req
+  type body = EmptyObject.t option
+  type pbody = Dap_base.Presence.opt
+  type t = {
+    f: (cmd, args, pargs) RequestMessage.t -> (cmd, body, pbody) ResponseMessage.t;
+  }
+
+  let make f = {f;}
+
+  let lift {f;} = function
+    | LaunchRequest req -> f req |> launchResponse |> Result.ok
+    | _ -> Result.Error "wrong request"
+
+end)
+
+
+module Attach = Seqr (struct
+  type cmd = Dap_commands.attach
+  type args = AttachRequestArguments.t
+  type pargs = Dap_base.Presence.req
+  type body = EmptyObject.t option
+  type pbody = Dap_base.Presence.opt
+  type t = {
+    f: (cmd, args, pargs) RequestMessage.t -> (cmd, body, pbody) ResponseMessage.t;
+  }
+
+  let make f = {f;}
+
+  let lift {f;} = function
+    | AttachRequest req -> f req |> attachResponse |> Result.ok
+    | _ -> Result.Error "wrong request"
+
+end)
+
+module Completions = Seqr (struct
+  type cmd = Dap_commands.completions
+  type args = CompletionsArguments.t
+  type pargs = Dap_base.Presence.req
+  type body = CompletionsResponse_body.t
+  type pbody = Dap_base.Presence.req
+  type t = {
+    f: (cmd, args, pargs) RequestMessage.t -> (cmd, body, pbody) ResponseMessage.t;
+  }
+
+  let make f = {f;}
+
+  let lift {f;} = function
+    | CompletionsRequest req -> f req |> completionsResponse |> Result.ok
+    | _ -> Result.Error "wrong request"
+
+end)
 
 (* problem is making the response or event,
    dont know what presence or event type it is *)
