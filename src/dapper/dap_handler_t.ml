@@ -120,7 +120,7 @@ module type EV_T = sig
   val extract : (event, body, presence) Dap_message.event -> (event, body, presence) t
 end
 
-type error = (Dap_commands.error, ErrorResponse_body.t, ResponseMessage.req) response
+type error = (Dap_commands.error, ErrorResponse_body.t, Presence.req) response
 
 module MakeReqRespIncludes
     (ST:STATE_T)

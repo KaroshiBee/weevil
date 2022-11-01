@@ -1,5 +1,3 @@
-include Dap_base.PRESENCE
-
 type ('cmd, 'body, 'presence) t
 
 val seq : ('cmd, 'body, 'presence) t -> int
@@ -22,10 +20,10 @@ val message : ('cmd, 'body, 'presence) t -> string option
 
 val body : ('cmd, 'body, 'presence) t -> 'body
 
-val enc : 'cmd Dap_commands.t -> 'body Data_encoding.t -> ('cmd, 'body, req) t Data_encoding.t
+val enc : 'cmd Dap_commands.t -> 'body Data_encoding.t -> ('cmd, 'body, Dap_base.Presence.req) t Data_encoding.t
 
 val enc_opt :
-  'cmd Dap_commands.t -> 'body Data_encoding.t -> ('cmd, 'body option, opt) t Data_encoding.t
+  'cmd Dap_commands.t -> 'body Data_encoding.t -> ('cmd, 'body option, Dap_base.Presence.opt) t Data_encoding.t
 
 val make :
   seq:int ->
@@ -35,7 +33,7 @@ val make :
   ?message:string ->
   body:'body ->
   unit ->
-  ('cmd, 'body, req) t
+  ('cmd, 'body, Dap_base.Presence.req) t
 
 val make_opt :
   seq:int ->
@@ -45,4 +43,4 @@ val make_opt :
   ?message:string ->
   ?body:'body ->
   unit ->
-  ('cmd, 'body option, opt) t
+  ('cmd, 'body option, Dap_base.Presence.opt) t

@@ -5019,49 +5019,49 @@ end = struct
 
 
  type request = 
-| CancelRequest : (Dap_commands.cancel, CancelArguments.t option, RequestMessage.opt) RequestMessage.t -> request
-| RunInTerminalRequest : (Dap_commands.runInTerminal, RunInTerminalRequestArguments.t, RequestMessage.req) RequestMessage.t -> request
-| InitializeRequest : (Dap_commands.initialize, InitializeRequestArguments.t, RequestMessage.req) RequestMessage.t -> request
-| ConfigurationDoneRequest : (Dap_commands.configurationDone, ConfigurationDoneArguments.t option, RequestMessage.opt) RequestMessage.t -> request
-| LaunchRequest : (Dap_commands.launch, LaunchRequestArguments.t, RequestMessage.req) RequestMessage.t -> request
-| AttachRequest : (Dap_commands.attach, AttachRequestArguments.t, RequestMessage.req) RequestMessage.t -> request
-| RestartRequest : (Dap_commands.restart, RestartArguments.t option, RequestMessage.opt) RequestMessage.t -> request
-| DisconnectRequest : (Dap_commands.disconnect, DisconnectArguments.t option, RequestMessage.opt) RequestMessage.t -> request
-| TerminateRequest : (Dap_commands.terminate, TerminateArguments.t option, RequestMessage.opt) RequestMessage.t -> request
-| BreakpointLocationsRequest : (Dap_commands.breakpointLocations, BreakpointLocationsArguments.t option, RequestMessage.opt) RequestMessage.t -> request
-| SetBreakpointsRequest : (Dap_commands.setBreakpoints, SetBreakpointsArguments.t, RequestMessage.req) RequestMessage.t -> request
-| SetFunctionBreakpointsRequest : (Dap_commands.setFunctionBreakpoints, SetFunctionBreakpointsArguments.t, RequestMessage.req) RequestMessage.t -> request
-| SetExceptionBreakpointsRequest : (Dap_commands.setExceptionBreakpoints, SetExceptionBreakpointsArguments.t, RequestMessage.req) RequestMessage.t -> request
-| DataBreakpointInfoRequest : (Dap_commands.dataBreakpointInfo, DataBreakpointInfoArguments.t, RequestMessage.req) RequestMessage.t -> request
-| SetDataBreakpointsRequest : (Dap_commands.setDataBreakpoints, SetDataBreakpointsArguments.t, RequestMessage.req) RequestMessage.t -> request
-| SetInstructionBreakpointsRequest : (Dap_commands.setInstructionBreakpoints, SetInstructionBreakpointsArguments.t, RequestMessage.req) RequestMessage.t -> request
-| ContinueRequest : (Dap_commands.continue, ContinueArguments.t, RequestMessage.req) RequestMessage.t -> request
-| NextRequest : (Dap_commands.next, NextArguments.t, RequestMessage.req) RequestMessage.t -> request
-| StepInRequest : (Dap_commands.stepIn, StepInArguments.t, RequestMessage.req) RequestMessage.t -> request
-| StepOutRequest : (Dap_commands.stepOut, StepOutArguments.t, RequestMessage.req) RequestMessage.t -> request
-| StepBackRequest : (Dap_commands.stepBack, StepBackArguments.t, RequestMessage.req) RequestMessage.t -> request
-| ReverseContinueRequest : (Dap_commands.reverseContinue, ReverseContinueArguments.t, RequestMessage.req) RequestMessage.t -> request
-| RestartFrameRequest : (Dap_commands.restartFrame, RestartFrameArguments.t, RequestMessage.req) RequestMessage.t -> request
-| GotoRequest : (Dap_commands.goto, GotoArguments.t, RequestMessage.req) RequestMessage.t -> request
-| PauseRequest : (Dap_commands.pause, PauseArguments.t, RequestMessage.req) RequestMessage.t -> request
-| StackTraceRequest : (Dap_commands.stackTrace, StackTraceArguments.t, RequestMessage.req) RequestMessage.t -> request
-| ScopesRequest : (Dap_commands.scopes, ScopesArguments.t, RequestMessage.req) RequestMessage.t -> request
-| VariablesRequest : (Dap_commands.variables, VariablesArguments.t, RequestMessage.req) RequestMessage.t -> request
-| SetVariableRequest : (Dap_commands.setVariable, SetVariableArguments.t, RequestMessage.req) RequestMessage.t -> request
-| SourceRequest : (Dap_commands.source, SourceArguments.t, RequestMessage.req) RequestMessage.t -> request
-| ThreadsRequest : (Dap_commands.threads, EmptyObject.t option, RequestMessage.opt) RequestMessage.t -> request
-| TerminateThreadsRequest : (Dap_commands.terminateThreads, TerminateThreadsArguments.t, RequestMessage.req) RequestMessage.t -> request
-| ModulesRequest : (Dap_commands.modules, ModulesArguments.t, RequestMessage.req) RequestMessage.t -> request
-| LoadedSourcesRequest : (Dap_commands.loadedSources, LoadedSourcesArguments.t option, RequestMessage.opt) RequestMessage.t -> request
-| EvaluateRequest : (Dap_commands.evaluate, EvaluateArguments.t, RequestMessage.req) RequestMessage.t -> request
-| SetExpressionRequest : (Dap_commands.setExpression, SetExpressionArguments.t, RequestMessage.req) RequestMessage.t -> request
-| StepInTargetsRequest : (Dap_commands.stepInTargets, StepInTargetsArguments.t, RequestMessage.req) RequestMessage.t -> request
-| GotoTargetsRequest : (Dap_commands.gotoTargets, GotoTargetsArguments.t, RequestMessage.req) RequestMessage.t -> request
-| CompletionsRequest : (Dap_commands.completions, CompletionsArguments.t, RequestMessage.req) RequestMessage.t -> request
-| ExceptionInfoRequest : (Dap_commands.exceptionInfo, ExceptionInfoArguments.t, RequestMessage.req) RequestMessage.t -> request
-| ReadMemoryRequest : (Dap_commands.readMemory, ReadMemoryArguments.t, RequestMessage.req) RequestMessage.t -> request
-| WriteMemoryRequest : (Dap_commands.writeMemory, WriteMemoryArguments.t, RequestMessage.req) RequestMessage.t -> request
-| DisassembleRequest : (Dap_commands.disassemble, DisassembleArguments.t, RequestMessage.req) RequestMessage.t -> request
+| CancelRequest : (Dap_commands.cancel, CancelArguments.t option, Presence.opt) RequestMessage.t -> request
+| RunInTerminalRequest : (Dap_commands.runInTerminal, RunInTerminalRequestArguments.t, Presence.req) RequestMessage.t -> request
+| InitializeRequest : (Dap_commands.initialize, InitializeRequestArguments.t, Presence.req) RequestMessage.t -> request
+| ConfigurationDoneRequest : (Dap_commands.configurationDone, ConfigurationDoneArguments.t option, Presence.opt) RequestMessage.t -> request
+| LaunchRequest : (Dap_commands.launch, LaunchRequestArguments.t, Presence.req) RequestMessage.t -> request
+| AttachRequest : (Dap_commands.attach, AttachRequestArguments.t, Presence.req) RequestMessage.t -> request
+| RestartRequest : (Dap_commands.restart, RestartArguments.t option, Presence.opt) RequestMessage.t -> request
+| DisconnectRequest : (Dap_commands.disconnect, DisconnectArguments.t option, Presence.opt) RequestMessage.t -> request
+| TerminateRequest : (Dap_commands.terminate, TerminateArguments.t option, Presence.opt) RequestMessage.t -> request
+| BreakpointLocationsRequest : (Dap_commands.breakpointLocations, BreakpointLocationsArguments.t option, Presence.opt) RequestMessage.t -> request
+| SetBreakpointsRequest : (Dap_commands.setBreakpoints, SetBreakpointsArguments.t, Presence.req) RequestMessage.t -> request
+| SetFunctionBreakpointsRequest : (Dap_commands.setFunctionBreakpoints, SetFunctionBreakpointsArguments.t, Presence.req) RequestMessage.t -> request
+| SetExceptionBreakpointsRequest : (Dap_commands.setExceptionBreakpoints, SetExceptionBreakpointsArguments.t, Presence.req) RequestMessage.t -> request
+| DataBreakpointInfoRequest : (Dap_commands.dataBreakpointInfo, DataBreakpointInfoArguments.t, Presence.req) RequestMessage.t -> request
+| SetDataBreakpointsRequest : (Dap_commands.setDataBreakpoints, SetDataBreakpointsArguments.t, Presence.req) RequestMessage.t -> request
+| SetInstructionBreakpointsRequest : (Dap_commands.setInstructionBreakpoints, SetInstructionBreakpointsArguments.t, Presence.req) RequestMessage.t -> request
+| ContinueRequest : (Dap_commands.continue, ContinueArguments.t, Presence.req) RequestMessage.t -> request
+| NextRequest : (Dap_commands.next, NextArguments.t, Presence.req) RequestMessage.t -> request
+| StepInRequest : (Dap_commands.stepIn, StepInArguments.t, Presence.req) RequestMessage.t -> request
+| StepOutRequest : (Dap_commands.stepOut, StepOutArguments.t, Presence.req) RequestMessage.t -> request
+| StepBackRequest : (Dap_commands.stepBack, StepBackArguments.t, Presence.req) RequestMessage.t -> request
+| ReverseContinueRequest : (Dap_commands.reverseContinue, ReverseContinueArguments.t, Presence.req) RequestMessage.t -> request
+| RestartFrameRequest : (Dap_commands.restartFrame, RestartFrameArguments.t, Presence.req) RequestMessage.t -> request
+| GotoRequest : (Dap_commands.goto, GotoArguments.t, Presence.req) RequestMessage.t -> request
+| PauseRequest : (Dap_commands.pause, PauseArguments.t, Presence.req) RequestMessage.t -> request
+| StackTraceRequest : (Dap_commands.stackTrace, StackTraceArguments.t, Presence.req) RequestMessage.t -> request
+| ScopesRequest : (Dap_commands.scopes, ScopesArguments.t, Presence.req) RequestMessage.t -> request
+| VariablesRequest : (Dap_commands.variables, VariablesArguments.t, Presence.req) RequestMessage.t -> request
+| SetVariableRequest : (Dap_commands.setVariable, SetVariableArguments.t, Presence.req) RequestMessage.t -> request
+| SourceRequest : (Dap_commands.source, SourceArguments.t, Presence.req) RequestMessage.t -> request
+| ThreadsRequest : (Dap_commands.threads, EmptyObject.t option, Presence.opt) RequestMessage.t -> request
+| TerminateThreadsRequest : (Dap_commands.terminateThreads, TerminateThreadsArguments.t, Presence.req) RequestMessage.t -> request
+| ModulesRequest : (Dap_commands.modules, ModulesArguments.t, Presence.req) RequestMessage.t -> request
+| LoadedSourcesRequest : (Dap_commands.loadedSources, LoadedSourcesArguments.t option, Presence.opt) RequestMessage.t -> request
+| EvaluateRequest : (Dap_commands.evaluate, EvaluateArguments.t, Presence.req) RequestMessage.t -> request
+| SetExpressionRequest : (Dap_commands.setExpression, SetExpressionArguments.t, Presence.req) RequestMessage.t -> request
+| StepInTargetsRequest : (Dap_commands.stepInTargets, StepInTargetsArguments.t, Presence.req) RequestMessage.t -> request
+| GotoTargetsRequest : (Dap_commands.gotoTargets, GotoTargetsArguments.t, Presence.req) RequestMessage.t -> request
+| CompletionsRequest : (Dap_commands.completions, CompletionsArguments.t, Presence.req) RequestMessage.t -> request
+| ExceptionInfoRequest : (Dap_commands.exceptionInfo, ExceptionInfoArguments.t, Presence.req) RequestMessage.t -> request
+| ReadMemoryRequest : (Dap_commands.readMemory, ReadMemoryArguments.t, Presence.req) RequestMessage.t -> request
+| WriteMemoryRequest : (Dap_commands.writeMemory, WriteMemoryArguments.t, Presence.req) RequestMessage.t -> request
+| DisassembleRequest : (Dap_commands.disassemble, DisassembleArguments.t, Presence.req) RequestMessage.t -> request
 
 let cancelRequest req = CancelRequest req
 let runInTerminalRequest req = RunInTerminalRequest req
@@ -5108,50 +5108,50 @@ let writeMemoryRequest req = WriteMemoryRequest req
 let disassembleRequest req = DisassembleRequest req
 
  type response =
-| ErrorResponse : (Dap_commands.error, ErrorResponse_body.t, ResponseMessage.req) ResponseMessage.t -> response
-| CancelResponse : (Dap_commands.cancel, EmptyObject.t option, ResponseMessage.opt) ResponseMessage.t -> response
-| RunInTerminalResponse : (Dap_commands.runInTerminal, RunInTerminalResponse_body.t, ResponseMessage.req) ResponseMessage.t -> response
-| InitializeResponse : (Dap_commands.initialize, Capabilities.t option, ResponseMessage.opt) ResponseMessage.t -> response
-| ConfigurationDoneResponse : (Dap_commands.configurationDone, EmptyObject.t option, ResponseMessage.opt) ResponseMessage.t -> response
-| LaunchResponse : (Dap_commands.launch, EmptyObject.t option, ResponseMessage.opt) ResponseMessage.t -> response
-| AttachResponse : (Dap_commands.attach, EmptyObject.t option, ResponseMessage.opt) ResponseMessage.t -> response
-| RestartResponse : (Dap_commands.restart, EmptyObject.t option, ResponseMessage.opt) ResponseMessage.t -> response
-| DisconnectResponse : (Dap_commands.disconnect, EmptyObject.t option, ResponseMessage.opt) ResponseMessage.t -> response
-| TerminateResponse : (Dap_commands.terminate, EmptyObject.t option, ResponseMessage.opt) ResponseMessage.t -> response
-| BreakpointLocationsResponse : (Dap_commands.breakpointLocations, BreakpointLocationsResponse_body.t, ResponseMessage.req) ResponseMessage.t -> response
-| SetBreakpointsResponse : (Dap_commands.setBreakpoints, SetBreakpointsResponse_body.t, ResponseMessage.req) ResponseMessage.t -> response
-| SetFunctionBreakpointsResponse : (Dap_commands.setFunctionBreakpoints, SetFunctionBreakpointsResponse_body.t, ResponseMessage.req) ResponseMessage.t -> response
-| SetExceptionBreakpointsResponse : (Dap_commands.setExceptionBreakpoints, SetExceptionBreakpointsResponse_body.t option, ResponseMessage.opt) ResponseMessage.t -> response
-| DataBreakpointInfoResponse : (Dap_commands.dataBreakpointInfo, DataBreakpointInfoResponse_body.t, ResponseMessage.req) ResponseMessage.t -> response
-| SetDataBreakpointsResponse : (Dap_commands.setDataBreakpoints, SetDataBreakpointsResponse_body.t, ResponseMessage.req) ResponseMessage.t -> response
-| SetInstructionBreakpointsResponse : (Dap_commands.setInstructionBreakpoints, SetInstructionBreakpointsResponse_body.t, ResponseMessage.req) ResponseMessage.t -> response
-| ContinueResponse : (Dap_commands.continue, ContinueResponse_body.t, ResponseMessage.req) ResponseMessage.t -> response
-| NextResponse : (Dap_commands.next, EmptyObject.t option, ResponseMessage.opt) ResponseMessage.t -> response
-| StepInResponse : (Dap_commands.stepIn, EmptyObject.t option, ResponseMessage.opt) ResponseMessage.t -> response
-| StepOutResponse : (Dap_commands.stepOut, EmptyObject.t option, ResponseMessage.opt) ResponseMessage.t -> response
-| StepBackResponse : (Dap_commands.stepBack, EmptyObject.t option, ResponseMessage.opt) ResponseMessage.t -> response
-| ReverseContinueResponse : (Dap_commands.reverseContinue, EmptyObject.t option, ResponseMessage.opt) ResponseMessage.t -> response
-| RestartFrameResponse : (Dap_commands.restartFrame, EmptyObject.t option, ResponseMessage.opt) ResponseMessage.t -> response
-| GotoResponse : (Dap_commands.goto, EmptyObject.t option, ResponseMessage.opt) ResponseMessage.t -> response
-| PauseResponse : (Dap_commands.pause, EmptyObject.t option, ResponseMessage.opt) ResponseMessage.t -> response
-| StackTraceResponse : (Dap_commands.stackTrace, StackTraceResponse_body.t, ResponseMessage.req) ResponseMessage.t -> response
-| ScopesResponse : (Dap_commands.scopes, ScopesResponse_body.t, ResponseMessage.req) ResponseMessage.t -> response
-| VariablesResponse : (Dap_commands.variables, VariablesResponse_body.t, ResponseMessage.req) ResponseMessage.t -> response
-| SetVariableResponse : (Dap_commands.setVariable, SetVariableResponse_body.t, ResponseMessage.req) ResponseMessage.t -> response
-| SourceResponse : (Dap_commands.source, SourceResponse_body.t, ResponseMessage.req) ResponseMessage.t -> response
-| ThreadsResponse : (Dap_commands.threads, ThreadsResponse_body.t, ResponseMessage.req) ResponseMessage.t -> response
-| TerminateThreadsResponse : (Dap_commands.terminateThreads, EmptyObject.t option, ResponseMessage.opt) ResponseMessage.t -> response
-| ModulesResponse : (Dap_commands.modules, ModulesResponse_body.t, ResponseMessage.req) ResponseMessage.t -> response
-| LoadedSourcesResponse : (Dap_commands.loadedSources, LoadedSourcesResponse_body.t, ResponseMessage.req) ResponseMessage.t -> response
-| EvaluateResponse : (Dap_commands.evaluate, EvaluateResponse_body.t, ResponseMessage.req) ResponseMessage.t -> response
-| SetExpressionResponse : (Dap_commands.setExpression, SetExpressionResponse_body.t, ResponseMessage.req) ResponseMessage.t -> response
-| StepInTargetsResponse : (Dap_commands.stepInTargets, StepInTargetsResponse_body.t, ResponseMessage.req) ResponseMessage.t -> response
-| GotoTargetsResponse : (Dap_commands.gotoTargets, GotoTargetsResponse_body.t, ResponseMessage.req) ResponseMessage.t -> response
-| CompletionsResponse : (Dap_commands.completions, CompletionsResponse_body.t, ResponseMessage.req) ResponseMessage.t -> response
-| ExceptionInfoResponse : (Dap_commands.exceptionInfo, ExceptionInfoResponse_body.t, ResponseMessage.req) ResponseMessage.t -> response
-| ReadMemoryResponse : (Dap_commands.readMemory, ReadMemoryResponse_body.t option, ResponseMessage.opt) ResponseMessage.t -> response
-| WriteMemoryResponse : (Dap_commands.writeMemory, WriteMemoryResponse_body.t option, ResponseMessage.opt) ResponseMessage.t -> response
-| DisassembleResponse : (Dap_commands.disassemble, DisassembleResponse_body.t option, ResponseMessage.opt) ResponseMessage.t -> response
+| ErrorResponse : (Dap_commands.error, ErrorResponse_body.t, Presence.req) ResponseMessage.t -> response
+| CancelResponse : (Dap_commands.cancel, EmptyObject.t option, Presence.opt) ResponseMessage.t -> response
+| RunInTerminalResponse : (Dap_commands.runInTerminal, RunInTerminalResponse_body.t, Presence.req) ResponseMessage.t -> response
+| InitializeResponse : (Dap_commands.initialize, Capabilities.t option, Presence.opt) ResponseMessage.t -> response
+| ConfigurationDoneResponse : (Dap_commands.configurationDone, EmptyObject.t option, Presence.opt) ResponseMessage.t -> response
+| LaunchResponse : (Dap_commands.launch, EmptyObject.t option, Presence.opt) ResponseMessage.t -> response
+| AttachResponse : (Dap_commands.attach, EmptyObject.t option, Presence.opt) ResponseMessage.t -> response
+| RestartResponse : (Dap_commands.restart, EmptyObject.t option, Presence.opt) ResponseMessage.t -> response
+| DisconnectResponse : (Dap_commands.disconnect, EmptyObject.t option, Presence.opt) ResponseMessage.t -> response
+| TerminateResponse : (Dap_commands.terminate, EmptyObject.t option, Presence.opt) ResponseMessage.t -> response
+| BreakpointLocationsResponse : (Dap_commands.breakpointLocations, BreakpointLocationsResponse_body.t, Presence.req) ResponseMessage.t -> response
+| SetBreakpointsResponse : (Dap_commands.setBreakpoints, SetBreakpointsResponse_body.t, Presence.req) ResponseMessage.t -> response
+| SetFunctionBreakpointsResponse : (Dap_commands.setFunctionBreakpoints, SetFunctionBreakpointsResponse_body.t, Presence.req) ResponseMessage.t -> response
+| SetExceptionBreakpointsResponse : (Dap_commands.setExceptionBreakpoints, SetExceptionBreakpointsResponse_body.t option, Presence.opt) ResponseMessage.t -> response
+| DataBreakpointInfoResponse : (Dap_commands.dataBreakpointInfo, DataBreakpointInfoResponse_body.t, Presence.req) ResponseMessage.t -> response
+| SetDataBreakpointsResponse : (Dap_commands.setDataBreakpoints, SetDataBreakpointsResponse_body.t, Presence.req) ResponseMessage.t -> response
+| SetInstructionBreakpointsResponse : (Dap_commands.setInstructionBreakpoints, SetInstructionBreakpointsResponse_body.t, Presence.req) ResponseMessage.t -> response
+| ContinueResponse : (Dap_commands.continue, ContinueResponse_body.t, Presence.req) ResponseMessage.t -> response
+| NextResponse : (Dap_commands.next, EmptyObject.t option, Presence.opt) ResponseMessage.t -> response
+| StepInResponse : (Dap_commands.stepIn, EmptyObject.t option, Presence.opt) ResponseMessage.t -> response
+| StepOutResponse : (Dap_commands.stepOut, EmptyObject.t option, Presence.opt) ResponseMessage.t -> response
+| StepBackResponse : (Dap_commands.stepBack, EmptyObject.t option, Presence.opt) ResponseMessage.t -> response
+| ReverseContinueResponse : (Dap_commands.reverseContinue, EmptyObject.t option, Presence.opt) ResponseMessage.t -> response
+| RestartFrameResponse : (Dap_commands.restartFrame, EmptyObject.t option, Presence.opt) ResponseMessage.t -> response
+| GotoResponse : (Dap_commands.goto, EmptyObject.t option, Presence.opt) ResponseMessage.t -> response
+| PauseResponse : (Dap_commands.pause, EmptyObject.t option, Presence.opt) ResponseMessage.t -> response
+| StackTraceResponse : (Dap_commands.stackTrace, StackTraceResponse_body.t, Presence.req) ResponseMessage.t -> response
+| ScopesResponse : (Dap_commands.scopes, ScopesResponse_body.t, Presence.req) ResponseMessage.t -> response
+| VariablesResponse : (Dap_commands.variables, VariablesResponse_body.t, Presence.req) ResponseMessage.t -> response
+| SetVariableResponse : (Dap_commands.setVariable, SetVariableResponse_body.t, Presence.req) ResponseMessage.t -> response
+| SourceResponse : (Dap_commands.source, SourceResponse_body.t, Presence.req) ResponseMessage.t -> response
+| ThreadsResponse : (Dap_commands.threads, ThreadsResponse_body.t, Presence.req) ResponseMessage.t -> response
+| TerminateThreadsResponse : (Dap_commands.terminateThreads, EmptyObject.t option, Presence.opt) ResponseMessage.t -> response
+| ModulesResponse : (Dap_commands.modules, ModulesResponse_body.t, Presence.req) ResponseMessage.t -> response
+| LoadedSourcesResponse : (Dap_commands.loadedSources, LoadedSourcesResponse_body.t, Presence.req) ResponseMessage.t -> response
+| EvaluateResponse : (Dap_commands.evaluate, EvaluateResponse_body.t, Presence.req) ResponseMessage.t -> response
+| SetExpressionResponse : (Dap_commands.setExpression, SetExpressionResponse_body.t, Presence.req) ResponseMessage.t -> response
+| StepInTargetsResponse : (Dap_commands.stepInTargets, StepInTargetsResponse_body.t, Presence.req) ResponseMessage.t -> response
+| GotoTargetsResponse : (Dap_commands.gotoTargets, GotoTargetsResponse_body.t, Presence.req) ResponseMessage.t -> response
+| CompletionsResponse : (Dap_commands.completions, CompletionsResponse_body.t, Presence.req) ResponseMessage.t -> response
+| ExceptionInfoResponse : (Dap_commands.exceptionInfo, ExceptionInfoResponse_body.t, Presence.req) ResponseMessage.t -> response
+| ReadMemoryResponse : (Dap_commands.readMemory, ReadMemoryResponse_body.t option, Presence.opt) ResponseMessage.t -> response
+| WriteMemoryResponse : (Dap_commands.writeMemory, WriteMemoryResponse_body.t option, Presence.opt) ResponseMessage.t -> response
+| DisassembleResponse : (Dap_commands.disassemble, DisassembleResponse_body.t option, Presence.opt) ResponseMessage.t -> response
 
 let errorResponse resp = ErrorResponse resp
 let cancelResponse resp = CancelResponse resp
@@ -5199,23 +5199,23 @@ let writeMemoryResponse resp = WriteMemoryResponse resp
 let disassembleResponse resp = DisassembleResponse resp
 
  type event = 
-| InitializedEvent : (Dap_events.initialized, EmptyObject.t option, EventMessage.opt) EventMessage.t -> event
-| StoppedEvent : (Dap_events.stopped, StoppedEvent_body.t, EventMessage.req) EventMessage.t -> event
-| ContinuedEvent : (Dap_events.continued, ContinuedEvent_body.t, EventMessage.req) EventMessage.t -> event
-| ExitedEvent : (Dap_events.exited, ExitedEvent_body.t, EventMessage.req) EventMessage.t -> event
-| TerminatedEvent : (Dap_events.terminated, TerminatedEvent_body.t option, EventMessage.opt) EventMessage.t -> event
-| ThreadEvent : (Dap_events.thread, ThreadEvent_body.t, EventMessage.req) EventMessage.t -> event
-| OutputEvent : (Dap_events.output, OutputEvent_body.t, EventMessage.req) EventMessage.t -> event
-| BreakpointEvent : (Dap_events.breakpoint, BreakpointEvent_body.t, EventMessage.req) EventMessage.t -> event
-| ModuleEvent : (Dap_events.module_, ModuleEvent_body.t, EventMessage.req) EventMessage.t -> event
-| LoadedSourceEvent : (Dap_events.loadedSource, LoadedSourceEvent_body.t, EventMessage.req) EventMessage.t -> event
-| ProcessEvent : (Dap_events.process, ProcessEvent_body.t, EventMessage.req) EventMessage.t -> event
-| CapabilitiesEvent : (Dap_events.capabilities, CapabilitiesEvent_body.t, EventMessage.req) EventMessage.t -> event
-| ProgressStartEvent : (Dap_events.progressStart, ProgressStartEvent_body.t, EventMessage.req) EventMessage.t -> event
-| ProgressUpdateEvent : (Dap_events.progressUpdate, ProgressUpdateEvent_body.t, EventMessage.req) EventMessage.t -> event
-| ProgressEndEvent : (Dap_events.progressEnd, ProgressEndEvent_body.t, EventMessage.req) EventMessage.t -> event
-| InvalidatedEvent : (Dap_events.invalidated, InvalidatedEvent_body.t, EventMessage.req) EventMessage.t -> event
-| MemoryEvent : (Dap_events.memory, MemoryEvent_body.t, EventMessage.req) EventMessage.t -> event
+| InitializedEvent : (Dap_events.initialized, EmptyObject.t option, Presence.opt) EventMessage.t -> event
+| StoppedEvent : (Dap_events.stopped, StoppedEvent_body.t, Presence.req) EventMessage.t -> event
+| ContinuedEvent : (Dap_events.continued, ContinuedEvent_body.t, Presence.req) EventMessage.t -> event
+| ExitedEvent : (Dap_events.exited, ExitedEvent_body.t, Presence.req) EventMessage.t -> event
+| TerminatedEvent : (Dap_events.terminated, TerminatedEvent_body.t option, Presence.opt) EventMessage.t -> event
+| ThreadEvent : (Dap_events.thread, ThreadEvent_body.t, Presence.req) EventMessage.t -> event
+| OutputEvent : (Dap_events.output, OutputEvent_body.t, Presence.req) EventMessage.t -> event
+| BreakpointEvent : (Dap_events.breakpoint, BreakpointEvent_body.t, Presence.req) EventMessage.t -> event
+| ModuleEvent : (Dap_events.module_, ModuleEvent_body.t, Presence.req) EventMessage.t -> event
+| LoadedSourceEvent : (Dap_events.loadedSource, LoadedSourceEvent_body.t, Presence.req) EventMessage.t -> event
+| ProcessEvent : (Dap_events.process, ProcessEvent_body.t, Presence.req) EventMessage.t -> event
+| CapabilitiesEvent : (Dap_events.capabilities, CapabilitiesEvent_body.t, Presence.req) EventMessage.t -> event
+| ProgressStartEvent : (Dap_events.progressStart, ProgressStartEvent_body.t, Presence.req) EventMessage.t -> event
+| ProgressUpdateEvent : (Dap_events.progressUpdate, ProgressUpdateEvent_body.t, Presence.req) EventMessage.t -> event
+| ProgressEndEvent : (Dap_events.progressEnd, ProgressEndEvent_body.t, Presence.req) EventMessage.t -> event
+| InvalidatedEvent : (Dap_events.invalidated, InvalidatedEvent_body.t, Presence.req) EventMessage.t -> event
+| MemoryEvent : (Dap_events.memory, MemoryEvent_body.t, Presence.req) EventMessage.t -> event
 
 let initializedEvent ev = InitializedEvent ev
 let stoppedEvent ev = StoppedEvent ev

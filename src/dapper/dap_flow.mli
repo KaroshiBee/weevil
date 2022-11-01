@@ -85,6 +85,6 @@ val raise_error :
   ('cmd, 'args, 'pargs) Dap_message.request t ->
   (
     ('cmd, 'args, 'pargs) Dap_message.request ->
-    (Dap_commands.error, Dap_message.ErrorResponse_body.t, Dap_message.ResponseMessage.req) Dap_message.response t
+    (Dap_commands.error, Dap_message.ErrorResponse_body.t, Dap_base.Presence.req) Dap_message.response t
   ) ->
-  (Dap_commands.error, Dap_message.ErrorResponse_body.t, Dap_message.ResponseMessage.req) Dap_message.response t
+  (Dap_commands.error, Dap_message.ErrorResponse_body.t, Dap_base.Presence.req) Dap_message.response t

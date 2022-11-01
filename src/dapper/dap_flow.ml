@@ -281,8 +281,8 @@ let request_response (type cmd args pargs) :
 
 let raise_error (type cmd args pargs) :
   (cmd, args, pargs) request t ->
-  ((cmd, args, pargs) request -> (Dap_commands.error, ErrorResponse_body.t, ResponseMessage.req) response t) ->
-  (Dap_commands.error, ErrorResponse_body.t, ResponseMessage.req) response t
+  ((cmd, args, pargs) request -> (Dap_commands.error, ErrorResponse_body.t, Presence.req) response t) ->
+  (Dap_commands.error, ErrorResponse_body.t, Presence.req) response t
   = fun v f ->
    let seqr req =
      let request_seq = RequestMessage.seq req in

@@ -214,7 +214,7 @@ module type ENC0 = sig
   val enc : t Data_encoding.t
 end
 
-module type PRESENCE = sig
+module Presence = struct
   type req
   type opt
 end

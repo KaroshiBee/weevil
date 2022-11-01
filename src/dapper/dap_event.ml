@@ -1,9 +1,5 @@
 open Dap_base
 
-type req
-
-type opt
-
 type ('event, 'body, 'presence) t = {
   seq : int;
   type_ : ProtocolMessage_type.t;
