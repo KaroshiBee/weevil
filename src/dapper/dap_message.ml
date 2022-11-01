@@ -124,7 +124,7 @@ module CancelArguments : sig
 end = struct
   type t = {
     requestId : (int option[@gen gen_int31_opt]);
-    progressId : (string option [@gen gen_utf8_str_opt]);
+    progressId : (string option[@gen gen_utf8_str_opt]);
   }
   [@@deriving qcheck]
 
@@ -225,7 +225,7 @@ end = struct
     preserveFocusHint : bool option;
     text : (string option[@gen gen_utf8_str_opt]);
     allThreadsStopped : bool option;
-    hitBreakpointIds : (int list option [@gen gen_int31_list_opt]);
+    hitBreakpointIds : (int list option[@gen gen_int31_list_opt]);
   }
   [@@deriving qcheck]
 
@@ -526,7 +526,10 @@ module Checksum : sig
 
   val checksum : t -> string
 end = struct
-  type t = {algorithm : ChecksumAlgorithm.t; checksum : (string [@gen gen_utf8_str])}
+  type t = {
+    algorithm : ChecksumAlgorithm.t;
+    checksum : (string[@gen gen_utf8_str]);
+  }
   [@@deriving qcheck]
 
   let enc =
@@ -1838,7 +1841,8 @@ end = struct
     type t = {
       supportsStepInTargetsRequest : bool option;
       supportsCompletionsRequest : bool option;
-      completionTriggerCharacters : (string list option [@gen gen_utf8_str_list_opt]);
+      completionTriggerCharacters :
+        (string list option[@gen gen_utf8_str_list_opt]);
       supportsModulesRequest : bool option;
       additionalModuleColumns : ColumnDescriptor.t list option;
       supportedChecksumAlgorithms : ChecksumAlgorithm.t list option;
@@ -2611,7 +2615,10 @@ module ProgressEndEvent_body : sig
 
   val message : t -> string option
 end = struct
-  type t = {progressId : (string[@gen gen_utf8_str]); message : (string option [@gen gen_utf8_str_opt])}
+  type t = {
+    progressId : (string[@gen gen_utf8_str]);
+    message : (string option[@gen gen_utf8_str_opt]);
+  }
   [@@deriving qcheck]
 
   let enc =
@@ -2786,7 +2793,7 @@ end = struct
     kind : RunInTerminalRequestArguments_kind.t option;
     title : (string option[@gen gen_utf8_str_opt]);
     cwd : (string[@gen gen_utf8_str]);
-    args : (string list [@gen gen_utf8_str_list]);
+    args : (string list[@gen gen_utf8_str_list]);
     env : (Data_encoding.json option[@gen gen_json_opt]);
   }
   [@@deriving qcheck]
@@ -2832,7 +2839,7 @@ module RunInTerminalResponse_body : sig
 end = struct
   type t = {
     processId : (int option[@gen gen_int31_opt]);
-    shellProcessId : (int option [@gen gen_int31_opt]);
+    shellProcessId : (int option[@gen gen_int31_opt]);
   }
   [@@deriving qcheck]
 
@@ -3548,7 +3555,7 @@ end = struct
   type t = {
     source : Source.t;
     breakpoints : SourceBreakpoint.t list option;
-    lines : (int list option [@gen gen_int31_list_opt]);
+    lines : (int list option[@gen gen_int31_list_opt]);
     sourceModified : bool option;
   }
   [@@deriving qcheck]
@@ -3713,7 +3720,10 @@ module ExceptionFilterOptions : sig
 
   val condition : t -> string option
 end = struct
-  type t = {filterId : (string[@gen gen_utf8_str]); condition : (string option [@gen gen_utf8_str_opt])}
+  type t = {
+    filterId : (string[@gen gen_utf8_str]);
+    condition : (string option[@gen gen_utf8_str_opt]);
+  }
   [@@deriving qcheck]
 
   let enc =
@@ -3744,7 +3754,8 @@ module ExceptionPathSegment : sig
 
   val names : t -> string list
 end = struct
-  type t = {negate : bool option; names : (string list [@gen gen_utf8_str_list])} [@@deriving qcheck]
+  type t = {negate : bool option; names : (string list[@gen gen_utf8_str_list])}
+  [@@deriving qcheck]
 
   let enc =
     let open Data_encoding in
@@ -3843,7 +3854,7 @@ module SetExceptionBreakpointsArguments : sig
   val exceptionOptions : t -> ExceptionOptions.t list option
 end = struct
   type t = {
-    filters : (string list [@gen gen_utf8_str_list]);
+    filters : (string list[@gen gen_utf8_str_list]);
     filterOptions : ExceptionFilterOptions.t list option;
     exceptionOptions : ExceptionOptions.t list option;
   }
@@ -3913,7 +3924,7 @@ module DataBreakpointInfoArguments : sig
 end = struct
   type t = {
     variablesReference : (int option[@gen gen_int31_opt]);
-    name : (string [@gen gen_utf8_str]);
+    name : (string[@gen gen_utf8_str]);
   }
   [@@deriving qcheck]
 
@@ -5129,7 +5140,10 @@ module StackTraceResponse_body : sig
 
   val totalFrames : t -> int option
 end = struct
-  type t = {stackFrames : StackFrame.t list; totalFrames : (int option [@gen gen_int31_opt])}
+  type t = {
+    stackFrames : StackFrame.t list;
+    totalFrames : (int option[@gen gen_int31_opt]);
+  }
   [@@deriving qcheck]
 
   let enc =
@@ -5400,7 +5414,7 @@ end = struct
 
     val endColumn : t -> int option
   end = struct
-    type t = {endColumn : (int option [@gen gen_int31_opt])} [@@deriving qcheck]
+    type t = {endColumn : (int option[@gen gen_int31_opt])} [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -6073,7 +6087,10 @@ module SourceResponse_body : sig
 
   val mimeType : t -> string option
 end = struct
-  type t = {content : (string[@gen gen_utf8_str]); mimeType : (string option [@gen gen_utf8_str_opt])}
+  type t = {
+    content : (string[@gen gen_utf8_str]);
+    mimeType : (string option[@gen gen_utf8_str_opt]);
+  }
   [@@deriving qcheck]
 
   let enc =
@@ -6104,7 +6121,8 @@ module Thread : sig
 
   val name : t -> string
 end = struct
-  type t = {id : (int[@gen gen_int31]); name : (string [@gen gen_utf8_str])} [@@deriving qcheck]
+  type t = {id : (int[@gen gen_int31]); name : (string[@gen gen_utf8_str])}
+  [@@deriving qcheck]
 
   let enc =
     let open Data_encoding in
@@ -6158,7 +6176,8 @@ module TerminateThreadsArguments : sig
 
   val threadIds : t -> int list option
 end = struct
-  type t = {threadIds : (int list option [@gen gen_int31_list_opt])} [@@deriving qcheck]
+  type t = {threadIds : (int list option[@gen gen_int31_list_opt])}
+  [@@deriving qcheck]
 
   let enc =
     let open Data_encoding in
@@ -6188,7 +6207,7 @@ module ModulesArguments : sig
 end = struct
   type t = {
     startModule : (int option[@gen gen_int31_opt]);
-    moduleCount : (int option [@gen gen_int31_opt]);
+    moduleCount : (int option[@gen gen_int31_opt]);
   }
   [@@deriving qcheck]
 
@@ -6220,7 +6239,10 @@ module ModulesResponse_body : sig
 
   val totalModules : t -> int option
 end = struct
-  type t = {modules : Module_.t list; totalModules : (int option [@gen gen_int31_opt])}
+  type t = {
+    modules : Module_.t list;
+    totalModules : (int option[@gen gen_int31_opt]);
+  }
   [@@deriving qcheck]
 
   let enc =
@@ -6778,7 +6800,7 @@ end = struct
   type t = {
     source : Source.t;
     line : (int[@gen gen_int31]);
-    column : (int option [@gen gen_int31_opt]);
+    column : (int option[@gen gen_int31_opt]);
   }
   [@@deriving qcheck]
 
@@ -7551,7 +7573,7 @@ module WriteMemoryResponse_body : sig
 end = struct
   type t = {
     offset : (int option[@gen gen_int31_opt]);
-    bytesWritten : (int option [@gen gen_int31_opt]);
+    bytesWritten : (int option[@gen gen_int31_opt]);
   }
   [@@deriving qcheck]
 
@@ -8211,39 +8233,71 @@ type (_, _, _) request =
            RequestMessage.req )
          request
 
-let cancelrequest req =  CancelRequest req
-let runinterminalrequest req =  RunInTerminalRequest req
-let initializerequest req =  InitializeRequest req
-let configurationdonerequest req =  ConfigurationDoneRequest req
-let launchrequest req =  LaunchRequest req
-let attachrequest req =  AttachRequest req
-let restartrequest req =  RestartRequest req
-let disconnectrequest req =  DisconnectRequest req
-let terminaterequest req =  TerminateRequest req
-let breakpointlocationsrequest req =  BreakpointLocationsRequest req
-let setbreakpointsrequest req =  SetBreakpointsRequest req
-let setfunctionbreakpointsrequest req =  SetFunctionBreakpointsRequest req
-let setexceptionbreakpointsrequest req =  SetExceptionBreakpointsRequest req
-let databreakpointinforequest req =  DataBreakpointInfoRequest req
-let setdatabreakpointsrequest req =  SetDataBreakpointsRequest req
-let setinstructionbreakpointsrequest req =  SetInstructionBreakpointsRequest req
-let continuerequest req =  ContinueRequest req
-let reversecontinuerequest req =  ReverseContinueRequest req
-let restartframerequest req =  RestartFrameRequest req
-let scopesrequest req =  ScopesRequest req
-let setvariablerequest req =  SetVariableRequest req
-let sourcerequest req =  SourceRequest req
-let terminatethreadsrequest req =  TerminateThreadsRequest req
-let modulesrequest req =  ModulesRequest req
-let evaluaterequest req =  EvaluateRequest req
-let setexpressionrequest req =  SetExpressionRequest req
-let stepintargetsrequest req =  StepInTargetsRequest req
-let gototargetsrequest req =  GotoTargetsRequest req
-let completionsrequest req =  CompletionsRequest req
-let exceptioninforequest req =  ExceptionInfoRequest req
-let readmemoryrequest req =  ReadMemoryRequest req
-let writememoryrequest req =  WriteMemoryRequest req
-let disassemblerequest req =  DisassembleRequest req
+let cancelrequest req = CancelRequest req
+
+let runinterminalrequest req = RunInTerminalRequest req
+
+let initializerequest req = InitializeRequest req
+
+let configurationdonerequest req = ConfigurationDoneRequest req
+
+let launchrequest req = LaunchRequest req
+
+let attachrequest req = AttachRequest req
+
+let restartrequest req = RestartRequest req
+
+let disconnectrequest req = DisconnectRequest req
+
+let terminaterequest req = TerminateRequest req
+
+let breakpointlocationsrequest req = BreakpointLocationsRequest req
+
+let setbreakpointsrequest req = SetBreakpointsRequest req
+
+let setfunctionbreakpointsrequest req = SetFunctionBreakpointsRequest req
+
+let setexceptionbreakpointsrequest req = SetExceptionBreakpointsRequest req
+
+let databreakpointinforequest req = DataBreakpointInfoRequest req
+
+let setdatabreakpointsrequest req = SetDataBreakpointsRequest req
+
+let setinstructionbreakpointsrequest req = SetInstructionBreakpointsRequest req
+
+let continuerequest req = ContinueRequest req
+
+let reversecontinuerequest req = ReverseContinueRequest req
+
+let restartframerequest req = RestartFrameRequest req
+
+let scopesrequest req = ScopesRequest req
+
+let setvariablerequest req = SetVariableRequest req
+
+let sourcerequest req = SourceRequest req
+
+let terminatethreadsrequest req = TerminateThreadsRequest req
+
+let modulesrequest req = ModulesRequest req
+
+let evaluaterequest req = EvaluateRequest req
+
+let setexpressionrequest req = SetExpressionRequest req
+
+let stepintargetsrequest req = StepInTargetsRequest req
+
+let gototargetsrequest req = GotoTargetsRequest req
+
+let completionsrequest req = CompletionsRequest req
+
+let exceptioninforequest req = ExceptionInfoRequest req
+
+let readmemoryrequest req = ReadMemoryRequest req
+
+let writememoryrequest req = WriteMemoryRequest req
+
+let disassemblerequest req = DisassembleRequest req
 
 type (_, _, _) response =
   | ErrorResponse :
