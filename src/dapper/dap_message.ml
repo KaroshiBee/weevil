@@ -124,7 +124,7 @@ module CancelArguments : sig
 end = struct
   type t = {
     requestId : (int option[@gen gen_int31_opt]);
-    progressId : string option;
+    progressId : (string option [@gen gen_utf8_str_opt]);
   }
   [@@deriving qcheck]
 
@@ -225,7 +225,7 @@ end = struct
     preserveFocusHint : bool option;
     text : (string option[@gen gen_utf8_str_opt]);
     allThreadsStopped : bool option;
-    hitBreakpointIds : int list option;
+    hitBreakpointIds : (int list option [@gen gen_int31_list_opt]);
   }
   [@@deriving qcheck]
 
@@ -526,7 +526,7 @@ module Checksum : sig
 
   val checksum : t -> string
 end = struct
-  type t = {algorithm : ChecksumAlgorithm.t; checksum : string}
+  type t = {algorithm : ChecksumAlgorithm.t; checksum : (string [@gen gen_utf8_str])}
   [@@deriving qcheck]
 
   let enc =
@@ -1838,7 +1838,7 @@ end = struct
     type t = {
       supportsStepInTargetsRequest : bool option;
       supportsCompletionsRequest : bool option;
-      completionTriggerCharacters : string list option;
+      completionTriggerCharacters : (string list option [@gen gen_utf8_str_list_opt]);
       supportsModulesRequest : bool option;
       additionalModuleColumns : ColumnDescriptor.t list option;
       supportedChecksumAlgorithms : ChecksumAlgorithm.t list option;
@@ -2611,7 +2611,7 @@ module ProgressEndEvent_body : sig
 
   val message : t -> string option
 end = struct
-  type t = {progressId : (string[@gen gen_utf8_str]); message : string option}
+  type t = {progressId : (string[@gen gen_utf8_str]); message : (string option [@gen gen_utf8_str_opt])}
   [@@deriving qcheck]
 
   let enc =
@@ -2717,7 +2717,7 @@ end = struct
   type t = {
     memoryReference : (string[@gen gen_utf8_str]);
     offset : (int[@gen gen_int31]);
-    count : int;
+    count : (int[@gen gen_int31]);
   }
   [@@deriving qcheck]
 
@@ -2786,7 +2786,7 @@ end = struct
     kind : RunInTerminalRequestArguments_kind.t option;
     title : (string option[@gen gen_utf8_str_opt]);
     cwd : (string[@gen gen_utf8_str]);
-    args : string list;
+    args : (string list [@gen gen_utf8_str_list]);
     env : (Data_encoding.json option[@gen gen_json_opt]);
   }
   [@@deriving qcheck]
@@ -2832,7 +2832,7 @@ module RunInTerminalResponse_body : sig
 end = struct
   type t = {
     processId : (int option[@gen gen_int31_opt]);
-    shellProcessId : int option;
+    shellProcessId : (int option [@gen gen_int31_opt]);
   }
   [@@deriving qcheck]
 
@@ -3548,7 +3548,7 @@ end = struct
   type t = {
     source : Source.t;
     breakpoints : SourceBreakpoint.t list option;
-    lines : int list option;
+    lines : (int list option [@gen gen_int31_list_opt]);
     sourceModified : bool option;
   }
   [@@deriving qcheck]
@@ -3713,7 +3713,7 @@ module ExceptionFilterOptions : sig
 
   val condition : t -> string option
 end = struct
-  type t = {filterId : (string[@gen gen_utf8_str]); condition : string option}
+  type t = {filterId : (string[@gen gen_utf8_str]); condition : (string option [@gen gen_utf8_str_opt])}
   [@@deriving qcheck]
 
   let enc =
@@ -3744,7 +3744,7 @@ module ExceptionPathSegment : sig
 
   val names : t -> string list
 end = struct
-  type t = {negate : bool option; names : string list} [@@deriving qcheck]
+  type t = {negate : bool option; names : (string list [@gen gen_utf8_str_list])} [@@deriving qcheck]
 
   let enc =
     let open Data_encoding in
@@ -3843,7 +3843,7 @@ module SetExceptionBreakpointsArguments : sig
   val exceptionOptions : t -> ExceptionOptions.t list option
 end = struct
   type t = {
-    filters : string list;
+    filters : (string list [@gen gen_utf8_str_list]);
     filterOptions : ExceptionFilterOptions.t list option;
     exceptionOptions : ExceptionOptions.t list option;
   }
@@ -3913,7 +3913,7 @@ module DataBreakpointInfoArguments : sig
 end = struct
   type t = {
     variablesReference : (int option[@gen gen_int31_opt]);
-    name : string;
+    name : (string [@gen gen_utf8_str]);
   }
   [@@deriving qcheck]
 
@@ -5129,7 +5129,7 @@ module StackTraceResponse_body : sig
 
   val totalFrames : t -> int option
 end = struct
-  type t = {stackFrames : StackFrame.t list; totalFrames : int option}
+  type t = {stackFrames : StackFrame.t list; totalFrames : (int option [@gen gen_int31_opt])}
   [@@deriving qcheck]
 
   let enc =
@@ -5400,7 +5400,7 @@ end = struct
 
     val endColumn : t -> int option
   end = struct
-    type t = {endColumn : int option} [@@deriving qcheck]
+    type t = {endColumn : (int option [@gen gen_int31_opt])} [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -6073,7 +6073,7 @@ module SourceResponse_body : sig
 
   val mimeType : t -> string option
 end = struct
-  type t = {content : (string[@gen gen_utf8_str]); mimeType : string option}
+  type t = {content : (string[@gen gen_utf8_str]); mimeType : (string option [@gen gen_utf8_str_opt])}
   [@@deriving qcheck]
 
   let enc =
@@ -6104,7 +6104,7 @@ module Thread : sig
 
   val name : t -> string
 end = struct
-  type t = {id : (int[@gen gen_int31]); name : string} [@@deriving qcheck]
+  type t = {id : (int[@gen gen_int31]); name : (string [@gen gen_utf8_str])} [@@deriving qcheck]
 
   let enc =
     let open Data_encoding in
@@ -6158,7 +6158,7 @@ module TerminateThreadsArguments : sig
 
   val threadIds : t -> int list option
 end = struct
-  type t = {threadIds : int list option} [@@deriving qcheck]
+  type t = {threadIds : (int list option [@gen gen_int31_list_opt])} [@@deriving qcheck]
 
   let enc =
     let open Data_encoding in
@@ -6188,7 +6188,7 @@ module ModulesArguments : sig
 end = struct
   type t = {
     startModule : (int option[@gen gen_int31_opt]);
-    moduleCount : int option;
+    moduleCount : (int option [@gen gen_int31_opt]);
   }
   [@@deriving qcheck]
 
@@ -6220,7 +6220,7 @@ module ModulesResponse_body : sig
 
   val totalModules : t -> int option
 end = struct
-  type t = {modules : Module_.t list; totalModules : int option}
+  type t = {modules : Module_.t list; totalModules : (int option [@gen gen_int31_opt])}
   [@@deriving qcheck]
 
   let enc =
@@ -6778,7 +6778,7 @@ end = struct
   type t = {
     source : Source.t;
     line : (int[@gen gen_int31]);
-    column : int option;
+    column : (int option [@gen gen_int31_opt]);
   }
   [@@deriving qcheck]
 
@@ -7413,7 +7413,7 @@ end = struct
   type t = {
     memoryReference : (string[@gen gen_utf8_str]);
     offset : (int option[@gen gen_int31_opt]);
-    count : int;
+    count : (int[@gen gen_int31]);
   }
   [@@deriving qcheck]
 
@@ -7551,7 +7551,7 @@ module WriteMemoryResponse_body : sig
 end = struct
   type t = {
     offset : (int option[@gen gen_int31_opt]);
-    bytesWritten : int option;
+    bytesWritten : (int option [@gen gen_int31_opt]);
   }
   [@@deriving qcheck]
 

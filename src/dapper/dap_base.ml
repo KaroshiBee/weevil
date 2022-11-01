@@ -55,6 +55,10 @@ let gen_utf8_str =
   QCheck.Gen.string_printable
 let gen_utf8_str_opt =
   QCheck.Gen.option gen_utf8_str
+let gen_utf8_str_list =
+  QCheck.Gen.list gen_utf8_str
+let gen_utf8_str_list_opt =
+  QCheck.Gen.(option @@ list gen_utf8_str)
 
 let gen_int31 =
   let mn, mx = Int32.(min_int |> to_int, max_int |> to_int) in
@@ -62,6 +66,8 @@ let gen_int31 =
   fun st -> QCheck.Gen.int_range mn mx st
 let gen_int31_opt =
   QCheck.Gen.option gen_int31
+let gen_int31_list_opt =
+  QCheck.Gen.(option @@ list gen_int31)
 
 (* TODO proper gen for json *)
 let gen_json = QCheck.Gen.(map (fun x -> `String x) string)
