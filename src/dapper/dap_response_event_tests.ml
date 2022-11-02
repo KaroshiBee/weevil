@@ -20,7 +20,7 @@ module ProcessLaunched = RE.WithSeqr (struct
 
   let handle {f;} = function
     | LaunchResponse resp -> f resp |> Result.map processEvent
-    | _ -> Result.error @@ default_response_error "wrong request: expected LaunchResponse"
+    | _ -> Result.error @@ default_response_error "wrong response: expected LaunchResponse"
 
 end)
 
@@ -74,8 +74,8 @@ let%expect_test "Check sequencing response/event" =
       "command": "error",
       "body":
         { "error":
-            { "id": 584404924, "format": "{error}",
-              "variables": { "error": "wrong request: expected LaunchResponse" } } } } |}];
+            { "id": 276368194, "format": "{error}",
+              "variables": { "error": "wrong response: expected LaunchResponse" } } } } |}];
 
   (* should also have the correct seq numbers if error happens even with correct input *)
   let handler_err =
