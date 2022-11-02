@@ -225,13 +225,17 @@ let%expect_test "Check ErrorResponse example" =
 
 
 
-     type (_,_,_) request =
+     type request =
 
 
-     type (_,_,_) response =
-    | ErrorResponse : (Dap_commands.error, ErrorResponse_body.t, ResponseMessage.req) ResponseMessage.t -> (Dap_commands.error, ErrorResponse_body.t, ResponseMessage.req) response
 
-     type (_,_,_) event = |}]
+
+     type response =
+    | ErrorResponse of (Dap_commands.error, ErrorResponse_body.t, Presence.req) ResponseMessage.t
+
+     let errorResponse resp = ErrorResponse resp
+
+     type event = |}]
 
 
 let%expect_test "Check CancelRequest example" =
@@ -280,13 +284,17 @@ let%expect_test "Check CancelRequest example" =
 
 
 
-     type (_,_,_) request =
-    | CancelRequest : (Dap_commands.cancel, CancelArguments.t option, RequestMessage.opt) RequestMessage.t -> (Dap_commands.cancel, CancelArguments.t option, RequestMessage.opt) request
+     type request =
+    | CancelRequest of (Dap_commands.cancel, CancelArguments.t option, Presence.opt) RequestMessage.t
 
-     type (_,_,_) response =
+     let cancelRequest req = CancelRequest req
+
+     type response =
 
 
-     type (_,_,_) event = |}]
+
+
+     type event = |}]
 
 
 let%expect_test "Check StoppedEvent example" =
@@ -369,14 +377,21 @@ let%expect_test "Check StoppedEvent example" =
 
 
 
-     type (_,_,_) request =
+     type request =
 
 
-     type (_,_,_) response =
 
 
-     type (_,_,_) event =
-    | StoppedEvent : (Dap_events.stopped, StoppedEvent_body.t, EventMessage.req) EventMessage.t -> (Dap_events.stopped, StoppedEvent_body.t, EventMessage.req) event |}]
+     type response =
+
+
+
+
+     type event =
+    | StoppedEvent of (Dap_events.stopped, StoppedEvent_body.t, Presence.req) EventMessage.t
+
+
+           let stoppedEvent ev = StoppedEvent ev |}]
 
 
 let%expect_test "Check cyclic example" =
@@ -440,13 +455,17 @@ let%expect_test "Check cyclic example" =
      end
 
 
-     type (_,_,_) request =
+     type request =
 
 
-     type (_,_,_) response =
 
 
-     type (_,_,_) event = |}]
+     type response =
+
+
+
+
+     type event = |}]
 
 let%expect_test "Check large example" =
   let schema_js = Ezjsonm.from_channel @@ open_in "data/largeObject.json" in
@@ -792,13 +811,17 @@ let%expect_test "Check large example" =
      end
 
 
-     type (_,_,_) request =
+     type request =
 
 
-     type (_,_,_) response =
 
 
-     type (_,_,_) event = |}]
+     type response =
+
+
+
+
+     type event = |}]
 
 
 let%expect_test "Check anyOf example" =
@@ -845,13 +868,17 @@ let%expect_test "Check anyOf example" =
      end
 
 
-     type (_,_,_) request =
+     type request =
 
 
-     type (_,_,_) response =
 
 
-     type (_,_,_) event = |}]
+     type response =
+
+
+
+
+     type event = |}]
 
 let%expect_test "Check oneOf example" =
   let schema_js = Ezjsonm.from_channel @@ open_in "data/restartRequest.json" in
@@ -869,13 +896,17 @@ let%expect_test "Check oneOf example" =
 
 
 
-     type (_,_,_) request =
-    | RestartRequest : (Dap_commands.restart, RestartArguments.t option, RequestMessage.opt) RequestMessage.t -> (Dap_commands.restart, RestartArguments.t option, RequestMessage.opt) request
+     type request =
+    | RestartRequest of (Dap_commands.restart, RestartArguments.t option, Presence.opt) RequestMessage.t
 
-     type (_,_,_) response =
+     let restartRequest req = RestartRequest req
+
+     type response =
 
 
-     type (_,_,_) event = |}]
+
+
+     type event = |}]
 
 
 let%expect_test "Check nullable example" =
@@ -922,13 +953,17 @@ let%expect_test "Check nullable example" =
      end
 
 
-     type (_,_,_) request =
+     type request =
 
 
-     type (_,_,_) response =
 
 
-     type (_,_,_) event = |}]
+     type response =
+
+
+
+
+     type event = |}]
 
 
 let%expect_test "Check valueFormat example" =
@@ -1025,13 +1060,17 @@ let%expect_test "Check valueFormat example" =
      end
 
 
-     type (_,_,_) request =
+     type request =
 
 
-     type (_,_,_) response =
 
 
-     type (_,_,_) event = |}]
+     type response =
+
+
+
+
+     type event = |}]
 
 let%expect_test "Check empty example" =
   let schema_js = Ezjsonm.from_channel @@ open_in "data/emptyObject.json" in
@@ -1063,13 +1102,17 @@ let%expect_test "Check empty example" =
 
 
 
-     type (_,_,_) request =
-    | ConfigurationDoneRequest : (Dap_commands.configurationDone, ConfigurationDoneArguments.t option, RequestMessage.opt) RequestMessage.t -> (Dap_commands.configurationDone, ConfigurationDoneArguments.t option, RequestMessage.opt) request
+     type request =
+    | ConfigurationDoneRequest of (Dap_commands.configurationDone, ConfigurationDoneArguments.t option, Presence.opt) RequestMessage.t
 
-     type (_,_,_) response =
+     let configurationDoneRequest req = ConfigurationDoneRequest req
+
+     type response =
 
 
-     type (_,_,_) event = |}]
+
+
+     type event = |}]
 
 
 let%expect_test "Check LaunchResponse empty body  example" =
@@ -1088,10 +1131,14 @@ let%expect_test "Check LaunchResponse empty body  example" =
 
 
 
-     type (_,_,_) request =
+     type request =
 
 
-     type (_,_,_) response =
-    | LaunchResponse : (Dap_commands.launch, EmptyObject.t option, ResponseMessage.opt) ResponseMessage.t -> (Dap_commands.launch, EmptyObject.t option, ResponseMessage.opt) response
 
-     type (_,_,_) event = |}]
+
+     type response =
+    | LaunchResponse of (Dap_commands.launch, EmptyObject.t option, Presence.opt) ResponseMessage.t
+
+     let launchResponse resp = LaunchResponse resp
+
+     type event = |}]
