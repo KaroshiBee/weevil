@@ -3,12 +3,33 @@ module CommandHelper = Dap_dfs.CommandHelper
 module EventHelper = Dap_dfs.EventHelper
 module Dfs = Dap_dfs.Dfs
 
+module Render_output = struct
+  type msg = {
+        modstr: string;
+        tystr: string;
+        ctor: string
+      }
+  type mlmli = {ml: string; mli:string;}
+
+  type t = [
+    | `Message of msg
+    | `MlMli of mlmli
+  ]
+
+  let make_msg ?(tystr="") ?(ctor="") modstr =
+    `Message {modstr; tystr; ctor}
+
+  let make_mlmli ml mli =
+    `MlMli {ml; mli}
+
+end
+
 
 module type RenderT = sig
   type spec
   type t
   val of_spec : spec -> t
-  val render : t -> name:string -> string*string
+  val render : t -> name:string -> Render_output.t
 
 end
 
@@ -43,12 +64,13 @@ module RenderEnum : (RenderT with type spec := Sp.Enum_spec.t) = struct
          (function %s)\n \
          string" enc_t_s enc_s_t
     in
+    Render_output.make_msg @@
     Printf.sprintf
       "(* dont bother with a sig for enums, the inferred one is fine *)\n \
        module %s = struct \n \
        %s\n\n \
        %s\n\n \
-       end\n" name t_str enc_str, ""
+       end\n" name t_str enc_str
 
 end
 
@@ -165,7 +187,7 @@ let enc ~value =
   let render (t:t) ~name =
     let ml = render_ml t ~name in
     let mli = render_mli t in
-    ml, mli
+    Render_output.make_mlmli ml mli
 
 end
 
@@ -295,13 +317,14 @@ module RenderObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
     let accessors_str =
       t.fields |> List.map RenderObjectField.render_accessor |> String.concat "\n" in
 
+    Render_output.make_msg @@
     Printf.sprintf
         "module %s : sig \n%s\nend = struct \n \
          %s\n\n \
          %s\n\n \
          %s\n\n \
          %s\n\n \
-         end\n" name sig_str t_str enc_str make_str accessors_str, ""
+         end\n" name sig_str t_str enc_str make_str accessors_str
 
 end
 
@@ -339,7 +362,10 @@ module RenderLargeObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
             let dirty_name = Printf.sprintf "%s_%d" spec.safe_name i in
             let spec = Sp.Obj_spec.of_path ~dirty_name ~path:[] ~fields () in
             let name = Printf.sprintf "%s_%d" name i in
-            let modstr, _ = RenderObject.(of_spec spec |> render ~name) in
+            let modstr = match RenderObject.(of_spec spec |> render ~name) with
+              | `Message msg -> Render_output.(msg.modstr)
+              | _ -> assert false
+            in
             (name, modstr, fields) :: acc
           ) [] in
 
@@ -349,7 +375,10 @@ module RenderLargeObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
       let dirty_name = Printf.sprintf "%s_%d" spec.safe_name i in
       let spec = Sp.Obj_spec.of_path ~dirty_name ~path:[] ~fields () in
       let name = Printf.sprintf "%s_%d" name i in
-      let modstr, _ = RenderObject.(of_spec spec |> render ~name) in
+      let modstr = match RenderObject.(of_spec spec |> render ~name) with
+        | `Message msg -> Render_output.(msg.modstr)
+        | _ -> assert false
+      in
       List.rev @@ (name, modstr, fields) :: ss
     in
     let internal_mods = modstrs |> List.map (fun (_, modstr, _) -> modstr) |> String.concat "\n\n" in
@@ -412,6 +441,7 @@ module RenderLargeObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
         ) |> String.concat "\n"
     in
 
+    Render_output.make_msg @@
     Printf.sprintf
       "module %s : sig \n%s\nend = struct \n \
        %s\n\n \
@@ -419,7 +449,7 @@ module RenderLargeObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
        %s\n\n \
        %s\n\n \
        %s\n\n \
-       end\n" name sig_str internal_mods t_str enc_str make_str accessors_str, ""
+       end\n" name sig_str internal_mods t_str enc_str make_str accessors_str
 
 end
 
@@ -440,6 +470,7 @@ module RenderEmptyObject : (RenderT with type spec := unit) = struct
     let make_str =
         "let make () = () "
     in
+    Render_output.make_msg @@
     Printf.sprintf
       "module %s : sig \n \
        type t \n \
@@ -449,7 +480,7 @@ module RenderEmptyObject : (RenderT with type spec := unit) = struct
        %s\n\n \
        %s\n\n \
        %s\n\n \
-       end\n" name t_str enc_str make_str, ""
+       end\n" name t_str enc_str make_str
 
 end
 
@@ -469,10 +500,11 @@ module RenderRequest : (RenderT with type spec := Sp.Obj_spec.t) = struct
             command
             args.module_name
         in
-        "",
-        Printf.sprintf
-          "| %s : %s RequestMessage.t -> request"
-          name ty_params
+        Render_output.make_msg ~tystr:(
+          Printf.sprintf
+            "| %s : %s RequestMessage.t -> request"
+            name ty_params
+        ) ""
 
     | Some args ->
         let ty_params = Printf.sprintf "(%s.%s, %s.t option, RequestMessage.opt)"
@@ -480,22 +512,22 @@ module RenderRequest : (RenderT with type spec := Sp.Obj_spec.t) = struct
             command
             args.module_name
         in
-        "",
-        Printf.sprintf
-          "| %s : %s RequestMessage.t -> request"
-          name ty_params
-
+        Render_output.make_msg ~tystr:(
+          Printf.sprintf
+            "| %s : %s RequestMessage.t -> request"
+            name ty_params
+        ) ""
     | None ->
         let ty_params = Printf.sprintf "(%s.%s, %s.t option, RequestMessage.opt)"
             CommandHelper.module_name
             command
             Dap_base.EmptyObject.module_name
         in
-        "",
-        Printf.sprintf
-          "| %s : %s RequestMessage.t -> request"
-          name ty_params
-
+        Render_output.make_msg ~tystr:(
+          Printf.sprintf
+            "| %s : %s RequestMessage.t -> request"
+            name ty_params
+        ) ""
 end
 
 module RenderResponse : (RenderT with type spec := Sp.Obj_spec.t) = struct
@@ -513,33 +545,33 @@ module RenderResponse : (RenderT with type spec := Sp.Obj_spec.t) = struct
             command
             body.module_name
         in
-        "",
-        Printf.sprintf
-          "| %s : %s ResponseMessage.t -> response"
-          name ty_params
-
+        Render_output.make_msg ~tystr:(
+          Printf.sprintf
+            "| %s : %s ResponseMessage.t -> response"
+            name ty_params
+        ) ""
     | Some body ->
         let ty_params = Printf.sprintf "(%s.%s, %s.t option, ResponseMessage.opt)"
             CommandHelper.module_name
             command
             body.module_name
         in
-        "",
-        Printf.sprintf
-          "| %s : %s ResponseMessage.t -> response"
-          name ty_params
-
+        Render_output.make_msg ~tystr:(
+          Printf.sprintf
+            "| %s : %s ResponseMessage.t -> response"
+            name ty_params
+        ) ""
     | None ->
         let ty_params = Printf.sprintf "(%s.%s, %s.t option, ResponseMessage.opt)"
             CommandHelper.module_name
             command
             Dap_base.EmptyObject.module_name
         in
-        "",
-        Printf.sprintf
-          "| %s : %s ResponseMessage.t -> response"
-          name ty_params
-
+        Render_output.make_msg ~tystr:(
+          Printf.sprintf
+            "| %s : %s ResponseMessage.t -> response"
+            name ty_params
+        ) ""
 end
 
 module RenderEvent : (RenderT with type spec := Sp.Obj_spec.t) = struct
@@ -557,10 +589,11 @@ module RenderEvent : (RenderT with type spec := Sp.Obj_spec.t) = struct
             event
             body.module_name
         in
-        "",
-        Printf.sprintf
-          "| %s : %s EventMessage.t -> event"
-          name ty_params
+        Render_output.make_msg ~tystr:(
+          Printf.sprintf
+            "| %s : %s EventMessage.t -> event"
+            name ty_params
+        ) ""
 
     | Some body ->
         let ty_params = Printf.sprintf "(%s.%s, %s.t option, EventMessage.opt)"
@@ -568,21 +601,22 @@ module RenderEvent : (RenderT with type spec := Sp.Obj_spec.t) = struct
             event
             body.module_name
         in
-        "",
-        Printf.sprintf
-          "| %s : %s EventMessage.t -> event"
-          name ty_params
-
+        Render_output.make_msg ~tystr:(
+          Printf.sprintf
+            "| %s : %s EventMessage.t -> event"
+            name ty_params
+        ) ""
     | None ->
         let ty_params = Printf.sprintf "(%s.%s, %s.t option, EventMessage.opt)"
             EventHelper.module_name
             event
             Dap_base.EmptyObject.module_name
         in
-        "",
-        Printf.sprintf
-          "| %s : %s EventMessage.t -> event"
-          name ty_params
+        Render_output.make_msg ~tystr:(
+          Printf.sprintf
+            "| %s : %s EventMessage.t -> event"
+            name ty_params
+        ) ""
 
 end
 
@@ -591,7 +625,7 @@ type ftype = | ML | MLI
 type what =
   | Events of ftype | Commands of ftype | Messages
 
-let render (dfs:Dfs.t) = function
+let render (dfs:Dfs.t) = let open Render_output in function
   | Messages ->
     let modstrs = ref [] in
     let reqstrs = ref [] in
@@ -602,25 +636,25 @@ let render (dfs:Dfs.t) = function
       |> List.iter (fun name ->
           match (Hashtbl.find_opt dfs.finished name) with
           | Some (Sp.Request o) ->
-            let modstr, tystr = RenderRequest.(of_spec o |> render ~name) in
+            let {modstr; tystr; _} = match RenderRequest.(of_spec o |> render ~name) with `Message msg -> msg | _ -> assert false in
             modstrs := modstr :: !modstrs; reqstrs := tystr :: !reqstrs
           | Some (Sp.Response o) ->
-            let modstr, tystr = RenderResponse.(of_spec o |> render ~name) in
+            let {modstr; tystr; _} = match RenderResponse.(of_spec o |> render ~name) with `Message msg -> msg | _ -> assert false in
             modstrs := modstr :: !modstrs; respstrs := tystr :: !respstrs
           | Some (Sp.Event o) ->
-            let modstr, tystr = RenderEvent.(of_spec o |> render ~name) in
+            let {modstr; tystr; _} = match RenderEvent.(of_spec o |> render ~name) with `Message msg -> msg | _ -> assert false in
             modstrs := modstr :: !modstrs; eventstrs := tystr :: !eventstrs
           | Some (Sp.Object o) when Sp.Obj_spec.is_big o ->
-            let modstr, _other = RenderLargeObject.(of_spec o |> render ~name) in
+            let {modstr; _} = match RenderLargeObject.(of_spec o |> render ~name) with `Message msg -> msg | _ -> assert false in
             modstrs := modstr :: !modstrs
           | Some (Sp.Object o) when Sp.Obj_spec.is_empty o ->
-            let modstr, _other = RenderEmptyObject.(of_spec () |> render ~name) in
+            let {modstr; _} = match RenderEmptyObject.(of_spec () |> render ~name) with `Message msg -> msg | _ -> assert false in
             modstrs := modstr :: !modstrs
           | Some (Sp.Object o) ->
-            let modstr, _other = RenderObject.(of_spec o |> render ~name) in
+            let {modstr; _} = match RenderObject.(of_spec o |> render ~name) with `Message msg -> msg | _ -> assert false in
             modstrs := modstr :: !modstrs
           | Some (Sp.Enum e) ->
-            let modstr, _other = RenderEnum.(of_spec e |> render ~name) in
+            let {modstr; _} = match RenderEnum.(of_spec e |> render ~name) with `Message msg -> msg | _ -> assert false in
             modstrs := modstr :: !modstrs
           | Some _ -> assert false
           | None -> Logs.warn (fun m -> m "couldn't find '%s', ignoring" name)
@@ -642,14 +676,14 @@ let render (dfs:Dfs.t) = function
        type event = \n%s\n\n"
       smods sreqs sresps sevents
   | Commands ML ->
-    let ml, _ = RenderEnumWithPhantoms.(of_spec dfs.command_enum |> render ~name:CommandHelper.module_name) in
+    let {ml; _} = match RenderEnumWithPhantoms.(of_spec dfs.command_enum |> render ~name:CommandHelper.module_name) with `MlMli mlmli -> mlmli | _ -> assert false in
     ml
   | Commands MLI ->
-    let _, mli = RenderEnumWithPhantoms.(of_spec dfs.command_enum |> render ~name:CommandHelper.module_name) in
+    let {mli; _} = match RenderEnumWithPhantoms.(of_spec dfs.command_enum |> render ~name:CommandHelper.module_name) with `MlMli mlmli -> mlmli | _ -> assert false in
     mli
   | Events ML ->
-    let ml, _ = RenderEnumWithPhantoms.(of_spec dfs.event_enum |> render ~name:EventHelper.module_name) in
+    let {ml; _} = match RenderEnumWithPhantoms.(of_spec dfs.event_enum |> render ~name:EventHelper.module_name) with `MlMli mlmli -> mlmli | _ -> assert false in
     ml
   | Events MLI ->
-    let _, mli = RenderEnumWithPhantoms.(of_spec dfs.event_enum |> render ~name:EventHelper.module_name) in
+    let {mli; _} = match RenderEnumWithPhantoms.(of_spec dfs.event_enum |> render ~name:EventHelper.module_name) with `MlMli mlmli -> mlmli | _ -> assert false in
     mli
