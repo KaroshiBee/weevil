@@ -1,81 +1,5 @@
 open Dap_message_exi
 
-module Helper = struct
-  type _ t = Resp : response -> response t | Incr : (response -> response) t
-  (* | App : ('b -> 'a) t * 'b t -> 'a t *)
-
-  let eval : type r. r t -> r = function
-    | Resp req -> req
-    | Incr -> (
-        function
-        | LaunchResponse r ->
-            let seq = 1 + ResponseMessage.request_seq r in
-            ResponseMessage.set_seq r ~seq |> launchResponse
-        | CompletionsResponse r ->
-            let seq = 1 + ResponseMessage.request_seq r in
-            ResponseMessage.set_seq r ~seq |> completionsResponse
-        | _ -> failwith "TODO")
-  (* | App (f, r) -> (eval f) (eval r) *)
-
-  (* let thing r = eval @@ Incr @@ Resp r *)
-
-  (* let thing = let req = eval @@ *)
-  (* let setter f req = *)
-  (*   let request_seq = RequestMessage.seq req in *)
-  (*   let seq = 1 + request_seq in *)
-  (*   let setter_resp msg = *)
-  (*     let msg = ResponseMessage.set_request_seq msg ~request_seq in *)
-  (*     let msg = ResponseMessage.set_seq msg ~seq in *)
-  (*     msg *)
-  (*   in *)
-  (*   setter_resp (f req) *)
-
-  (* let map = fun (type cmd args pargs) (f : (cmd, args, pargs) RequestMessage.t -> (cmd, args, pargs) RequestMessage.t) -> function *)
-  (*   | CancelRequest req -> CancelRequest (f req) *)
-  (*   | RunInTerminalRequest req -> RunInTerminalRequest (f req) *)
-  (*   | InitializeRequest req -> InitializeRequest (f req) *)
-  (*   | ConfigurationDoneRequest req -> ConfigurationDoneRequest (f req) *)
-  (*   | LaunchRequest req -> LaunchRequest (f req) *)
-  (*   | AttachRequest req -> AttachRequest (f req) *)
-  (*   | RestartRequest req -> RestartRequest (f req) *)
-  (*   | DisconnectRequest req -> DisconnectRequest (f req) *)
-  (*   | TerminateRequest req -> TerminateRequest (f req) *)
-  (*   | BreakpointLocationsRequest req -> BreakpointLocationsRequest (f req) *)
-  (*   | SetBreakpointsRequest req -> SetBreakpointsRequest (f req) *)
-  (*   | SetFunctionBreakpointsRequest req -> SetFunctionBreakpointsRequest (f req) *)
-  (*   | SetExceptionBreakpointsRequest req -> SetExceptionBreakpointsRequest (f req) *)
-  (*   | DataBreakpointInfoRequest req -> DataBreakpointInfoRequest (f req) *)
-  (*   | SetDataBreakpointsRequest req -> SetDataBreakpointsRequest (f req) *)
-  (*   | SetInstructionBreakpointsRequest req -> SetInstructionBreakpointsRequest (f req) *)
-  (*   | ContinueRequest req -> ContinueRequest (f req) *)
-  (*   | NextRequest req -> NextRequest (f req) *)
-  (*   | StepInRequest req -> StepInRequest (f req) *)
-  (*   | StepOutRequest req -> StepOutRequest (f req) *)
-  (*   | StepBackRequest req -> StepBackRequest (f req) *)
-  (*   | ReverseContinueRequest req -> ReverseContinueRequest (f req) *)
-  (*   | RestartFrameRequest req -> RestartFrameRequest (f req) *)
-  (*   | GotoRequest req -> GotoRequest (f req) *)
-  (*   | PauseRequest req -> PauseRequest (f req) *)
-  (*   | StackTraceRequest req -> StackTraceRequest (f req) *)
-  (*   | ScopesRequest req -> ScopesRequest (f req) *)
-  (*   | VariablesRequest req -> VariablesRequest (f req) *)
-  (*   | SetVariableRequest req -> SetVariableRequest (f req) *)
-  (*   | SourceRequest req -> SourceRequest (f req) *)
-  (*   | ThreadsRequest req -> ThreadsRequest (f req) *)
-  (*   | TerminateThreadsRequest req -> TerminateThreadsRequest (f req) *)
-  (*   | ModulesRequest req -> ModulesRequest (f req) *)
-  (*   | LoadedSourcesRequest req -> LoadedSourcesRequest (f req) *)
-  (*   | EvaluateRequest req -> EvaluateRequest (f req) *)
-  (*   | SetExpressionRequest req -> SetExpressionRequest (f req) *)
-  (*   | StepInTargetsRequest req -> StepInTargetsRequest (f req) *)
-  (*   | GotoTargetsRequest req -> GotoTargetsRequest (f req) *)
-  (*   | CompletionsRequest req -> CompletionsRequest (f req) *)
-  (*   | ExceptionInfoRequest req -> ExceptionInfoRequest (f req) *)
-  (*   | ReadMemoryRequest req -> ReadMemoryRequest (f req) *)
-  (*   | WriteMemoryRequest req -> WriteMemoryRequest (f req) *)
-  (*   | DisassembleRequest req -> DisassembleRequest (f req) *)
-end
-
 module type Request_Response_Link = sig
   type cmd
 
@@ -204,10 +128,11 @@ module WithSeqr (L : Request_Response_Link) :
   let handle t req =
     let request_seq = get_request_seq req in
     let seq = 1 + request_seq in
-    let setter_resp msg =
-      let msg = ResponseMessage.set_request_seq msg ~request_seq in
+    let setter_resp = set_sequencing seq request_seq in
+    let setter_resp_msg msg =
       let msg = ResponseMessage.set_seq msg ~seq in
+      let msg = ResponseMessage.set_request_seq msg ~request_seq in
       msg
     in
-    L.handle t req |> Result.map (set_sequencing seq request_seq) |> Result.map_error (setter_resp)
+    L.handle t req |> Result.map (setter_resp) |> Result.map_error (setter_resp_msg)
 end
