@@ -33,6 +33,7 @@ module WithSeqr (L:Response_Event_Link)
     let request_seq = Dap_utils.ResponseUtils.get_seq resp in
     let seq = 1 + request_seq in
     let setter_ev = Dap_utils.EventUtils.set_sequencing ~seq in
+    (* raw message for the error part *)
     let setter_resp_msg msg =
       let msg = ResponseMessage.set_request_seq msg ~request_seq in
       let msg = ResponseMessage.set_seq msg ~seq in
