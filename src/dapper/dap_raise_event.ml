@@ -30,21 +30,17 @@ module WithSeqr (L:Raise_Event_Link)
 
   type t = L.t
 
-  let make f =
-    let f' = fun ev ->
-      let request_seq = EventMessage.seq ev in
-      let seq = 1 + request_seq in
-      let setter_ev msg = EventMessage.set_seq msg ~seq in
-      let setter_resp msg =
-          let msg = ResponseMessage.set_request_seq msg ~request_seq in
-          let msg = ResponseMessage.set_seq msg ~seq in
-          msg
-      in
-      f ev |> Result.map setter_ev |> Result.map_error setter_resp
-    in
-    L.make f'
+  let make = L.make
 
   let handle t ev =
-    L.handle t ev
+    let request_seq = Dap_utils.EventUtils.get_seq ev in
+    let seq = 1 + request_seq in
+    let setter_ev = Dap_utils.EventUtils.set_sequencing ~seq in
+    let setter_resp_msg msg =
+      let msg = ResponseMessage.set_request_seq msg ~request_seq in
+      let msg = ResponseMessage.set_seq msg ~seq in
+      msg
+    in
+    L.handle t ev |> Result.map setter_ev |> Result.map_error setter_resp_msg
 
 end

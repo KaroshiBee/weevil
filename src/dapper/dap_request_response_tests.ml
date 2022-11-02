@@ -1,58 +1,6 @@
 module Js = Data_encoding.Json
 open Dap_message_exi
-
-let default_response_req ?(success=true)
-  = fun command body ->
-  (* NOTE for use in the Flow monad so seq and request_seq get taken care of there *)
-  let seq = -1 in
-  let request_seq = -1 in
-  ResponseMessage.make
-    ~seq
-    ~request_seq
-    ~success
-    ~command
-    ~body
-    ()
-
-let default_response_opt ?(success=true)
-  = fun command body ->
-  (* NOTE for use in the Flow monad so seq and request_seq get taken care of there *)
-  let seq = -1 in
-  let request_seq = -1 in
-  ResponseMessage.make_opt
-    ~seq
-    ~request_seq
-    ~success
-    ~command
-    ~body
-    ()
-
-let default_response_error e =
-  let id = Hashtbl.hash e in
-  let variables = `O [("error", `String e)] in
-  let error = Message.make ~id ~format:"{error}" ~variables () in
-  let body = ErrorResponse_body.make ~error () in
-  default_response_req ~success:false Dap_commands.error body
-
-let default_event_req
-  = fun event body ->
-  (* NOTE for use in the Flow monad so seq and request_seq get taken care of there *)
-  let seq = -1 in
-  EventMessage.make
-    ~seq
-    ~event
-    ~body
-    ()
-
-let default_event_opt
-  = fun event body ->
-  (* NOTE for use in the Flow monad so seq and request_seq get taken care of there *)
-  let seq = -1 in
-  EventMessage.make_opt
-    ~seq
-    ~event
-    ~body
-    ()
+open Dap_utils
 
 module RR = Dap_request_response
 
