@@ -7497,10 +7497,7 @@ type (_, _, _) request =
         CancelArguments.t option,
         Presence.opt )
       RequestMessage.t
-      -> ( Dap_commands.cancel,
-           CancelArguments.t option,
-           Presence.opt )
-         request
+      -> (Dap_commands.cancel, CancelArguments.t option, Presence.opt) request
   | RunInTerminalRequest :
       ( Dap_commands.runInTerminal,
         RunInTerminalRequestArguments.t,
@@ -7533,28 +7530,19 @@ type (_, _, _) request =
         LaunchRequestArguments.t,
         Presence.req )
       RequestMessage.t
-      -> ( Dap_commands.launch,
-           LaunchRequestArguments.t,
-           Presence.req )
-         request
+      -> (Dap_commands.launch, LaunchRequestArguments.t, Presence.req) request
   | AttachRequest :
       ( Dap_commands.attach,
         AttachRequestArguments.t,
         Presence.req )
       RequestMessage.t
-      -> ( Dap_commands.attach,
-           AttachRequestArguments.t,
-           Presence.req )
-         request
+      -> (Dap_commands.attach, AttachRequestArguments.t, Presence.req) request
   | RestartRequest :
       ( Dap_commands.restart,
         RestartArguments.t option,
         Presence.opt )
       RequestMessage.t
-      -> ( Dap_commands.restart,
-           RestartArguments.t option,
-           Presence.opt )
-         request
+      -> (Dap_commands.restart, RestartArguments.t option, Presence.opt) request
   | DisconnectRequest :
       ( Dap_commands.disconnect,
         DisconnectArguments.t option,
@@ -7641,34 +7629,22 @@ type (_, _, _) request =
         ContinueArguments.t,
         Presence.req )
       RequestMessage.t
-      -> ( Dap_commands.continue,
-           ContinueArguments.t,
-           Presence.req )
-         request
+      -> (Dap_commands.continue, ContinueArguments.t, Presence.req) request
   | NextRequest :
       (Dap_commands.next, NextArguments.t, Presence.req) RequestMessage.t
       -> (Dap_commands.next, NextArguments.t, Presence.req) request
   | StepInRequest :
-      ( Dap_commands.stepIn,
-        StepInArguments.t,
-        Presence.req )
-      RequestMessage.t
+      (Dap_commands.stepIn, StepInArguments.t, Presence.req) RequestMessage.t
       -> (Dap_commands.stepIn, StepInArguments.t, Presence.req) request
   | StepOutRequest :
-      ( Dap_commands.stepOut,
-        StepOutArguments.t,
-        Presence.req )
-      RequestMessage.t
+      (Dap_commands.stepOut, StepOutArguments.t, Presence.req) RequestMessage.t
       -> (Dap_commands.stepOut, StepOutArguments.t, Presence.req) request
   | StepBackRequest :
       ( Dap_commands.stepBack,
         StepBackArguments.t,
         Presence.req )
       RequestMessage.t
-      -> ( Dap_commands.stepBack,
-           StepBackArguments.t,
-           Presence.req )
-         request
+      -> (Dap_commands.stepBack, StepBackArguments.t, Presence.req) request
   | ReverseContinueRequest :
       ( Dap_commands.reverseContinue,
         ReverseContinueArguments.t,
@@ -7691,35 +7667,23 @@ type (_, _, _) request =
       (Dap_commands.goto, GotoArguments.t, Presence.req) RequestMessage.t
       -> (Dap_commands.goto, GotoArguments.t, Presence.req) request
   | PauseRequest :
-      ( Dap_commands.pause,
-        PauseArguments.t,
-        Presence.req )
-      RequestMessage.t
+      (Dap_commands.pause, PauseArguments.t, Presence.req) RequestMessage.t
       -> (Dap_commands.pause, PauseArguments.t, Presence.req) request
   | StackTraceRequest :
       ( Dap_commands.stackTrace,
         StackTraceArguments.t,
         Presence.req )
       RequestMessage.t
-      -> ( Dap_commands.stackTrace,
-           StackTraceArguments.t,
-           Presence.req )
-         request
+      -> (Dap_commands.stackTrace, StackTraceArguments.t, Presence.req) request
   | ScopesRequest :
-      ( Dap_commands.scopes,
-        ScopesArguments.t,
-        Presence.req )
-      RequestMessage.t
+      (Dap_commands.scopes, ScopesArguments.t, Presence.req) RequestMessage.t
       -> (Dap_commands.scopes, ScopesArguments.t, Presence.req) request
   | VariablesRequest :
       ( Dap_commands.variables,
         VariablesArguments.t,
         Presence.req )
       RequestMessage.t
-      -> ( Dap_commands.variables,
-           VariablesArguments.t,
-           Presence.req )
-         request
+      -> (Dap_commands.variables, VariablesArguments.t, Presence.req) request
   | SetVariableRequest :
       ( Dap_commands.setVariable,
         SetVariableArguments.t,
@@ -7730,20 +7694,14 @@ type (_, _, _) request =
            Presence.req )
          request
   | SourceRequest :
-      ( Dap_commands.source,
-        SourceArguments.t,
-        Presence.req )
-      RequestMessage.t
+      (Dap_commands.source, SourceArguments.t, Presence.req) RequestMessage.t
       -> (Dap_commands.source, SourceArguments.t, Presence.req) request
   | ThreadsRequest :
       ( Dap_commands.threads,
         EmptyObject.t option,
         Presence.opt )
       RequestMessage.t
-      -> ( Dap_commands.threads,
-           EmptyObject.t option,
-           Presence.opt )
-         request
+      -> (Dap_commands.threads, EmptyObject.t option, Presence.opt) request
   | TerminateThreadsRequest :
       ( Dap_commands.terminateThreads,
         TerminateThreadsArguments.t,
@@ -7754,10 +7712,7 @@ type (_, _, _) request =
            Presence.req )
          request
   | ModulesRequest :
-      ( Dap_commands.modules,
-        ModulesArguments.t,
-        Presence.req )
-      RequestMessage.t
+      (Dap_commands.modules, ModulesArguments.t, Presence.req) RequestMessage.t
       -> (Dap_commands.modules, ModulesArguments.t, Presence.req) request
   | LoadedSourcesRequest :
       ( Dap_commands.loadedSources,
@@ -7773,10 +7728,7 @@ type (_, _, _) request =
         EvaluateArguments.t,
         Presence.req )
       RequestMessage.t
-      -> ( Dap_commands.evaluate,
-           EvaluateArguments.t,
-           Presence.req )
-         request
+      -> (Dap_commands.evaluate, EvaluateArguments.t, Presence.req) request
   | SetExpressionRequest :
       ( Dap_commands.setExpression,
         SetExpressionArguments.t,
@@ -7827,10 +7779,7 @@ type (_, _, _) request =
         ReadMemoryArguments.t,
         Presence.req )
       RequestMessage.t
-      -> ( Dap_commands.readMemory,
-           ReadMemoryArguments.t,
-           Presence.req )
-         request
+      -> (Dap_commands.readMemory, ReadMemoryArguments.t, Presence.req) request
   | WriteMemoryRequest :
       ( Dap_commands.writeMemory,
         WriteMemoryArguments.t,
@@ -7852,23 +7801,14 @@ type (_, _, _) request =
 
 type (_, _, _) response =
   | ErrorResponse :
-      ( Dap_commands.error,
-        ErrorResponse_body.t,
-        Presence.req )
-      ResponseMessage.t
-      -> ( Dap_commands.error,
-           ErrorResponse_body.t,
-           Presence.req )
-         response
+      (Dap_commands.error, ErrorResponse_body.t, Presence.req) ResponseMessage.t
+      -> (Dap_commands.error, ErrorResponse_body.t, Presence.req) response
   | CancelResponse :
       ( Dap_commands.cancel,
         EmptyObject.t option,
         Presence.opt )
       ResponseMessage.t
-      -> ( Dap_commands.cancel,
-           EmptyObject.t option,
-           Presence.opt )
-         response
+      -> (Dap_commands.cancel, EmptyObject.t option, Presence.opt) response
   | RunInTerminalResponse :
       ( Dap_commands.runInTerminal,
         RunInTerminalResponse_body.t,
@@ -7883,10 +7823,7 @@ type (_, _, _) response =
         Capabilities.t option,
         Presence.opt )
       ResponseMessage.t
-      -> ( Dap_commands.initialize,
-           Capabilities.t option,
-           Presence.opt )
-         response
+      -> (Dap_commands.initialize, Capabilities.t option, Presence.opt) response
   | ConfigurationDoneResponse :
       ( Dap_commands.configurationDone,
         EmptyObject.t option,
@@ -7901,46 +7838,31 @@ type (_, _, _) response =
         EmptyObject.t option,
         Presence.opt )
       ResponseMessage.t
-      -> ( Dap_commands.launch,
-           EmptyObject.t option,
-           Presence.opt )
-         response
+      -> (Dap_commands.launch, EmptyObject.t option, Presence.opt) response
   | AttachResponse :
       ( Dap_commands.attach,
         EmptyObject.t option,
         Presence.opt )
       ResponseMessage.t
-      -> ( Dap_commands.attach,
-           EmptyObject.t option,
-           Presence.opt )
-         response
+      -> (Dap_commands.attach, EmptyObject.t option, Presence.opt) response
   | RestartResponse :
       ( Dap_commands.restart,
         EmptyObject.t option,
         Presence.opt )
       ResponseMessage.t
-      -> ( Dap_commands.restart,
-           EmptyObject.t option,
-           Presence.opt )
-         response
+      -> (Dap_commands.restart, EmptyObject.t option, Presence.opt) response
   | DisconnectResponse :
       ( Dap_commands.disconnect,
         EmptyObject.t option,
         Presence.opt )
       ResponseMessage.t
-      -> ( Dap_commands.disconnect,
-           EmptyObject.t option,
-           Presence.opt )
-         response
+      -> (Dap_commands.disconnect, EmptyObject.t option, Presence.opt) response
   | TerminateResponse :
       ( Dap_commands.terminate,
         EmptyObject.t option,
         Presence.opt )
       ResponseMessage.t
-      -> ( Dap_commands.terminate,
-           EmptyObject.t option,
-           Presence.opt )
-         response
+      -> (Dap_commands.terminate, EmptyObject.t option, Presence.opt) response
   | BreakpointLocationsResponse :
       ( Dap_commands.breakpointLocations,
         BreakpointLocationsResponse_body.t,
@@ -8009,43 +7931,28 @@ type (_, _, _) response =
         ContinueResponse_body.t,
         Presence.req )
       ResponseMessage.t
-      -> ( Dap_commands.continue,
-           ContinueResponse_body.t,
-           Presence.req )
-         response
+      -> (Dap_commands.continue, ContinueResponse_body.t, Presence.req) response
   | NextResponse :
-      ( Dap_commands.next,
-        EmptyObject.t option,
-        Presence.opt )
-      ResponseMessage.t
+      (Dap_commands.next, EmptyObject.t option, Presence.opt) ResponseMessage.t
       -> (Dap_commands.next, EmptyObject.t option, Presence.opt) response
   | StepInResponse :
       ( Dap_commands.stepIn,
         EmptyObject.t option,
         Presence.opt )
       ResponseMessage.t
-      -> ( Dap_commands.stepIn,
-           EmptyObject.t option,
-           Presence.opt )
-         response
+      -> (Dap_commands.stepIn, EmptyObject.t option, Presence.opt) response
   | StepOutResponse :
       ( Dap_commands.stepOut,
         EmptyObject.t option,
         Presence.opt )
       ResponseMessage.t
-      -> ( Dap_commands.stepOut,
-           EmptyObject.t option,
-           Presence.opt )
-         response
+      -> (Dap_commands.stepOut, EmptyObject.t option, Presence.opt) response
   | StepBackResponse :
       ( Dap_commands.stepBack,
         EmptyObject.t option,
         Presence.opt )
       ResponseMessage.t
-      -> ( Dap_commands.stepBack,
-           EmptyObject.t option,
-           Presence.opt )
-         response
+      -> (Dap_commands.stepBack, EmptyObject.t option, Presence.opt) response
   | ReverseContinueResponse :
       ( Dap_commands.reverseContinue,
         EmptyObject.t option,
@@ -8065,20 +7972,11 @@ type (_, _, _) response =
            Presence.opt )
          response
   | GotoResponse :
-      ( Dap_commands.goto,
-        EmptyObject.t option,
-        Presence.opt )
-      ResponseMessage.t
+      (Dap_commands.goto, EmptyObject.t option, Presence.opt) ResponseMessage.t
       -> (Dap_commands.goto, EmptyObject.t option, Presence.opt) response
   | PauseResponse :
-      ( Dap_commands.pause,
-        EmptyObject.t option,
-        Presence.opt )
-      ResponseMessage.t
-      -> ( Dap_commands.pause,
-           EmptyObject.t option,
-           Presence.opt )
-         response
+      (Dap_commands.pause, EmptyObject.t option, Presence.opt) ResponseMessage.t
+      -> (Dap_commands.pause, EmptyObject.t option, Presence.opt) response
   | StackTraceResponse :
       ( Dap_commands.stackTrace,
         StackTraceResponse_body.t,
@@ -8093,10 +7991,7 @@ type (_, _, _) response =
         ScopesResponse_body.t,
         Presence.req )
       ResponseMessage.t
-      -> ( Dap_commands.scopes,
-           ScopesResponse_body.t,
-           Presence.req )
-         response
+      -> (Dap_commands.scopes, ScopesResponse_body.t, Presence.req) response
   | VariablesResponse :
       ( Dap_commands.variables,
         VariablesResponse_body.t,
@@ -8120,19 +8015,13 @@ type (_, _, _) response =
         SourceResponse_body.t,
         Presence.req )
       ResponseMessage.t
-      -> ( Dap_commands.source,
-           SourceResponse_body.t,
-           Presence.req )
-         response
+      -> (Dap_commands.source, SourceResponse_body.t, Presence.req) response
   | ThreadsResponse :
       ( Dap_commands.threads,
         ThreadsResponse_body.t,
         Presence.req )
       ResponseMessage.t
-      -> ( Dap_commands.threads,
-           ThreadsResponse_body.t,
-           Presence.req )
-         response
+      -> (Dap_commands.threads, ThreadsResponse_body.t, Presence.req) response
   | TerminateThreadsResponse :
       ( Dap_commands.terminateThreads,
         EmptyObject.t option,
@@ -8147,10 +8036,7 @@ type (_, _, _) response =
         ModulesResponse_body.t,
         Presence.req )
       ResponseMessage.t
-      -> ( Dap_commands.modules,
-           ModulesResponse_body.t,
-           Presence.req )
-         response
+      -> (Dap_commands.modules, ModulesResponse_body.t, Presence.req) response
   | LoadedSourcesResponse :
       ( Dap_commands.loadedSources,
         LoadedSourcesResponse_body.t,
@@ -8165,10 +8051,7 @@ type (_, _, _) response =
         EvaluateResponse_body.t,
         Presence.req )
       ResponseMessage.t
-      -> ( Dap_commands.evaluate,
-           EvaluateResponse_body.t,
-           Presence.req )
-         response
+      -> (Dap_commands.evaluate, EvaluateResponse_body.t, Presence.req) response
   | SetExpressionResponse :
       ( Dap_commands.setExpression,
         SetExpressionResponse_body.t,
@@ -8253,10 +8136,7 @@ type (_, _, _) event =
       (Dap_events.stopped, StoppedEvent_body.t, Presence.req) EventMessage.t
       -> (Dap_events.stopped, StoppedEvent_body.t, Presence.req) event
   | ContinuedEvent :
-      ( Dap_events.continued,
-        ContinuedEvent_body.t,
-        Presence.req )
-      EventMessage.t
+      (Dap_events.continued, ContinuedEvent_body.t, Presence.req) EventMessage.t
       -> (Dap_events.continued, ContinuedEvent_body.t, Presence.req) event
   | ExitedEvent :
       (Dap_events.exited, ExitedEvent_body.t, Presence.req) EventMessage.t
@@ -8290,10 +8170,7 @@ type (_, _, _) event =
         LoadedSourceEvent_body.t,
         Presence.req )
       EventMessage.t
-      -> ( Dap_events.loadedSource,
-           LoadedSourceEvent_body.t,
-           Presence.req )
-         event
+      -> (Dap_events.loadedSource, LoadedSourceEvent_body.t, Presence.req) event
   | ProcessEvent :
       (Dap_events.process, ProcessEvent_body.t, Presence.req) EventMessage.t
       -> (Dap_events.process, ProcessEvent_body.t, Presence.req) event
@@ -8302,10 +8179,7 @@ type (_, _, _) event =
         CapabilitiesEvent_body.t,
         Presence.req )
       EventMessage.t
-      -> ( Dap_events.capabilities,
-           CapabilitiesEvent_body.t,
-           Presence.req )
-         event
+      -> (Dap_events.capabilities, CapabilitiesEvent_body.t, Presence.req) event
   | ProgressStartEvent :
       ( Dap_events.progressStart,
         ProgressStartEvent_body.t,
@@ -8329,37 +8203,47 @@ type (_, _, _) event =
         ProgressEndEvent_body.t,
         Presence.req )
       EventMessage.t
-      -> ( Dap_events.progressEnd,
-           ProgressEndEvent_body.t,
-           Presence.req )
-         event
+      -> (Dap_events.progressEnd, ProgressEndEvent_body.t, Presence.req) event
   | InvalidatedEvent :
       ( Dap_events.invalidated,
         InvalidatedEvent_body.t,
         Presence.req )
       EventMessage.t
-      -> ( Dap_events.invalidated,
-           InvalidatedEvent_body.t,
-           Presence.req )
-         event
+      -> (Dap_events.invalidated, InvalidatedEvent_body.t, Presence.req) event
   | MemoryEvent :
       (Dap_events.memory, MemoryEvent_body.t, Presence.req) EventMessage.t
       -> (Dap_events.memory, MemoryEvent_body.t, Presence.req) event
 
 let initializedEvent ev = InitializedEvent ev
+
 let stoppedEvent ev = StoppedEvent ev
+
 let continuedEvent ev = ContinuedEvent ev
+
 let exitedEvent ev = ExitedEvent ev
+
 let terminatedEvent ev = TerminatedEvent ev
+
 let threadEvent ev = ThreadEvent ev
+
 let outputEvent ev = OutputEvent ev
+
 let breakpointEvent ev = BreakpointEvent ev
+
 let moduleEvent ev = ModuleEvent ev
+
 let loadedSourceEvent ev = LoadedSourceEvent ev
+
 let processEvent ev = ProcessEvent ev
+
 let capabilitiesEvent ev = CapabilitiesEvent ev
+
 let progressStartEvent ev = ProgressStartEvent ev
+
 let progressUpdateEvent ev = ProgressUpdateEvent ev
+
 let progressEndEvent ev = ProgressEndEvent ev
+
 let invalidatedEvent ev = InvalidatedEvent ev
+
 let memoryEvent ev = MemoryEvent ev
