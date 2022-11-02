@@ -9,8 +9,8 @@ module type Response_Event_Link = sig
   type body_
   type pbody_
 
-  val make : ((cmd, body, pbody) ResponseMessage.t -> (ev, body_, pbody_) EventMessage.t result) -> t
-  val handle : t -> (response -> event result)
+  val make : ((cmd, body, pbody) ResponseMessage.t -> (ev, body_, pbody_) EventMessage.t Dap_result.t) -> t
+  val handle : t -> (response -> event Dap_result.t)
 end
 
 module WithSeqr (L:Response_Event_Link)
@@ -31,10 +31,13 @@ module WithSeqr (L:Response_Event_Link)
     let f' = fun resp ->
       let request_seq = ResponseMessage.seq resp in
       let seq = 1 + request_seq in
-      f resp |> Result.map (fun ev ->
-          let ev = EventMessage.set_seq ev ~seq in
-          ev
-        )
+      let setter_ev msg = EventMessage.set_seq msg ~seq in
+      let setter_resp msg =
+          let msg = ResponseMessage.set_request_seq msg ~request_seq in
+          let msg = ResponseMessage.set_seq msg ~seq in
+          msg
+      in
+      f resp |> Result.map setter_ev |> Result.map_error setter_resp
     in
     L.make f'
 

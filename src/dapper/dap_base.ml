@@ -220,5 +220,3 @@ module Presence = struct
 end
 
 
-type 'a result = ('a, string) Result.t
-type 'a result_lwt = 'a result Lwt.t

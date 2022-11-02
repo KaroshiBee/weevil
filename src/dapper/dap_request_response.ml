@@ -9,8 +9,9 @@ module type Request_Response_Link = sig
   type pbody
 
   type t
-  val make : ((cmd, args, pargs) RequestMessage.t -> (cmd, body, pbody) ResponseMessage.t result) -> t
-  val handle : t -> (request -> response result)
+  (* NOTE the cmd param is the same for both *)
+  val make : ((cmd, args, pargs) RequestMessage.t -> (cmd, body, pbody) ResponseMessage.t Dap_result.t) -> t
+  val handle : t -> (request -> response Dap_result.t)
 end
 
 
@@ -32,11 +33,12 @@ module WithSeqr (L:Request_Response_Link)
     let f' = fun req ->
       let request_seq = RequestMessage.seq req in
       let seq = 1 + request_seq in
-      f req |> Result.map (fun resp ->
-          let resp = ResponseMessage.set_request_seq resp ~request_seq in
-          let resp = ResponseMessage.set_seq resp ~seq in
-          resp
-        )
+      let setter_resp msg =
+          let msg = ResponseMessage.set_request_seq msg ~request_seq in
+          let msg = ResponseMessage.set_seq msg ~seq in
+          msg
+      in
+      f req |> Result.map setter_resp |> Result.map_error setter_resp
     in
     L.make f'
 

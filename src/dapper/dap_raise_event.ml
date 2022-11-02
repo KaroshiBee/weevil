@@ -10,8 +10,8 @@ module type Raise_Event_Link = sig
   type pbody_
 
   type t
-  val make : ((ev, body, pbody) EventMessage.t -> (ev_, body_, pbody_) EventMessage.t result) -> t
-  val handle : t -> (event -> event result)
+  val make : ((ev, body, pbody) EventMessage.t -> (ev_, body_, pbody_) EventMessage.t Dap_result.t) -> t
+  val handle : t -> (event -> event Dap_result.t)
 end
 
 
@@ -31,13 +31,16 @@ module WithSeqr (L:Raise_Event_Link)
   type t = L.t
 
   let make f =
-    let f' = fun req ->
-      let request_seq = EventMessage.seq req in
+    let f' = fun ev ->
+      let request_seq = EventMessage.seq ev in
       let seq = 1 + request_seq in
-      f req |> Result.map (fun resp ->
-          let resp = EventMessage.set_seq resp ~seq in
-          resp
-        )
+      let setter_ev msg = EventMessage.set_seq msg ~seq in
+      let setter_resp msg =
+          let msg = ResponseMessage.set_request_seq msg ~request_seq in
+          let msg = ResponseMessage.set_seq msg ~seq in
+          msg
+      in
+      f ev |> Result.map setter_ev |> Result.map_error setter_resp
     in
     L.make f'
 
