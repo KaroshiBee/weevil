@@ -19,8 +19,8 @@ module ProcessLaunched = RE.WithSeqr (struct
   let make f = {f;}
 
   let handle {f;} = function
-    | LaunchResponse resp -> f resp |> Result.map processEvent
-    | _ -> Result.error @@ default_response_error "wrong response: expected LaunchResponse"
+    | LaunchResponse resp -> f resp |> Dap_result.map processEvent
+    | _ -> Dap_result.error @@ default_response_error "wrong response: expected LaunchResponse"
 
 end)
 
@@ -36,7 +36,7 @@ let%expect_test "Check sequencing response/event" =
             ()
         in
         default_event_req Dap_events.process body
-        |> Result.ok
+        |> Dap_result.ok
       )
     in
     ProcessLaunched.handle l
@@ -46,11 +46,11 @@ let%expect_test "Check sequencing response/event" =
   let enc_launch = EventMessage.enc Dap_events.process ProcessEvent_body.enc in
 
   let s =
-    handler resp_launch |> Result.map (function
+    handler resp_launch |> Dap_result.map (function
         | ProcessEvent ev ->
           Js.construct enc_launch ev |> Js.to_string
         | _ -> assert false
-      ) |> Result.get_ok
+      ) |> Dap_result.get_ok
   in
   Printf.printf "%s" s;
   [%expect {|
@@ -60,13 +60,9 @@ let%expect_test "Check sequencing response/event" =
           "startMethod": "launch" } } |}];
 
   let resp_cancel = cancelResponse @@ ResponseMessage.make_opt ~seq:111 ~request_seq:110 ~success:true ~command:Dap_commands.cancel ~body:(EmptyObject.make ()) () in
-  let enc_error = ResponseMessage.enc Dap_commands.error ErrorResponse_body.enc in
 
   (* should error with correct seq numbers if given the wrong response type *)
-  let s =
-    handler resp_cancel |> Result.map_error (fun resp ->
-        Js.construct enc_error resp |> Js.to_string
-      ) |> Result.get_error
+  let s = handler resp_cancel |> Dap_result.get_error_str
   in
   Printf.printf "%s" s;
   [%expect {|
@@ -81,15 +77,12 @@ let%expect_test "Check sequencing response/event" =
   let handler_err =
     let l = ProcessLaunched.make (fun _req ->
         default_response_error "testing error"
-        |> Result.error
+        |> Dap_result.error
       )
     in
     ProcessLaunched.handle l
   in
-  let s =
-    handler_err resp_launch |> Result.map_error (fun resp ->
-        Js.construct enc_error resp |> Js.to_string
-      ) |> Result.get_error
+  let s = handler_err resp_launch |> Dap_result.get_error_str
   in
   Printf.printf "%s" s;
   [%expect {|

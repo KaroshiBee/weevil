@@ -44,5 +44,5 @@ module WithSeqr (L : Request_response_link) :
       let msg = ResponseMessage.set_request_seq msg ~request_seq in
       msg
     in
-    L.handle t req |> Result.map setter_resp |> Result.map_error setter_resp_msg
+    L.handle t req |> Dap_result.map setter_resp |> Dap_result.map_error setter_resp_msg
 end

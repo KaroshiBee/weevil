@@ -39,6 +39,6 @@ module WithSeqr (L:Response_event_link)
       let msg = ResponseMessage.set_seq msg ~seq in
       msg
     in
-    L.handle t resp |> Result.map setter_ev |> Result.map_error setter_resp_msg
+    L.handle t resp |> Dap_result.map setter_ev |> Dap_result.map_error setter_resp_msg
 
 end

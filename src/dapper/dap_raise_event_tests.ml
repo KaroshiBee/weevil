@@ -19,8 +19,8 @@ module BreakStopped = EE.WithSeqr (struct
   let make f = {f;}
 
   let handle {f;} = function
-    | BreakpointEvent ev -> f ev |> Result.map stoppedEvent
-    | _ -> Result.error @@ default_response_error "wrong event: expected Breakpoint event"
+    | BreakpointEvent ev -> f ev |> Dap_result.map stoppedEvent
+    | _ -> Dap_result.error @@ default_response_error "wrong event: expected Breakpoint event"
 
 end)
 
@@ -35,7 +35,7 @@ let%expect_test "Check sequencing event/event" =
             ()
         in
         default_event_req Dap_events.stopped body
-        |> Result.ok
+        |> Dap_result.ok
       )
     in
     BreakStopped.handle l
@@ -48,11 +48,11 @@ let%expect_test "Check sequencing event/event" =
   let enc_stopper = EventMessage.enc Dap_events.stopped StoppedEvent_body.enc in
 
   let s =
-    handler break_ev |> Result.map (function
+    handler break_ev |> Dap_result.map (function
         | StoppedEvent ev ->
           Js.construct enc_stopper ev |> Js.to_string
         | _ -> assert false
-      ) |> Result.get_ok
+      ) |> Dap_result.get_ok
   in
   Printf.printf "%s" s;
   [%expect {|
@@ -60,13 +60,9 @@ let%expect_test "Check sequencing event/event" =
       "body": { "reason": "breakpoint" } } |}];
 
   let ev_exit = exitedEvent @@ EventMessage.make ~seq:111 ~event:Dap_events.exited ~body:(ExitedEvent_body.make ~exitCode:0 ()) () in
-  let enc_error = ResponseMessage.enc Dap_commands.error ErrorResponse_body.enc in
 
   (* should error with correct seq numbers if given the wrong event type *)
-  let s =
-    handler ev_exit |> Result.map_error (fun ev ->
-        Js.construct enc_error ev |> Js.to_string
-      ) |> Result.get_error
+  let s = handler ev_exit |> Dap_result.get_error_str
   in
   Printf.printf "%s" s;
   [%expect {|
@@ -81,15 +77,12 @@ let%expect_test "Check sequencing event/event" =
   let handler_err =
     let l = BreakStopped.make (fun _req ->
         default_response_error "testing error"
-        |> Result.error
+        |> Dap_result.error
       )
     in
     BreakStopped.handle l
   in
-  let s =
-    handler_err break_ev |> Result.map_error (fun resp ->
-        Js.construct enc_error resp |> Js.to_string
-      ) |> Result.get_error
+  let s = handler_err break_ev |> Dap_result.get_error_str
   in
   Printf.printf "%s" s;
   [%expect {|

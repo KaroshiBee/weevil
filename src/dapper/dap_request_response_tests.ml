@@ -17,8 +17,8 @@ module Launch = RR.WithSeqr (struct
   let make f = {f;}
 
   let handle {f;} = function
-    | LaunchRequest req -> f req |> Result.map launchResponse
-    | _ -> Result.error @@ default_response_error "wrong request: expected LaunchRequest"
+    | LaunchRequest req -> f req |> Dap_result.map launchResponse
+    | _ -> Dap_result.error @@ default_response_error "wrong request: expected LaunchRequest"
 
 end)
 
@@ -28,7 +28,7 @@ let%expect_test "Check sequencing request/response" =
     let l = Launch.make (fun _req ->
         let body = EmptyObject.make () in
         default_response_opt Dap_commands.launch body
-        |> Result.ok
+        |> Dap_result.ok
       )
     in
     Launch.handle l
@@ -38,11 +38,11 @@ let%expect_test "Check sequencing request/response" =
   let enc_launch = ResponseMessage.enc_opt Dap_commands.launch Dap_base.EmptyObject.enc in
 
   let s =
-    handler req_launch |> Result.map (function
+    handler req_launch |> Dap_result.map (function
         | LaunchResponse resp ->
           Js.construct enc_launch resp |> Js.to_string
         | _ -> assert false
-      ) |> Result.get_ok
+      ) |> Dap_result.get_ok
   in
   Printf.printf "%s" s;
   [%expect {|
@@ -50,13 +50,9 @@ let%expect_test "Check sequencing request/response" =
       "command": "launch", "body": {} } |}];
 
   let req_attach = attachRequest @@ RequestMessage.make ~seq:100 ~command:Dap_commands.attach ~arguments:(AttachRequestArguments.make ()) () in
-  let enc_error = ResponseMessage.enc Dap_commands.error ErrorResponse_body.enc in
 
   (* should error with correct seq numbers if given the wrong request type *)
-  let s =
-    handler req_attach |> Result.map_error (fun resp ->
-        Js.construct enc_error resp |> Js.to_string
-      ) |> Result.get_error
+  let s = handler req_attach |> Dap_result.get_error_str
   in
   Printf.printf "%s" s;
   [%expect {|
@@ -71,15 +67,12 @@ let%expect_test "Check sequencing request/response" =
   let handler_err =
     let l = Launch.make (fun _req ->
         default_response_error "testing error"
-        |> Result.error
+        |> Dap_result.error
       )
     in
     Launch.handle l
   in
-  let s =
-    handler_err req_launch |> Result.map_error (fun resp ->
-        Js.construct enc_error resp |> Js.to_string
-      ) |> Result.get_error
+  let s = handler_err req_launch |> Dap_result.get_error_str
   in
   Printf.printf "%s" s;
   [%expect {|
