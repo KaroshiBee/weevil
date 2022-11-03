@@ -1,5 +1,5 @@
 type error =
-  ( Dap_commands.error,
+  ( Dap.Commands.error,
     Dap.ErrorResponse_body.t,
     Dap.Presence.req )
   Dap.Response.ResponseMessage.t

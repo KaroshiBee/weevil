@@ -1,3 +1,7 @@
+(* main module for everything to do with messages/event enums/command enums *)
+module Commands = Dap_commands
+module Events = Dap_events
+
 (* NOTE for use in the Flow monad so seq and request_seq get taken care of there *)
 let seq = -1
 let request_seq = -1
