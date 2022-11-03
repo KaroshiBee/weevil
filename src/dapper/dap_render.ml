@@ -738,7 +738,9 @@ let render (dfs:Dfs.t) = let open Render_output in function
        module RequestMessage = Dap_request\n \
        module ResponseMessage = Dap_response\n \
        module EventMessage = Dap_event\n\n \
+       module Data = struct \n\n \
        (* supporting data modules *) %s\n\n \
+       end \n\n \
        module Request  = struct \n\n \
        type _ t = \n
        | Fmap : ('a -> 'b) -> ('a -> 'b) t \n

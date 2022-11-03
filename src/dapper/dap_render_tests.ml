@@ -143,6 +143,8 @@ let%expect_test "Check ErrorResponse example" =
      module ResponseMessage = Dap_response
      module EventMessage = Dap_event
 
+     module Data = struct
+
      (* supporting data modules *) module Message : sig
     type t
      val enc : t Data_encoding.t
@@ -225,6 +227,8 @@ let%expect_test "Check ErrorResponse example" =
 
 
 
+     end
+
      module Request  = struct
 
      type _ t =
@@ -277,6 +281,8 @@ let%expect_test "Check CancelRequest example" =
      module ResponseMessage = Dap_response
      module EventMessage = Dap_event
 
+     module Data = struct
+
      (* supporting data modules *) module CancelArguments : sig
     type t
      val enc : t Data_encoding.t
@@ -308,6 +314,8 @@ let%expect_test "Check CancelRequest example" =
 
 
 
+
+     end
 
      module Request  = struct
 
@@ -360,6 +368,8 @@ let%expect_test "Check StoppedEvent example" =
      module RequestMessage = Dap_request
      module ResponseMessage = Dap_response
      module EventMessage = Dap_event
+
+     module Data = struct
 
      (* supporting data modules *) (* dont bother with a sig for enums, the inferred one is fine *)
      module StoppedEvent_body_reason = struct
@@ -427,6 +437,8 @@ let%expect_test "Check StoppedEvent example" =
 
 
 
+     end
+
      module Request  = struct
 
      type _ t =
@@ -479,6 +491,8 @@ let%expect_test "Check cyclic example" =
      module ResponseMessage = Dap_response
      module EventMessage = Dap_event
 
+     module Data = struct
+
      (* supporting data modules *) module ExceptionDetails : sig
     type t
      val enc : t Data_encoding.t
@@ -525,6 +539,8 @@ let%expect_test "Check cyclic example" =
 
      end
 
+
+     end
 
      module Request  = struct
 
@@ -576,6 +592,8 @@ let%expect_test "Check large example" =
      module RequestMessage = Dap_request
      module ResponseMessage = Dap_response
      module EventMessage = Dap_event
+
+     module Data = struct
 
      (* supporting data modules *) module Capabilities : sig
     type t
@@ -907,6 +925,8 @@ let%expect_test "Check large example" =
      end
 
 
+     end
+
      module Request  = struct
 
      type _ t =
@@ -959,6 +979,8 @@ let%expect_test "Check anyOf example" =
      module ResponseMessage = Dap_response
      module EventMessage = Dap_event
 
+     module Data = struct
+
      (* supporting data modules *) module SomeExample : sig
     type t
      val enc : t Data_encoding.t
@@ -988,6 +1010,8 @@ let%expect_test "Check anyOf example" =
 
      end
 
+
+     end
 
      module Request  = struct
 
@@ -1040,7 +1064,11 @@ let%expect_test "Check oneOf example" =
      module ResponseMessage = Dap_response
      module EventMessage = Dap_event
 
+     module Data = struct
+
      (* supporting data modules *)
+
+     end
 
      module Request  = struct
 
@@ -1094,6 +1122,8 @@ let%expect_test "Check nullable example" =
      module ResponseMessage = Dap_response
      module EventMessage = Dap_event
 
+     module Data = struct
+
      (* supporting data modules *) module ExceptionDetails : sig
     type t
      val enc : t Data_encoding.t
@@ -1123,6 +1153,8 @@ let%expect_test "Check nullable example" =
 
      end
 
+
+     end
 
      module Request  = struct
 
@@ -1175,6 +1207,8 @@ let%expect_test "Check valueFormat example" =
      module RequestMessage = Dap_request
      module ResponseMessage = Dap_response
      module EventMessage = Dap_event
+
+     module Data = struct
 
      (* supporting data modules *) module ValueFormat : sig
     type t
@@ -1256,6 +1290,8 @@ let%expect_test "Check valueFormat example" =
      end
 
 
+     end
+
      module Request  = struct
 
      type _ t =
@@ -1307,6 +1343,8 @@ let%expect_test "Check empty example" =
      module ResponseMessage = Dap_response
      module EventMessage = Dap_event
 
+     module Data = struct
+
      (* supporting data modules *) module ConfigurationDoneArguments : sig
      type t
      val enc : t Data_encoding.t
@@ -1322,6 +1360,8 @@ let%expect_test "Check empty example" =
 
 
 
+
+     end
 
      module Request  = struct
 
@@ -1375,7 +1415,11 @@ let%expect_test "Check LaunchResponse empty body  example" =
      module ResponseMessage = Dap_response
      module EventMessage = Dap_event
 
+     module Data = struct
+
      (* supporting data modules *)
+
+     end
 
      module Request  = struct
 
