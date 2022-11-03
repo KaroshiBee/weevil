@@ -16,6 +16,8 @@ module BreakStopped = EE.WithSeqr (struct
     f: (ev, body, pbody) EventMessage.t -> (ev_, body_, pbody_) EventMessage.t Dap_result.t;
   }
 
+  let lift b = EE.BreakpointEv b
+
   let make f = {f;}
 
   let handle {f;} = function

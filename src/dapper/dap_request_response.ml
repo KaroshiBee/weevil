@@ -37,12 +37,16 @@ module WithSeqr (L : Request_response_link) :
   let handle t req =
     let request_seq = Dap_utils.RequestUtils.get_seq req in
     let seq = 1 + request_seq in
-    let setter_resp = Dap_utils.ResponseUtils.set_sequencing ~seq ~request_seq in
+    let setter_resp =
+      Dap_utils.ResponseUtils.set_sequencing ~seq ~request_seq
+    in
     (* the error part is a raw message *)
     let setter_resp_msg msg =
       let msg = ResponseMessage.set_seq msg ~seq in
       let msg = ResponseMessage.set_request_seq msg ~request_seq in
       msg
     in
-    L.handle t req |> Dap_result.map setter_resp |> Dap_result.map_error setter_resp_msg
+
+    L.handle t req |> Dap_result.map setter_resp
+    |> Dap_result.map_error setter_resp_msg
 end
