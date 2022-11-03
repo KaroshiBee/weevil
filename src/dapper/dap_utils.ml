@@ -3,15 +3,16 @@ let seq = -1
 let request_seq = -1
 
 let default_response_error e =
-  let open Dap_message_exi in
+  let open Dap_message_exi.Data in
   let id = Hashtbl.hash e in
   let variables = `O [("error", `String e)] in
   let error = Message.make ~id ~format:"{error}" ~variables () in
   let body = ErrorResponse_body.make ~error () in
-  ResponseMessage.make ~seq ~request_seq ~success:false ~command:Dap_commands.error ~body ()
+  Dap_message_exi.ResponseMessage.make ~seq ~request_seq ~success:false ~command:Dap_commands.error ~body ()
 
 
 module Request = struct
+  include Dap_message_exi.Data
   include Dap_message_exi.Request
   module Message = Dap_message_exi.RequestMessage
 
@@ -69,6 +70,7 @@ module Request = struct
 end
 
 module Response = struct
+  include Dap_message_exi.Data
   include Dap_message_exi.Response
   module Message = Dap_message_exi.ResponseMessage
 
@@ -133,6 +135,7 @@ module Response = struct
 end
 
 module Event = struct
+  include Dap_message_exi.Data
   include Dap_message_exi.Event
   module Message = Dap_message_exi.EventMessage
 

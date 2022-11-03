@@ -231,6 +231,8 @@ let%expect_test "Check ErrorResponse example" =
 
      module Request  = struct
 
+     open Data
+
      type _ t =
 
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
@@ -243,6 +245,8 @@ let%expect_test "Check ErrorResponse example" =
 
      module Response = struct
 
+     open Data
+
      type _ t =
 
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
@@ -254,6 +258,8 @@ let%expect_test "Check ErrorResponse example" =
      end
 
      module Event = struct
+
+     open Data
 
      type _ t =
 
@@ -319,6 +325,8 @@ let%expect_test "Check CancelRequest example" =
 
      module Request  = struct
 
+     open Data
+
      type _ t =
 
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
@@ -331,6 +339,8 @@ let%expect_test "Check CancelRequest example" =
 
      module Response = struct
 
+     open Data
+
      type _ t =
 
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
@@ -342,6 +352,8 @@ let%expect_test "Check CancelRequest example" =
      end
 
      module Event = struct
+
+     open Data
 
      type _ t =
 
@@ -441,6 +453,8 @@ let%expect_test "Check StoppedEvent example" =
 
      module Request  = struct
 
+     open Data
+
      type _ t =
 
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
@@ -453,6 +467,8 @@ let%expect_test "Check StoppedEvent example" =
 
      module Response = struct
 
+     open Data
+
      type _ t =
 
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
@@ -464,6 +480,8 @@ let%expect_test "Check StoppedEvent example" =
      end
 
      module Event = struct
+
+     open Data
 
      type _ t =
 
@@ -544,6 +562,8 @@ let%expect_test "Check cyclic example" =
 
      module Request  = struct
 
+     open Data
+
      type _ t =
 
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
@@ -556,6 +576,8 @@ let%expect_test "Check cyclic example" =
 
      module Response = struct
 
+     open Data
+
      type _ t =
 
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
@@ -567,6 +589,8 @@ let%expect_test "Check cyclic example" =
      end
 
      module Event = struct
+
+     open Data
 
      type _ t =
 
@@ -929,6 +953,8 @@ let%expect_test "Check large example" =
 
      module Request  = struct
 
+     open Data
+
      type _ t =
 
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
@@ -941,6 +967,8 @@ let%expect_test "Check large example" =
 
      module Response = struct
 
+     open Data
+
      type _ t =
 
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
@@ -952,6 +980,8 @@ let%expect_test "Check large example" =
      end
 
      module Event = struct
+
+     open Data
 
      type _ t =
 
@@ -1015,6 +1045,8 @@ let%expect_test "Check anyOf example" =
 
      module Request  = struct
 
+     open Data
+
      type _ t =
 
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
@@ -1027,6 +1059,8 @@ let%expect_test "Check anyOf example" =
 
      module Response = struct
 
+     open Data
+
      type _ t =
 
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
@@ -1038,6 +1072,8 @@ let%expect_test "Check anyOf example" =
      end
 
      module Event = struct
+
+     open Data
 
      type _ t =
 
@@ -1072,6 +1108,8 @@ let%expect_test "Check oneOf example" =
 
      module Request  = struct
 
+     open Data
+
      type _ t =
 
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
@@ -1084,6 +1122,8 @@ let%expect_test "Check oneOf example" =
 
      module Response = struct
 
+     open Data
+
      type _ t =
 
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
@@ -1095,6 +1135,8 @@ let%expect_test "Check oneOf example" =
      end
 
      module Event = struct
+
+     open Data
 
      type _ t =
 
@@ -1158,6 +1200,8 @@ let%expect_test "Check nullable example" =
 
      module Request  = struct
 
+     open Data
+
      type _ t =
 
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
@@ -1170,6 +1214,8 @@ let%expect_test "Check nullable example" =
 
      module Response = struct
 
+     open Data
+
      type _ t =
 
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
@@ -1181,6 +1227,8 @@ let%expect_test "Check nullable example" =
      end
 
      module Event = struct
+
+     open Data
 
      type _ t =
 
@@ -1294,6 +1342,8 @@ let%expect_test "Check valueFormat example" =
 
      module Request  = struct
 
+     open Data
+
      type _ t =
 
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
@@ -1306,6 +1356,8 @@ let%expect_test "Check valueFormat example" =
 
      module Response = struct
 
+     open Data
+
      type _ t =
 
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
@@ -1317,6 +1369,8 @@ let%expect_test "Check valueFormat example" =
      end
 
      module Event = struct
+
+     open Data
 
      type _ t =
 
@@ -1365,6 +1419,8 @@ let%expect_test "Check empty example" =
 
      module Request  = struct
 
+     open Data
+
      type _ t =
 
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
@@ -1377,6 +1433,8 @@ let%expect_test "Check empty example" =
 
      module Response = struct
 
+     open Data
+
      type _ t =
 
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
@@ -1388,6 +1446,8 @@ let%expect_test "Check empty example" =
      end
 
      module Event = struct
+
+     open Data
 
      type _ t =
 
@@ -1423,6 +1483,8 @@ let%expect_test "Check LaunchResponse empty body  example" =
 
      module Request  = struct
 
+     open Data
+
      type _ t =
 
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
@@ -1435,6 +1497,8 @@ let%expect_test "Check LaunchResponse empty body  example" =
 
      module Response = struct
 
+     open Data
+
      type _ t =
 
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
@@ -1446,6 +1510,8 @@ let%expect_test "Check LaunchResponse empty body  example" =
      end
 
      module Event = struct
+
+     open Data
 
      type _ t =
 

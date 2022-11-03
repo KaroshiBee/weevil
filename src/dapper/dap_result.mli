@@ -1,6 +1,6 @@
 
 type error =
-  (Dap_commands.error, Dap_message_exi.ErrorResponse_body.t, Dap_message_exi.Presence.req) Dap_utils.Response.Message.t Dap_utils.Response.t
+  (Dap_commands.error, Dap_utils.Response.ErrorResponse_body.t, Dap_message_exi.Presence.req) Dap_utils.Response.Message.t Dap_utils.Response.t
 
 type 'a t
 

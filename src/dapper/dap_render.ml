@@ -742,18 +742,21 @@ let render (dfs:Dfs.t) = let open Render_output in function
        (* supporting data modules *) %s\n\n \
        end \n\n \
        module Request  = struct \n\n \
+       open Data \n\n \
        type _ t = \n
        | Fmap : ('a -> 'b) -> ('a -> 'b) t \n
        (* request GADT items *) %s\n\n \
        (* request constructors *) %s\n\n \
        end \n\n \
        module Response = struct \n\n \
+       open Data \n\n \
        type _ t = \n
        | Fmap : ('a -> 'b) -> ('a -> 'b) t \n
        (* response GADT items *) %s\n\n \
        (* response constructors *) %s\n\n \
        end \n\n \
        module Event = struct \n\n \
+       open Data \n\n \
        type _ t = \n
        | Fmap : ('a -> 'b) -> ('a -> 'b) t \n
        (* event GADT items *) %s\n\n
