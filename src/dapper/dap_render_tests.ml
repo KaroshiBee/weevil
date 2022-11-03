@@ -143,7 +143,7 @@ let%expect_test "Check ErrorResponse example" =
      module ResponseMessage = Dap_response
      module EventMessage = Dap_event
 
-     module Message : sig
+     (* supporting data modules *) module Message : sig
     type t
      val enc : t Data_encoding.t
      val make : id:int -> format:string -> ?variables:Data_encoding.json -> ?sendTelemetry:bool -> ?showUser:bool -> ?url:string -> ?urlLabel:string -> ?lines:int list -> unit -> t
@@ -225,17 +225,42 @@ let%expect_test "Check ErrorResponse example" =
 
 
 
-     type request =
+     module Request  = struct
+
+     type _ t =
+
+           | Fmap : ('a -> 'b) -> ('a -> 'b) t
+
+           (* request GADT items *)
+
+     (* request constructors *)
+
+     end
+
+     module Response = struct
+
+     type _ t =
+
+           | Fmap : ('a -> 'b) -> ('a -> 'b) t
+
+           (* response GADT items *) | ErrorResponse : (Dap_commands.error, ErrorResponse_body.t, Presence.req) ResponseMessage.t -> (Dap_commands.error, ErrorResponse_body.t, Presence.req) ResponseMessage.t t
+
+     (* response constructors *) let errorResponse resp = ErrorResponse resp
+
+     end
+
+     module Event = struct
+
+     type _ t =
+
+           | Fmap : ('a -> 'b) -> ('a -> 'b) t
+
+           (* event GADT items *)
 
 
+           (* event constructors *)
 
-
-     type response =
-    | ErrorResponse of (Dap_commands.error, ErrorResponse_body.t, Presence.req) ResponseMessage.t
-
-     let errorResponse resp = ErrorResponse resp
-
-     type event = |}]
+     end |}]
 
 
 let%expect_test "Check CancelRequest example" =
@@ -252,7 +277,7 @@ let%expect_test "Check CancelRequest example" =
      module ResponseMessage = Dap_response
      module EventMessage = Dap_event
 
-     module CancelArguments : sig
+     (* supporting data modules *) module CancelArguments : sig
     type t
      val enc : t Data_encoding.t
      val make : ?requestId:int -> ?progressId:string -> unit -> t
@@ -284,17 +309,42 @@ let%expect_test "Check CancelRequest example" =
 
 
 
-     type request =
-    | CancelRequest of (Dap_commands.cancel, CancelArguments.t option, Presence.opt) RequestMessage.t
+     module Request  = struct
 
-     let cancelRequest req = CancelRequest req
+     type _ t =
 
-     type response =
+           | Fmap : ('a -> 'b) -> ('a -> 'b) t
+
+           (* request GADT items *) | CancelRequest : (Dap_commands.cancel, CancelArguments.t option, Presence.opt) RequestMessage.t -> (Dap_commands.cancel, CancelArguments.t option, Presence.opt) RequestMessage.t t
+
+     (* request constructors *) let cancelRequest req = CancelRequest req
+
+     end
+
+     module Response = struct
+
+     type _ t =
+
+           | Fmap : ('a -> 'b) -> ('a -> 'b) t
+
+           (* response GADT items *)
+
+     (* response constructors *)
+
+     end
+
+     module Event = struct
+
+     type _ t =
+
+           | Fmap : ('a -> 'b) -> ('a -> 'b) t
+
+           (* event GADT items *)
 
 
+           (* event constructors *)
 
-
-     type event = |}]
+     end |}]
 
 
 let%expect_test "Check StoppedEvent example" =
@@ -311,7 +361,7 @@ let%expect_test "Check StoppedEvent example" =
      module ResponseMessage = Dap_response
      module EventMessage = Dap_event
 
-     (* dont bother with a sig for enums, the inferred one is fine *)
+     (* supporting data modules *) (* dont bother with a sig for enums, the inferred one is fine *)
      module StoppedEvent_body_reason = struct
      type t = Step | Breakpoint | Exception | Pause | Entry | Goto | Function_breakpoint | Data_breakpoint | Instruction_breakpoint | Other of string
 
@@ -377,21 +427,42 @@ let%expect_test "Check StoppedEvent example" =
 
 
 
-     type request =
+     module Request  = struct
+
+     type _ t =
+
+           | Fmap : ('a -> 'b) -> ('a -> 'b) t
+
+           (* request GADT items *)
+
+     (* request constructors *)
+
+     end
+
+     module Response = struct
+
+     type _ t =
+
+           | Fmap : ('a -> 'b) -> ('a -> 'b) t
+
+           (* response GADT items *)
+
+     (* response constructors *)
+
+     end
+
+     module Event = struct
+
+     type _ t =
+
+           | Fmap : ('a -> 'b) -> ('a -> 'b) t
+
+           (* event GADT items *) | StoppedEvent : (Dap_events.stopped, StoppedEvent_body.t, Presence.req) EventMessage.t -> (Dap_events.stopped, StoppedEvent_body.t, Presence.req) EventMessage.t t
 
 
+           (* event constructors *) let stoppedEvent ev = StoppedEvent ev
 
-
-     type response =
-
-
-
-
-     type event =
-    | StoppedEvent of (Dap_events.stopped, StoppedEvent_body.t, Presence.req) EventMessage.t
-
-
-           let stoppedEvent ev = StoppedEvent ev |}]
+     end |}]
 
 
 let%expect_test "Check cyclic example" =
@@ -408,7 +479,7 @@ let%expect_test "Check cyclic example" =
      module ResponseMessage = Dap_response
      module EventMessage = Dap_event
 
-     module ExceptionDetails : sig
+     (* supporting data modules *) module ExceptionDetails : sig
     type t
      val enc : t Data_encoding.t
      val make : ?message:string -> ?typeName:string -> ?fullTypeName:string -> ?evaluateName:string -> ?stackTrace:string -> ?innerException:t list -> unit -> t
@@ -455,17 +526,42 @@ let%expect_test "Check cyclic example" =
      end
 
 
-     type request =
+     module Request  = struct
+
+     type _ t =
+
+           | Fmap : ('a -> 'b) -> ('a -> 'b) t
+
+           (* request GADT items *)
+
+     (* request constructors *)
+
+     end
+
+     module Response = struct
+
+     type _ t =
+
+           | Fmap : ('a -> 'b) -> ('a -> 'b) t
+
+           (* response GADT items *)
+
+     (* response constructors *)
+
+     end
+
+     module Event = struct
+
+     type _ t =
+
+           | Fmap : ('a -> 'b) -> ('a -> 'b) t
+
+           (* event GADT items *)
 
 
+           (* event constructors *)
 
-
-     type response =
-
-
-
-
-     type event = |}]
+     end |}]
 
 let%expect_test "Check large example" =
   let schema_js = Ezjsonm.from_channel @@ open_in "data/largeObject.json" in
@@ -481,7 +577,7 @@ let%expect_test "Check large example" =
      module ResponseMessage = Dap_response
      module EventMessage = Dap_event
 
-     module Capabilities : sig
+     (* supporting data modules *) module Capabilities : sig
     type t
      val enc : t Data_encoding.t
      val make : ?supportsConfigurationDoneRequest:bool -> ?supportsFunctionBreakpoints:bool -> ?supportsConditionalBreakpoints:bool -> ?supportsHitConditionalBreakpoints:bool -> ?supportsEvaluateForHovers:bool -> ?supportsStepBack:bool -> ?supportsSetVariable:bool -> ?supportsRestartFrame:bool -> ?supportsGotoTargetsRequest:bool -> ?supportsStepInTargetsRequest:bool -> ?supportsCompletionsRequest:bool -> ?completionTriggerCharacters:string list -> ?supportsModulesRequest:bool -> ?supportsRestartRequest:bool -> ?supportsExceptionOptions:bool -> ?supportsValueFormattingOptions:bool -> ?supportsExceptionInfoRequest:bool -> ?supportTerminateDebuggee:bool -> ?supportSuspendDebuggee:bool -> ?supportsDelayedStackTraceLoading:bool -> ?supportsLoadedSourcesRequest:bool -> ?supportsLogPoints:bool -> ?supportsTerminateThreadsRequest:bool -> ?supportsSetExpression:bool -> ?supportsTerminateRequest:bool -> ?supportsDataBreakpoints:bool -> ?supportsReadMemoryRequest:bool -> ?supportsWriteMemoryRequest:bool -> ?supportsDisassembleRequest:bool -> ?supportsCancelRequest:bool -> ?supportsBreakpointLocationsRequest:bool -> ?supportsClipboardContext:bool -> ?supportsSteppingGranularity:bool -> ?supportsInstructionBreakpoints:bool -> ?supportsExceptionFilterOptions:bool -> ?supportsSingleThreadExecutionRequests:bool -> unit -> t
@@ -811,17 +907,42 @@ let%expect_test "Check large example" =
      end
 
 
-     type request =
+     module Request  = struct
+
+     type _ t =
+
+           | Fmap : ('a -> 'b) -> ('a -> 'b) t
+
+           (* request GADT items *)
+
+     (* request constructors *)
+
+     end
+
+     module Response = struct
+
+     type _ t =
+
+           | Fmap : ('a -> 'b) -> ('a -> 'b) t
+
+           (* response GADT items *)
+
+     (* response constructors *)
+
+     end
+
+     module Event = struct
+
+     type _ t =
+
+           | Fmap : ('a -> 'b) -> ('a -> 'b) t
+
+           (* event GADT items *)
 
 
+           (* event constructors *)
 
-
-     type response =
-
-
-
-
-     type event = |}]
+     end |}]
 
 
 let%expect_test "Check anyOf example" =
@@ -838,7 +959,7 @@ let%expect_test "Check anyOf example" =
      module ResponseMessage = Dap_response
      module EventMessage = Dap_event
 
-     module SomeExample : sig
+     (* supporting data modules *) module SomeExample : sig
     type t
      val enc : t Data_encoding.t
      val make : ?moduleId:IntString.t -> ?adapterData:Data_encoding.json -> unit -> t
@@ -868,17 +989,42 @@ let%expect_test "Check anyOf example" =
      end
 
 
-     type request =
+     module Request  = struct
+
+     type _ t =
+
+           | Fmap : ('a -> 'b) -> ('a -> 'b) t
+
+           (* request GADT items *)
+
+     (* request constructors *)
+
+     end
+
+     module Response = struct
+
+     type _ t =
+
+           | Fmap : ('a -> 'b) -> ('a -> 'b) t
+
+           (* response GADT items *)
+
+     (* response constructors *)
+
+     end
+
+     module Event = struct
+
+     type _ t =
+
+           | Fmap : ('a -> 'b) -> ('a -> 'b) t
+
+           (* event GADT items *)
 
 
+           (* event constructors *)
 
-
-     type response =
-
-
-
-
-     type event = |}]
+     end |}]
 
 let%expect_test "Check oneOf example" =
   let schema_js = Ezjsonm.from_channel @@ open_in "data/restartRequest.json" in
@@ -894,19 +1040,44 @@ let%expect_test "Check oneOf example" =
      module ResponseMessage = Dap_response
      module EventMessage = Dap_event
 
+     (* supporting data modules *)
+
+     module Request  = struct
+
+     type _ t =
+
+           | Fmap : ('a -> 'b) -> ('a -> 'b) t
+
+           (* request GADT items *) | RestartRequest : (Dap_commands.restart, RestartArguments.t option, Presence.opt) RequestMessage.t -> (Dap_commands.restart, RestartArguments.t option, Presence.opt) RequestMessage.t t
+
+     (* request constructors *) let restartRequest req = RestartRequest req
+
+     end
+
+     module Response = struct
+
+     type _ t =
+
+           | Fmap : ('a -> 'b) -> ('a -> 'b) t
+
+           (* response GADT items *)
+
+     (* response constructors *)
+
+     end
+
+     module Event = struct
+
+     type _ t =
+
+           | Fmap : ('a -> 'b) -> ('a -> 'b) t
+
+           (* event GADT items *)
 
 
-     type request =
-    | RestartRequest of (Dap_commands.restart, RestartArguments.t option, Presence.opt) RequestMessage.t
+           (* event constructors *)
 
-     let restartRequest req = RestartRequest req
-
-     type response =
-
-
-
-
-     type event = |}]
+     end |}]
 
 
 let%expect_test "Check nullable example" =
@@ -923,7 +1094,7 @@ let%expect_test "Check nullable example" =
      module ResponseMessage = Dap_response
      module EventMessage = Dap_event
 
-     module ExceptionDetails : sig
+     (* supporting data modules *) module ExceptionDetails : sig
     type t
      val enc : t Data_encoding.t
      val make : ?message:string -> typeName:string option -> unit -> t
@@ -953,17 +1124,42 @@ let%expect_test "Check nullable example" =
      end
 
 
-     type request =
+     module Request  = struct
+
+     type _ t =
+
+           | Fmap : ('a -> 'b) -> ('a -> 'b) t
+
+           (* request GADT items *)
+
+     (* request constructors *)
+
+     end
+
+     module Response = struct
+
+     type _ t =
+
+           | Fmap : ('a -> 'b) -> ('a -> 'b) t
+
+           (* response GADT items *)
+
+     (* response constructors *)
+
+     end
+
+     module Event = struct
+
+     type _ t =
+
+           | Fmap : ('a -> 'b) -> ('a -> 'b) t
+
+           (* event GADT items *)
 
 
+           (* event constructors *)
 
-
-     type response =
-
-
-
-
-     type event = |}]
+     end |}]
 
 
 let%expect_test "Check valueFormat example" =
@@ -980,7 +1176,7 @@ let%expect_test "Check valueFormat example" =
      module ResponseMessage = Dap_response
      module EventMessage = Dap_event
 
-     module ValueFormat : sig
+     (* supporting data modules *) module ValueFormat : sig
     type t
      val enc : t Data_encoding.t
      val make : ?hex:bool -> unit -> t
@@ -1060,17 +1256,42 @@ let%expect_test "Check valueFormat example" =
      end
 
 
-     type request =
+     module Request  = struct
+
+     type _ t =
+
+           | Fmap : ('a -> 'b) -> ('a -> 'b) t
+
+           (* request GADT items *)
+
+     (* request constructors *)
+
+     end
+
+     module Response = struct
+
+     type _ t =
+
+           | Fmap : ('a -> 'b) -> ('a -> 'b) t
+
+           (* response GADT items *)
+
+     (* response constructors *)
+
+     end
+
+     module Event = struct
+
+     type _ t =
+
+           | Fmap : ('a -> 'b) -> ('a -> 'b) t
+
+           (* event GADT items *)
 
 
+           (* event constructors *)
 
-
-     type response =
-
-
-
-
-     type event = |}]
+     end |}]
 
 let%expect_test "Check empty example" =
   let schema_js = Ezjsonm.from_channel @@ open_in "data/emptyObject.json" in
@@ -1086,7 +1307,7 @@ let%expect_test "Check empty example" =
      module ResponseMessage = Dap_response
      module EventMessage = Dap_event
 
-     module ConfigurationDoneArguments : sig
+     (* supporting data modules *) module ConfigurationDoneArguments : sig
      type t
      val enc : t Data_encoding.t
      val make : unit -> t
@@ -1102,17 +1323,42 @@ let%expect_test "Check empty example" =
 
 
 
-     type request =
-    | ConfigurationDoneRequest of (Dap_commands.configurationDone, ConfigurationDoneArguments.t option, Presence.opt) RequestMessage.t
+     module Request  = struct
 
-     let configurationDoneRequest req = ConfigurationDoneRequest req
+     type _ t =
 
-     type response =
+           | Fmap : ('a -> 'b) -> ('a -> 'b) t
+
+           (* request GADT items *) | ConfigurationDoneRequest : (Dap_commands.configurationDone, ConfigurationDoneArguments.t option, Presence.opt) RequestMessage.t -> (Dap_commands.configurationDone, ConfigurationDoneArguments.t option, Presence.opt) RequestMessage.t t
+
+     (* request constructors *) let configurationDoneRequest req = ConfigurationDoneRequest req
+
+     end
+
+     module Response = struct
+
+     type _ t =
+
+           | Fmap : ('a -> 'b) -> ('a -> 'b) t
+
+           (* response GADT items *)
+
+     (* response constructors *)
+
+     end
+
+     module Event = struct
+
+     type _ t =
+
+           | Fmap : ('a -> 'b) -> ('a -> 'b) t
+
+           (* event GADT items *)
 
 
+           (* event constructors *)
 
-
-     type event = |}]
+     end |}]
 
 
 let%expect_test "Check LaunchResponse empty body  example" =
@@ -1129,16 +1375,41 @@ let%expect_test "Check LaunchResponse empty body  example" =
      module ResponseMessage = Dap_response
      module EventMessage = Dap_event
 
+     (* supporting data modules *)
+
+     module Request  = struct
+
+     type _ t =
+
+           | Fmap : ('a -> 'b) -> ('a -> 'b) t
+
+           (* request GADT items *)
+
+     (* request constructors *)
+
+     end
+
+     module Response = struct
+
+     type _ t =
+
+           | Fmap : ('a -> 'b) -> ('a -> 'b) t
+
+           (* response GADT items *) | LaunchResponse : (Dap_commands.launch, EmptyObject.t option, Presence.opt) ResponseMessage.t -> (Dap_commands.launch, EmptyObject.t option, Presence.opt) ResponseMessage.t t
+
+     (* response constructors *) let launchResponse resp = LaunchResponse resp
+
+     end
+
+     module Event = struct
+
+     type _ t =
+
+           | Fmap : ('a -> 'b) -> ('a -> 'b) t
+
+           (* event GADT items *)
 
 
-     type request =
+           (* event constructors *)
 
-
-
-
-     type response =
-    | LaunchResponse of (Dap_commands.launch, EmptyObject.t option, Presence.opt) ResponseMessage.t
-
-     let launchResponse resp = LaunchResponse resp
-
-     type event = |}]
+     end |}]

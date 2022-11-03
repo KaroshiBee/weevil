@@ -508,8 +508,8 @@ module RenderRequest : (RenderT with type spec := Sp.Obj_spec.t) = struct
           )
           ~tystr:(
             Printf.sprintf
-              "| %s of %s RequestMessage.t"
-              name ty_params
+              "| %s : %s RequestMessage.t -> %s RequestMessage.t t"
+              name ty_params ty_params
           )
           ""
 
@@ -527,8 +527,8 @@ module RenderRequest : (RenderT with type spec := Sp.Obj_spec.t) = struct
           )
           ~tystr:(
             Printf.sprintf
-              "| %s of %s RequestMessage.t"
-              name ty_params
+              "| %s : %s RequestMessage.t -> %s RequestMessage.t t"
+              name ty_params ty_params
           )
           ""
     | None ->
@@ -545,8 +545,8 @@ module RenderRequest : (RenderT with type spec := Sp.Obj_spec.t) = struct
           )
           ~tystr:(
             Printf.sprintf
-              "| %s of %s RequestMessage.t"
-              name ty_params
+              "| %s : %s RequestMessage.t -> %s RequestMessage.t t"
+              name ty_params ty_params
           )
           ""
 end
@@ -574,8 +574,8 @@ module RenderResponse : (RenderT with type spec := Sp.Obj_spec.t) = struct
           )
           ~tystr:(
             Printf.sprintf
-              "| %s of %s ResponseMessage.t"
-              name ty_params
+              "| %s : %s ResponseMessage.t -> %s ResponseMessage.t t"
+              name ty_params ty_params
           )
           ""
     | Some body ->
@@ -592,8 +592,8 @@ module RenderResponse : (RenderT with type spec := Sp.Obj_spec.t) = struct
           )
           ~tystr:(
             Printf.sprintf
-              "| %s of %s ResponseMessage.t"
-              name ty_params
+              "| %s : %s ResponseMessage.t -> %s ResponseMessage.t t"
+              name ty_params ty_params
           )
           ""
     | None ->
@@ -610,8 +610,8 @@ module RenderResponse : (RenderT with type spec := Sp.Obj_spec.t) = struct
           )
           ~tystr:(
             Printf.sprintf
-              "| %s of %s ResponseMessage.t"
-              name ty_params
+              "| %s : %s ResponseMessage.t -> %s ResponseMessage.t t"
+              name ty_params ty_params
           )
           ""
 end
@@ -639,8 +639,8 @@ module RenderEvent : (RenderT with type spec := Sp.Obj_spec.t) = struct
           )
           ~tystr:(
             Printf.sprintf
-              "| %s of %s EventMessage.t"
-              name ty_params
+              "| %s : %s EventMessage.t -> %s EventMessage.t t"
+              name ty_params ty_params
           )
           ""
 
@@ -658,8 +658,8 @@ module RenderEvent : (RenderT with type spec := Sp.Obj_spec.t) = struct
           )
           ~tystr:(
             Printf.sprintf
-              "| %s of %s EventMessage.t"
-              name ty_params
+              "| %s : %s EventMessage.t -> %s EventMessage.t t"
+              name ty_params ty_params
           )
           ""
     | None ->
@@ -676,8 +676,8 @@ module RenderEvent : (RenderT with type spec := Sp.Obj_spec.t) = struct
           )
           ~tystr:(
             Printf.sprintf
-              "| %s of %s EventMessage.t"
-              name ty_params
+              "| %s : %s EventMessage.t -> %s EventMessage.t t"
+              name ty_params ty_params
           )
           ""
 end
@@ -738,13 +738,25 @@ let render (dfs:Dfs.t) = let open Render_output in function
        module RequestMessage = Dap_request\n \
        module ResponseMessage = Dap_response\n \
        module EventMessage = Dap_event\n\n \
-       %s\n\n \
-       type request = \n%s\n\n \
-       %s \n\n \
-       type response = \n%s\n\n \
-       %s \n\n \
-       type event = \n%s\n\n
-       %s \n\n"
+       (* supporting data modules *) %s\n\n \
+       module Request  = struct \n\n \
+       type _ t = \n
+       | Fmap : ('a -> 'b) -> ('a -> 'b) t \n
+       (* request GADT items *) %s\n\n \
+       (* request constructors *) %s\n\n \
+       end \n\n \
+       module Response = struct \n\n \
+       type _ t = \n
+       | Fmap : ('a -> 'b) -> ('a -> 'b) t \n
+       (* response GADT items *) %s\n\n \
+       (* response constructors *) %s\n\n \
+       end \n\n \
+       module Event = struct \n\n \
+       type _ t = \n
+       | Fmap : ('a -> 'b) -> ('a -> 'b) t \n
+       (* event GADT items *) %s\n\n
+       (* event constructors *) %s\n\n \
+       end"
       smods sreqs sreqctors sresps srespctors sevents seventctors
   | Commands ML ->
     let {ml; _} = match RenderEnumWithPhantoms.(of_spec dfs.command_enum |> render ~name:CommandHelper.module_name) with `MlMli mlmli -> mlmli | _ -> assert false in

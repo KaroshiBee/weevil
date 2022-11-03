@@ -1,5 +1,10 @@
 (* open Dap_message_exi *)
 
+(* type 'a t = 'a Dap_result.t *)
+
+
+
+
 (* let from_result x = x *)
 (* let to_result x = x *)
 

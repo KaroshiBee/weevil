@@ -1,6 +1,8 @@
-open Dap_message_exi
+module Req = Dap_utils.Request
+module Res = Dap_utils.Response
 
-module type Request_response_link = sig
+
+module type Types = sig
   type cmd
 
   type args
@@ -10,43 +12,69 @@ module type Request_response_link = sig
   type body
 
   type pbody
+end
+
+module type Handler = sig
+
+  include Types
 
   type t
 
-  (* NOTE the cmd param is the same for both *)
+  (* type req_msg = (cmd, args, pargs) Req.Message.t *)
+  (* type res_msg = (cmd, body, pbody) Res.Message.t *)
+
   val make :
-    ((cmd, args, pargs) RequestMessage.t ->
-    (cmd, body, pbody) ResponseMessage.t Dap_result.t) ->
+    handler: ((cmd, args, pargs) Req.Message.t Req.t -> (cmd, body, pbody) Res.Message.t Res.t Dap_result.t) ->
+    ctor:((cmd, body, pbody) Res.Message.t -> (cmd, body, pbody) Res.Message.t Res.t) ->
     t
 
-  val handle : t -> request -> response Dap_result.t
+  (* NOTE the cmd param is the same for both the request and the response *)
+  val handle : t -> (cmd, args, pargs) Req.Message.t Req.t -> (cmd, body, pbody) Res.Message.t Res.t Dap_result.t
+
 end
 
-module WithSeqr (L : Request_response_link) :
-  Request_response_link
-    with type t = L.t
-     and type cmd := L.cmd
-     and type args := L.args
-     and type pargs := L.pargs
-     and type body := L.body
-     and type pbody := L.pbody = struct
-  type t = L.t
+module WithSeqr (T : Types) :
+  Handler
+  with type cmd := T.cmd
+   and type args := T.args
+   and type pargs := T.pargs
+   and type body := T.body
+   and type pbody := T.pbody
+   (* and type req_msg := (T.cmd, T.args, T.pargs) Req.Message.t *)
+   (* and type res_msg := (T.cmd, T.body, T.pbody) Res.Message.t *)
+= struct
+  (* type req_msg = (T.cmd, T.args, T.pargs) Req.Message.t *)
+  (* type res_msg = (T.cmd, T.body, T.pbody) Res.Message.t *)
+  type t = {
+    handler: (T.cmd, T.args, T.pargs) Req.Message.t Req.t -> (T.cmd, T.body, T.pbody) Res.Message.t Res.t Dap_result.t;
+    ctor: (T.cmd, T.body, T.pbody) Res.Message.t -> (T.cmd, T.body, T.pbody) Res.Message.t Res.t;
+  }
 
-  let make = L.make
+  let make ~handler ~ctor = {handler; ctor}
 
-  let handle t req =
-    let request_seq = Dap_utils.RequestUtils.get_seq req in
-    let seq = 1 + request_seq in
-    let setter_resp =
-      Dap_utils.ResponseUtils.set_sequencing ~seq ~request_seq
+  let wrapper ~ctor f =
+    let getseq = Req.(Fmap Message.seq) in
+    let setseq seq request_seq = Res.(Fmap (fun resp ->
+        let resp = Message.set_request_seq resp ~request_seq in
+        Message.set_seq resp ~seq
+      ))
     in
-    (* the error part is a raw message *)
-    let setter_resp_msg msg =
-      let msg = ResponseMessage.set_seq msg ~seq in
-      let msg = ResponseMessage.set_request_seq msg ~request_seq in
-      msg
-    in
+    fun req ->
+      let request_seq = Req.(eval @@ Map (Val getseq, Val req)) in
+      let seq = 1 + request_seq in
+      let resp = f req in
+      Dap_result.bind resp (fun v->
+          Res.(eval @@ Map (Val (setseq seq request_seq), Val v))
+          |> ctor
+          |> Dap_result.ok
+        )
+      |> Dap_result.map_error (fun err-> Res.(
+               eval @@ Map (Val (setseq seq request_seq), Val err)
+               |> errorResponse
+             ))
 
-    L.handle t req |> Dap_result.map setter_resp
-    |> Dap_result.map_error setter_resp_msg
+
+  let handle {handler; ctor} req =
+    let f = wrapper ~ctor handler in
+    f req
 end
