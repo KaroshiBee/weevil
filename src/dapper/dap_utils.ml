@@ -2,19 +2,11 @@
 let seq = -1
 let request_seq = -1
 
-let default_response_error e =
-  let open Dap_message_exi.Data in
-  let id = Hashtbl.hash e in
-  let variables = `O [("error", `String e)] in
-  let error = Message.make ~id ~format:"{error}" ~variables () in
-  let body = ErrorResponse_body.make ~error () in
-  Dap_message_exi.ResponseMessage.make ~seq ~request_seq ~success:false ~command:Dap_commands.error ~body ()
-
 
 module Request = struct
   include Dap_message_exi.Data
   include Dap_message_exi.Request
-  module Message = Dap_message_exi.RequestMessage
+  module RequestMessage = Dap_message_exi.RequestMessage
 
   type _ expr =
     | Val : 'msg t -> 'msg expr
@@ -72,13 +64,13 @@ end
 module Response = struct
   include Dap_message_exi.Data
   include Dap_message_exi.Response
-  module Message = Dap_message_exi.ResponseMessage
+  module ResponseMessage = Dap_message_exi.ResponseMessage
 
   let default_response_req ?(success = true) command body =
-    Message.make ~seq ~request_seq ~success ~command ~body ()
+    ResponseMessage.make ~seq ~request_seq ~success ~command ~body ()
 
   let default_response_opt ?(success = true) command body =
-    Message.make_opt ~seq ~request_seq ~success ~command ~body ()
+    ResponseMessage.make_opt ~seq ~request_seq ~success ~command ~body ()
 
   type _ expr =
     | Val : 'msg t -> 'msg expr
@@ -137,13 +129,13 @@ end
 module Event = struct
   include Dap_message_exi.Data
   include Dap_message_exi.Event
-  module Message = Dap_message_exi.EventMessage
+  module EventMessage = Dap_message_exi.EventMessage
 
   let default_event_req event body =
-    Message.make ~seq ~event ~body ()
+    EventMessage.make ~seq ~event ~body ()
 
   let default_event_opt event body =
-    Message.make_opt ~seq ~event ~body ()
+    EventMessage.make_opt ~seq ~event ~body ()
 
   type _ expr =
     | Val : 'msg t -> 'msg expr
@@ -171,3 +163,11 @@ module Event = struct
     | Map (f, v) -> let f' = (eval f) and v' = eval v in (f' v')
 
 end
+
+let default_response_error e =
+  let open Dap_message_exi.Data in
+  let id = Hashtbl.hash e in
+  let variables = `O [("error", `String e)] in
+  let error = Message.make ~id ~format:"{error}" ~variables () in
+  let body = ErrorResponse_body.make ~error () in
+  Response.ResponseMessage.make ~seq ~request_seq ~success:false ~command:Dap_commands.error ~body ()

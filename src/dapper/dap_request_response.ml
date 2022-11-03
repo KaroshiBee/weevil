@@ -18,18 +18,22 @@ module type Handler = sig
 
   include Types
 
+  type req_msg (* = (cmd, args, pargs) Req.Message.t *)
+  type res_msg (* = (cmd, body, pbody) Res.Message.t *)
+
   type t
 
-  (* type req_msg = (cmd, args, pargs) Req.Message.t *)
-  (* type res_msg = (cmd, body, pbody) Res.Message.t *)
-
   val make :
-    handler: ((cmd, args, pargs) Req.Message.t Req.t -> (cmd, body, pbody) Res.Message.t Res.t Dap_result.t) ->
-    ctor:((cmd, body, pbody) Res.Message.t -> (cmd, body, pbody) Res.Message.t Res.t) ->
+    handler: (req_msg Req.t -> res_msg Res.t Dap_result.t) ->
+    ctor:(res_msg -> res_msg Res.t) ->
     t
+  (* val make : *)
+  (*   handler: ((cmd, args, pargs) Req.Message.t Req.t -> (cmd, body, pbody) Res.Message.t Res.t Dap_result.t) -> *)
+  (*   ctor:((cmd, body, pbody) Res.Message.t -> (cmd, body, pbody) Res.Message.t Res.t) -> *)
+  (*   t *)
 
   (* NOTE the cmd param is the same for both the request and the response *)
-  val handle : t -> (cmd, args, pargs) Req.Message.t Req.t -> (cmd, body, pbody) Res.Message.t Res.t Dap_result.t
+  val handle : t -> req_msg Req.t -> res_msg Res.t Dap_result.t
 
 end
 
@@ -40,23 +44,23 @@ module WithSeqr (T : Types) :
    and type pargs := T.pargs
    and type body := T.body
    and type pbody := T.pbody
-   (* and type req_msg := (T.cmd, T.args, T.pargs) Req.Message.t *)
-   (* and type res_msg := (T.cmd, T.body, T.pbody) Res.Message.t *)
+   and type req_msg = (T.cmd, T.args, T.pargs) Req.RequestMessage.t
+   and type res_msg = (T.cmd, T.body, T.pbody) Res.ResponseMessage.t
 = struct
-  (* type req_msg = (T.cmd, T.args, T.pargs) Req.Message.t *)
-  (* type res_msg = (T.cmd, T.body, T.pbody) Res.Message.t *)
+  type req_msg = (T.cmd, T.args, T.pargs) Req.RequestMessage.t
+  type res_msg = (T.cmd, T.body, T.pbody) Res.ResponseMessage.t
   type t = {
-    handler: (T.cmd, T.args, T.pargs) Req.Message.t Req.t -> (T.cmd, T.body, T.pbody) Res.Message.t Res.t Dap_result.t;
-    ctor: (T.cmd, T.body, T.pbody) Res.Message.t -> (T.cmd, T.body, T.pbody) Res.Message.t Res.t;
+    handler: req_msg Req.t -> res_msg Res.t Dap_result.t;
+    ctor: res_msg -> res_msg Res.t;
   }
 
   let make ~handler ~ctor = {handler; ctor}
 
   let wrapper ~ctor f =
-    let getseq = Req.(Fmap Message.seq) in
+    let getseq = Req.(Fmap RequestMessage.seq) in
     let setseq seq request_seq = Res.(Fmap (fun resp ->
-        let resp = Message.set_request_seq resp ~request_seq in
-        Message.set_seq resp ~seq
+        let resp = ResponseMessage.set_request_seq resp ~request_seq in
+        ResponseMessage.set_seq resp ~seq
       ))
     in
     fun req ->
@@ -72,6 +76,7 @@ module WithSeqr (T : Types) :
                eval @@ Map (Val (setseq seq request_seq), Val err)
                |> errorResponse
              ))
+
 
 
   let handle {handler; ctor} req =

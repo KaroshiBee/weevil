@@ -2,7 +2,7 @@ module Js = Data_encoding.Json
 module Req = Dap_utils.Request
 module Res = Dap_utils.Response
 module RR = Dap_request_response
-module M = Dap_message_exi
+module M = Dap_message_exi.Data
 
 module Launch = RR.WithSeqr (struct
     type cmd = Dap_commands.launch
@@ -27,8 +27,8 @@ let%expect_test "Check sequencing request/response" =
     Launch.handle l
   in
 
-  let req_launch = Req.(launchRequest @@ Message.make ~seq:10 ~command:Dap_commands.launch ~arguments:(M.LaunchRequestArguments.make ()) ()) in
-  let enc_launch = Res.(Message.enc_opt Dap_commands.launch M.EmptyObject.enc) in
+  let req_launch = Req.(launchRequest @@ RequestMessage.make ~seq:101 ~command:Dap_commands.launch ~arguments:(LaunchRequestArguments.make ()) ()) in
+  let enc_launch = Res.(ResponseMessage.enc_opt Dap_commands.launch M.EmptyObject.enc) in
 
   let s =
     handler req_launch |> Dap_result.map (function
@@ -39,7 +39,7 @@ let%expect_test "Check sequencing request/response" =
   in
   Printf.printf "%s" s;
   [%expect {|
-    { "seq": 11, "type": "response", "request_seq": 10, "success": true,
+    { "seq": 102, "type": "response", "request_seq": 101, "success": true,
       "command": "launch", "body": {} } |}];
 
 
@@ -73,7 +73,7 @@ let%expect_test "Check sequencing request/response" =
   in
   Printf.printf "%s" s;
   [%expect {|
-    { "seq": 11, "type": "response", "request_seq": 10, "success": false,
+    { "seq": 102, "type": "response", "request_seq": 101, "success": false,
       "command": "error",
       "body":
         { "error":
