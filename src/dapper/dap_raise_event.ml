@@ -1,6 +1,6 @@
 open Dap_message_exi
 
-module type Raise_Event_Link = sig
+module type Raise_event_link = sig
 
   type ev
   type body
@@ -16,8 +16,8 @@ end
 
 
 
-module WithSeqr (L:Raise_Event_Link)
-  : (Raise_Event_Link
+module WithSeqr (L:Raise_event_link)
+  : (Raise_event_link
        with
          type t = L.t and
        type ev := L.ev and

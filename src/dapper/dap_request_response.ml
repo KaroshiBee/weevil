@@ -1,6 +1,6 @@
 open Dap_message_exi
 
-module type Request_Response_Link = sig
+module type Request_response_link = sig
   type cmd
 
   type args
@@ -22,8 +22,8 @@ module type Request_Response_Link = sig
   val handle : t -> request -> response Dap_result.t
 end
 
-module WithSeqr (L : Request_Response_Link) :
-  Request_Response_Link
+module WithSeqr (L : Request_response_link) :
+  Request_response_link
     with type t = L.t
      and type cmd := L.cmd
      and type args := L.args

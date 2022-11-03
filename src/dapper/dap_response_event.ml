@@ -1,6 +1,6 @@
 open Dap_message_exi
 
-module type Response_Event_Link = sig
+module type Response_event_link = sig
   type t
   type cmd
   type body
@@ -13,8 +13,8 @@ module type Response_Event_Link = sig
   val handle : t -> (response -> event Dap_result.t)
 end
 
-module WithSeqr (L:Response_Event_Link)
-  : (Response_Event_Link
+module WithSeqr (L:Response_event_link)
+  : (Response_event_link
      with
        type t = L.t and
      type cmd := L.cmd and
