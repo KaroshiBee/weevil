@@ -17,10 +17,6 @@ type _ expr =
   | Val : 'msg value -> 'msg expr
   | Map : ('msg -> 'b) expr * 'msg expr -> 'b expr
 
-let wrapper f = fun msg ->
-  let seq = 1 + EventMessage.seq msg in
-  EventMessage.set_seq (f msg) ~seq
-
 let rec eval : type msg. msg expr -> msg = function
   | Val (InitializedEv ev) -> ev
   | Val (StoppedEv ev) -> ev
@@ -29,9 +25,8 @@ let rec eval : type msg. msg expr -> msg = function
   | Val (Fmap f) -> f
   | Map (f, v) -> let f' = (eval f) and v' = eval v in (f' v')
 
-let f = Fmap (fun _evt ->
-        Dap_utils.default_event_req Dap_events.stopped (StoppedEvent_body.make ~reason:StoppedEvent_body_reason.Breakpoint ())
-          )
+let set_seq seq = Fmap (fun evt -> EventMessage.set_seq evt ~seq)
+let get_seq = Fmap (fun evt -> EventMessage.seq evt)
 
 let i = InitializedEv (
     Dap_utils.default_event_opt Dap_events.initialized (EmptyObject.make ())
@@ -41,19 +36,26 @@ let c = ContinuedEv (
     Dap_utils.default_event_req Dap_events.continued (ContinuedEvent_body.make ~threadId:0 ())
   )
 
-let x = eval @@ Map (Val f, Val i)
-let y = eval @@ Map (Val f, Val c)
+let x = eval @@ Map (Val (set_seq 1), Val i)
+let y = eval @@ Map (Val (set_seq 2), Val c)
 
+let xx = eval @@ Map (Val get_seq, Val i)
+let yy = eval @@ Map (Val get_seq, Val (ContinuedEv y))
 
+let wrapper f = fun v ->
+  let seq = succ @@ eval @@ Map (Val get_seq, Val v) in
+  let v' = f v in
+  eval @@ Map (Val (set_seq seq), Val v')
 
-(* let wrapper ev ~f = *)
-(*   let msg, ctor = reflect ev in *)
-(*   let seq = 1 + EventMessage.seq msg in *)
-(*   let msg_ = f msg in *)
-(*   let msg_ = EventMessage.set_seq msg_ ~seq in *)
-(*   ctor msg_ *)
+let f1 = wrapper @@ fun _ -> i
+let f2 = wrapper @@ fun _ -> c
 
-(* let w = wrapper i ~f:(fun _ -> Dap_utils.default_event_req Dap_events.continued (ContinuedEvent_body.make ~threadId:0 ())) *)
+let link : ('ev, _, _) EventMessage.t value -> ('ev, _, _) EventMessage.t value -> int = fun e1 e2 ->
+  let i = eval @@ Map (Val get_seq, Val e1) in
+  let j = eval @@ Map (Val get_seq, Val e2) in
+  i+j
+
+let _ = link i @@ InitializedEv x
 
 module type Raise_event_link = sig
 
