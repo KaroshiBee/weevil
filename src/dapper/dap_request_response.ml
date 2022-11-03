@@ -1,25 +1,23 @@
-module Req = Dap_utils.Request
-module Res = Dap_utils.Response
+module Req = Dap.Request
+module Res = Dap.Response
 
 
 module type Types = sig
+
   type cmd
-
   type args
-
   type pargs
-
   type body
-
   type pbody
+
 end
 
 module type Handler = sig
 
   include Types
 
-  type req_msg (* = (cmd, args, pargs) Req.Message.t *)
-  type res_msg (* = (cmd, body, pbody) Res.Message.t *)
+  type req_msg
+  type res_msg
 
   type t
 
@@ -27,12 +25,7 @@ module type Handler = sig
     handler: (req_msg Req.t -> res_msg Res.t Dap_result.t) ->
     ctor:(res_msg -> res_msg Res.t) ->
     t
-  (* val make : *)
-  (*   handler: ((cmd, args, pargs) Req.Message.t Req.t -> (cmd, body, pbody) Res.Message.t Res.t Dap_result.t) -> *)
-  (*   ctor:((cmd, body, pbody) Res.Message.t -> (cmd, body, pbody) Res.Message.t Res.t) -> *)
-  (*   t *)
 
-  (* NOTE the cmd param is the same for both the request and the response *)
   val handle : t -> req_msg Req.t -> res_msg Res.t Dap_result.t
 
 end
@@ -47,6 +40,7 @@ module WithSeqr (T : Types) :
    and type req_msg = (T.cmd, T.args, T.pargs) Req.RequestMessage.t
    and type res_msg = (T.cmd, T.body, T.pbody) Res.ResponseMessage.t
 = struct
+  (* NOTE the cmd param is the same for both the request and the response *)
   type req_msg = (T.cmd, T.args, T.pargs) Req.RequestMessage.t
   type res_msg = (T.cmd, T.body, T.pbody) Res.ResponseMessage.t
   type t = {
@@ -67,19 +61,19 @@ module WithSeqr (T : Types) :
       let request_seq = Req.(eval @@ Map (Val getseq, Val req)) in
       let seq = 1 + request_seq in
       let resp = f req in
-      Dap_result.bind resp (fun v->
-          Res.(eval @@ Map (Val (setseq seq request_seq), Val v))
+      Dap_result.bind resp (fun v-> Res.(
+          eval @@ Map (Val (setseq seq request_seq), Val v)
           |> ctor
           |> Dap_result.ok
-        )
+        ))
       |> Dap_result.map_error (fun err-> Res.(
-               eval @@ Map (Val (setseq seq request_seq), Val err)
-               |> errorResponse
-             ))
+          eval @@ Map (Val (setseq seq request_seq), Val err)
+          |> errorResponse
+        ))
 
 
 
   let handle {handler; ctor} req =
-    let f = wrapper ~ctor handler in
-    f req
+    wrapper ~ctor handler req
+
 end

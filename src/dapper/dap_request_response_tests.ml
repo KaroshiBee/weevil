@@ -1,23 +1,21 @@
 module Js = Data_encoding.Json
-module Req = Dap_utils.Request
-module Res = Dap_utils.Response
-module RR = Dap_request_response
-module M = Dap_message_exi.Data
+module Req = Dap.Request
+module Res = Dap.Response
 
-module Launch = RR.WithSeqr (struct
-    type cmd = Dap_commands.launch
-    type args = M.LaunchRequestArguments.t
-    type pargs = M.Presence.req
-    type body = M.EmptyObject.t option
-    type pbody = M.Presence.opt
-  end)
+module Launch = Dap_request_response.WithSeqr (struct
+  type cmd = Dap_commands.launch
+  type args = Dap.LaunchRequestArguments.t
+  type pargs = Dap.Presence.req
+  type body = Dap.EmptyObject.t option
+  type pbody = Dap.Presence.opt
+end)
 
 
 let%expect_test "Check sequencing request/response" =
   let handler =
     let l = Launch.make
         ~handler:(fun _req ->
-            let body = M.EmptyObject.make () in
+            let body = Dap.EmptyObject.make () in
             Res.default_response_opt Dap_commands.launch body
             |> Res.launchResponse
             |> Dap_result.ok
@@ -27,8 +25,8 @@ let%expect_test "Check sequencing request/response" =
     Launch.handle l
   in
 
-  let req_launch = Req.(launchRequest @@ RequestMessage.make ~seq:101 ~command:Dap_commands.launch ~arguments:(LaunchRequestArguments.make ()) ()) in
-  let enc_launch = Res.(ResponseMessage.enc_opt Dap_commands.launch M.EmptyObject.enc) in
+  let req_launch = Req.(launchRequest @@ RequestMessage.make ~seq:101 ~command:Dap_commands.launch ~arguments:(Dap.LaunchRequestArguments.make ()) ()) in
+  let enc_launch = Res.(ResponseMessage.enc_opt Dap_commands.launch Dap.EmptyObject.enc) in
 
   let s =
     handler req_launch |> Dap_result.map (function
@@ -44,7 +42,7 @@ let%expect_test "Check sequencing request/response" =
 
 
   (* NOTE can no longer pass wrong type in *)
-  (* let req_attach = Req.(attachRequest @@ Message.make ~seq:100 ~command:Dap_commands.attach ~arguments:(M.AttachRequestArguments.make ()) ()) in *)
+  (* let req_attach = Req.(attachRequest @@ Message.make ~seq:100 ~command:Dap_commands.attach ~arguments:(AttachRequestArguments.make ()) ()) in *)
   (* (\* should error with correct seq numbers if given the wrong request type *\) *)
   (* let s = handler req_attach |> Dap_result.get_error_str *)
   (* in *)
@@ -61,7 +59,7 @@ let%expect_test "Check sequencing request/response" =
   let handler_err =
     let l = Launch.make
         ~handler:(fun _req ->
-            Dap_utils.default_response_error "testing error"
+            Dap.default_response_error "testing error"
             |> Res.errorResponse
             |> Dap_result.error
           )

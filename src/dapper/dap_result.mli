@@ -1,9 +1,9 @@
 type error =
   ( Dap_commands.error,
-    Dap_utils.Response.ErrorResponse_body.t,
-    Dap_base.Presence.req )
-  Dap_utils.Response.ResponseMessage.t
-  Dap_utils.Response.t
+    Dap.ErrorResponse_body.t,
+    Dap.Presence.req )
+  Dap.Response.ResponseMessage.t
+  Dap.Response.t
 
 type 'a t
 

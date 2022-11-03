@@ -2,9 +2,9 @@
 let seq = -1
 let request_seq = -1
 
+include Dap_message_exi.Data
 
 module Request = struct
-  include Dap_message_exi.Data
   include Dap_message_exi.Request
   module RequestMessage = Dap_message_exi.RequestMessage
 
@@ -62,7 +62,6 @@ module Request = struct
 end
 
 module Response = struct
-  include Dap_message_exi.Data
   include Dap_message_exi.Response
   module ResponseMessage = Dap_message_exi.ResponseMessage
 
@@ -127,7 +126,6 @@ module Response = struct
 end
 
 module Event = struct
-  include Dap_message_exi.Data
   include Dap_message_exi.Event
   module EventMessage = Dap_message_exi.EventMessage
 

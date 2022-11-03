@@ -6,6 +6,7 @@ module EventMessage = Dap_event
 
 module Data = struct
   include Dap_base
+
   (* supporting data modules *)
   module Message : sig
     type t
