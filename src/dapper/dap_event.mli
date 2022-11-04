@@ -3,7 +3,7 @@ type ('event, 'body, 'presence) t
 val seq : ('event, 'body, 'presence) t -> int
 
 val set_seq :
-  ('event, 'body, 'presence) t -> seq:int -> ('event, 'body, 'presence) t
+  seq:int -> ('event, 'body, 'presence) t -> ('event, 'body, 'presence) t
 
 val type_ : ('event, 'body, 'presence) t -> Dap_base.ProtocolMessage_type.t
 

@@ -12,13 +12,13 @@ type ('cmd, 'body, 'presence) t = {
 
 let seq t = t.seq
 
-let set_seq t ~seq = {t with seq}
+let set_seq ~seq t = {t with seq}
 
 let type_ t = t.type_
 
 let request_seq t = t.request_seq
 
-let set_request_seq t ~request_seq = {t with request_seq}
+let set_request_seq ~request_seq t = {t with request_seq}
 
 let success t = t.success
 

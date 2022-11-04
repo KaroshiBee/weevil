@@ -53,8 +53,9 @@ module WithSeqr (T : Types) :
   let wrapper ~ctor f =
     let getseq = Req.(Fmap RequestMessage.seq) in
     let setseq seq request_seq = Res.(Fmap (fun msg ->
-        let msg = ResponseMessage.set_request_seq msg ~request_seq in
-        ResponseMessage.set_seq msg ~seq
+        msg
+        |> ResponseMessage.set_request_seq ~request_seq
+        |> ResponseMessage.set_seq ~seq
       ))
     in
     fun msg ->

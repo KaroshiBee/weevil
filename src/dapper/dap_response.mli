@@ -3,14 +3,14 @@ type ('cmd, 'body, 'presence) t
 val seq : ('cmd, 'body, 'presence) t -> int
 
 val set_seq :
-  ('cmd, 'body, 'presence) t -> seq:int -> ('cmd, 'body, 'presence) t
+  seq:int -> ('cmd, 'body, 'presence) t -> ('cmd, 'body, 'presence) t
 
 val type_ : ('cmd, 'body, 'presence) t -> Dap_base.ProtocolMessage_type.t
 
 val request_seq : ('cmd, 'body, 'presence) t -> int
 
 val set_request_seq :
-  ('cmd, 'body, 'presence) t -> request_seq:int -> ('cmd, 'body, 'presence) t
+  request_seq:int -> ('cmd, 'body, 'presence) t -> ('cmd, 'body, 'presence) t
 
 val success : ('cmd, 'body, 'presence) t -> bool
 

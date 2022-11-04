@@ -55,12 +55,11 @@ module WithSeqr (T:Types)
 
   let wrapper ~ctor f =
     let getseq = Ev.(Fmap EventMessage.seq) in
-    let setseq seq = Ev.(Fmap (fun msg ->
-        EventMessage.set_seq msg ~seq
-      )) in
+    let setseq seq = Ev.(Fmap (EventMessage.set_seq ~seq)) in
     let setseq_err seq request_seq = Res.(Fmap (fun msg ->
-        let msg = ResponseMessage.set_request_seq msg ~request_seq in
-        ResponseMessage.set_seq msg ~seq
+        msg
+        |> ResponseMessage.set_request_seq ~request_seq
+        |> ResponseMessage.set_seq ~seq
       ))
     in
     fun msg ->

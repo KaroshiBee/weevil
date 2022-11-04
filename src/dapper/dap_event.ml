@@ -9,7 +9,7 @@ type ('event, 'body, 'presence) t = {
 
 let seq t = t.seq
 
-let set_seq t ~seq = {t with seq}
+let set_seq ~seq t = {t with seq}
 
 let type_ t = t.type_
 
