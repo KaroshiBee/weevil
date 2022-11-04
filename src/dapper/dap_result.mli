@@ -2,7 +2,7 @@ type error =
   ( Dap.Commands.error,
     Dap.ErrorResponse_body.t,
     Dap.Presence.req )
-  Dap.Response.ResponseMessage.t
+  Dap.Response.Message.t
   Dap.Response.t
 
 type 'a t

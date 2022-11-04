@@ -32,8 +32,8 @@ let%expect_test "Check sequencing response/event" =
     ProcessLaunched.handle l
   in
 
-  let resp_launch = Res.(launchResponse @@ ResponseMessage.make_opt ~seq:111 ~request_seq:110 ~success:true ~command:Dap.Commands.launch ~body:(Dap.EmptyObject.make ()) ()) in
-  let enc_launch = Ev.(EventMessage.enc Dap.Events.process Dap.ProcessEvent_body.enc) in
+  let resp_launch = Res.(launchResponse @@ Message.make_opt ~seq:111 ~request_seq:110 ~success:true ~command:Dap.Commands.launch ~body:(Dap.EmptyObject.make ()) ()) in
+  let enc_launch = Ev.(Message.enc Dap.Events.process Dap.ProcessEvent_body.enc) in
 
   let s =
     handler resp_launch |> Dap_result.map (function

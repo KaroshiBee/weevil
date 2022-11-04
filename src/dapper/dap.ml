@@ -10,7 +10,7 @@ include Dap_message_exi.Data
 
 module Request = struct
   include Dap_message_exi.Request
-  module RequestMessage = Dap_message_exi.RequestMessage
+  module Message = Dap_message_exi.RequestMessage
 
   type _ expr =
     | Val : 'msg t -> 'msg expr
@@ -67,13 +67,13 @@ end
 
 module Response = struct
   include Dap_message_exi.Response
-  module ResponseMessage = Dap_message_exi.ResponseMessage
+  module Message = Dap_message_exi.ResponseMessage
 
   let default_response_req ?(success = true) command body =
-    ResponseMessage.make ~seq ~request_seq ~success ~command ~body ()
+    Message.make ~seq ~request_seq ~success ~command ~body ()
 
   let default_response_opt ?(success = true) command body =
-    ResponseMessage.make_opt ~seq ~request_seq ~success ~command ~body ()
+    Message.make_opt ~seq ~request_seq ~success ~command ~body ()
 
   type _ expr =
     | Val : 'msg t -> 'msg expr
@@ -131,13 +131,13 @@ end
 
 module Event = struct
   include Dap_message_exi.Event
-  module EventMessage = Dap_message_exi.EventMessage
+  module Message = Dap_message_exi.EventMessage
 
   let default_event_req event body =
-    EventMessage.make ~seq ~event ~body ()
+    Message.make ~seq ~event ~body ()
 
   let default_event_opt event body =
-    EventMessage.make_opt ~seq ~event ~body ()
+    Message.make_opt ~seq ~event ~body ()
 
   type _ expr =
     | Val : 'msg t -> 'msg expr
@@ -172,4 +172,4 @@ let default_response_error e =
   let variables = `O [("error", `String e)] in
   let error = Message.make ~id ~format:"{error}" ~variables () in
   let body = ErrorResponse_body.make ~error () in
-  Response.ResponseMessage.make ~seq ~request_seq ~success:false ~command:Dap_commands.error ~body ()
+  Response.Message.make ~seq ~request_seq ~success:false ~command:Dap_commands.error ~body ()

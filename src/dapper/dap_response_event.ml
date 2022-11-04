@@ -38,12 +38,12 @@ module WithSeqr (T:Types)
    and type ev := T.ev
    and type body_ := T.body_
    and type pbody_ := T.pbody_
-   and type in_msg = (T.cmd, T.body, T.pbody) In.ResponseMessage.t
-   and type out_msg = (T.ev, T.body_, T.pbody_) Out.EventMessage.t
+   and type in_msg = (T.cmd, T.body, T.pbody) In.Message.t
+   and type out_msg = (T.ev, T.body_, T.pbody_) Out.Message.t
 = struct
 
-  type in_msg = (T.cmd, T.body, T.pbody) In.ResponseMessage.t
-  type out_msg = (T.ev, T.body_, T.pbody_) Out.EventMessage.t
+  type in_msg = (T.cmd, T.body, T.pbody) In.Message.t
+  type out_msg = (T.ev, T.body_, T.pbody_) Out.Message.t
   type t = {
     handler: in_msg In.t -> out_msg Out.t Dap_result.t;
     ctor: out_msg -> out_msg Out.t;
@@ -52,12 +52,12 @@ module WithSeqr (T:Types)
   let make ~handler ~ctor = {handler; ctor}
 
   let wrapper ~ctor f =
-    let getseq = In.(Fmap ResponseMessage.seq) in
-    let setseq seq = Out.(Fmap (EventMessage.set_seq ~seq)) in
+    let getseq = In.(Fmap Message.seq) in
+    let setseq seq = Out.(Fmap (Message.set_seq ~seq)) in
     let setseq_err seq request_seq = Err.(Fmap (fun msg ->
         msg
-        |> ResponseMessage.set_request_seq ~request_seq
-        |> ResponseMessage.set_seq ~seq
+        |> Message.set_request_seq ~request_seq
+        |> Message.set_seq ~seq
       ))
     in
     fun msg ->

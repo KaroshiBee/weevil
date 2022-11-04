@@ -1,4 +1,3 @@
-
 module type Types = sig
 
   type cmd
@@ -38,12 +37,12 @@ module WithSeqr (T : Types) :
    and type pargs := T.pargs
    and type body := T.body
    and type pbody := T.pbody
-   and type in_msg = (T.cmd, T.args, T.pargs) In.RequestMessage.t
-   and type out_msg = (T.cmd, T.body, T.pbody) Out.ResponseMessage.t
+   and type in_msg = (T.cmd, T.args, T.pargs) In.Message.t
+   and type out_msg = (T.cmd, T.body, T.pbody) Out.Message.t
 = struct
   (* NOTE the cmd param is the same for both the request and the response *)
-  type in_msg = (T.cmd, T.args, T.pargs) In.RequestMessage.t
-  type out_msg = (T.cmd, T.body, T.pbody) Out.ResponseMessage.t
+  type in_msg = (T.cmd, T.args, T.pargs) In.Message.t
+  type out_msg = (T.cmd, T.body, T.pbody) Out.Message.t
   type t = {
     handler: in_msg In.t -> out_msg Out.t Dap_result.t;
     ctor: out_msg -> out_msg Out.t;
@@ -52,16 +51,16 @@ module WithSeqr (T : Types) :
   let make ~handler ~ctor = {handler; ctor}
 
   let wrapper ~ctor f =
-    let getseq = In.(Fmap RequestMessage.seq) in
+    let getseq = In.(Fmap Message.seq) in
     let setseq seq request_seq = Out.(Fmap (fun msg ->
         msg
-        |> ResponseMessage.set_request_seq ~request_seq
-        |> ResponseMessage.set_seq ~seq
+        |> Message.set_request_seq ~request_seq
+        |> Message.set_seq ~seq
       )) in
     let setseq_err seq request_seq = Err.(Fmap (fun msg ->
         msg
-        |> ResponseMessage.set_request_seq ~request_seq
-        |> ResponseMessage.set_seq ~seq
+        |> Message.set_request_seq ~request_seq
+        |> Message.set_seq ~seq
       ))
     in
     fun msg ->

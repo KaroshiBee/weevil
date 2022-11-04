@@ -34,8 +34,8 @@ let%expect_test "Check sequencing event/event" =
   let break_ev =
     let breakpoint = Dap.Breakpoint.make ~verified:true () in
     let body = Dap.BreakpointEvent_body.make ~reason:Dap.BreakpointEvent_body_reason.New ~breakpoint () in
-    Ev.(breakpointEvent @@ EventMessage.make ~seq:111 ~event:Dap.Events.breakpoint ~body ()) in
-  let enc_stopper = Ev.EventMessage.enc Dap.Events.stopped Dap.StoppedEvent_body.enc in
+    Ev.(breakpointEvent @@ Message.make ~seq:111 ~event:Dap.Events.breakpoint ~body ()) in
+  let enc_stopper = Ev.Message.enc Dap.Events.stopped Dap.StoppedEvent_body.enc in
 
   let s =
     handler break_ev |> Dap_result.map (function

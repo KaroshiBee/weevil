@@ -25,8 +25,8 @@ let%expect_test "Check sequencing request/response" =
     Launch.handle l
   in
 
-  let req_launch = Req.(launchRequest @@ RequestMessage.make ~seq:101 ~command:Dap.Commands.launch ~arguments:(Dap.LaunchRequestArguments.make ()) ()) in
-  let enc_launch = Res.(ResponseMessage.enc_opt Dap.Commands.launch Dap.EmptyObject.enc) in
+  let req_launch = Req.(launchRequest @@ Message.make ~seq:101 ~command:Dap.Commands.launch ~arguments:(Dap.LaunchRequestArguments.make ()) ()) in
+  let enc_launch = Res.(Message.enc_opt Dap.Commands.launch Dap.EmptyObject.enc) in
 
   let s =
     handler req_launch |> Dap_result.map (function
