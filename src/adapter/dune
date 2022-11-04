@@ -4,6 +4,7 @@
      dapper
      defaults
      backend
+     test_utils
      lwt
      lwt.unix
      conduit-lwt-unix

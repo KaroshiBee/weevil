@@ -1,0 +1,9 @@
+(library
+ (name test_utils)
+  (libraries
+    lwt
+    lwt.unix
+    ppx_expect
+  )
+ (preprocess (pps lwt_ppx ppx_expect))
+)

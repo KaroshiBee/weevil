@@ -1,4 +1,4 @@
-include Test_utils
+include Test_utils.Include
 module Js_msg = Dapper.Dap_js_msg
 
 let config = Dapper.Dap_config.make ()

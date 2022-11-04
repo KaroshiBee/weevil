@@ -1,3 +1,5 @@
+include Test_utils.Include
+
 module Js = Data_encoding.Json
 module Res = Dap.Response
 module Ev = Dap.Event
@@ -37,19 +39,20 @@ let%expect_test "Check sequencing event/event" =
     Ev.(breakpointEvent @@ Message.make ~seq:111 ~event:Dap.Events.breakpoint ~body ()) in
   let enc_stopper = Ev.Message.enc Dap.Events.stopped Dap.StoppedEvent_body.enc in
 
-  let s =
+  let%lwt s =
     handler break_ev
     |> Dap_result.map ~f:(function
         | Ev.StoppedEvent ev ->
           Js.construct enc_stopper ev |> Js.to_string
         | _ -> assert false
       )
-    |> Dap_result.get_ok
+    |> Dap_result.to_lwt_result
   in
-  Printf.printf "%s" s;
-  [%expect {|
+  Printf.printf "%s" @@ Result.get_ok s;
+  let%lwt () = [%expect {|
     { "seq": 112, "type": "event", "event": "stopped",
-      "body": { "reason": "breakpoint" } } |}];
+      "body": { "reason": "breakpoint" } } |}]
+  in
 
   (* should also have the correct seq numbers if error happens during handling *)
   let handler_err =
@@ -63,9 +66,11 @@ let%expect_test "Check sequencing event/event" =
     in
     BreakStopped.handle l
   in
-  let s = handler_err break_ev |> Dap_result.get_error_str
+  let%lwt s =
+    handler_err break_ev
+    |> Dap_result.to_lwt_error_as_str
   in
-  Printf.printf "%s" s;
+  Printf.printf "%s" @@ Result.get_error s;
   [%expect {|
     { "seq": 112, "type": "response", "request_seq": 111, "success": false,
       "command": "error",

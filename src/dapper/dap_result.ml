@@ -1,23 +1,27 @@
 module Js = Data_encoding.Json
 module R = Dap.Response
 
-type error = (Dap.Commands.error, Dap.ErrorResponse_body.t, Dap.Presence.req) R.Message.t R.t
-type 'a t = ('a, error) Result.t
-(* type 'a result_lwt = 'a result Lwt.t *)
+type error =
+  (Dap.Commands.error, Dap.ErrorResponse_body.t, Dap.Presence.req) R.Message.t
+  R.t
 
-let ok = Result.ok
-let get_ok = Result.get_ok
+type 'a t = ('a, error) Lwt_result.t
 
-let error = Result.error
-let get_error = Result.get_error
-let get_error_str t =
-  (* NOTE seem to need to do the get_error first otherwise type checker complains *)
-  let err_resp = get_error t in
+let ok = Lwt_result.return
+let error = Lwt_result.fail
+
+let to_lwt_result t = t
+
+let to_lwt_error_as_str t =
   let enc = R.Message.enc Dap.Commands.error Dap.ErrorResponse_body.enc in
-  let ss err = Js.construct enc err |> Js.to_string in
-  let ss = R.Fmap ss in
-  R.eval @@ R.Map (Val ss, Val err_resp)
+  let to_string = R.Fmap (fun err -> Js.construct enc err |> Js.to_string) in
+  (* NOTE seem to need the t otherwise type checker complains *)
+  Lwt_result.map_err
+    (fun err_resp -> R.(eval @@ Map (Val to_string, Val err_resp)))
+    t
 
-let map ~f = Result.map f
-let map_error ~f = Result.map_error f
-let bind ~f x = Result.bind x f
+let map ~f = Lwt_result.map f
+
+let map_error ~f = Lwt_result.map_err f
+
+let bind ~f x = Lwt_result.bind x f

@@ -1,3 +1,5 @@
+include Test_utils.Include
+
 module Js = Data_encoding.Json
 module Req = Dap.Request
 module Res = Dap.Response
@@ -28,20 +30,20 @@ let%expect_test "Check sequencing request/response" =
   let req_launch = Req.(launchRequest @@ Message.make ~seq:101 ~command:Dap.Commands.launch ~arguments:(Dap.LaunchRequestArguments.make ()) ()) in
   let enc_launch = Res.(Message.enc_opt Dap.Commands.launch Dap.EmptyObject.enc) in
 
-  let s =
+  let%lwt s =
     handler req_launch
     |> Dap_result.map ~f:(function
         | Res.LaunchResponse resp ->
           Js.construct enc_launch resp |> Js.to_string
         | _ -> assert false
       )
-    |> Dap_result.get_ok
+    |> Dap_result.to_lwt_result
   in
-  Printf.printf "%s" s;
-  [%expect {|
+  Printf.printf "%s" @@ Result.get_ok s;
+  let%lwt () = [%expect {|
     { "seq": 102, "type": "response", "request_seq": 101, "success": true,
-      "command": "launch", "body": {} } |}];
-
+      "command": "launch", "body": {} } |}]
+  in
 
   (* NOTE can no longer pass wrong type in *)
   (* let req_attach = Req.(attachRequest @@ Message.make ~seq:100 ~command:Dap.Commands.attach ~arguments:(AttachRequestArguments.make ()) ()) in *)
@@ -59,9 +61,11 @@ let%expect_test "Check sequencing request/response" =
     in
     Launch.handle l
   in
-  let s = handler_err req_launch |> Dap_result.get_error_str
+  let%lwt s =
+    handler_err req_launch
+    |> Dap_result.to_lwt_error_as_str
   in
-  Printf.printf "%s" s;
+  Printf.printf "%s" @@ Result.get_error s;
   [%expect {|
     { "seq": 102, "type": "response", "request_seq": 101, "success": false,
       "command": "error",

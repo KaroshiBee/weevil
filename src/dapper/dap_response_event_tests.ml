@@ -1,3 +1,5 @@
+include Test_utils.Include
+
 module Js = Data_encoding.Json
 module Res = Dap.Response
 module Ev = Dap.Event
@@ -35,21 +37,22 @@ let%expect_test "Check sequencing response/event" =
   let resp_launch = Res.(launchResponse @@ Message.make_opt ~seq:111 ~request_seq:110 ~success:true ~command:Dap.Commands.launch ~body:(Dap.EmptyObject.make ()) ()) in
   let enc_launch = Ev.(Message.enc Dap.Events.process Dap.ProcessEvent_body.enc) in
 
-  let s =
+  let%lwt s =
     handler resp_launch
     |> Dap_result.map ~f:(function
         | Ev.ProcessEvent ev ->
           Js.construct enc_launch ev |> Js.to_string
         | _ -> assert false
       )
-    |> Dap_result.get_ok
+    |> Dap_result.to_lwt_result
   in
-  Printf.printf "%s" s;
-  [%expect {|
+  Printf.printf "%s" @@ Result.get_ok s;
+  let%lwt () = [%expect {|
     { "seq": 112, "type": "event", "event": "process",
       "body":
         { "name": "TODO PROCESS EVENT NAME e.g. test.tz",
-          "startMethod": "launch" } } |}];
+          "startMethod": "launch" } } |}]
+  in
 
   (* should also have the correct seq numbers if error happens during handling *)
   let handler_err =
@@ -63,9 +66,11 @@ let%expect_test "Check sequencing response/event" =
     in
     ProcessLaunched.handle l
   in
-  let s = handler_err resp_launch |> Dap_result.get_error_str
+  let%lwt s =
+    handler_err resp_launch
+    |> Dap_result.to_lwt_error_as_str
   in
-  Printf.printf "%s" s;
+  Printf.printf "%s" @@ Result.get_error s;
   [%expect {|
     { "seq": 112, "type": "response", "request_seq": 111, "success": false,
       "command": "error",

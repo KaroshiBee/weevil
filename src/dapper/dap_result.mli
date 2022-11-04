@@ -8,14 +8,10 @@ type error =
 type 'a t
 
 val ok : 'a -> 'a t
-
-val get_ok : 'a t -> 'a
-
 val error : error -> 'a t
 
-val get_error : 'a t -> error
-
-val get_error_str : 'a t -> string
+val to_lwt_result : 'a t -> ('a, error) Lwt_result.t
+val to_lwt_error_as_str : 'a t -> ('a, string) Lwt_result.t
 
 val map : f:('a -> 'b) -> 'a t -> 'b t
 
