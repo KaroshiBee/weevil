@@ -43,19 +43,9 @@ let%expect_test "Check sequencing request/response" =
 
   (* NOTE can no longer pass wrong type in *)
   (* let req_attach = Req.(attachRequest @@ Message.make ~seq:100 ~command:Dap.Commands.attach ~arguments:(AttachRequestArguments.make ()) ()) in *)
-  (* (\* should error with correct seq numbers if given the wrong request type *\) *)
-  (* let s = handler req_attach |> Dap_result.get_error_str *)
-  (* in *)
-  (* Printf.printf "%s" s; *)
-  (* [%expect {| *)
-     (*   { "seq": 101, "type": "response", "request_seq": 100, "success": false, *)
-     (*     "command": "error", *)
-     (*     "body": *)
-     (*       { "error": *)
-     (*           { "id": 342703193, "format": "{error}", *)
-     (*             "variables": { "error": "wrong request: expected LaunchRequest" } } } } |}]; *)
+  (* let s = handler req_attach |> Dap_result.get_error_str - NOTE wont compile *)
 
-  (* should also have the correct seq numbers if error happens even with correct input *)
+  (* should also have the correct seq numbers if error happens during handling *)
   let handler_err =
     let l = Launch.make
         ~handler:(fun _req ->

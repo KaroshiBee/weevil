@@ -49,7 +49,7 @@ let%expect_test "Check sequencing response/event" =
         { "name": "TODO PROCESS EVENT NAME e.g. test.tz",
           "startMethod": "launch" } } |}];
 
-  (* should also have the correct seq numbers if error happens even with correct input *)
+  (* should also have the correct seq numbers if error happens during handling *)
   let handler_err =
     let l = ProcessLaunched.make
       ~handler:(fun _req ->
