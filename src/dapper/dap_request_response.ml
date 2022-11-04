@@ -66,20 +66,17 @@ module WithSeqr (T : Types) :
     fun msg ->
       let request_seq = In.(eval @@ Map (Val getseq, Val msg)) in
       let seq = 1 + request_seq in
-      let msg = f msg in
-      Dap_result.bind msg (fun v-> Out.(
+      f msg
+        |> Dap_result.bind ~f:(fun v-> Out.(
           eval @@ Map (Val (setseq seq request_seq), Val v)
           |> ctor
           |> Dap_result.ok
         ))
-      |> Dap_result.map_error (fun err-> Err.(
+        |> Dap_result.map_error ~f:(fun err-> Err.(
           eval @@ Map (Val (setseq_err seq request_seq), Val err)
           |> errorResponse
         ))
 
-
-
-  let handle {handler; ctor} req =
-    wrapper ~ctor handler req
+  let handle {handler; ctor} = wrapper ~ctor handler
 
 end

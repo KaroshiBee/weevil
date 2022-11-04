@@ -36,11 +36,13 @@ let%expect_test "Check sequencing response/event" =
   let enc_launch = Ev.(Message.enc Dap.Events.process Dap.ProcessEvent_body.enc) in
 
   let s =
-    handler resp_launch |> Dap_result.map (function
+    handler resp_launch
+    |> Dap_result.map ~f:(function
         | Ev.ProcessEvent ev ->
           Js.construct enc_launch ev |> Js.to_string
         | _ -> assert false
-      ) |> Dap_result.get_ok
+      )
+    |> Dap_result.get_ok
   in
   Printf.printf "%s" s;
   [%expect {|

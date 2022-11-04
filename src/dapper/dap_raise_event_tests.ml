@@ -38,11 +38,13 @@ let%expect_test "Check sequencing event/event" =
   let enc_stopper = Ev.Message.enc Dap.Events.stopped Dap.StoppedEvent_body.enc in
 
   let s =
-    handler break_ev |> Dap_result.map (function
+    handler break_ev
+    |> Dap_result.map ~f:(function
         | Ev.StoppedEvent ev ->
           Js.construct enc_stopper ev |> Js.to_string
         | _ -> assert false
-      ) |> Dap_result.get_ok
+      )
+    |> Dap_result.get_ok
   in
   Printf.printf "%s" s;
   [%expect {|

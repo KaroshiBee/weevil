@@ -17,8 +17,8 @@ val get_error : 'a t -> error
 
 val get_error_str : 'a t -> string
 
-val map : ('a -> 'b) -> 'a t -> 'b t
+val map : f:('a -> 'b) -> 'a t -> 'b t
 
-val map_error : (error -> error) -> 'a t -> 'a t
+val map_error : f:(error -> error) -> 'a t -> 'a t
 
-val bind : 'a t -> ('a -> 'b t) -> 'b t
+val bind : f:('a -> 'b t) -> 'a t -> 'b t

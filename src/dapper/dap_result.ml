@@ -18,6 +18,6 @@ let get_error_str t =
   let ss = R.Fmap ss in
   R.eval @@ R.Map (Val ss, Val err_resp)
 
-let map = Result.map
-let map_error = Result.map_error
-let bind = Result.bind
+let map ~f = Result.map f
+let map_error ~f = Result.map_error f
+let bind ~f x = Result.bind x f
