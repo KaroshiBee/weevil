@@ -1,6 +1,3 @@
-module Req = Dap.Request
-module Res = Dap.Response
-
 
 module type Types = sig
 
@@ -12,6 +9,10 @@ module type Types = sig
 
 end
 
+module In = Dap.Request
+module Out = Dap.Response
+module Err = Dap.Response
+
 module type Handler = sig
 
   include Types
@@ -22,11 +23,11 @@ module type Handler = sig
   type t
 
   val make :
-    handler: (in_msg Req.t -> out_msg Res.t Dap_result.t) ->
-    ctor:(out_msg -> out_msg Res.t) ->
+    handler: (in_msg In.t -> out_msg Out.t Dap_result.t) ->
+    ctor:(out_msg -> out_msg Out.t) ->
     t
 
-  val handle : t -> in_msg Req.t -> out_msg Res.t Dap_result.t
+  val handle : t -> in_msg In.t -> out_msg Out.t Dap_result.t
 
 end
 
@@ -37,38 +38,43 @@ module WithSeqr (T : Types) :
    and type pargs := T.pargs
    and type body := T.body
    and type pbody := T.pbody
-   and type in_msg = (T.cmd, T.args, T.pargs) Req.RequestMessage.t
-   and type out_msg = (T.cmd, T.body, T.pbody) Res.ResponseMessage.t
+   and type in_msg = (T.cmd, T.args, T.pargs) In.RequestMessage.t
+   and type out_msg = (T.cmd, T.body, T.pbody) Out.ResponseMessage.t
 = struct
   (* NOTE the cmd param is the same for both the request and the response *)
-  type in_msg = (T.cmd, T.args, T.pargs) Req.RequestMessage.t
-  type out_msg = (T.cmd, T.body, T.pbody) Res.ResponseMessage.t
+  type in_msg = (T.cmd, T.args, T.pargs) In.RequestMessage.t
+  type out_msg = (T.cmd, T.body, T.pbody) Out.ResponseMessage.t
   type t = {
-    handler: in_msg Req.t -> out_msg Res.t Dap_result.t;
-    ctor: out_msg -> out_msg Res.t;
+    handler: in_msg In.t -> out_msg Out.t Dap_result.t;
+    ctor: out_msg -> out_msg Out.t;
   }
 
   let make ~handler ~ctor = {handler; ctor}
 
   let wrapper ~ctor f =
-    let getseq = Req.(Fmap RequestMessage.seq) in
-    let setseq seq request_seq = Res.(Fmap (fun msg ->
+    let getseq = In.(Fmap RequestMessage.seq) in
+    let setseq seq request_seq = Out.(Fmap (fun msg ->
+        msg
+        |> ResponseMessage.set_request_seq ~request_seq
+        |> ResponseMessage.set_seq ~seq
+      )) in
+    let setseq_err seq request_seq = Err.(Fmap (fun msg ->
         msg
         |> ResponseMessage.set_request_seq ~request_seq
         |> ResponseMessage.set_seq ~seq
       ))
     in
     fun msg ->
-      let request_seq = Req.(eval @@ Map (Val getseq, Val msg)) in
+      let request_seq = In.(eval @@ Map (Val getseq, Val msg)) in
       let seq = 1 + request_seq in
       let msg = f msg in
-      Dap_result.bind msg (fun v-> Res.(
+      Dap_result.bind msg (fun v-> Out.(
           eval @@ Map (Val (setseq seq request_seq), Val v)
           |> ctor
           |> Dap_result.ok
         ))
-      |> Dap_result.map_error (fun err-> Res.(
-          eval @@ Map (Val (setseq seq request_seq), Val err)
+      |> Dap_result.map_error (fun err-> Err.(
+          eval @@ Map (Val (setseq_err seq request_seq), Val err)
           |> errorResponse
         ))
 
