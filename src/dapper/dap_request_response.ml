@@ -5,17 +5,13 @@ module Err = Dap.Response
 module type Types = sig
 
   type cmd
-
   type args
-
   type pargs
-
   type body
-
   type pbody
 
+  (* NOTE the cmd param is the same for both the request and the response *)
   type in_msg = (cmd, args, pargs) In.Message.t
-
   type out_msg = (cmd, body, pbody) Out.Message.t
 
   val ctor_in : in_msg -> in_msg In.t
@@ -26,7 +22,6 @@ module type Types = sig
 
 end
 
-(* NOTE the cmd param is the same for both the request and the response *)
 module Make (T : Types) :
 sig
   include Types
