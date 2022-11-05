@@ -1,16 +1,17 @@
 (* main module for everything to do with messages/event enums/command enums *)
 module Commands = Dap_commands
 module Events = Dap_events
+module Js_msg = Dap_js_msg
 
 (* NOTE for use in the Flow monad so seq and request_seq get taken care of there *)
 let seq = -1
 let request_seq = -1
 
-include Dap_message_exi.Data
+include Dap_message.Data
 
 module Request = struct
-  include Dap_message_exi.Request
-  module Message = Dap_message_exi.RequestMessage
+  include Dap_message.Request
+  module Message = Dap_message.RequestMessage
 
   type _ expr =
     | Val : 'msg t -> 'msg expr
@@ -66,8 +67,8 @@ module Request = struct
 end
 
 module Response = struct
-  include Dap_message_exi.Response
-  module Message = Dap_message_exi.ResponseMessage
+  include Dap_message.Response
+  module Message = Dap_message.ResponseMessage
 
   let default_response_req ?(success = true) command body =
     Message.make ~seq ~request_seq ~success ~command ~body ()
@@ -130,8 +131,8 @@ module Response = struct
 end
 
 module Event = struct
-  include Dap_message_exi.Event
-  module Message = Dap_message_exi.EventMessage
+  include Dap_message.Event
+  module Message = Dap_message.EventMessage
 
   let default_event_req event body =
     Message.make ~seq ~event ~body ()
@@ -167,7 +168,7 @@ module Event = struct
 end
 
 let default_response_error e =
-  let open Dap_message_exi.Data in
+  let open Dap_message.Data in
   let id = Hashtbl.hash e in
   let variables = `O [("error", `String e)] in
   let error = Message.make ~id ~format:"{error}" ~variables () in

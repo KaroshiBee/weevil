@@ -12,7 +12,6 @@ module Launch = Dap_request_response.WithSeqr (struct
   type pbody = Dap.Presence.opt
 end)
 
-
 let%expect_test "Check sequencing request/response" =
   let handler =
     let l = Launch.make

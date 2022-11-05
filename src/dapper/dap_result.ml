@@ -11,6 +11,8 @@ let ok = Lwt_result.return
 let error = Lwt_result.fail
 
 let to_lwt_result t = t
+let from_result = Lwt.return
+let from_lwt_result t = t
 
 let to_lwt_error_as_str t =
   let enc = R.Message.enc Dap.Commands.error Dap.ErrorResponse_body.enc in

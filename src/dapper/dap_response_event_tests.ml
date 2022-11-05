@@ -13,7 +13,6 @@ module ProcessLaunched = Dap_response_event.WithSeqr (struct
   type pbody_ = Dap.Presence.req
 end)
 
-
 let%expect_test "Check sequencing response/event" =
   let handler =
     let l = ProcessLaunched.make

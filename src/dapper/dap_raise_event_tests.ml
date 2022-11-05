@@ -13,7 +13,6 @@ module BreakStopped = Dap_raise_event.WithSeqr (struct
   type pbody_ = Dap.Presence.req
 end)
 
-
 let%expect_test "Check sequencing event/event" =
   let handler =
     let l = BreakStopped.make
@@ -47,6 +46,7 @@ let%expect_test "Check sequencing event/event" =
         | _ -> assert false
       )
     |> Dap_result.to_lwt_result
+
   in
   Printf.printf "%s" @@ Result.get_ok s;
   let%lwt () = [%expect {|

@@ -1,3 +1,6 @@
+(* deosnt do much apart from lock in the error type
+   most user code will just do to_lwt_result and work with that
+*)
 type error =
   ( Dap.Commands.error,
     Dap.ErrorResponse_body.t,
@@ -11,6 +14,9 @@ val ok : 'a -> 'a t
 val error : error -> 'a t
 
 val to_lwt_result : 'a t -> ('a, error) Lwt_result.t
+val from_result : ('a, error) Result.t -> 'a t
+val from_lwt_result : ('a, error) Lwt_result.t -> 'a t
+
 val to_lwt_error_as_str : 'a t -> ('a, string) Lwt_result.t
 
 val map : f:('a -> 'b) -> 'a t -> 'b t

@@ -52,6 +52,7 @@ module WithSeqr (T:Types)
   let make ~handler ~ctor = {handler; ctor}
 
   let wrapper ~ctor f =
+    let open Lwt_result in
     let getseq = In.(Fmap Message.seq) in
     let setseq seq = Out.(Fmap (Message.set_seq ~seq)) in
     let setseq_err seq request_seq = Err.(Fmap (fun msg ->
@@ -64,15 +65,15 @@ module WithSeqr (T:Types)
       let request_seq = In.(eval @@ Map (Val getseq, Val msg)) in
       let seq = 1 + request_seq in
       f msg
-        |> Dap_result.bind ~f:(fun v-> Out.(
-          eval @@ Map (Val (setseq seq), Val v)
-          |> ctor
-          |> Dap_result.ok
+      |> Dap_result.to_lwt_result
+      |> map (fun v-> Out.(
+          ctor @@ eval @@ Map (Val (setseq seq), Val v)
         ))
-        |> Dap_result.map_error ~f:(fun err-> Err.(
-          eval @@ Map (Val (setseq_err seq request_seq), Val err)
-          |> errorResponse
+      |> map_err (fun err-> Err.(
+          errorResponse @@ eval @@ Map (Val (setseq_err seq request_seq), Val err)
         ))
+      |> Dap_result.from_lwt_result
+
 
   let handle {handler; ctor} = wrapper ~ctor handler
 
