@@ -1,80 +1,84 @@
-module type Types = sig
-
-  type cmd
-  type body
-  type pbody
-  type ev
-  type body_
-  type pbody_
-end
-
 module In = Dap.Response
 module Out = Dap.Event
 module Err = Dap.Response
 
-module type Handler = sig
+module type Types = sig
+  type cmd
 
+  type body
+
+  type pbody
+
+  type ev
+
+  type body_
+
+  type pbody_
+
+  type in_msg = (cmd, body, pbody) In.Message.t
+
+  type out_msg = (ev, body_, pbody_) Out.Message.t
+
+  val ctor_in : in_msg -> in_msg In.t
+
+  val enc_in : in_msg Data_encoding.t
+
+  val ctor_out : out_msg -> out_msg Out.t
+
+  val enc_out : out_msg Data_encoding.t
+end
+
+module Make (T : Types) : sig
   include Types
-
-  type in_msg
-  type out_msg
 
   type t
 
-  val make :
-    handler: (in_msg In.t -> out_msg Out.t Dap_result.t) ->
-    ctor:(out_msg -> out_msg Out.t) ->
-    t
+  val make : handler:(in_msg In.t -> out_msg Out.t Dap_result.t) -> t
 
   val handle : t -> in_msg In.t -> out_msg Out.t Dap_result.t
-
 end
+with type cmd := T.cmd
+ and type body := T.body
+ and type pbody := T.pbody
+ and type ev := T.ev
+ and type body_ := T.body_
+ and type pbody_ := T.pbody_
+ and type in_msg := (T.cmd, T.body, T.pbody) In.Message.t
+ and type out_msg := (T.ev, T.body_, T.pbody_) Out.Message.t = struct
+  let ctor_in = T.ctor_in
 
-module WithSeqr (T:Types)
-  : Handler
-  with type cmd := T.cmd
-   and type body := T.body
-   and type pbody := T.pbody
-   and type ev := T.ev
-   and type body_ := T.body_
-   and type pbody_ := T.pbody_
-   and type in_msg = (T.cmd, T.body, T.pbody) In.Message.t
-   and type out_msg = (T.ev, T.body_, T.pbody_) Out.Message.t
-= struct
+  let enc_in = T.enc_in
 
-  type in_msg = (T.cmd, T.body, T.pbody) In.Message.t
-  type out_msg = (T.ev, T.body_, T.pbody_) Out.Message.t
-  type t = {
-    handler: in_msg In.t -> out_msg Out.t Dap_result.t;
-    ctor: out_msg -> out_msg Out.t;
-  }
+  let ctor_out = T.ctor_out
 
-  let make ~handler ~ctor = {handler; ctor}
+  let enc_out = T.enc_out
 
-  let wrapper ~ctor f =
-    let open Lwt_result in
-    let getseq = In.(Fmap Message.seq) in
-    let setseq seq = Out.(Fmap (Message.set_seq ~seq)) in
-    let setseq_err seq request_seq = Err.(Fmap (fun msg ->
-        msg
-        |> Message.set_request_seq ~request_seq
-        |> Message.set_seq ~seq
-      ))
+  type t = {handler : T.in_msg In.t -> T.out_msg Out.t Dap_result.t}
+
+  let make ~handler =
+    let wrapped_handler =
+      let getseq = In.(Fmap Message.seq) in
+      let setseq seq = Out.(Fmap (Message.set_seq ~seq)) in
+      let setseq_err seq request_seq =
+        Err.(
+          Fmap
+            (fun msg ->
+              msg
+              |> Message.set_request_seq ~request_seq
+              |> Message.set_seq ~seq))
+      in
+      fun msg ->
+        let request_seq = In.(eval @@ Map (Val getseq, Val msg)) in
+        let seq = 1 + request_seq in
+        handler msg
+        |> Dap_result.map ~f:(fun v ->
+               Out.(T.ctor_out @@ eval @@ Map (Val (setseq seq), Val v)))
+        |> Dap_result.map_error ~f:(fun err ->
+               Err.(
+                 errorResponse @@ eval
+                 @@ Map (Val (setseq_err seq request_seq), Val err)))
     in
-    fun msg ->
-      let request_seq = In.(eval @@ Map (Val getseq, Val msg)) in
-      let seq = 1 + request_seq in
-      f msg
-      |> Dap_result.to_lwt_result
-      |> map (fun v-> Out.(
-          ctor @@ eval @@ Map (Val (setseq seq), Val v)
-        ))
-      |> map_err (fun err-> Err.(
-          errorResponse @@ eval @@ Map (Val (setseq_err seq request_seq), Val err)
-        ))
-      |> Dap_result.from_lwt_result
+    {handler = wrapped_handler}
 
-
-  let handle {handler; ctor} = wrapper ~ctor handler
-
+  let handle {handler} = handler
 end

@@ -4,13 +4,21 @@ module Js = Data_encoding.Json
 module Res = Dap.Response
 module Ev = Dap.Event
 
-module ProcessLaunched = Dap_response_event.WithSeqr (struct
+module ProcessLaunched = Dap_response_event.Make (struct
   type cmd = Dap.Commands.launch
   type body = Dap.EmptyObject.t option
   type pbody = Dap.Presence.opt
   type ev = Dap.Events.process
   type body_ = Dap.ProcessEvent_body.t
   type pbody_ = Dap.Presence.req
+  type in_msg = (cmd, body, pbody) Res.Message.t
+  type out_msg = (ev, body_, pbody_) Ev.Message.t
+
+  let ctor_in = Res.launchResponse
+  let enc_in = Res.Message.enc_opt Dap.Commands.launch Dap.EmptyObject.enc
+  let ctor_out = Ev.processEvent
+  let enc_out = Ev.Message.enc Dap.Events.process Dap.ProcessEvent_body.enc
+
 end)
 
 let%expect_test "Check sequencing response/event" =
@@ -28,7 +36,6 @@ let%expect_test "Check sequencing response/event" =
             |> Ev.processEvent
             |> Dap_result.ok
           )
-        ~ctor:Ev.processEvent
     in
     ProcessLaunched.handle l
   in
@@ -61,7 +68,6 @@ let%expect_test "Check sequencing response/event" =
             |> Res.errorResponse
             |> Dap_result.error
           )
-      ~ctor:Ev.processEvent
     in
     ProcessLaunched.handle l
   in
