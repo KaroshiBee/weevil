@@ -4,13 +4,21 @@ module Js = Data_encoding.Json
 module Res = Dap.Response
 module Ev = Dap.Event
 
-module BreakStopped = Dap_raise_event.WithSeqr (struct
+module BreakStopped = Dap_raise_event.Make (struct
   type ev = Dap.Events.breakpoint
   type body = Dap.BreakpointEvent_body.t
   type pbody = Dap.Presence.req
   type ev_ = Dap.Events.stopped
   type body_ = Dap.StoppedEvent_body.t
   type pbody_ = Dap.Presence.req
+  type in_msg = (ev, body, pbody) Ev.Message.t
+  type out_msg = (ev_, body_, pbody_) Ev.Message.t
+
+  let ctor_in = Ev.breakpointEvent
+  let enc_in = Ev.Message.enc Dap.Events.breakpoint Dap.BreakpointEvent_body.enc
+  let ctor_out = Ev.stoppedEvent
+  let enc_out = Ev.Message.enc Dap.Events.stopped Dap.StoppedEvent_body.enc
+
 end)
 
 let%expect_test "Check sequencing event/event" =
@@ -27,7 +35,6 @@ let%expect_test "Check sequencing event/event" =
         |> Ev.stoppedEvent
         |> Dap_result.ok
           )
-      ~ctor:Ev.stoppedEvent
     in
     BreakStopped.handle l
   in
@@ -62,7 +69,6 @@ let%expect_test "Check sequencing event/event" =
             |> Res.errorResponse
             |> Dap_result.error
           )
-        ~ctor:Ev.stoppedEvent
     in
     BreakStopped.handle l
   in
