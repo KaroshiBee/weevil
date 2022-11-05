@@ -10,6 +10,14 @@ module Launch = Dap_request_response.WithSeqr (struct
   type pargs = Dap.Presence.req
   type body = Dap.EmptyObject.t option
   type pbody = Dap.Presence.opt
+  type in_msg = (cmd, args, pargs) Req.Message.t
+  type out_msg = (cmd, body, pbody) Res.Message.t
+
+  let ctor_in = Req.launchRequest
+  let enc_in = Req.Message.enc Dap.Commands.launch Dap.LaunchRequestArguments.enc
+  let ctor_out = Res.launchResponse
+  let enc_out = Res.Message.enc_opt Dap.Commands.launch Dap.EmptyObject.enc
+
 end)
 
 let%expect_test "Check sequencing request/response" =
@@ -21,7 +29,6 @@ let%expect_test "Check sequencing request/response" =
             |> Res.launchResponse
             |> Dap_result.ok
           )
-        ~ctor:Res.launchResponse
     in
     Launch.handle l
   in
@@ -56,7 +63,6 @@ let%expect_test "Check sequencing request/response" =
             |> Res.errorResponse
             |> Dap_result.error
           )
-        ~ctor:Res.launchResponse
     in
     Launch.handle l
   in
