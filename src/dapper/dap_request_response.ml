@@ -27,7 +27,7 @@ module type Types = sig
 end
 
 (* NOTE the cmd param is the same for both the request and the response *)
-module WithSeqr (T : Types) :
+module Make (T : Types) :
 sig
   include Types
   type t

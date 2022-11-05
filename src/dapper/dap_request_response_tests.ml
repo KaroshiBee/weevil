@@ -4,7 +4,7 @@ module Js = Data_encoding.Json
 module Req = Dap.Request
 module Res = Dap.Response
 
-module Launch = Dap_request_response.WithSeqr (struct
+module Launch = Dap_request_response.Make (struct
   type cmd = Dap.Commands.launch
   type args = Dap.LaunchRequestArguments.t
   type pargs = Dap.Presence.req
