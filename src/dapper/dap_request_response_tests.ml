@@ -21,9 +21,10 @@ module Launch = Dap_request_response.Make (struct
 end)
 
 let%expect_test "Check sequencing request/response" =
+  let config = Dap.Config.make () in
   let handler =
     let l = Launch.make
-        ~handler:(fun _req ->
+        ~handler:(fun _cfg _req ->
             let body = Dap.EmptyObject.make () in
             Res.default_response_opt Dap.Commands.launch body
             |> Res.launchResponse
@@ -37,7 +38,7 @@ let%expect_test "Check sequencing request/response" =
   let enc_launch = Res.(Message.enc_opt Dap.Commands.launch Dap.EmptyObject.enc) in
 
   let%lwt s =
-    handler req_launch
+    handler ~config req_launch
     |> Dap_result.map ~f:(function
         | Res.LaunchResponse resp ->
           Js.construct enc_launch resp |> Js.to_string
@@ -58,7 +59,7 @@ let%expect_test "Check sequencing request/response" =
   (* should also have the correct seq numbers if error happens during handling *)
   let handler_err =
     let l = Launch.make
-        ~handler:(fun _req ->
+        ~handler:(fun _ _req ->
             Dap.default_response_error "testing error"
             |> Res.errorResponse
             |> Dap_result.error
@@ -67,7 +68,7 @@ let%expect_test "Check sequencing request/response" =
     Launch.handle l
   in
   let%lwt s =
-    handler_err req_launch
+    handler_err ~config req_launch
     |> Dap_result.to_lwt_error_as_str
   in
   Printf.printf "%s" @@ Result.get_error s;

@@ -28,7 +28,7 @@ module type Types = sig
   val enc_out : out_msg Data_encoding.t
 end
 
-module Make (T : Types) : sig
+module type T = sig
   include Types
 
   type t
@@ -37,23 +37,25 @@ module Make (T : Types) : sig
 
   val handle : t -> in_msg In.t -> out_msg Out.t Dap_result.t
 end
-with type ev := T.ev
- and type body := T.body
- and type pbody := T.pbody
- and type ev_ := T.ev_
- and type body_ := T.body_
- and type pbody_ := T.pbody_
- and type in_msg := (T.ev, T.body, T.pbody) In.Message.t
- and type out_msg := (T.ev_, T.body_, T.pbody_) Out.Message.t = struct
-  let ctor_in = T.ctor_in
 
-  let enc_in = T.enc_in
+module Make (Ty : Types) : T
+with type ev := Ty.ev
+ and type body := Ty.body
+ and type pbody := Ty.pbody
+ and type ev_ := Ty.ev_
+ and type body_ := Ty.body_
+ and type pbody_ := Ty.pbody_
+ and type in_msg := (Ty.ev, Ty.body, Ty.pbody) In.Message.t
+ and type out_msg := (Ty.ev_, Ty.body_, Ty.pbody_) Out.Message.t = struct
+  let ctor_in = Ty.ctor_in
 
-  let ctor_out = T.ctor_out
+  let enc_in = Ty.enc_in
 
-  let enc_out = T.enc_out
+  let ctor_out = Ty.ctor_out
 
-  type t = {handler : T.in_msg In.t -> T.out_msg Out.t Dap_result.t}
+  let enc_out = Ty.enc_out
+
+  type t = {handler : Ty.in_msg In.t -> Ty.out_msg Out.t Dap_result.t}
 
   let make ~handler =
     let wrapped_handler =
@@ -72,7 +74,7 @@ with type ev := T.ev
         let seq = 1 + request_seq in
         handler msg
         |> Dap_result.map ~f:(fun v ->
-               Out.(T.ctor_out @@ eval @@ Map (Val (setseq seq), Val v)))
+               Out.(Ty.ctor_out @@ eval @@ Map (Val (setseq seq), Val v)))
         |> Dap_result.map_error ~f:(fun err ->
                Err.(
                  errorResponse @@ eval

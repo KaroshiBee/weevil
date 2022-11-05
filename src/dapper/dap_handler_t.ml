@@ -1,16 +1,3 @@
-module type HANDLER = sig
-  type t
-  type input
-  type output
-
-  val make_empty : t
-  val string_to_input : string -> input
-  (* NOTE when handling a request we will be interacting with the backend,
-     hence the Lwt.t and result stuff wrapped up in Dap_result  *)
-  val handle : t -> Dap_config.t -> input -> output Dap_result.t
-  val output_to_string : output -> string Dap_result.t
-end
-
 module type STATE_T = sig
   type t
   val make_empty : t
@@ -25,47 +12,25 @@ module type STATE_T = sig
   val set_launch_mode : t ->  Dap_base.launch_mode -> unit
 end
 
-(* basically need to merge this with the Types sigs *)
 
-(* module type REQ_T = sig *)
-(*   type ('command, 'args, 'presence) t *)
-(*   type command *)
-(*   val command : command Dap_commands.t *)
-(*   type args *)
-(*   type presence *)
-(*   val enc : (command, args, presence) t Data_encoding.t *)
-(*   val ctor : (command, args, presence) t -> (command, args, presence) request *)
-(*   val extract : (command, args, presence) request -> (command, args, presence) t *)
-(* end *)
+module type HANDLER = sig
+  type t
+  type input
+  type output
 
-(* module type RESP_T = sig *)
-(*   type ('command, 'body, 'presence) t *)
-(*   type command *)
-(*   val command : command Dap_commands.t *)
-(*   type body *)
-(*   type presence *)
-(*   val enc : (command, body, presence) t Data_encoding.t *)
-(*   val ctor : (command, body, presence) t -> (command, body, presence) response *)
-(*   val extract : (command, body, presence) response -> (command, body, presence) t *)
-(* end *)
+  val make_empty : t
+  val string_to_input : string -> input
+  (* NOTE when handling a request we will be interacting with the backend,
+     hence the Lwt.t and result stuff wrapped up in Dap_result  *)
+  val handle : t -> Dap_config.t -> input -> output Dap_result.t
+  val output_to_string : output -> string Dap_result.t
+end
 
-(* module type EV_T = sig *)
-(*   type ('event, 'body, 'presence) t *)
-(*   type event *)
-(*   val event : event Dap_events.t *)
-(*   type body *)
-(*   type presence *)
-(*   val enc : (event, body, presence) t Data_encoding.t *)
-(*   val ctor : (event, body, presence) t -> (event, body, presence) Dap_message.event *)
-(*   val extract : (event, body, presence) Dap_message.event -> (event, body, presence) t *)
-(* end *)
-
-(* type error = (Dap_commands.error, ErrorResponse_body.t, Presence.req) response *)
 
 (* module MakeReqRespIncludes *)
 (*     (ST:STATE_T) *)
-(*     (REQ:REQ_T) *)
-(*     (RESP:RESP_T with type command = REQ.command) = struct *)
+(*     (T:Dap_request_response.T) *)
+(* = struct *)
 
 (*   type t = ST.t *)
 (*   type req = (REQ.command, REQ.args, REQ.presence) request *)
@@ -87,7 +52,7 @@ end
 (*       |> Result.map (fun x -> REQ.ctor x) *)
 (*       |> Dap_flow.from_result *)
 
-(*   let output_to_string =  *)
+(*   let output_to_string = *)
 (*     fun {response; _} -> *)
 (*       match Dap_flow.(to_result response) with *)
 (*       | Result.Ok response -> *)

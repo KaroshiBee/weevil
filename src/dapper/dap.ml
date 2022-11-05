@@ -2,6 +2,7 @@
 module Commands = Dap_commands
 module Events = Dap_events
 module Js_msg = Dap_js_msg
+module Config = Dap_config
 
 (* NOTE for use in the Flow monad so seq and request_seq get taken care of there *)
 let seq = -1
