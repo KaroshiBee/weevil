@@ -22,9 +22,10 @@ module BreakStopped = Dap_raise_event.Make (struct
 end)
 
 let%expect_test "Check sequencing event/event" =
+  let config = Dap.Config.make () in
   let handler =
     let l = BreakStopped.make
-      ~handler:(fun _ ->
+      ~handler:(fun _ _ ->
         let reason = Dap.StoppedEvent_body_reason.Breakpoint in
         let body =
           Dap.StoppedEvent_body.make
@@ -46,7 +47,7 @@ let%expect_test "Check sequencing event/event" =
   let enc_stopper = Ev.Message.enc Dap.Events.stopped Dap.StoppedEvent_body.enc in
 
   let%lwt s =
-    handler break_ev
+    handler ~config break_ev
     |> Dap_result.map ~f:(function
         | Ev.StoppedEvent ev ->
           Js.construct enc_stopper ev |> Js.to_string
@@ -64,7 +65,7 @@ let%expect_test "Check sequencing event/event" =
   (* should also have the correct seq numbers if error happens during handling *)
   let handler_err =
     let l = BreakStopped.make
-        ~handler:(fun _req ->
+        ~handler:(fun _ _req ->
             Dap.default_response_error "testing error"
             |> Res.errorResponse
             |> Dap_result.error
@@ -73,7 +74,7 @@ let%expect_test "Check sequencing event/event" =
     BreakStopped.handle l
   in
   let%lwt s =
-    handler_err break_ev
+    handler_err ~config break_ev
     |> Dap_result.to_lwt_error_as_str
   in
   Printf.printf "%s" @@ Result.get_error s;
