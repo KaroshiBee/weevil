@@ -4,7 +4,9 @@ module Js = Data_encoding.Json
 module Res = Dap.Response
 module Ev = Dap.Event
 
-module ProcessLaunched = Dap_response_event.Make (struct
+module M = Dap_response_event.Maker (Res.Message) (Res) (Ev.Message) (Ev)
+
+module ProcessLaunched = M.Make (struct
   type cmd = Dap.Commands.launch
   type body = Dap.EmptyObject.t option
   type pbody = Dap.Presence.opt
@@ -12,18 +14,13 @@ module ProcessLaunched = Dap_response_event.Make (struct
   type body_ = Dap.ProcessEvent_body.t
   type pbody_ = Dap.Presence.req
 
-  module In_msg = Res.Message
-  module In = Res
-  module Out_msg = Ev.Message
-  module Out = Ev
+  type in_msg = (cmd, body, pbody) Res.Message.t
+  type out_msg = (ev, body_, pbody_) Ev.Message.t
 
-  type in_msg = (cmd, body, pbody) In_msg.t
-  type out_msg = (ev, body_, pbody_) Out_msg.t
-
-  let ctor_in = In.launchResponse
-  let enc_in = In_msg.enc_opt Dap.Commands.launch Dap.EmptyObject.enc
-  let ctor_out = Out.processEvent
-  let enc_out = Out_msg.enc Dap.Events.process Dap.ProcessEvent_body.enc
+  let ctor_in = Res.launchResponse
+  let enc_in = Res.Message.enc_opt Dap.Commands.launch Dap.EmptyObject.enc
+  let ctor_out = Ev.processEvent
+  let enc_out = Ev.Message.enc Dap.Events.process Dap.ProcessEvent_body.enc
 
 end)
 
@@ -40,7 +37,7 @@ let%expect_test "Check sequencing response/event" =
                 ()
             in
             Ev.default_event_req Dap.Events.process body
-            |> ProcessLaunched.Out.ctor
+            |> Ev.processEvent
             |> Dap_result.ok
           )
     in
