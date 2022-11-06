@@ -98,7 +98,7 @@ struct
   end
 end
 
-module type T = sig
+module type HANDLER = sig
   type in_t
 
   type out_t
@@ -114,13 +114,13 @@ module type T = sig
   val output_to_string : out_t -> (string, string) Lwt_result.t
 end
 
+(* Maker1 has just the one enum type for both In_msg and Out_msg ie Request/Response *)
 module Maker1 (In_msg : MSG_T) (In : GADT_T) (Out_msg : MSG_T) (Out : GADT_T) =
 struct
-
   module TY = Types (In_msg) (In) (Out_msg) (Out)
 
   module Make (Ty : TY.T1) :
-    T with type in_t := Ty.in_msg In.t and type out_t := Ty.out_msg Out.t =
+    HANDLER with type in_t := Ty.in_msg In.t and type out_t := Ty.out_msg Out.t =
   struct
     type t = {
       handler :
@@ -175,13 +175,13 @@ struct
   end
 end
 
+(* Maker2 has two enums, an in_enum and an out_enum *)
 module Maker2 (In_msg : MSG_T) (In : GADT_T) (Out_msg : MSG_T) (Out : GADT_T) =
 struct
-
   module TY = Types (In_msg) (In) (Out_msg) (Out)
 
   module Make (Ty : TY.T2) :
-    T with type in_t := Ty.in_msg In.t and type out_t := Ty.out_msg Out.t =
+    HANDLER with type in_t := Ty.in_msg In.t and type out_t := Ty.out_msg Out.t =
   struct
     type t = {
       handler :
@@ -237,22 +237,8 @@ struct
 end
 
 module Request_response =
-  Maker1
-    (Dap.Request.Message)
-    (Dap.Request)
-    (Dap.Response.Message)
-    (Dap.Response)
-
+  Maker1 (Dap.Request.Message) (Dap.Request) (Dap.Response.Message) (Dap.Response)
 module Response_event =
-  Maker2
-    (Dap.Response.Message)
-    (Dap.Response)
-    (Dap.Event.Message)
-    (Dap.Event)
-
+  Maker2 (Dap.Response.Message) (Dap.Response) (Dap.Event.Message) (Dap.Event)
 module Raise_event =
-  Maker2
-    (Dap.Event.Message)
-    (Dap.Event)
-    (Dap.Event.Message)
-    (Dap.Event)
+  Maker2 (Dap.Event.Message) (Dap.Event) (Dap.Event.Message) (Dap.Event)
