@@ -9,7 +9,9 @@ type ('event, 'body, 'presence) t = {
 
 let seq t = t.seq
 
-let set_seq ~seq t = {t with seq}
+let set_seq ~seq:s t =
+  let seq = Dap_base.Seqr.seq s in
+  {t with seq}
 
 let type_ t = t.type_
 

@@ -57,24 +57,18 @@ module Make (Ty : Types) :
     let wrapped_handler =
       let getseq = In.(Fmap Message.seq) in
       let setseq seq = Out.(Fmap (Message.set_seq ~seq)) in
-      let setseq_err seq request_seq =
-        Err.(
-          Fmap
-            (fun msg ->
-              msg
-              |> Message.set_request_seq ~request_seq
-              |> Message.set_seq ~seq))
-      in
+      let setseq_err seq = Err.(Fmap (Message.set_seq ~seq)) in
       fun ~config msg ->
         let request_seq = In.(eval @@ Map (Val getseq, Val msg)) in
         let seq = 1 + request_seq in
+        let s = Dap_base.Seqr.make ~seq ~request_seq () in
         handler config msg
         |> Dap_result.map ~f:(fun v ->
-               Out.(Ty.ctor_out @@ eval @@ Map (Val (setseq seq), Val v)))
+               Out.(Ty.ctor_out @@ eval @@ Map (Val (setseq s), Val v)))
         |> Dap_result.map_error ~f:(fun err ->
                Err.(
                  errorResponse @@ eval
-                 @@ Map (Val (setseq_err seq request_seq), Val err)))
+                 @@ Map (Val (setseq_err s), Val err)))
     in
     {handler = wrapped_handler}
 

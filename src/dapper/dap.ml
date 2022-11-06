@@ -18,6 +18,10 @@ module Request = struct
     | Val : 'msg t -> 'msg expr
     | Map : ('msg -> 'b) expr * 'msg expr -> 'b expr
 
+  let fmap_ f = Fmap f
+  let val_ x = Val x
+  let map_ (f, x) = Map (f, x)
+
   let rec eval : type msg. msg expr -> msg = function
     | Val (Fmap f) -> f
     | Val (CancelRequest msg) -> msg
@@ -80,6 +84,10 @@ module Response = struct
   type _ expr =
     | Val : 'msg t -> 'msg expr
     | Map : ('msg -> 'b) expr * 'msg expr -> 'b expr
+
+  let fmap_ f = Fmap f
+  let val_ x = Val x
+  let map_ (f, x) = Map (f, x)
 
   let rec eval : type msg. msg expr -> msg = function
     | Val (Fmap f) -> f
@@ -144,6 +152,10 @@ module Event = struct
   type _ expr =
     | Val : 'msg t -> 'msg expr
     | Map : ('msg -> 'b) expr * 'msg expr -> 'b expr
+
+  let fmap_ f = Fmap f
+  let val_ x = Val x
+  let map_ (f, x) = Map (f, x)
 
   let rec eval : type msg. msg expr -> msg = function
     | Val (Fmap f) -> f

@@ -1,22 +1,23 @@
-module In = Dap.Request
-module Out = Dap.Response
+module In = Dap.Response
+module Out = Dap.Event
 module Err = Dap.Response
 
 module type Types = sig
   type cmd
 
-  type args
-
-  type pargs
-
   type body
 
   type pbody
 
-  (* NOTE the cmd param is the same for both the request and the response *)
-  type in_msg = (cmd, args, pargs) In.Message.t
+  type ev
 
-  type out_msg = (cmd, body, pbody) Out.Message.t
+  type body_
+
+  type pbody_
+
+  type in_msg = (cmd, body, pbody) In.Message.t
+
+  type out_msg = (ev, body_, pbody_) Out.Message.t
 
   val ctor_in : in_msg -> in_msg In.t
 
@@ -49,30 +50,21 @@ module Make (Ty : Types) :
   T with type in_msg := Ty.in_msg and type out_msg := Ty.out_msg = struct
   type t = {
     handler :
-      config:Dap_config.t -> Ty.in_msg In.t -> Ty.out_msg Out.t Dap_result.t;
+      config:Dap.Config.t -> Ty.in_msg In.t -> Ty.out_msg Out.t Dap_result.t;
   }
 
   let make ~handler =
     let wrapped_handler =
       let getseq = In.(Fmap Message.seq) in
-      let setseq seq =
-        Out.(
-          Fmap (Message.set_seq ~seq)
-        )
-      in
-      let setseq_err seq =
-        Err.(
-          Fmap (Message.set_seq ~seq)
-        )
-      in
+      let setseq seq = Out.(Fmap (Message.set_seq ~seq)) in
+      let setseq_err seq = Err.(Fmap (Message.set_seq ~seq)) in
       fun ~config msg ->
         let request_seq = In.(eval @@ Map (Val getseq, Val msg)) in
         let seq = 1 + request_seq in
         let s = Dap_base.Seqr.make ~seq ~request_seq () in
         handler config msg
         |> Dap_result.map ~f:(fun v ->
-               Out.(
-                 Ty.ctor_out @@ eval @@ Map (Val (setseq s), Val v)))
+               Out.(Ty.ctor_out @@ eval @@ Map (Val (setseq s), Val v)))
         |> Dap_result.map_error ~f:(fun err ->
                Err.(
                  errorResponse @@ eval

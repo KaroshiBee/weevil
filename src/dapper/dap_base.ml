@@ -219,4 +219,25 @@ module Presence = struct
   type opt
 end
 
+module type SEQR = sig
+  type t
+  val make : seq:int -> ?request_seq:int -> unit -> t
+  val seq : t -> int
+  val request_seq : t -> int
+end
 
+
+module Seqr : SEQR = struct
+  type t = {
+    seq: int;
+    request_seq: int;
+  }
+
+  let make ~seq ?request_seq () =
+    let request_seq = Option.value ~default:(-1) request_seq in
+    {seq; request_seq}
+
+  let seq t = t.seq
+  let request_seq t = t.request_seq
+
+end

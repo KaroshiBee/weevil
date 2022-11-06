@@ -8,6 +8,9 @@ type ('cmd, 'args, 'presence) t = {
 }
 
 let seq t = t.seq
+let set_seq ~seq:s t =
+  let seq = Dap_base.Seqr.seq s in
+  {t with seq}
 
 let message t = t.type_
 

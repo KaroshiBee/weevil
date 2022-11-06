@@ -1,6 +1,8 @@
 type ('cmd, 'args, 'presence) t
 
 val seq : ('cmd, 'args, 'presence) t -> int
+val set_seq :
+  seq:Dap_base.Seqr.t -> ('cmd, 'args, 'presence) t -> ('cmd, 'args, 'presence) t
 
 val message : ('cmd, 'args, 'presence) t -> Dap_base.ProtocolMessage_type.t
 
