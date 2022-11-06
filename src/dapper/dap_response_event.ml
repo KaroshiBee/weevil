@@ -29,33 +29,29 @@ module type Types = sig
 end
 
 module type T = sig
-  include Types
+  type in_msg
+
+  type out_msg
 
   type t
 
-  val make : handler:(in_msg In.t -> out_msg Out.t Dap_result.t) -> t
+  val make :
+    handler:(Dap.Config.t -> in_msg In.t -> out_msg Out.t Dap_result.t) -> t
 
-  val handle : t -> in_msg In.t -> out_msg Out.t Dap_result.t
+  val string_to_input : string -> in_msg In.t Dap_result.t
+
+  val handle :
+    t -> config:Dap.Config.t -> in_msg In.t -> out_msg Out.t Dap_result.t
+
+  val output_to_string : out_msg Out.t -> (string, string) Lwt_result.t
 end
 
-module Make (Ty : Types) : T
-with type cmd := Ty.cmd
- and type body := Ty.body
- and type pbody := Ty.pbody
- and type ev := Ty.ev
- and type body_ := Ty.body_
- and type pbody_ := Ty.pbody_
- and type in_msg := (Ty.cmd, Ty.body, Ty.pbody) In.Message.t
- and type out_msg := (Ty.ev, Ty.body_, Ty.pbody_) Out.Message.t = struct
-  let ctor_in = Ty.ctor_in
-
-  let enc_in = Ty.enc_in
-
-  let ctor_out = Ty.ctor_out
-
-  let enc_out = Ty.enc_out
-
-  type t = {handler : Ty.in_msg In.t -> Ty.out_msg Out.t Dap_result.t}
+module Make (Ty : Types) :
+  T with type in_msg := Ty.in_msg and type out_msg := Ty.out_msg = struct
+  type t = {
+    handler :
+      config:Dap.Config.t -> Ty.in_msg In.t -> Ty.out_msg Out.t Dap_result.t;
+  }
 
   let make ~handler =
     let wrapped_handler =
@@ -69,10 +65,10 @@ with type cmd := Ty.cmd
               |> Message.set_request_seq ~request_seq
               |> Message.set_seq ~seq))
       in
-      fun msg ->
+      fun ~config msg ->
         let request_seq = In.(eval @@ Map (Val getseq, Val msg)) in
         let seq = 1 + request_seq in
-        handler msg
+        handler config msg
         |> Dap_result.map ~f:(fun v ->
                Out.(Ty.ctor_out @@ eval @@ Map (Val (setseq seq), Val v)))
         |> Dap_result.map_error ~f:(fun err ->
@@ -82,5 +78,32 @@ with type cmd := Ty.cmd
     in
     {handler = wrapped_handler}
 
+  let string_to_input input =
+    Result.(
+      let r = Dap.Js_msg.from_string input in
+      bind r (fun msg ->
+          try ok @@ Dap.Js_msg.destruct Ty.enc_in msg with
+          (* let wrong-encoder through *)
+          | Dap.Js_msg.Wrong_encoder _ as e -> raise e
+          (* catch everything else and put into the result monad *)
+          | _ as err -> error @@ Printexc.to_string err)
+      |> Result.map Ty.ctor_in
+      |> Result.map_error (fun err ->
+             Err.errorResponse @@ Dap.default_response_error err)
+      |> Dap_result.from_result)
+
   let handle {handler} = handler
+
+  let output_to_string output =
+    Out.(
+      let to_string =
+        Fmap
+          (fun msg ->
+            let r =
+              try Result.ok @@ Dap.Js_msg.construct Ty.enc_out msg
+              with _ as err -> Result.error @@ Printexc.to_string err
+            in
+            Result.map Dap.Js_msg.to_string r)
+      in
+      Lwt.return @@ eval @@ Map (Val to_string, Val output))
 end

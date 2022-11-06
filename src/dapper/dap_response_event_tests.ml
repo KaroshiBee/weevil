@@ -22,9 +22,10 @@ module ProcessLaunched = Dap_response_event.Make (struct
 end)
 
 let%expect_test "Check sequencing response/event" =
+  let config = Dap.Config.make () in
   let handler =
     let l = ProcessLaunched.make
-        ~handler:(fun _ ->
+        ~handler:(fun _ _ ->
             let startMethod = Dap.ProcessEvent_body_startMethod.Launch in
             let body =
               Dap.ProcessEvent_body.make
@@ -44,7 +45,7 @@ let%expect_test "Check sequencing response/event" =
   let enc_launch = Ev.(Message.enc Dap.Events.process Dap.ProcessEvent_body.enc) in
 
   let%lwt s =
-    handler resp_launch
+    handler ~config resp_launch
     |> Dap_result.map ~f:(function
         | Ev.ProcessEvent ev ->
           Js.construct enc_launch ev |> Js.to_string
@@ -63,7 +64,7 @@ let%expect_test "Check sequencing response/event" =
   (* should also have the correct seq numbers if error happens during handling *)
   let handler_err =
     let l = ProcessLaunched.make
-      ~handler:(fun _req ->
+      ~handler:(fun _ _req ->
             Dap.default_response_error "testing error"
             |> Res.errorResponse
             |> Dap_result.error
@@ -72,7 +73,7 @@ let%expect_test "Check sequencing response/event" =
     ProcessLaunched.handle l
   in
   let%lwt s =
-    handler_err resp_launch
+    handler_err ~config resp_launch
     |> Dap_result.to_lwt_error_as_str
   in
   Printf.printf "%s" @@ Result.get_error s;
