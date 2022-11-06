@@ -4,14 +4,14 @@ module Js = Data_encoding.Json
 module Req = Dap.Request
 module Res = Dap.Response
 
-module Launch = Dap_request_response.Make (struct
-  type cmd = Dap.Commands.launch
-  type args = Dap.LaunchRequestArguments.t
-  type pargs = Dap.Presence.req
-  type body = Dap.EmptyObject.t option
-  type pbody = Dap.Presence.opt
-  type in_msg = (cmd, args, pargs) Req.Message.t
-  type out_msg = (cmd, body, pbody) Res.Message.t
+module Launch = Dap_handlers.Request_response.Make (struct
+  type enum = Dap.Commands.launch
+  type in_contents = Dap.LaunchRequestArguments.t
+  type in_presence = Dap.Presence.req
+  type out_contents = Dap.EmptyObject.t option
+  type out_presence = Dap.Presence.opt
+  type in_msg = (enum, in_contents, in_presence) Req.Message.t
+  type out_msg = (enum, out_contents, out_presence) Res.Message.t
 
   let ctor_in = Req.launchRequest
   let enc_in = Req.Message.enc Dap.Commands.launch Dap.LaunchRequestArguments.enc

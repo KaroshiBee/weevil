@@ -4,15 +4,15 @@ module Js = Data_encoding.Json
 module Res = Dap.Response
 module Ev = Dap.Event
 
-module BreakStopped = Dap_raise_event.Make (struct
-  type ev = Dap.Events.breakpoint
-  type body = Dap.BreakpointEvent_body.t
-  type pbody = Dap.Presence.req
-  type ev_ = Dap.Events.stopped
-  type body_ = Dap.StoppedEvent_body.t
-  type pbody_ = Dap.Presence.req
-  type in_msg = (ev, body, pbody) Ev.Message.t
-  type out_msg = (ev_, body_, pbody_) Ev.Message.t
+module BreakStopped = Dap_handlers.Raise_event.Make (struct
+  type in_enum = Dap.Events.breakpoint
+  type in_contents = Dap.BreakpointEvent_body.t
+  type in_presence = Dap.Presence.req
+  type out_enum = Dap.Events.stopped
+  type out_contents = Dap.StoppedEvent_body.t
+  type out_presence = Dap.Presence.req
+  type in_msg = (in_enum, in_contents, in_presence) Ev.Message.t
+  type out_msg = (out_enum, out_contents, out_presence) Ev.Message.t
 
   let ctor_in = Ev.breakpointEvent
   let enc_in = Ev.Message.enc Dap.Events.breakpoint Dap.BreakpointEvent_body.enc

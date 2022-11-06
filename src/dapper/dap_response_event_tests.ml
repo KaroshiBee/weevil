@@ -4,18 +4,16 @@ module Js = Data_encoding.Json
 module Res = Dap.Response
 module Ev = Dap.Event
 
-module M = Dap_response_event.Maker (Res.Message) (Res) (Ev.Message) (Ev)
+module ProcessLaunched = Dap_handlers.Response_event.Make (struct
+  type in_enum = Dap.Commands.launch
+  type in_contents = Dap.EmptyObject.t option
+  type in_presence = Dap.Presence.opt
+  type out_enum = Dap.Events.process
+  type out_contents = Dap.ProcessEvent_body.t
+  type out_presence = Dap.Presence.req
 
-module ProcessLaunched = M.Make (struct
-  type cmd = Dap.Commands.launch
-  type body = Dap.EmptyObject.t option
-  type pbody = Dap.Presence.opt
-  type ev = Dap.Events.process
-  type body_ = Dap.ProcessEvent_body.t
-  type pbody_ = Dap.Presence.req
-
-  type in_msg = (cmd, body, pbody) Res.Message.t
-  type out_msg = (ev, body_, pbody_) Ev.Message.t
+  type in_msg = (in_enum, in_contents, in_presence) Res.Message.t
+  type out_msg = (out_enum, out_contents, out_presence) Ev.Message.t
 
   let ctor_in = Res.launchResponse
   let enc_in = Res.Message.enc_opt Dap.Commands.launch Dap.EmptyObject.enc
