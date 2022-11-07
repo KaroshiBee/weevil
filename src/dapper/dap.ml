@@ -11,9 +11,8 @@ module Event = Dap_event
 
 
 let default_response_error e =
-  let open Dap_message.Data in
   let id = Hashtbl.hash e in
   let variables = `O [("error", `String e)] in
   let error = Message.make ~id ~format:"{error}" ~variables () in
   let body = ErrorResponse_body.make ~error () in
-  Response.Message.make ~seq:Dap_base.Seqr.not_set ~request_seq:Dap_base.Seqr.not_set ~success:false ~command:Dap_commands.error ~body ()
+  Response.Message.make ~seq:Dap_base.Seqr.not_set ~request_seq:Dap_base.Seqr.not_set ~success:false ~command:Commands.error ~body ()
