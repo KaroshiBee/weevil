@@ -224,6 +224,7 @@ module type SEQR = sig
   val make : seq:int -> ?request_seq:int -> unit -> t
   val seq : t -> int
   val request_seq : t -> int
+  val not_set : int
 end
 
 
@@ -232,6 +233,9 @@ module Seqr : SEQR = struct
     seq: int;
     request_seq: int;
   }
+
+  (* NOTE for use in the HANDLERs so seq and request_seq are calculated for us *)
+  let not_set = -1
 
   let make ~seq ?request_seq () =
     let request_seq = Option.value ~default:(-1) request_seq in
