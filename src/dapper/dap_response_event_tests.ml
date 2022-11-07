@@ -6,19 +6,19 @@ module Ev = Dap.Event
 
 module ProcessLaunched = Dap_handlers.Response_event.Make (struct
   type in_enum = Dap.Commands.launch
-  type in_contents = Dap.EmptyObject.t option
-  type in_presence = Dap.Presence.opt
+  type in_contents = Dap.Data.EmptyObject.t option
+  type in_presence = Dap.Data.Presence.opt
   type out_enum = Dap.Events.process
-  type out_contents = Dap.ProcessEvent_body.t
-  type out_presence = Dap.Presence.req
+  type out_contents = Dap.Data.ProcessEvent_body.t
+  type out_presence = Dap.Data.Presence.req
 
   type in_msg = (in_enum, in_contents, in_presence) Res.Message.t
   type out_msg = (out_enum, out_contents, out_presence) Ev.Message.t
 
   let ctor_in = Res.launchResponse
-  let enc_in = Res.Message.enc_opt Dap.Commands.launch Dap.EmptyObject.enc
+  let enc_in = Res.Message.enc_opt Dap.Commands.launch Dap.Data.EmptyObject.enc
   let ctor_out = Ev.processEvent
-  let enc_out = Ev.Message.enc Dap.Events.process Dap.ProcessEvent_body.enc
+  let enc_out = Ev.Message.enc Dap.Events.process Dap.Data.ProcessEvent_body.enc
 
 end)
 
@@ -27,9 +27,9 @@ let%expect_test "Check sequencing response/event" =
   let handler =
     let l = ProcessLaunched.make
         ~handler:(fun _ _ ->
-            let startMethod = Dap.ProcessEvent_body_startMethod.Launch in
+            let startMethod = Dap.Data.ProcessEvent_body_startMethod.Launch in
             let body =
-              Dap.ProcessEvent_body.make
+              Dap.Data.ProcessEvent_body.make
                 ~name:"TODO PROCESS EVENT NAME e.g. test.tz"
                 ~startMethod
                 ()
@@ -42,8 +42,8 @@ let%expect_test "Check sequencing response/event" =
     ProcessLaunched.handle l
   in
 
-  let resp_launch = Res.(launchResponse @@ Message.make_opt ~seq:111 ~request_seq:110 ~success:true ~command:Dap.Commands.launch ~body:(Dap.EmptyObject.make ()) ()) in
-  let enc_launch = Ev.(Message.enc Dap.Events.process Dap.ProcessEvent_body.enc) in
+  let resp_launch = Res.(launchResponse @@ Message.make_opt ~seq:111 ~request_seq:110 ~success:true ~command:Dap.Commands.launch ~body:(Dap.Data.EmptyObject.make ()) ()) in
+  let enc_launch = Ev.(Message.enc Dap.Events.process Dap.Data.ProcessEvent_body.enc) in
 
   let%lwt s =
     handler ~config resp_launch

@@ -6,17 +6,17 @@ module Res = Dap.Response
 
 module Launch = Dap_handlers.Request_response.Make (struct
   type enum = Dap.Commands.launch
-  type in_contents = Dap.LaunchRequestArguments.t
-  type in_presence = Dap.Presence.req
-  type out_contents = Dap.EmptyObject.t option
-  type out_presence = Dap.Presence.opt
+  type in_contents = Dap.Data.LaunchRequestArguments.t
+  type in_presence = Dap.Data.Presence.req
+  type out_contents = Dap.Data.EmptyObject.t option
+  type out_presence = Dap.Data.Presence.opt
   type in_msg = (enum, in_contents, in_presence) Req.Message.t
   type out_msg = (enum, out_contents, out_presence) Res.Message.t
 
   let ctor_in = Req.launchRequest
-  let enc_in = Req.Message.enc Dap.Commands.launch Dap.LaunchRequestArguments.enc
+  let enc_in = Req.Message.enc Dap.Commands.launch Dap.Data.LaunchRequestArguments.enc
   let ctor_out = Res.launchResponse
-  let enc_out = Res.Message.enc_opt Dap.Commands.launch Dap.EmptyObject.enc
+  let enc_out = Res.Message.enc_opt Dap.Commands.launch Dap.Data.EmptyObject.enc
 
 end)
 
@@ -25,7 +25,7 @@ let%expect_test "Check sequencing request/response" =
   let handler =
     let l = Launch.make
         ~handler:(fun _cfg _req ->
-            let body = Dap.EmptyObject.make () in
+            let body = Dap.Data.EmptyObject.make () in
             Res.default_response_opt Dap.Commands.launch body
             |> Res.launchResponse
             |> Dap_result.ok
@@ -34,8 +34,8 @@ let%expect_test "Check sequencing request/response" =
     Launch.handle l
   in
 
-  let req_launch = Req.(launchRequest @@ Message.make ~seq:101 ~command:Dap.Commands.launch ~arguments:(Dap.LaunchRequestArguments.make ()) ()) in
-  let enc_launch = Res.(Message.enc_opt Dap.Commands.launch Dap.EmptyObject.enc) in
+  let req_launch = Req.(launchRequest @@ Message.make ~seq:101 ~command:Dap.Commands.launch ~arguments:(Dap.Data.LaunchRequestArguments.make ()) ()) in
+  let enc_launch = Res.(Message.enc_opt Dap.Commands.launch Dap.Data.EmptyObject.enc) in
 
   let%lwt s =
     handler ~config req_launch

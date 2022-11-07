@@ -16,9 +16,9 @@ module type State_intf = sig
 
   val set_io : t -> Lwt_io.input_channel -> Lwt_io.output_channel -> unit
 
-  val launch_mode : t -> Dapper.Dap.Launch_mode.t option
+  val launch_mode : t -> Dapper.Dap.Data.Launch_mode.t option
 
-  val set_launch_mode : t -> Dapper.Dap.Launch_mode.t -> unit
+  val set_launch_mode : t -> Dapper.Dap.Data.Launch_mode.t -> unit
 end
 
 module type String_handler_intf = sig

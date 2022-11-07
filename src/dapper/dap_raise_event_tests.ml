@@ -6,18 +6,18 @@ module Ev = Dap.Event
 
 module BreakStopped = Dap_handlers.Raise_event.Make (struct
   type in_enum = Dap.Events.breakpoint
-  type in_contents = Dap.BreakpointEvent_body.t
-  type in_presence = Dap.Presence.req
+  type in_contents = Dap.Data.BreakpointEvent_body.t
+  type in_presence = Dap.Data.Presence.req
   type out_enum = Dap.Events.stopped
-  type out_contents = Dap.StoppedEvent_body.t
-  type out_presence = Dap.Presence.req
+  type out_contents = Dap.Data.StoppedEvent_body.t
+  type out_presence = Dap.Data.Presence.req
   type in_msg = (in_enum, in_contents, in_presence) Ev.Message.t
   type out_msg = (out_enum, out_contents, out_presence) Ev.Message.t
 
   let ctor_in = Ev.breakpointEvent
-  let enc_in = Ev.Message.enc Dap.Events.breakpoint Dap.BreakpointEvent_body.enc
+  let enc_in = Ev.Message.enc Dap.Events.breakpoint Dap.Data.BreakpointEvent_body.enc
   let ctor_out = Ev.stoppedEvent
-  let enc_out = Ev.Message.enc Dap.Events.stopped Dap.StoppedEvent_body.enc
+  let enc_out = Ev.Message.enc Dap.Events.stopped Dap.Data.StoppedEvent_body.enc
 
 end)
 
@@ -26,9 +26,9 @@ let%expect_test "Check sequencing event/event" =
   let handler =
     let l = BreakStopped.make
       ~handler:(fun _ _ ->
-        let reason = Dap.StoppedEvent_body_reason.Breakpoint in
+        let reason = Dap.Data.StoppedEvent_body_reason.Breakpoint in
         let body =
-          Dap.StoppedEvent_body.make
+          Dap.Data.StoppedEvent_body.make
             ~reason
             ()
         in
@@ -41,10 +41,10 @@ let%expect_test "Check sequencing event/event" =
   in
 
   let break_ev =
-    let breakpoint = Dap.Breakpoint.make ~verified:true () in
-    let body = Dap.BreakpointEvent_body.make ~reason:Dap.BreakpointEvent_body_reason.New ~breakpoint () in
+    let breakpoint = Dap.Data.Breakpoint.make ~verified:true () in
+    let body = Dap.Data.BreakpointEvent_body.make ~reason:Dap.Data.BreakpointEvent_body_reason.New ~breakpoint () in
     Ev.(breakpointEvent @@ Message.make ~seq:111 ~event:Dap.Events.breakpoint ~body ()) in
-  let enc_stopper = Ev.Message.enc Dap.Events.stopped Dap.StoppedEvent_body.enc in
+  let enc_stopper = Ev.Message.enc Dap.Events.stopped Dap.Data.StoppedEvent_body.enc in
 
   let%lwt s =
     handler ~config break_ev

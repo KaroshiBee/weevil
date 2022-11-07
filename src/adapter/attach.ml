@@ -1,4 +1,5 @@
 module Dap = Dapper.Dap
+module D = Dap.Data
 module Dap_result = Dapper.Dap_result
 module Req = Dap.Request
 module Res = Dap.Response
@@ -17,7 +18,7 @@ module T (S:Types.State_intf) = struct
     Dap.Attach.On_request.make
       ~handler:(
         fun config _req ->
-          let body = Dap.EmptyObject.make () in
+          let body = D.EmptyObject.make () in
           let command = Dap.Commands.attach in
           let resp = Res.attachResponse @@ Res.default_response_opt command body in
           match S.oc t with
@@ -48,9 +49,9 @@ module T (S:Types.State_intf) = struct
     Dap.Attach.On_response.make
       ~handler:(fun _ _resp ->
           let event = Dap.Events.process in
-          let startMethod = Dap.ProcessEvent_body_startMethod.Attach in
+          let startMethod = D.ProcessEvent_body_startMethod.Attach in
           let body =
-            Dap.ProcessEvent_body.make
+            D.ProcessEvent_body.make
               ~name:"TODO PROCESS EVENT NAME e.g. test.tz"
               ~startMethod
               ()

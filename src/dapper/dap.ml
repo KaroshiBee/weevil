@@ -4,7 +4,7 @@ module Events = Dap_events
 module Js_msg = Dap_js_msg
 module Config = Dap_config
 
-include Dap_message.Data
+module Data = Dap_message.Data
 module Request = Dap_request
 module Response = Dap_response
 module Event = Dap_event
@@ -12,6 +12,7 @@ module Event = Dap_event
 module type TYPED_HANDLER = Dap_handlers.HANDLER
 
 module Attach = Dap_attach
+module Launch = Dap_launch
 
 (* machinery to turn our typed handlers into string -> string handlers *)
 module type STRING_HANDLER = sig

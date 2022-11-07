@@ -1,9 +1,10 @@
 include Test_utils.Include
 module Dap = Dapper.Dap
+module D = Dap.Data
 module Js = Data_encoding.Json
 
 module StateMock = struct
-  type t = {mutable launch_mode : Dap.Launch_mode.t option}
+  type t = {mutable launch_mode : D.Launch_mode.t option}
 
   let make_empty = {launch_mode = None}
 
@@ -35,9 +36,9 @@ let%expect_test "Check sequencing etc for attach" =
       Message.make
         ~seq:20
         ~command
-        ~arguments:(Dap.AttachRequestArguments.make ())
+        ~arguments:(D.AttachRequestArguments.make ())
         ()
-      |> Js.construct (Message.enc command Dap.AttachRequestArguments.enc)
+      |> Js.construct (Message.enc command D.AttachRequestArguments.enc)
       |> Js.to_string)
   in
   Printf.printf "%s" req ;

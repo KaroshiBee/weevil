@@ -1,4 +1,5 @@
 open Conduit_lwt_unix
+module Launch_mode = Dapper.Dap.Data.Launch_mode
 
 type io = Lwt_io.input_channel * Lwt_io.output_channel
 type t = {
@@ -6,7 +7,7 @@ type t = {
   mutable process: Lwt_process.process_none option;
   (* the backend comms channels *)
   mutable io: io option;
-  mutable launch_mode: Dapper.Dap.Launch_mode.t option;
+  mutable launch_mode: Launch_mode.t option;
 }
 
 let make_empty = {
