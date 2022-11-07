@@ -66,7 +66,7 @@ let%expect_test "Check sequencing response/event" =
   let handler_err =
     let l = ProcessLaunched.make
       ~handler:(fun _ _req ->
-            Dap.default_response_error "testing error"
+            Res.default_response_error "testing error"
             |> Res.errorResponse
             |> Dap_result.error
           )

@@ -24,6 +24,6 @@ let make_address addr_str = match _backend_ip = addr_str with
 
 let backend_port t = t.backend_port
 
-let backend_ip t = t.backend_ip |> make_address |> Ipaddr_unix.of_inet_addr
+let backend_ip t = t.backend_ip |> make_address
 
 let to_command s = ("", s |> String.split_on_char ' ' |> Array.of_list)

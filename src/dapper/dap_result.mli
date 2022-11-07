@@ -2,11 +2,11 @@
    most user code will just do to_lwt_result and work with that
 *)
 type error =
-  ( Dap.Commands.error,
-    Dap.ErrorResponse_body.t,
-    Dap.Presence.req )
-  Dap.Response.Message.t
-  Dap.Response.t
+  ( Dap_commands.error,
+    Dap_message.Data.ErrorResponse_body.t,
+    Dap_base.Presence.req )
+  Dap_response.Message.t
+  Dap_response.t
 
 type 'a t
 

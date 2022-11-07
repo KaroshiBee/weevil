@@ -1,8 +1,8 @@
 module Js = Data_encoding.Json
-module R = Dap.Response
+module R = Dap_response
 
 type error =
-  (Dap.Commands.error, Dap.ErrorResponse_body.t, Dap.Presence.req) R.Message.t
+  (Dap_commands.error, Dap_message.Data.ErrorResponse_body.t, Dap_base.Presence.req) R.Message.t
   R.t
 
 type 'a t = ('a, error) Lwt_result.t
@@ -15,7 +15,7 @@ let from_result = Lwt.return
 let from_lwt_result t = t
 
 let to_lwt_error_as_str t =
-  let enc = R.Message.enc Dap.Commands.error Dap.ErrorResponse_body.enc in
+  let enc = R.Message.enc Dap_commands.error Dap_message.Data.ErrorResponse_body.enc in
   let to_string = R.Fmap (fun err -> Js.construct enc err |> Js.to_string) in
   (* NOTE seem to need the t otherwise type checker complains *)
   Lwt_result.map_err

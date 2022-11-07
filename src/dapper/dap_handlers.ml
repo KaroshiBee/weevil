@@ -1,24 +1,4 @@
-module Err = Dap.Response
-
-module type STATE_T = sig
-  type t
-
-  val make_empty : t
-
-  val process_none : t -> Lwt_process.process_none option
-
-  val set_process_none : t -> Lwt_process.process_none -> unit
-
-  val ic : t -> Lwt_io.input_channel option
-
-  val oc : t -> Lwt_io.output_channel option
-
-  val set_io : t -> Lwt_io.input_channel -> Lwt_io.output_channel -> unit
-
-  val launch_mode : t -> Dap_base.launch_mode option
-
-  val set_launch_mode : t -> Dap_base.launch_mode -> unit
-end
+module Err = Dap_response
 
 module type MSG_T = sig
   type ('enum, 'contents, 'presence) t
@@ -105,11 +85,11 @@ module type HANDLER = sig
 
   type t
 
-  val make : handler:(Dap.Config.t -> in_t -> out_t Dap_result.t) -> t
+  val make : handler:(Dap_config.t -> in_t -> out_t Dap_result.t) -> t
 
   val string_to_input : string -> in_t Dap_result.t
 
-  val handle : t -> config:Dap.Config.t -> in_t -> out_t Dap_result.t
+  val handle : t -> config:Dap_config.t -> in_t -> out_t Dap_result.t
 
   val output_to_string : out_t -> (string, string) Lwt_result.t
 end
@@ -124,7 +104,7 @@ struct
   struct
     type t = {
       handler :
-        config:Dap.Config.t -> Ty.in_msg In.t -> Ty.out_msg Out.t Dap_result.t;
+        config:Dap_config.t -> Ty.in_msg In.t -> Ty.out_msg Out.t Dap_result.t;
     }
 
     let make ~handler =
@@ -147,16 +127,16 @@ struct
 
     let string_to_input input =
       Result.(
-        let r = Dap.Js_msg.from_string input in
+        let r = Dap_js_msg.from_string input in
         bind r (fun msg ->
-            try ok @@ Dap.Js_msg.destruct Ty.enc_in msg with
+            try ok @@ Dap_js_msg.destruct Ty.enc_in msg with
             (* let wrong-encoder through *)
-            | Dap.Js_msg.Wrong_encoder _ as e -> raise e
+            | Dap_js_msg.Wrong_encoder _ as e -> raise e
             (* catch everything else and put into the result monad *)
             | _ as err -> error @@ Printexc.to_string err)
         |> Result.map Ty.ctor_in
         |> Result.map_error (fun err ->
-               Err.errorResponse @@ Dap.default_response_error err)
+               Err.(errorResponse @@ default_response_error err))
         |> Dap_result.from_result)
 
     let handle {handler} = handler
@@ -166,10 +146,10 @@ struct
         let to_string =
           fmap_ (fun msg ->
               let r =
-                try Result.ok @@ Dap.Js_msg.construct Ty.enc_out msg
+                try Result.ok @@ Dap_js_msg.construct Ty.enc_out msg
                 with _ as err -> Result.error @@ Printexc.to_string err
               in
-              Result.map Dap.Js_msg.to_string r)
+              Result.map Dap_js_msg.to_string r)
         in
         Lwt.return @@ eval @@ map_ (val_ to_string, val_ output))
   end
@@ -185,7 +165,7 @@ struct
   struct
     type t = {
       handler :
-        config:Dap.Config.t -> Ty.in_msg In.t -> Ty.out_msg Out.t Dap_result.t;
+        config:Dap_config.t -> Ty.in_msg In.t -> Ty.out_msg Out.t Dap_result.t;
     }
 
     let make ~handler =
@@ -208,16 +188,16 @@ struct
 
     let string_to_input input =
       Result.(
-        let r = Dap.Js_msg.from_string input in
+        let r = Dap_js_msg.from_string input in
         bind r (fun msg ->
-            try ok @@ Dap.Js_msg.destruct Ty.enc_in msg with
+            try ok @@ Dap_js_msg.destruct Ty.enc_in msg with
             (* let wrong-encoder through *)
-            | Dap.Js_msg.Wrong_encoder _ as e -> raise e
+            | Dap_js_msg.Wrong_encoder _ as e -> raise e
             (* catch everything else and put into the result monad *)
             | _ as err -> error @@ Printexc.to_string err)
         |> Result.map Ty.ctor_in
         |> Result.map_error (fun err ->
-               Err.errorResponse @@ Dap.default_response_error err)
+               Err.(errorResponse @@ default_response_error err))
         |> Dap_result.from_result)
 
     let handle {handler} = handler
@@ -227,18 +207,18 @@ struct
         let to_string =
           fmap_ (fun msg ->
               let r =
-                try Result.ok @@ Dap.Js_msg.construct Ty.enc_out msg
+                try Result.ok @@ Dap_js_msg.construct Ty.enc_out msg
                 with _ as err -> Result.error @@ Printexc.to_string err
               in
-              Result.map Dap.Js_msg.to_string r)
+              Result.map Dap_js_msg.to_string r)
         in
         Lwt.return @@ eval @@ map_ (val_ to_string, val_ output))
   end
 end
 
 module Request_response =
-  Maker1 (Dap.Request.Message) (Dap.Request) (Dap.Response.Message) (Dap.Response)
+  Maker1 (Dap_request.Message) (Dap_request) (Dap_response.Message) (Dap_response)
 module Response_event =
-  Maker2 (Dap.Response.Message) (Dap.Response) (Dap.Event.Message) (Dap.Event)
+  Maker2 (Dap_response.Message) (Dap_response) (Dap_event.Message) (Dap_event)
 module Raise_event =
-  Maker2 (Dap.Event.Message) (Dap.Event) (Dap.Event.Message) (Dap.Event)
+  Maker2 (Dap_event.Message) (Dap_event) (Dap_event.Message) (Dap_event)
