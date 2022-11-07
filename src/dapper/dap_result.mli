@@ -1,5 +1,4 @@
-(* deosnt do much apart from lock in the error type
-   most user code will just do to_lwt_result and work with that
+(* doesn't do much apart from lock in the error type
 *)
 type error =
   ( Dap_commands.error,
@@ -8,7 +7,8 @@ type error =
   Dap_response.Message.t
   Dap_response.t
 
-type 'a t
+(* TODO think i need to expose this *)
+type 'a t = ('a, error) Lwt_result.t
 
 val ok : 'a -> 'a t
 val error : error -> 'a t

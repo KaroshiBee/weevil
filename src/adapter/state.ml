@@ -1,15 +1,25 @@
+open Conduit_lwt_unix
+
+
 type io = Lwt_io.input_channel * Lwt_io.output_channel
 type t = {
   (* the backend svc process, using process_none to allow for std redirection if needed later on *)
   mutable process: Lwt_process.process_none option;
   (* the backend comms channels *)
   mutable io: io option;
-  mutable launch_mode: Dapper.Dap_base.launch_mode option;
+  mutable launch_mode: Dapper.Dap.Launch_mode.t option;
 }
 
 let make_empty = {
   process=None; io=None; launch_mode=None;
 }
+
+let connect ip port =
+  let client = `TCP (`IP ip, `Port port) in
+  let%lwt ctx = init () in
+  let%lwt (_, ic, oc) = connect ~ctx client in
+  Lwt.return (ic, oc)
+
 let process_none t = t.process
 let set_process_none t process = t.process <- Some process
 

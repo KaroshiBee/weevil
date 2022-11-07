@@ -18,7 +18,6 @@
   conduit-lwt-unix
   data-encoding
   cmdliner
-  dapper_old
   dapper
   backend
   adapter

@@ -7,9 +7,10 @@ include Dap_message.Data
 module Request = Dap_request
 module Response = Dap_response
 module Event = Dap_event
-open Dap_handlers
 
-module Attach = Request_response.Make (struct
+module type HANDLER = Dap_handlers.HANDLER
+
+module Attach = Dap_handlers.Request_response.Make (struct
   type enum = Commands.attach
 
   type in_contents = AttachRequestArguments.t
@@ -33,7 +34,7 @@ module Attach = Request_response.Make (struct
   let enc_out = Response.Message.enc_opt Commands.attach EmptyObject.enc
 end)
 
-module Process = Response_event.Make (struct
+module Process = Dap_handlers.Response_event.Make (struct
   type in_enum = Commands.attach
 
   type in_contents = EmptyObject.t option
@@ -60,35 +61,30 @@ module Process = Response_event.Make (struct
 end)
 
 (* machinery to turn our typed handlers into string -> string handlers *)
-module type MAKE_STRING_HANDLER = sig
-  type input
-
-  type output
-
-  type backend
+module type STRING_HANDLER = sig
+  type typed_handler
 
   type t
 
-  val make : backend -> t
+  val make : typed_handler -> t
 
   val handle : t -> Dap_config.t -> string -> string Lwt.t
 end
 
 module MakeStringHandler (H : HANDLER) :
-  MAKE_STRING_HANDLER
-    with type input := H.in_t
-     and type output := H.out_t
-     and type backend := H.t = struct
+  STRING_HANDLER
+  with type typed_handler = H.t = struct
+  type typed_handler = H.t
   type t = {
-    backend : H.t;
+    typed_handler : H.t;
     string_to_input : string -> H.in_t Dap_result.t;
     handle : H.t -> config:Dap_config.t -> H.in_t -> H.out_t Dap_result.t;
     output_to_string : H.out_t -> (string, string) Lwt_result.t;
   }
 
-  let make backend =
+  let make typed_handler =
     {
-      backend;
+      typed_handler;
       string_to_input = H.string_to_input;
       output_to_string = H.output_to_string;
       handle = H.handle;
@@ -97,7 +93,7 @@ module MakeStringHandler (H : HANDLER) :
   let handle t config s =
     let v =
       t.string_to_input s
-      |> Dap_result.bind ~f:(t.handle t.backend ~config)
+      |> Dap_result.bind ~f:(t.handle t.typed_handler ~config)
       |> Dap_result.to_lwt_error_as_str
     in
     (* turn into (string, string) Result.t and return either msg as the thing to send on to client *)

@@ -100,8 +100,10 @@ struct
   module TY = Types (In_msg) (In) (Out_msg) (Out)
 
   module Make (Ty : TY.T1) :
-    HANDLER with type in_t := Ty.in_msg In.t and type out_t := Ty.out_msg Out.t =
+    HANDLER with type in_t = Ty.in_msg In.t and type out_t = Ty.out_msg Out.t =
   struct
+    type in_t = Ty.in_msg In.t
+    type out_t = Ty.out_msg Out.t
     type t = {
       handler :
         config:Dap_config.t -> Ty.in_msg In.t -> Ty.out_msg Out.t Dap_result.t;
@@ -161,8 +163,10 @@ struct
   module TY = Types (In_msg) (In) (Out_msg) (Out)
 
   module Make (Ty : TY.T2) :
-    HANDLER with type in_t := Ty.in_msg In.t and type out_t := Ty.out_msg Out.t =
+    HANDLER with type in_t = Ty.in_msg In.t and type out_t = Ty.out_msg Out.t =
   struct
+    type in_t = Ty.in_msg In.t
+    type out_t = Ty.out_msg Out.t
     type t = {
       handler :
         config:Dap_config.t -> Ty.in_msg In.t -> Ty.out_msg Out.t Dap_result.t;

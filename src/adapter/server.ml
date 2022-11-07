@@ -3,14 +3,15 @@ module Conduit = Conduit_lwt_unix
 open Lwt
 
 
-let handle_message hdl frontend_io config msg =
-  let _ic, oc = frontend_io in
-  match%lwt Handler.handle_exn hdl config msg with
-  | Ok js ->
-    let%lwt _ = Logs_lwt.info (fun m -> m "[DAP] got response: '%s'" js) in
-    Lwt_io.write oc js
-  | Error err ->
-    Logs_lwt.err (fun m -> m "[DAP] %s" err)
+let handle_message _hdl _frontend_io _config _msg =
+  failwith "TODO"
+  (* let _ic, oc = frontend_io in *)
+  (* match%lwt Handler.handle_exn hdl config msg with *)
+  (* | Ok js -> *)
+  (*   let%lwt _ = Logs_lwt.info (fun m -> m "[DAP] got response: '%s'" js) in *)
+  (*   Lwt_io.write oc js *)
+  (* | Error err -> *)
+  (*   Logs_lwt.err (fun m -> m "[DAP] %s" err) *)
 
 
 let rec main_handler hdl config content_length flow ic oc =
@@ -42,17 +43,18 @@ let on_connection hdl config content_length flow ic oc =
   let%lwt () = Logs_lwt.info (fun m -> m "[DAP] got connection") in
   main_handler hdl config content_length flow ic oc
 
-let svc ~port =
-  let () = Logs.set_reporter (Logs.format_reporter ()) in
-  let () = Logs.set_level (Some Logs.Debug) in
-  let mode = `TCP (`Port port) in
-  let config = Dapper.Dap_config.make () in
-  let hdl = Handler.make in
-  let content_length = None in
-  let () = Logs.info (fun m -> m "[DAP] starting adapter server on port %d" port) in
-  Lwt_main.run (
-    Conduit.init () >>= fun ctx ->
-    Conduit.serve ~on_exn ~ctx ~mode (on_connection  hdl config content_length)
-    >|= fun _ ->
-    `Ok ()
-  )
+let svc ~port:_ =
+  failwith "TODO"
+  (* let () = Logs.set_reporter (Logs.format_reporter ()) in *)
+  (* let () = Logs.set_level (Some Logs.Debug) in *)
+  (* let mode = `TCP (`Port port) in *)
+  (* let config = Dapper.Dap_config.make () in *)
+  (* let hdl = Handler.make in *)
+  (* let content_length = None in *)
+  (* let () = Logs.info (fun m -> m "[DAP] starting adapter server on port %d" port) in *)
+  (* Lwt_main.run ( *)
+  (*   Conduit.init () >>= fun ctx -> *)
+  (*   Conduit.serve ~on_exn ~ctx ~mode (on_connection  hdl config content_length) *)
+  (*   >|= fun _ -> *)
+  (*   `Ok () *)
+  (* ) *)
