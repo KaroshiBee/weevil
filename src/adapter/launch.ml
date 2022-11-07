@@ -1,9 +1,12 @@
 module Dap = Dapper.Dap
+module D = Dap.Data
 module Dap_result = Dapper.Dap_result
 module Req = Dap.Request
 module Res = Dap.Response
 module Ev = Dap.Event
 
+module Mich_event = Backend.Server.MichEvent
+module Js = Data_encoding.Json
 
 (* Launching and attaching *)
 
@@ -16,12 +19,12 @@ module Ev = Dap.Event
 (* Since arguments for both requests are highly dependent on a specific debugger and debug adapter implementation, the Debug Adapter Protocol does not specify any arguments for these requests. Instead, the development tool is expected to get information about debugger specific arguments from elsewhere (e.g. contributed by some plugin or extension mechanism) and to build a UI and validation mechanism on top of that. *)
 (*   *\) *)
 
-
-let get_onDebug = function
+let _get_onDebug = function
   | Req.LaunchRequest req ->
     let args = Req.Message.arguments req in
-    Dap.Data.LaunchRequestArguments.noDebug args |> Option.value ~default:false
+    D.LaunchRequestArguments.noDebug args |> Option.value ~default:false
   | _ -> false
+
 
 module T (S:Types.State_intf) = struct
 
@@ -32,99 +35,86 @@ module T (S:Types.State_intf) = struct
 
   let state t = t
 
-  let launch_handler _t =
+  let launch_handler t port ip =
     Dap.Launch.On_request.make
-      ~handler:(fun _ _ -> failwith "TODO")
+      ~handler:(fun config _req ->
+          let resp =
+            let command = Dap.Commands.launch in
+            let body = D.EmptyObject.make () in
+            Res.default_response_opt command body
+          in
+          let ret = Res.launchResponse resp in
+          let%lwt () =
+            match S.process_none t with
+            | Some _ ->
+              let () = S.set_launch_mode t `Launch in
+              let%lwt () = Logs_lwt.debug (fun m -> m "trying to connect to already running backend service") in
+              let%lwt (ic, oc) = S.connect ip port in
+              Lwt.return @@ S.set_io t ic oc
+
+            | None ->
+              let cmd = Dap.Config.(to_command config.backend_cmd) in
+              let%lwt () = Logs_lwt.debug (fun m -> m "launching backend service with cmd: '%s'" config.backend_cmd) in
+              let process = Lwt_process.open_process_none cmd in
+              let%lwt () = Logs_lwt.debug (fun m -> m "backend service has state: '%s'" @@
+                                            match process#state with | Lwt_process.Running -> "running" | Lwt_process.Exited _ -> "exited" ) in
+              let () = S.set_process_none t process in
+              let () = S.set_launch_mode t `Launch in
+              let%lwt () = Logs_lwt.debug (fun m -> m "trying to connect to backend service") in
+              let%lwt (ic, oc) = S.connect ip port in
+              Lwt.return @@ S.set_io t ic oc
+          in
+          Dap_result.ok ret
+        )
+
+  let process_handler t port =
+    Dap.Launch.On_response.make
+      ~handler:(fun config _resp ->
+          let ev =
+            let event = Dap.Events.process in
+            let startMethod = D.ProcessEvent_body_startMethod.Launch in
+            let body =
+              D.ProcessEvent_body.make
+                ~name:"TODO PROCESS EVENT NAME e.g. test.tz"
+                ~startMethod
+                ()
+            in
+            Ev.default_event_req event body
+          in
+          let ret = Ev.processEvent ev in
+          match S.oc t with
+          | Some backend_oc ->
+            let%lwt () = Logs_lwt.debug (fun m -> m "trying to start the debugger with cmd: '%s'" config.stepper_cmd) in
+            let ev = Mich_event.make ~event:(RunScript config.stepper_cmd) () in
+            (* NOTE remove all \n with wrap *)
+            let ev_s = Js.(construct Mich_event.enc ev |> to_string |> Dapper.Dap_header.wrap ~add_header:false) in
+            (* NOTE then write_line to make server consume *)
+            let%lwt () = Lwt_io.write_line backend_oc ev_s in
+            (* this event is a DAP event message *)
+            Dap_result.ok ret
+
+          | None ->
+            let%lwt () = Logs_lwt.err (fun m -> m "no backend output channel found on localhost port %d" port) in
+            let error = Printf.sprintf "failed to connect to backend svc on localhost port %d" port in
+            Dap_result.error Res.(errorResponse @@ default_response_error error)
+        )
+
+  module M1 = Dap.MakeStringHandler (Dap.Launch.On_request)
+  module M2 = Dap.MakeStringHandler (Dap.Launch.On_response)
+
+  let handlers ~config t =
+    let port = Dap.Config.backend_port config in
+    let ip = Dap.Config.backend_ip config  |> Ipaddr_unix.of_inet_addr in
+
+    let launcher =
+      let x = M1.make @@ launch_handler t port ip in
+      M1.handle x config
+    in
+    let processer =
+      let x = M2.make @@ process_handler t port in
+      M2.handle x config
+    in
+    [launcher; processer]
 end
-(*   match request with *)
-(*   | LaunchRequest req -> *)
-(*     let resp = *)
-(*       let command = RequestMessage.command req in *)
-(*       let body = EmptyObject.make () in *)
-(*       default_response_opt command body *)
-(*     in *)
-(*     let ret = LaunchResponse resp in *)
-(*     Dap_flow.from_response ret *)
-(*   | _ -> assert false *)
 
-(* let on_launch_response response = *)
-(*   match response with *)
-(*   | LaunchResponse _ -> *)
-(*     let ev = *)
-(*       let event = Dap_events.process in *)
-(*       let startMethod = ProcessEvent_body_startMethod.Launch in *)
-(*       let body = *)
-(*         ProcessEvent_body.make *)
-(*           ~name:"TODO PROCESS EVENT NAME e.g. test.tz" *)
-(*           ~startMethod *)
-(*           () *)
-(*       in *)
-(*       default_event_req event body *)
-(*     in *)
-(*     let ret = ProcessEvent ev in *)
-(*     Dap_flow.from_event ret *)
-(*   | _ -> assert false *)
-
-(* let on_bad_request e _request = *)
-(*   let resp = default_response_error e in *)
-(*   let ret = ErrorResponse resp in *)
-(*   Dap_flow.from_response ret *)
-
-(* let connect t config req response = *)
-(*   let port = Dap_config.backend_port config in *)
-(*   let ip = Dap_config.backend_ip config in *)
-(*   let client = `TCP (`IP ip, `Port port) in *)
-(*   let%lwt ctx = init () in *)
-(*   let%lwt (_, ic, oc) = *)
-(*     (\* loop a fixed number of times with a sleep, to make sure to connect when up *\) *)
-(*     let rec aux i = *)
-(*       let%lwt () = Logs_lwt.debug (fun m -> m "[%d] trying to connect on locahost port: %d" i port) in *)
-(*       let%lwt () = Lwt_unix.sleep @@ float_of_int i in *)
-(*       try%lwt *)
-(*         connect ~ctx client *)
-(*       with *)
-(*       | Unix.Unix_error(Unix.ECONNREFUSED, "connect", "") as e -> if i > 5 then raise e else aux (i+1) *)
-(*     in *)
-(*     aux 1 *)
-(*   in *)
-(*   let%lwt () = Logs_lwt.debug (fun m -> m "connected on locahost port: %d" port) in *)
-(*   let () = State.set_io t ic oc in *)
-(*   match State.oc t with *)
-(*   | Some backend_oc -> *)
-(*     let%lwt () = Logs_lwt.debug (fun m -> m "trying to start the debugger with cmd: '%s'" config.stepper_cmd) in *)
-(*     let ev = Mich_event.make ~event:(RunScript config.stepper_cmd) () in *)
-(*     (\* NOTE remove all \n with wrap *\) *)
-(*     let ev_s = JS.(construct Mich_event.enc ev |> to_string |> Dapper.Dap_header.wrap ~add_header:false) in *)
-(*     (\* NOTE then write_line to make server consume *\) *)
-(*     let%lwt () = Lwt_io.write_line backend_oc ev_s in *)
-(*     (\* this event is a DAP event message *\) *)
-(*     let event = Option.some @@ Dap_flow.response_event response on_launch_response in *)
-(*     {response; event; error=None} |> Lwt.return *)
-(*   | None -> *)
-(*     let%lwt () = Logs_lwt.err (fun m -> m "no backend output channel found on localhost port %d" port) in *)
-(*     let error = Option.some @@ Dap_flow.raise_error req ( *)
-(*         on_bad_request @@ Printf.sprintf "failed to connect to backend svc on localhost port %d" port *)
-(*       ) in *)
-(*     {response; event=None; error} |> Lwt.return *)
-
-(* let handle t config req = *)
-(*   let response = Dap_flow.request_response req on_launch_request in *)
-(*   let _onDebug = Dap_flow.map_request req get_onDebug in *)
-(*   match Dap_flow.to_result response, State.process_none t with *)
-(*   | Result.Ok _, None -> *)
-(*     let cmd = Dap_config.(to_command config.backend_cmd) in *)
-(*     let%lwt () = Logs_lwt.debug (fun m -> m "launching backend service with cmd: '%s'" config.backend_cmd) in *)
-(*     let process = Lwt_process.open_process_none cmd in *)
-(*     let%lwt () = Logs_lwt.debug (fun m -> m "backend service has state: '%s'" @@ *)
-(*                                   match process#state with | Lwt_process.Running -> "running" | Lwt_process.Exited _ -> "exited" ) in *)
-(*     let () = State.set_process_none t process in *)
-(*     let () = State.set_launch_mode t `Launch in *)
-(*     let%lwt () = Logs_lwt.debug (fun m -> m "trying to connect to backend service") in *)
-(*     connect t config req response *)
-(*   | Result.Ok _, Some _ -> *)
-(*     let () = State.set_launch_mode t `Launch in *)
-(*     let%lwt () = Logs_lwt.debug (fun m -> m "trying to connect to already running backend service") in *)
-(*     connect t config req response *)
-(*   | Result.Error err, _ -> *)
-(*     let error = Option.some @@ Dap_flow.raise_error req (on_bad_request err) in *)
-(*     {response; event=None; error} |> Lwt.return *)
+include T (State)

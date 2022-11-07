@@ -14,10 +14,28 @@ let make_empty = {
   process=None; io=None; launch_mode=None;
 }
 
+(* let connect ip port = *)
+(*   let client = `TCP (`IP ip, `Port port) in *)
+(*   let%lwt ctx = init () in *)
+(*   let%lwt (_, ic, oc) = connect ~ctx client in *)
+(*   Lwt.return (ic, oc) *)
+
 let connect ip port =
   let client = `TCP (`IP ip, `Port port) in
   let%lwt ctx = init () in
-  let%lwt (_, ic, oc) = connect ~ctx client in
+  let%lwt (_, ic, oc) =
+    (* loop a fixed number of times with a sleep, to make sure to connect when up *)
+    let rec aux i =
+      let%lwt () = Logs_lwt.debug (fun m -> m "[%d] trying to connect on locahost port: %d" i port) in
+      let%lwt () = Lwt_unix.sleep @@ float_of_int i in
+      try%lwt
+        connect ~ctx client
+      with
+      | Unix.Unix_error(Unix.ECONNREFUSED, "connect", "") as e -> if i > 5 then raise e else aux (i+1)
+    in
+    aux 1
+  in
+  let%lwt () = Logs_lwt.debug (fun m -> m "connected on locahost port: %d" port) in
   Lwt.return (ic, oc)
 
 let process_none t = t.process
