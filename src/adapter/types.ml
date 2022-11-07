@@ -30,4 +30,7 @@ module type String_handler_intf = sig
 
   val handlers :
     config:Dapper.Dap.Config.t -> t -> (string -> string Lwt.t) list
+
+  val state : t -> state
+
 end

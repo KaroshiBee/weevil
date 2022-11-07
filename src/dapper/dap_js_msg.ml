@@ -8,9 +8,8 @@ exception Wrong_encoder of string
 
 let from_string = Js.from_string
 
-let to_string t =
-  let s = Js.to_string t in
-  Dap_header.wrap s
+(* NOTE dont Dap_header.wrap yet *)
+let to_string t = Js.to_string t
 
 let construct enc i =
   try

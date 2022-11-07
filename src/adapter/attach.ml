@@ -11,6 +11,8 @@ module T (S:Types.State_intf) = struct
 
   let make ?state () = Option.value state ~default:S.make_empty
 
+  let state t = t
+
   let attach_handler t =
     Dap.Attach.make
       ~handler:(
