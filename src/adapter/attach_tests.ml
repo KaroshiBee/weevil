@@ -7,7 +7,7 @@ module StateMock = struct
 
   let make_empty = {launch_mode = None}
 
-  let connect _ip _port = failwith "TODO"
+  let connect _ip _port = failwith "MOCK"
 
   let process_none _t = failwith "MOCK"
 
@@ -17,7 +17,7 @@ module StateMock = struct
 
   let oc _t = Some Lwt_io.stdout
 
-  let set_io _t _ic _oc = failwith "TODO"
+  let set_io _t _ic _oc = failwith "MOCK"
 
   let launch_mode t = t.launch_mode
 
@@ -26,7 +26,7 @@ end
 
 module Attach = Attach.T (StateMock)
 
-let%expect_test "Check sequencing etc for attach " =
+let%expect_test "Check sequencing etc for attach" =
   let config = Dap.Config.make () in
   let t = Attach.make () in
   let command = Dap.Commands.attach in

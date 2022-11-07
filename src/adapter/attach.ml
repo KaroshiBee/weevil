@@ -14,7 +14,7 @@ module T (S:Types.State_intf) = struct
   let state t = t
 
   let attach_handler t =
-    Dap.Attach.make
+    Dap.Attach.On_request.make
       ~handler:(
         fun config _req ->
           let body = Dap.EmptyObject.make () in
@@ -45,7 +45,7 @@ module T (S:Types.State_intf) = struct
       )
 
   let process_handler _t =
-    Dap.Process.make
+    Dap.Attach.On_response.make
       ~handler:(fun _ _resp ->
           let event = Dap.Events.process in
           let startMethod = Dap.ProcessEvent_body_startMethod.Attach in
@@ -60,8 +60,8 @@ module T (S:Types.State_intf) = struct
           |> Dap_result.ok
         )
 
-  module M1 = Dap.MakeStringHandler (Dap.Attach)
-  module M2 = Dap.MakeStringHandler (Dap.Process)
+  module M1 = Dap.MakeStringHandler (Dap.Attach.On_request)
+  module M2 = Dap.MakeStringHandler (Dap.Attach.On_response)
 
   let handlers ~config t =
     let attacher =
