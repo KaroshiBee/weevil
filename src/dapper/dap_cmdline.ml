@@ -1,5 +1,5 @@
 let _DEFAULT_SCHEMA = "./schema/debugAdapterProtocol-1.56.X.json"
-let _DEFAULT_OUTPUT = "test.ml"
+let _DEFAULT_OUTPUT = "test"
 let _DEFAULT_WHAT = Dap_render.Messages
 
 let process what_arg json_schema_arg output_file_arg =
@@ -55,7 +55,7 @@ module Term = struct
         If not given then defaults to <Messages>"
     in
     Arg.(
-      value & pos 0 (some string) None & info [] ~doc ~docv:""
+      value & pos 0 (some string) None & info [] ~doc ~docv:"WHAT"
     )
 
   let json_schema_arg =
@@ -74,7 +74,7 @@ module Term = struct
     let doc =
       Format.sprintf
         "The output filename that the weevil will write auto-generate DAP encoders to.  \
-        If not given then defaults to <%s>" _DEFAULT_OUTPUT
+        If not given then defaults to <%s.ml/mli>" _DEFAULT_OUTPUT
     in
     Arg.(
       value & pos 2 (some string) None & info [] ~doc ~docv:"FILE"

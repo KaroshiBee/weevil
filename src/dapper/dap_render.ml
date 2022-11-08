@@ -623,7 +623,7 @@ let render (dfs:Dfs.t) = function
             let modstr, _other = RenderEnum.(of_spec e |> render ~name) in
             modstrs := modstr :: !modstrs
           | Some _ -> assert false
-          | None -> Logs.warn (fun m -> m "couldn't find '%s', ignoring" name)
+          | None -> Logs.debug (fun m -> m "couldn't find '%s', ignoring" name)
         )
     in
     let smods = String.concat "\n\n" (!modstrs |> List.rev) in
