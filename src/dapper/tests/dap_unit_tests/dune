@@ -1,0 +1,20 @@
+(test
+ (name dap_unit_tests)
+ (libraries
+   dapper
+   defaults
+   lwt
+   lwt.unix
+   conduit-lwt-unix
+   data-encoding
+   cmdliner
+   logs
+   str
+   alcotest
+ )
+ (flags
+  (:standard
+   -linkall
+   -open Dapper
+ ))
+)
