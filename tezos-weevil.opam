@@ -12,6 +12,7 @@ depends: [
   "tezos-014-PtKathma-test-helpers"
   "tezos-protocol-014-PtKathma"
   "lwt_ppx"
+  "alcotest"
 ]
 build: [
   ["dune" "build" "-p" name "-j" jobs]

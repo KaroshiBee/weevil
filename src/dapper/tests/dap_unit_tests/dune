@@ -1,6 +1,7 @@
-(library
- (name dapper)
+(test
+ (name dap_unit_tests)
  (libraries
+   dapper
    defaults
    lwt
    lwt.unix
@@ -9,6 +10,11 @@
    cmdliner
    logs
    str
+   alcotest
  )
- (preprocess (pps ppx_deriving.show))
+ (flags
+  (:standard
+   -linkall
+   -open Dapper
+ ))
 )

@@ -1,0 +1,22 @@
+(library
+ (name dap_expect_tests)
+ (libraries
+   dapper
+   defaults
+   lwt
+   lwt.unix
+   conduit-lwt-unix
+   data-encoding
+   cmdliner
+   logs
+   ppx_expect
+   str
+ )
+ (inline_tests (deps (glob_files data/*.json)))
+ (preprocess (pps ppx_expect))
+ (flags
+  (:standard
+   -linkall
+   -open Dapper
+ ))
+)
