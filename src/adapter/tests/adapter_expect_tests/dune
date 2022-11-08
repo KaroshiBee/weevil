@@ -1,0 +1,23 @@
+(library
+ (name adapter_expect_tests)
+ (libraries
+   adapter
+   dapper
+   defaults
+   lwt
+   lwt.unix
+   conduit-lwt-unix
+   data-encoding
+   cmdliner
+   logs
+   ppx_expect
+   str
+ )
+ (inline_tests)
+ (preprocess (pps lwt_ppx ppx_expect))
+ (flags
+  (:standard
+   -linkall
+   -open Adapter
+ ))
+)

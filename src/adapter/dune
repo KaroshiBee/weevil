@@ -11,9 +11,8 @@
      cmdliner
      logs
      logs.lwt
-     ppx_expect
-     str)
- (inline_tests (deps (glob_files data/*.json)))
- (preprocess (pps lwt_ppx ppx_deriving.show ppx_expect))
+     str
+ )
+ (preprocess (pps lwt_ppx ppx_deriving.show))
  (instrumentation (backend bisect_ppx))
 )
