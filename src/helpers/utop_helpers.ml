@@ -1,8 +1,19 @@
+open Dapper.Dap_message
+open Conduit_lwt_unix
 module JS = Data_encoding.Json
 module Dap_commands = Dapper.Dap_commands
 module Dap_events = Dapper.Dap_events
-open Dapper.Dap_message
+open Lwt
+module M = Backend.Server.MichEvent
 
+let ip = Unix.inet_addr_loopback |> Ipaddr_unix.of_inet_addr
+let c9000 = `TCP (`IP ip, `Port 9000)
+let c9001 = `TCP (`IP ip, `Port 9001)
+let make_connection c =
+  let x = init () >>= (fun ctx -> connect ~ctx c) in
+  x >|= (fun (_, ic, oc) -> (ic, oc))
+
+let s = M.make ~event:(M.Step 1) () |> JS.construct M.enc |> JS.to_string
 
 let launch_req =
   let arguments = LaunchRequestArguments.make () in
