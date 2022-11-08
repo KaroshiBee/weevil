@@ -14,6 +14,10 @@ module T (S:Types.State_intf) = struct
 
   let state t = t
 
+  include Types.Includes2
+      (Dap.Attach.On_request)
+      (Dap.Attach.On_response)
+
   let attach_handler t =
     Dap.Attach.On_request.make
       ~handler:(
@@ -61,19 +65,11 @@ module T (S:Types.State_intf) = struct
           |> Dap_result.ok
         )
 
-  module M1 = Dap.MakeStringHandler (Dap.Attach.On_request)
-  module M2 = Dap.MakeStringHandler (Dap.Attach.On_response)
+  let handlers =
+    convert_handlers
+      ~handler1:attach_handler
+      ~handler2:process_handler
 
-  let handlers ~config t =
-    let attacher =
-      let x = M1.make @@ attach_handler t in
-      M1.handle x config
-    in
-    let processer =
-      let x = M2.make @@ process_handler t in
-      M2.handle x config
-    in
-    [attacher; processer]
 end
 
 include T (State)
