@@ -4,3 +4,4 @@
 
 *.log
 /src/dapper_gen/test.ml
+/_coverage/
