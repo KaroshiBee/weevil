@@ -1,5 +1,5 @@
 (library
- (name expect_tests)
+ (name adapter_expect_tests)
  (libraries
    adapter
    dapper

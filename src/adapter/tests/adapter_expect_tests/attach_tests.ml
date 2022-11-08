@@ -72,7 +72,7 @@ let%expect_test "Check sequencing etc for attach" =
         | _ -> failwith "error: expected 'Attach' launch mode"
       in
       Printf.printf "%s" lmode;
-      let%lwt () = [%expect {| attasdasdsaach |}] in
+      let%lwt () = [%expect {| attach |}] in
 
       Lwt.return_unit
 

@@ -8,7 +8,7 @@ end
 
 (* The tests *)
 let test_lowercase () =
-  Alcotest.(check string) "same string" "dqdqwdhello!" (To_test.lowercase "hELLO!")
+  Alcotest.(check string) "same string" "hello!" (To_test.lowercase "hELLO!")
 
 let test_capitalize () =
   Alcotest.(check string) "same string" "World." (To_test.capitalize "world.")
