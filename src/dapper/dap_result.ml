@@ -13,6 +13,7 @@ let error = Lwt_result.fail
 let to_lwt_result t = t
 let from_result = Lwt.return
 let from_lwt_result t = t
+let from_error_string s = R.(errorResponse @@ default_response_error s) |> error
 
 let _err_str =
     let enc = R.Message.enc Dap_commands.error Dap_message.Data.ErrorResponse_body.enc in

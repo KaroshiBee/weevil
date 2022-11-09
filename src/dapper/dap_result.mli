@@ -16,6 +16,7 @@ val error : error -> 'a t
 val to_lwt_result : 'a t -> ('a, error) Lwt_result.t
 val from_result : ('a, error) Result.t -> 'a t
 val from_lwt_result : ('a, error) Lwt_result.t -> 'a t
+val from_error_string : string -> 'a t
 
 val to_lwt_error_as_str : 'a t -> ('a, string) Lwt_result.t
 
