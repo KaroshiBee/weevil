@@ -1,5 +1,6 @@
 open Conduit_lwt_unix
-module Launch_mode = Dapper.Dap.Data.Launch_mode
+module Dap = Dapper.Dap
+module Launch_mode = Dap.Data.Launch_mode
 
 type t = {
   (* the backend svc process, using process_none to allow for std redirection if needed later on *)
@@ -39,7 +40,8 @@ let connect t ip port =
     aux 1
   in
   let%lwt () = Logs_lwt.debug (fun m -> m "connected on locahost port: %d" port) in
-  Lwt.return @@ set_io t ~ic ~oc ()
+  let () = set_io t ~ic ~oc () in
+  Dap.Dap_result.ok (ic, oc)
 
 let launch_mode t = t.launch_mode
 let set_launch_mode t launch_mode = t.launch_mode <- Some launch_mode

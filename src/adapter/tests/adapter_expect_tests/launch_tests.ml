@@ -3,32 +3,29 @@ module Dap = Dapper.Dap
 module D = Dap.Data
 module Js = Data_encoding.Json
 
-module StateMock = struct
+module LaunchStateMock = struct
   type t = {
     mutable launch_mode : D.Launch_mode.t option;
-    mutable ic: Lwt_io.input_channel option;
     mutable oc: Lwt_io.output_channel option;
   }
 
   let make_empty = {
     launch_mode = None;
-    ic=None;
     oc=None;
   }
 
-  let connect _t _ip _port = Lwt.return_unit
+  let connect t _ip _port = Dap.Dap_result.ok @@ Option.(Lwt_io.stdin, get t.oc)
 
   let process_none _t =
     Option.some @@ Lwt_process.open_process_none ("", [|":"|])
 
-  let set_process_none _t _process = failwith "MOCK"
+  let set_process_none _t _process = failwith "MOCK process none"
 
   let ic _t = failwith "MOCK ic"
 
   let oc t = t.oc
 
-  let set_io t ?ic ?oc () =
-    t.ic <- ic;
+  let set_io t ?ic:_ ?oc () =
     t.oc <- oc
 
   let launch_mode t = t.launch_mode
@@ -36,14 +33,14 @@ module StateMock = struct
   let set_launch_mode t launch_mode = t.launch_mode <- Some launch_mode
 end
 
-module Launch = Launch.T (StateMock)
+module Launch = Launch.T (LaunchStateMock)
 
 let%expect_test "Check sequencing etc for launch" =
   let config = Dap.Config.make () in
   let t = Launch.make () in
   let st = Launch.state t in
   Lwt_io.with_temp_file ~temp_dir:"/dev/shm" (fun (_, oc) ->
-      let () = StateMock.set_io st ?ic:None ~oc () in
+      let () = LaunchStateMock.set_io st ?ic:None ~oc () in
       let command = Dap.Commands.launch in
       let req =
         Dap.Request.(
@@ -82,7 +79,7 @@ let%expect_test "Check sequencing etc for launch" =
               "startMethod": "launch" } } |}] in
 
         let lmode =
-          match Launch.state t |> StateMock.launch_mode |> Option.get with
+          match Launch.state t |> LaunchStateMock.launch_mode |> Option.get with
           | `Launch -> "launch"
           | _ -> failwith "error: expected 'Launch' launch mode"
         in

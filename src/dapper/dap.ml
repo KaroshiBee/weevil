@@ -2,7 +2,6 @@
 module Commands = Dap_commands
 module Events = Dap_events
 module Js_msg = Dap_js_msg
-exception Wrong_encoder = Js_msg.Wrong_encoder
 
 module Config = Dap_config
 
@@ -10,11 +9,14 @@ module Data = Dap_message.Data
 module Request = Dap_request
 module Response = Dap_response
 module Event = Dap_event
+module Dap_result = Dap_result
 
 module type TYPED_HANDLER = Dap_handlers.HANDLER
 
 module Attach = Dap_attach
 module Launch = Dap_launch
+
+exception Wrong_encoder = Js_msg.Wrong_encoder
 
 (* machinery to turn our typed handlers into string -> string handlers *)
 module type STRING_HANDLER = sig

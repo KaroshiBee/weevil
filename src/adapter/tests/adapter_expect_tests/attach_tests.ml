@@ -8,17 +8,17 @@ module StateMock = struct
 
   let make_empty = {launch_mode = None}
 
-  let connect _ip _port = failwith "MOCK"
+  let connect _ip _port = failwith "MOCK connect"
 
-  let process_none _t = failwith "MOCK"
+  let process_none _t = failwith "MOCK process none"
 
-  let set_process_none _t _process = failwith "MOCK"
+  let set_process_none _t _process = failwith "MOCK set process none"
 
-  let ic _t = failwith "MOCK"
+  let ic _t = failwith "MOCK ic"
 
   let oc _t = Some Lwt_io.stdout
 
-  let set_io _t ?ic:_ ?oc:_ () = failwith "MOCK"
+  let set_io _t ?ic:_ ?oc:_ () = failwith "MOCK set_io"
 
   let launch_mode t = t.launch_mode
 

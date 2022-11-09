@@ -15,7 +15,7 @@ module type State_intf = sig
 
   val set_io : t -> ?ic:Lwt_io.input_channel -> ?oc:Lwt_io.output_channel -> unit -> unit
 
-  val connect : t -> Ipaddr.t -> int -> unit Lwt.t
+  val connect : t -> Ipaddr.t -> int -> (Lwt_io.input_channel*Lwt_io.output_channel) Dap.Dap_result.t
 
   val launch_mode : t -> Dap.Data.Launch_mode.t option
 
