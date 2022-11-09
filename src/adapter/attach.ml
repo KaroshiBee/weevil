@@ -23,19 +23,18 @@ module T (S : Types.State_intf) = struct
         let resp =
           Res.attachResponse @@ Res.default_response_opt command body
         in
+        let () = S.set_launch_mode t `Attach in
         match S.oc t with
         | Some _ ->
-            let () = S.set_launch_mode t `Attach in
             Dap_result.ok resp
         | None -> (
+            (* NOTE dont need to start the backend as we are in attach mode, just connect to the backend *)
             let ip = Dap.Config.backend_ip config |> Ipaddr_unix.of_inet_addr in
             let port = Dap.Config.backend_port config in
-            match%lwt S.connect_backend t ip port |> Dap_result.or_log_error with
-            | Result.Error _ as err -> Lwt.return err
-            | Result.Ok _ ->
-                (* NOTE dont need to start the stepper as we are in attach mode *)
-                let () = S.set_launch_mode t `Attach in
-                Dap_result.ok resp))
+            S.connect_backend t ip port
+            |> Dap_result.or_log_error
+            |> Dap_result.map ~f:(fun _ -> resp)
+          ))
 
   let process_handler _t =
     Dap.Attach.On_response.make ~handler:(fun _ _resp ->

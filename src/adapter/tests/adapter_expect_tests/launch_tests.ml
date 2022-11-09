@@ -14,7 +14,8 @@ module LaunchStateMock = struct
     oc=None;
   }
 
-  let connect_backend t _ip _port = Dap.Dap_result.ok @@ Option.(Lwt_io.stdin, get t.oc)
+  let connect_backend t _ip _port =
+    Dap.Dap_result.ok @@ Option.(Lwt_io.stdin, get t.oc)
 
   let process_none _t =
     Option.some @@ Lwt_process.open_process_none ("", [|":"|])
