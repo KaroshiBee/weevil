@@ -39,7 +39,8 @@ let%expect_test "Check sequencing etc for attach" =
         ~arguments:(D.AttachRequestArguments.make ())
         ()
       |> Js.construct (Message.enc command D.AttachRequestArguments.enc)
-      |> Js.to_string)
+      |> Js.to_string
+    )
   in
   Printf.printf "%s" req ;
   let%lwt () =
@@ -49,31 +50,56 @@ let%expect_test "Check sequencing etc for attach" =
 
   match Attach.handlers ~config t with
   | f_resp :: f_ev :: [] ->
-      let%lwt resp = f_resp req in
-      Printf.printf "%s" resp ;
-      let%lwt () =
-        [%expect
-          {|
+    (* happy path *)
+    let%lwt resp = f_resp req in
+    Printf.printf "%s" resp ;
+    let%lwt () =
+      [%expect
+        {|
       { "seq": 21, "type": "response", "request_seq": 20, "success": true,
         "command": "attach", "body": {} } |}]
-      in
+    in
 
-      let%lwt ev = f_ev resp in
-      Printf.printf "%s" ev ;
-      let%lwt () = [%expect {|
+    let%lwt ev = f_ev resp in
+    Printf.printf "%s" ev ;
+    let%lwt () = [%expect {|
         { "seq": 22, "type": "event", "event": "process",
           "body":
             { "name": "TODO PROCESS EVENT NAME e.g. test.tz",
               "startMethod": "attach" } } |}] in
 
-      let lmode =
-        match Attach.state t |> StateMock.launch_mode |> Option.get with
-        | `Attach -> "attach"
-        | _ -> failwith "error: expected 'Attach' launch mode"
-      in
-      Printf.printf "%s" lmode;
-      let%lwt () = [%expect {| attach |}] in
+    let lmode =
+      match Attach.state t |> StateMock.launch_mode |> Option.get with
+      | `Attach -> "attach"
+      | _ -> failwith "error: expected 'Attach' launch mode"
+    in
+    Printf.printf "%s" lmode;
+    let%lwt () = [%expect {| attach |}] in
 
-      Lwt.return_unit
+    (* unhappy paths *)
+    let%lwt err =
+      try%lwt
+        f_ev req
+      with
+      | Dap.Wrong_encoder err -> Lwt.return err
+    in
+    Printf.printf "%s" err ;
+    let%lwt () =
+      [%expect {| cannnot destruct: Json_encoding.Cannot_destruct at /: Missing object field request_seq |}]
+    in
+
+    (* unhappy paths *)
+    let%lwt err =
+      try%lwt
+        f_resp ev
+      with
+      | Dap.Wrong_encoder err -> Lwt.return err
+    in
+    Printf.printf "%s" err ;
+    let%lwt () =
+      [%expect {| cannnot destruct: Json_encoding.Cannot_destruct at /: Missing object field command |}]
+    in
+
+    Lwt.return_unit
 
   | _ -> failwith "error: expected two handlers for attach"

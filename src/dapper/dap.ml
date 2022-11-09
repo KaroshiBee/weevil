@@ -2,6 +2,8 @@
 module Commands = Dap_commands
 module Events = Dap_events
 module Js_msg = Dap_js_msg
+exception Wrong_encoder = Js_msg.Wrong_encoder
+
 module Config = Dap_config
 
 module Data = Dap_message.Data

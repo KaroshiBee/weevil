@@ -63,6 +63,7 @@ let%expect_test "Check sequencing etc for launch" =
 
       match Launch.handlers ~config t with
       | f_resp :: f_ev :: [] ->
+        (* happy path *)
         let%lwt resp = f_resp req in
         Printf.printf "%s" resp ;
         let%lwt () =
@@ -88,6 +89,29 @@ let%expect_test "Check sequencing etc for launch" =
         Printf.printf "%s" lmode;
         let%lwt () = [%expect {| launch |}] in
 
+        (* unhappy paths *)
+        let%lwt err =
+          try%lwt
+            f_ev req
+          with
+          | Dap.Wrong_encoder err -> Lwt.return err
+        in
+        Printf.printf "%s" err ;
+        let%lwt () =
+          [%expect {| cannnot destruct: Json_encoding.Cannot_destruct at /: Missing object field request_seq |}]
+        in
+
+        (* unhappy paths *)
+        let%lwt err =
+          try%lwt
+            f_resp ev
+          with
+          | Dap.Wrong_encoder err -> Lwt.return err
+        in
+        Printf.printf "%s" err ;
+        let%lwt () =
+          [%expect {| cannnot destruct: Json_encoding.Cannot_destruct at /: Missing object field command |}]
+        in
         Lwt.return_unit
 
       | _ -> failwith "error: expected two handlers for launch"
