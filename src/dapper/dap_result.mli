@@ -21,6 +21,8 @@ val to_lwt_error_as_str : 'a t -> ('a, string) Lwt_result.t
 
 val map : f:('a -> 'b) -> 'a t -> 'b t
 
+val bind : f:('a -> 'b t) -> 'a t -> 'b t
+
 val map_error : f:(error -> error) -> 'a t -> 'a t
 
-val bind : f:('a -> 'b t) -> 'a t -> 'b t
+val or_log_error : 'a t -> 'a t
