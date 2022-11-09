@@ -7,13 +7,13 @@ module type State_intf = sig
 
   val process_none : t -> Lwt_process.process_none option
 
-  val set_process_none : t -> Lwt_process.process_none -> unit
-
   val ic : t -> Lwt_io.input_channel option
 
   val oc : t -> Lwt_io.output_channel option
 
-  val connect : t -> Ipaddr.t -> int -> (Lwt_io.input_channel * Lwt_io.output_channel) Dap.Dap_result.t
+  val start_backend : t -> Ipaddr.t -> int -> string -> unit Dap.Dap_result.t
+
+  val connect_backend : t -> Ipaddr.t -> int -> (Lwt_io.input_channel * Lwt_io.output_channel) Dap.Dap_result.t
 
   val launch_mode : t -> Dap.Data.Launch_mode.t option
 

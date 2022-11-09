@@ -15,8 +15,6 @@ let make_empty = {process = None; ic = None; oc = None; launch_mode = None}
 
 let process_none t = t.process
 
-let set_process_none t process = t.process <- Some process
-
 let ic t = t.ic
 
 let oc t = t.oc
@@ -24,6 +22,25 @@ let oc t = t.oc
 let set_io t ic oc =
   t.ic <- Some ic ;
   t.oc <- Some oc
+
+let set_process_none t process = t.process <- Some process
+
+let start_backend t _ip _port cmd =
+  let%lwt () =
+    Logs_lwt.debug (fun m ->
+        m "launching backend service with cmd: '%s'" cmd)
+  in
+  let pcmd = Dap.Config.(to_process_command cmd) in
+  let process = Lwt_process.open_process_none pcmd in
+  let%lwt () =
+    Logs_lwt.debug (fun m ->
+        m "backend service has state: '%s'"
+        @@
+        match process#state with
+        | Lwt_process.Running -> "running"
+        | Lwt_process.Exited _ -> "exited")
+  in
+  Dap.Dap_result.ok @@ set_process_none t process
 
 (* loop a fixed number of times with a sleep, to make sure to connect when up *)
 let rec aux ~ctx ~client ~port i =
@@ -41,7 +58,7 @@ let rec aux ~ctx ~client ~port i =
   with Unix.Unix_error (Unix.ECONNREFUSED, "connect", "") as e ->
     if i > 5 then raise e else aux ~ctx ~client ~port (i + 1)
 
-let connect t ip port =
+let connect_backend t ip port =
   let client = `TCP (`IP ip, `Port port) in
   let%lwt ctx = init () in
   let res =

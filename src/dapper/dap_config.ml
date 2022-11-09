@@ -26,4 +26,5 @@ let backend_port t = t.backend_port
 
 let backend_ip t = t.backend_ip |> make_address
 
-let to_command s = ("", s |> String.split_on_char ' ' |> Array.of_list)
+let backend_cmd t = t.backend_cmd
+let to_process_command s = ("", s |> String.split_on_char ' ' |> Array.of_list)

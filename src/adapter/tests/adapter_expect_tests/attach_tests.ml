@@ -8,11 +8,11 @@ module StateMock = struct
 
   let make_empty = {launch_mode = None}
 
-  let connect _ip _port = failwith "MOCK connect"
+  let connect_backend _ip _port = failwith "MOCK connect"
 
   let process_none _t = failwith "MOCK process none"
 
-  let set_process_none _t _process = failwith "MOCK set process none"
+  let start_backend _t _ip _port _cmd = failwith "MOCK start backend"
 
   let ic _t = failwith "MOCK ic"
 

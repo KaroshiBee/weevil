@@ -35,46 +35,29 @@ module T (S : Types.State_intf) = struct
 
   include Types.Includes2 (Dap.Launch.On_request) (Dap.Launch.On_response)
 
-  let _start_background_svc ~config st =
-    let cmd = Dap.Config.(to_command config.backend_cmd) in
-    let%lwt () =
-      Logs_lwt.debug (fun m ->
-          m "launching backend service with cmd: '%s'" config.backend_cmd)
-    in
-    let process = Lwt_process.open_process_none cmd in
-    let%lwt () =
-      Logs_lwt.debug (fun m ->
-          m "backend service has state: '%s'"
-          @@
-          match process#state with
-          | Lwt_process.Running -> "running"
-          | Lwt_process.Exited _ -> "exited")
-    in
-    S.set_process_none st process |> Lwt.return
-
-  let _start_and_connect_background_svc ~config st ip port =
+  let _start_background_svc st ip port cmd =
     match S.process_none st with
+    | None ->
+      S.start_backend st ip port cmd
     | Some _ ->
         let%lwt () =
           Logs_lwt.debug (fun m ->
-              m
-                "trying to connect to already running backend service on port \
-                 %d"
-                port)
+              m "backend service already running on port %d" port)
         in
-        S.connect st ip port |> Dap_result.or_log_error
-    | None ->
-        let%lwt () = _start_background_svc ~config st in
-        let%lwt () =
-          Logs_lwt.debug (fun m ->
-              m "trying to connect to backend service on port %d" port)
-        in
-        S.connect st ip port |> Dap_result.or_log_error
+        Dap_result.ok ()
+
+  let _connect_background_svc st ip port =
+    let%lwt () =
+      Logs_lwt.debug (fun m ->
+          m "trying to connect to backend service on port %d" port)
+    in
+    S.connect_backend st ip port |> Dap_result.or_log_error
 
   let launch_handler t =
     Dap.Launch.On_request.make ~handler:(fun config _req ->
         let ip = Dap.Config.backend_ip config |> Ipaddr_unix.of_inet_addr in
         let port = Dap.Config.backend_port config in
+        let cmd = Dap.Config.backend_cmd config in
         let st = state t in
         let resp =
           let command = Dap.Commands.launch in
@@ -83,8 +66,8 @@ module T (S : Types.State_intf) = struct
         in
         let ret = Res.launchResponse resp in
         let () = S.set_launch_mode st `Launch in
-
-        _start_and_connect_background_svc ~config st ip port
+        _start_background_svc st ip port cmd
+        |> Dap_result.bind ~f:(fun _ -> _connect_background_svc st ip port)
         |> Dap_result.bind ~f:(fun (_ic, oc) ->
                let%lwt () =
                  Logs_lwt.debug (fun m ->

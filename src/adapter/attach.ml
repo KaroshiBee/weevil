@@ -30,7 +30,7 @@ module T (S : Types.State_intf) = struct
         | None -> (
             let ip = Dap.Config.backend_ip config |> Ipaddr_unix.of_inet_addr in
             let port = Dap.Config.backend_port config in
-            match%lwt S.connect t ip port |> Dap_result.or_log_error with
+            match%lwt S.connect_backend t ip port |> Dap_result.or_log_error with
             | Result.Error _ as err -> Lwt.return err
             | Result.Ok _ ->
                 (* NOTE dont need to start the stepper as we are in attach mode *)
