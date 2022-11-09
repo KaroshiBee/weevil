@@ -18,8 +18,6 @@ module StateMock = struct
 
   let oc _t = Some Lwt_io.stdout
 
-  let set_io _t ?ic:_ ?oc:_ () = failwith "MOCK set_io"
-
   let launch_mode t = t.launch_mode
 
   let set_launch_mode t launch_mode = t.launch_mode <- Some launch_mode

@@ -25,8 +25,8 @@ module LaunchStateMock = struct
 
   let oc t = t.oc
 
-  let set_io t ?ic:_ ?oc () =
-    t.oc <- oc
+  let set_io t oc =
+    t.oc <- Some oc
 
   let launch_mode t = t.launch_mode
 
@@ -40,7 +40,7 @@ let%expect_test "Check sequencing etc for launch" =
   let t = Launch.make () in
   let st = Launch.state t in
   Lwt_io.with_temp_file ~temp_dir:"/dev/shm" (fun (_, oc) ->
-      let () = LaunchStateMock.set_io st ?ic:None ~oc () in
+      let () = LaunchStateMock.set_io st oc in
       let command = Dap.Commands.launch in
       let req =
         Dap.Request.(
