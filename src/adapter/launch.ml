@@ -26,7 +26,6 @@ let _get_onDebug = function
   | _ -> false
 
 
-
 module T (S:Types.State_intf) = struct
 
   type state = S.t
@@ -61,8 +60,7 @@ module T (S:Types.State_intf) = struct
             | Some _ ->
               let () = S.set_launch_mode st `Launch in
               let%lwt () = Logs_lwt.debug (fun m -> m "trying to connect to already running backend service") in
-              let%lwt (ic, oc) = S.connect ip port in
-              Lwt.return @@ S.set_io st ic oc
+              S.connect st ip port
 
             | None ->
               let cmd = Dap.Config.(to_command config.backend_cmd) in
@@ -73,8 +71,8 @@ module T (S:Types.State_intf) = struct
               let () = S.set_process_none st process in
               let () = S.set_launch_mode st `Launch in
               let%lwt () = Logs_lwt.debug (fun m -> m "trying to connect to backend service") in
-              let%lwt (ic, oc) = S.connect ip port in
-              Lwt.return @@ S.set_io st ic oc
+              S.connect st ip port
+
           in
           match S.oc st with
           | Some backend_oc ->

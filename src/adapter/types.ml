@@ -5,9 +5,6 @@ module type State_intf = sig
 
   val make_empty : t
 
-  val connect :
-    Ipaddr.t -> int -> (Lwt_io.input_channel * Lwt_io.output_channel) Lwt.t
-
   val process_none : t -> Lwt_process.process_none option
 
   val set_process_none : t -> Lwt_process.process_none -> unit
@@ -16,7 +13,9 @@ module type State_intf = sig
 
   val oc : t -> Lwt_io.output_channel option
 
-  val set_io : t -> Lwt_io.input_channel -> Lwt_io.output_channel -> unit
+  val set_io : t -> ?ic:Lwt_io.input_channel -> ?oc:Lwt_io.output_channel -> unit -> unit
+
+  val connect : t -> Ipaddr.t -> int -> unit Lwt.t
 
   val launch_mode : t -> Dap.Data.Launch_mode.t option
 

@@ -32,8 +32,7 @@ module T (S:Types.State_intf) = struct
           | None -> (
               let ip = Dap.Config.backend_ip config  |> Ipaddr_unix.of_inet_addr in
               let port = Dap.Config.backend_port config in
-              let%lwt ic, oc = S.connect ip port in
-              let () = S.set_io t ic oc in
+              let%lwt () = S.connect t ip port in
               match S.oc t with
               | Some _ ->
                 (* NOTE dont need to start the stepper as we are in attach mode *)
