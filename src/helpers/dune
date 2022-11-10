@@ -1,0 +1,17 @@
+(library
+ (name helpers)
+ (libraries
+     dapper
+     defaults
+     adapter
+     backend
+     lwt
+     lwt.unix
+     conduit-lwt-unix
+     data-encoding
+     cmdliner
+     logs
+     logs.lwt
+     str
+ )
+)
