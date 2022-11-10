@@ -2,6 +2,7 @@
 module Commands = Dap_commands
 module Events = Dap_events
 module Js_msg = Dap_js_msg
+module Header = Dap_header
 
 module Config = Dap_config
 

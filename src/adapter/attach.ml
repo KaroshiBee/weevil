@@ -6,15 +6,18 @@ module Res = Dap.Response
 module Ev = Dap.Event
 
 module T (S : Types.State_intf) = struct
-  type state = S.t
+  (* would be nice if the types were more descriptive *)
+  open [@warning "-33"] Dap.Attach.On_request
+  open [@warning "-33"] Dap.Attach.On_response
 
+  include Types.Includes2 (Dap.Attach.On_request) (Dap.Attach.On_response)
+
+  type state = S.t
   type t = S.t
 
   let make ?state () = Option.value state ~default:S.make_empty
 
   let state t = t
-
-  include Types.Includes2 (Dap.Attach.On_request) (Dap.Attach.On_response)
 
   let attach_handler t =
     Dap.Attach.On_request.make ~handler:(fun config _req ->

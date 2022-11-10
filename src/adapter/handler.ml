@@ -1,99 +1,66 @@
-(* open Dapper.Dap_handlers *)
-(* module Dap_commands = Dapper.Dap_commands *)
-(* module Js_msg = Dapper.Dap_js_msg *)
-(* module Dap_header = Dapper.Dap_header *)
-(* module Dap_result = Dapper.Dap_result *)
+module Dap = Dapper.Dap
 
-(* module type MAKE_HANDLER = sig *)
-(*   type input *)
-(*   type output *)
-(*   type backend *)
+module type HANDLER = Types.String_handler_intf
 
-(*   type t *)
-(*   val make_empty : t *)
-(*   val handle : t -> Dapper.Dap_config.t -> string -> string Lwt.t *)
-(* end *)
+type t = {
+  handlers: (string, (module HANDLER)) Hashtbl.t;
+}
 
-(* module MakeHandler (H:HANDLER) : *)
-(*   (MAKE_HANDLER with *)
-(*     type input := H.input and *)
-(*     type output := H.output and *)
-(*     type backend := H.t) *)
+let make = {
+  handlers = [
+    (* "cancel", (module Cancel : HANDLER); *)
+    (* "initialize", (module Initialize : HANDLER); *)
+    (* "configurationDone", (module Configuration : HANDLER); *)
+    "launch", (module Launch : HANDLER);
+    "attach", (module Attach : HANDLER);
+    (* "next", (module Next : HANDLER); *)
+    (* "restart", (module Restart : HANDLER); *)
+    (* "disconnect", (module Disconnect : HANDLER); *)
+    (* "terminate", (module Terminate : HANDLER); *)
+  ] |> List.to_seq
+    |> Hashtbl.of_seq;
+}
 
-(*     = struct *)
+type acc = (string * string list) Lwt.t
+type f = string -> string Lwt.t
+let fold_f = fun (acc:acc) (f:f) ->
+  let%lwt inp, outp = acc in
+  let%lwt o = f inp in
+  Lwt.return (o, o :: outp)
 
-(*   type t = { *)
-(*     backend: H.t; *)
-(*     string_to_input : string -> H.input; *)
-(*     output_to_string : H.output -> string Dap_result.t ; *)
-(*     handle : H.t -> Dapper.Dap_config.t -> H.input -> H.output Dap_result.t; *)
-(*   } *)
-
-(*   let make_empty = { *)
-(*     backend=H.make_empty; *)
-(*     string_to_input = H.string_to_input; *)
-(*     output_to_string = H.output_to_string; *)
-(*     handle = H.handle; *)
-(*   } *)
-
-(*   let handle t config s = *)
-(*     match%lwt *)
-(*       t.string_to_input s *)
-(*       |> t.handle t.backend config *)
-(*       |> Dap_result.bind ~f:t.output_to_string *)
-(*       |> Dap_result.to_lwt_error_as_str *)
-(*     with *)
-(*     | Result.Ok msg -> Lwt.return msg *)
-(*     | Result.Error err -> Lwt.return err *)
-
-(* end *)
-
-(* type t = { *)
-(*   handlers: (string, (module HANDLER)) Hashtbl.t; *)
-(* } *)
-
-(* let make = { *)
-(*   handlers = [ *)
-(*     (\* "cancel", (module Cancel : HANDLER); *\) *)
-(*     (\* "initialize", (module Initialize : HANDLER); *\) *)
-(*     (\* "configurationDone", (module Configuration : HANDLER); *\) *)
-(*     (\* "launch", (module Launch : HANDLER); *\) *)
-(*     "attach", (module Attach : HANDLER); *)
-(*     (\* "restart", (module Restart : HANDLER); *\) *)
-(*     (\* "disconnect", (module Disconnect : HANDLER); *\) *)
-(*     (\* "terminate", (module Terminate : HANDLER); *\) *)
-(*   ] |> List.to_seq *)
-(*     |> Hashtbl.of_seq; *)
-(* } *)
-
-(* let handle_exn t config message = *)
-(*   let aux command = *)
-(*     let h = Hashtbl.find t.handlers command in *)
-(*     let module H = MakeHandler (val h : HANDLER) in *)
-(*     let h = H.make_empty in *)
-(*     try%lwt *)
-(*       let%lwt output = H.handle h config message in *)
-(*       Some output |> Lwt.return *)
-(*     with Js_msg.Wrong_encoder _ -> *)
-(*       None |> Lwt.return *)
-(*   in *)
-(*   let%lwt output = *)
-(*     let cmds = [ *)
-(*         "cancel"; *)
-(*         "initialize"; *)
-(*         "configurationDone"; *)
-(*         "launch"; *)
-(*         "attach"; *)
-(*         "restart"; *)
-(*         "disconnect"; *)
-(*         "terminate"; *)
-(*       ] in *)
-(*     Lwt_list.filter_map_p aux cmds *)
-(*   in *)
-(*   (\* First one that doesnt error is what we want *\) *)
-(*   let ret = *)
-(*     match output with *)
-(*     | [] -> Printf.sprintf "[DAP] Cannot handle message: '%s'" message |> Result.error *)
-(*     | output :: _ -> Result.ok output *)
-(*   in *)
-(*   Lwt.return ret *)
+let handle_exn t config message =
+  let aux command =
+    let h = Hashtbl.find t.handlers command in
+    let module H = (val h : HANDLER) in
+    let h = H.make () in
+    let handlers = H.handlers ~config h in
+    let init = Lwt.return (message, []) in
+    try%lwt
+      let%lwt (_, output) = List.fold_left fold_f init handlers in
+      List.map (Dap.Header.wrap ~add_header:true) output
+      |> String.concat ""
+      |> Option.some
+      |> Lwt.return
+    with Dap.Wrong_encoder _ ->
+      None |> Lwt.return
+  in
+  let%lwt output =
+    let cmds = [
+        "cancel";
+        "initialize";
+        "configurationDone";
+        "launch";
+        "attach";
+        "restart";
+        "disconnect";
+        "terminate";
+      ] in
+    Lwt_list.filter_map_p aux cmds
+  in
+  (* First one that doesnt error is what we want *)
+  let ret =
+    match output with
+    | [] -> Printf.sprintf "[DAP] Cannot handle message: '%s'" message |> Result.error
+    | output :: _ -> Result.ok output
+  in
+  Lwt.return ret
