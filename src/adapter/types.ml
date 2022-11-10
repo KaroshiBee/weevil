@@ -1,24 +1,6 @@
 module Dap = Dapper.Dap
 
-module type State_intf = sig
-  type t
-
-  val make_empty : t
-
-  val process_none : t -> Lwt_process.process_none option
-
-  val ic : t -> Lwt_io.input_channel option
-
-  val oc : t -> Lwt_io.output_channel option
-
-  val start_backend : t -> Ipaddr.t -> int -> string -> unit Dap.Dap_result.t
-
-  val connect_backend : t -> Ipaddr.t -> int -> (Lwt_io.input_channel * Lwt_io.output_channel) Dap.Dap_result.t
-
-  val launch_mode : t -> Dap.Data.Launch_mode.t option
-
-  val set_launch_mode : t -> Dap.Data.Launch_mode.t -> unit
-end
+module type State_intf = Dap.STATE_T
 
 module type String_handler_intf = sig
   type t

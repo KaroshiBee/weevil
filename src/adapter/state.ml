@@ -9,9 +9,10 @@ type t = {
   mutable ic : Lwt_io.input_channel option;
   mutable oc : Lwt_io.output_channel option;
   mutable launch_mode : Launch_mode.t option;
+  mutable seqr : Dap.Data.Seqr.t;
 }
 
-let make_empty = {process = None; ic = None; oc = None; launch_mode = None}
+let make_empty = {process = None; ic = None; oc = None; launch_mode = None; seqr = Dap.Data.Seqr.make ~seq:0 ()}
 
 let process_none t = t.process
 
@@ -86,3 +87,7 @@ let connect_backend t ip port =
 let launch_mode t = t.launch_mode
 
 let set_launch_mode t launch_mode = t.launch_mode <- Some launch_mode
+
+let current_seqr t = t.seqr
+
+let set_seqr t seqr = t.seqr <- seqr

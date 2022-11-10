@@ -4,9 +4,12 @@ module D = Dap.Data
 module Js = Data_encoding.Json
 
 module StateMock = struct
-  type t = {mutable launch_mode : D.Launch_mode.t option}
+  type t = {
+    mutable launch_mode : D.Launch_mode.t option;
+    mutable seqr: D.Seqr.t;
+  }
 
-  let make_empty = {launch_mode = None}
+  let make_empty = {launch_mode = None; seqr = D.Seqr.make ~seq:0 ()}
 
   let connect_backend _ip _port = failwith "MOCK connect"
 
@@ -21,6 +24,11 @@ module StateMock = struct
   let launch_mode t = t.launch_mode
 
   let set_launch_mode t launch_mode = t.launch_mode <- Some launch_mode
+
+  let current_seqr t = t.seqr
+
+  let set_seqr t seqr = t.seqr <- seqr
+
 end
 
 module Attach = Attach.T (StateMock)

@@ -12,6 +12,7 @@ module Response = Dap_response
 module Event = Dap_event
 module Dap_result = Dap_result
 
+module type STATE_T = Dap_handlers.STATE_T
 module type TYPED_HANDLER = Dap_handlers.HANDLER
 
 module Attach = Dap_attach

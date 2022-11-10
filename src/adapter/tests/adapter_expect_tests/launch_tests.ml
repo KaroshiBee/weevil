@@ -7,12 +7,15 @@ module LaunchStateMock = struct
   type t = {
     mutable launch_mode : D.Launch_mode.t option;
     mutable oc: Lwt_io.output_channel option;
+    mutable seqr: D.Seqr.t;
   }
 
   let make_empty = {
     launch_mode = None;
     oc=None;
+    seqr=D.Seqr.make ~seq:0 ()
   }
+
 
   let connect_backend t _ip _port =
     Dap.Dap_result.ok @@ Option.(Lwt_io.stdin, get t.oc)
@@ -32,6 +35,11 @@ module LaunchStateMock = struct
   let launch_mode t = t.launch_mode
 
   let set_launch_mode t launch_mode = t.launch_mode <- Some launch_mode
+
+  let current_seqr t = t.seqr
+
+  let set_seqr t seqr = t.seqr <- seqr
+
 end
 
 module Launch = Launch.T (LaunchStateMock)
