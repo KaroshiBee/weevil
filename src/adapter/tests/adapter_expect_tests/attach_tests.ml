@@ -31,11 +31,7 @@ let%expect_test "Check sequencing etc for attach" =
   let command = Dap.Commands.attach in
   let req =
     Dap.Request.(
-      Message.make
-        ~seq:20
-        ~command
-        ~arguments:(D.AttachRequestArguments.make ())
-        ()
+      Helpers.attach_msg ~seq:20
       |> Js.construct (Message.enc command D.AttachRequestArguments.enc)
       |> Js.to_string
     )

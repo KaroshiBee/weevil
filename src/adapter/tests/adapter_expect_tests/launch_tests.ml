@@ -45,11 +45,7 @@ let%expect_test "Check sequencing etc for launch" =
       let command = Dap.Commands.launch in
       let req =
         Dap.Request.(
-          Message.make
-            ~seq:20
-            ~command
-            ~arguments:(D.LaunchRequestArguments.make ())
-            ()
+          Helpers.launch_msg ~seq:20
           |> Js.construct (Message.enc command D.LaunchRequestArguments.enc)
           |> Js.to_string)
       in

@@ -13,15 +13,17 @@ let make_connection c =
   let x = init () >>= fun ctx -> connect ~ctx c in
   x >|= fun (_, ic, oc) -> (ic, oc)
 
-let launch_req ~seq =
+let launch_msg ~seq =
   let arguments = Data.LaunchRequestArguments.make () in
-  let req = Request.Message.make ~seq ~command:Commands.launch ~arguments () in
-  Request.launchRequest req
+  Request.Message.make ~seq ~command:Commands.launch ~arguments ()
 
-let attach_req ~seq =
+let launch_req ~seq = Request.launchRequest @@ launch_msg ~seq
+
+let attach_msg ~seq =
   let arguments = Data.AttachRequestArguments.make () in
-  let req = Request.Message.make ~seq ~command:Commands.attach ~arguments () in
-  Request.attachRequest req
+  Request.Message.make ~seq ~command:Commands.attach ~arguments ()
+
+let attach_req ~seq = Request.attachRequest @@ attach_msg ~seq
 
 let to_msg (type cmd args presence) :
     (cmd, args, presence) Request.Message.t Request.t -> string = function
