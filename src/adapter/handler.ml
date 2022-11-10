@@ -9,10 +9,10 @@ let make =
     handlers =
       [
         (* "cancel", (module Cancel : HANDLER); *)
-        (* "initialize", (module Initialize : HANDLER); *)
-        (* "configurationDone", (module Configuration : HANDLER); *)
-        ("launch", (module Launch : HANDLER));
-        ("attach", (module Attach : HANDLER));
+        "initialize", (module Initialize : HANDLER);
+        "configurationDone", (module Configuration : HANDLER);
+        "launch", (module Launch : HANDLER);
+        "attach", (module Attach : HANDLER);
         (* "next", (module Next : HANDLER); *)
         (* "restart", (module Restart : HANDLER); *)
         (* "disconnect", (module Disconnect : HANDLER); *)

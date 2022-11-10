@@ -16,6 +16,8 @@ module type TYPED_HANDLER = Dap_handlers.HANDLER
 
 module Attach = Dap_attach
 module Launch = Dap_launch
+module Initialize = Dap_initialize
+module Configuration = Dap_configuration
 
 exception Wrong_encoder = Js_msg.Wrong_encoder
 

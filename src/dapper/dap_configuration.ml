@@ -23,19 +23,3 @@ module On_request = Dap_handlers.Request_response.Make (struct
 
   let enc_out = Dap_response.Message.enc_opt Dap_commands.configurationDone D.EmptyObject.enc
 end)
-
-(* let on_configurationDone_request = function *)
-(*   | ConfigurationDoneRequest req -> *)
-(*     let resp = *)
-(*       let command = RequestMessage.command req in *)
-(*       let body = EmptyObject.make () in *)
-(*       default_response_opt command body *)
-(*     in *)
-(*     let ret = ConfigurationDoneResponse resp in *)
-(*     Dap_flow.from_response ret *)
-(*   | _ -> assert false *)
-
-
-(* let handle _t _config req = *)
-(*   let response = Dap_flow.request_response req on_configurationDone_request in *)
-(*   Lwt.return {response;  error=None} *)

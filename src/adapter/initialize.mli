@@ -1,3 +1,6 @@
+(* for testing *)
+module T : functor (S:Types.State_intf) -> Types.String_handler_intf with type state = S.t
+
   (*
 Initialization
 
@@ -17,55 +20,4 @@ The development tool capabilities are provided in the InitializeRequestArguments
 The debug adapter returns the supported capabilities in the InitializeResponse via the Capabilities type. It is not necessary to return an explicit false for unsupported capabilities.
  *)
 
-module D = Dap_message.Data
-
-module On_request = Dap_handlers.Request_response.Make (struct
-  type enum = Dap_commands.initialize
-
-  type in_contents = D.InitializeRequestArguments.t
-
-  type in_presence = D.Presence.req
-
-  type out_contents = D.Capabilities.t option
-
-  type out_presence = D.Presence.opt
-
-  type in_msg = (enum, in_contents, in_presence) Dap_request.Message.t
-
-  type out_msg = (enum, out_contents, out_presence) Dap_response.Message.t
-
-  let ctor_in = Dap_request.initializeRequest
-
-  let enc_in = Dap_request.Message.enc Dap_commands.initialize D.InitializeRequestArguments.enc
-
-  let ctor_out = Dap_response.initializeResponse
-
-  let enc_out = Dap_response.Message.enc_opt Dap_commands.initialize D.Capabilities.enc
-end)
-
-module On_response = Dap_handlers.Response_event.Make (struct
-  type in_enum = Dap_commands.initialize
-
-  type in_contents = D.Capabilities.t option
-
-  type in_presence = D.Presence.opt
-
-  type out_enum = Dap_events.initialized
-
-  type out_contents = D.EmptyObject.t option
-
-  type out_presence = D.Presence.opt
-
-  type in_msg = (in_enum, in_contents, in_presence) Dap_response.Message.t
-
-  type out_msg = (out_enum, out_contents, out_presence) Dap_event.Message.t
-
-  let ctor_in = Dap_response.initializeResponse
-
-  let enc_in = Dap_response.Message.enc_opt Dap_commands.initialize D.Capabilities.enc
-
-  let ctor_out = Dap_event.initializedEvent
-
-  let enc_out = Dap_event.Message.enc_opt Dap_events.initialized D.EmptyObject.enc
-end)
-
+include Types.String_handler_intf
