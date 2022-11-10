@@ -12,6 +12,9 @@
    cmdliner
    logs
    logs.lwt
-   str)
-  (preprocess (pps lwt_ppx ppx_deriving.show))
+   str
+   ppx_expect
+ )
+  (inline_tests)
+  (preprocess (pps lwt_ppx ppx_deriving.show ppx_expect))
 )
