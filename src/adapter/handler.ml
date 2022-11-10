@@ -37,8 +37,7 @@ let handle_exn t config message =
     let init = Lwt.return (message, []) in
     try%lwt
       let%lwt (_, output) = List.fold_left fold_f init handlers in
-      List.map (Dap.Header.wrap ~add_header:true) output
-      |> String.concat ""
+      output
       |> Option.some
       |> Lwt.return
     with Dap.Wrong_encoder _ ->
@@ -51,6 +50,7 @@ let handle_exn t config message =
         "configurationDone";
         "launch";
         "attach";
+        "next";
         "restart";
         "disconnect";
         "terminate";
@@ -60,6 +60,7 @@ let handle_exn t config message =
   (* First one that doesnt error is what we want *)
   let ret =
     match output with
+    (* TODO log this error instead *)
     | [] -> Printf.sprintf "[DAP] Cannot handle message: '%s'" message |> Result.error
     | output :: _ -> Result.ok output
   in

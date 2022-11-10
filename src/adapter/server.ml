@@ -1,17 +1,20 @@
-module Dap_header = Dapper.Dap_header
+module Dap = Dapper.Dap
 module Conduit = Conduit_lwt_unix
 open Lwt
 
+      (*  *)
 
-let handle_message _hdl _frontend_io _config _msg =
-  failwith "TODO"
-  (* let _ic, oc = frontend_io in *)
-  (* match%lwt Handler.handle_exn hdl config msg with *)
-  (* | Ok js -> *)
-  (*   let%lwt _ = Logs_lwt.info (fun m -> m "[DAP] got response: '%s'" js) in *)
-  (*   Lwt_io.write oc js *)
-  (* | Error err -> *)
-  (*   Logs_lwt.err (fun m -> m "[DAP] %s" err) *)
+let handle_message hdl frontend_io config msg =
+  let _ic, oc = frontend_io in
+  match%lwt Handler.handle_exn hdl config msg with
+  | Ok js ->
+    let js = List.map (Dap.Header.wrap ~add_header:true) js
+             |> String.concat ""
+        in
+    let%lwt _ = Logs_lwt.info (fun m -> m "[DAP] got response: '%s'" js) in
+    Lwt_io.write oc js
+  | Error err ->
+    Logs_lwt.err (fun m -> m "[DAP] %s" err)
 
 
 let rec main_handler hdl config content_length flow ic oc =
@@ -31,7 +34,7 @@ let rec main_handler hdl config content_length flow ic oc =
       Logs_lwt.info (fun m -> m "[DAP] waiting for messages") >>= fun _ ->
       Lwt_io.read_line_opt ic >>= function
       | Some msg ->
-          let content_length = Dap_header.content_length msg in
+          let content_length = Dap.Header.content_length msg in
           main_handler hdl config content_length flow ic oc
       | None -> Logs_lwt.info (fun m -> m "[DAP] connection closed")
     )
@@ -43,18 +46,17 @@ let on_connection hdl config content_length flow ic oc =
   let%lwt () = Logs_lwt.info (fun m -> m "[DAP] got connection") in
   main_handler hdl config content_length flow ic oc
 
-let svc ~port:_ =
-  failwith "TODO"
-  (* let () = Logs.set_reporter (Logs.format_reporter ()) in *)
-  (* let () = Logs.set_level (Some Logs.Debug) in *)
-  (* let mode = `TCP (`Port port) in *)
-  (* let config = Dapper.Dap_config.make () in *)
-  (* let hdl = Handler.make in *)
-  (* let content_length = None in *)
-  (* let () = Logs.info (fun m -> m "[DAP] starting adapter server on port %d" port) in *)
-  (* Lwt_main.run ( *)
-  (*   Conduit.init () >>= fun ctx -> *)
-  (*   Conduit.serve ~on_exn ~ctx ~mode (on_connection  hdl config content_length) *)
-  (*   >|= fun _ -> *)
-  (*   `Ok () *)
-  (* ) *)
+let svc ~port =
+  let () = Logs.set_reporter (Logs.format_reporter ()) in
+  let () = Logs.set_level (Some Logs.Debug) in
+  let mode = `TCP (`Port port) in
+  let config = Dapper.Dap_config.make () in
+  let hdl = Handler.make in
+  let content_length = None in
+  let () = Logs.info (fun m -> m "[DAP] starting adapter server on port %d" port) in
+  Lwt_main.run (
+    Conduit.init () >>= fun ctx ->
+    Conduit.serve ~on_exn ~ctx ~mode (on_connection  hdl config content_length)
+    >|= fun _ ->
+    `Ok ()
+  )
