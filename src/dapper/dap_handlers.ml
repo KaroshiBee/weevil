@@ -306,7 +306,8 @@ struct
           let request_seq = Dap_base.Seqr.request_seq seqr in
           let seq = 1 + request_seq in
           let s = Dap_base.Seqr.make ~seq ~request_seq () in
-          (* setting the new seqr on state, one of the following two messages will get sent back *)
+          (* setting the new seqr on state because one of the
+             following two messages will always get sent back *)
           let () = S.set_seqr state s in
           handler config msg
           |> Dap_result.map ~f:(fun v ->
