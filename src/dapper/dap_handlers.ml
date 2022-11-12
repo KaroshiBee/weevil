@@ -80,10 +80,6 @@ module type LINK_T = sig
 
   val make : handler:(state -> Dap_config.t -> in_t -> out_t Dap_result.t) -> t
 
-  val string_to_input : string -> in_t Dap_result.t
-
-  val output_to_string : out_t -> (string, string) Lwt_result.t
-
   val handle :
     t ->
     state:state ->
@@ -108,10 +104,6 @@ module LINK
     type t
 
     val make : handler:(S.t -> Dap_config.t -> In.t -> Out.t Dap_result.t) -> t
-
-    val string_to_input : string -> In.t Dap_result.t
-
-    val output_to_string : Out.t -> (string, string) Lwt_result.t
 
     val handle :
       t ->
@@ -204,10 +196,6 @@ module LINK_RESTRICTED
 
     val make : handler:(S.t -> Dap_config.t -> In.t -> Out.t Dap_result.t) -> t
 
-    val string_to_input : string -> In.t Dap_result.t
-
-    val output_to_string : Out.t -> (string, string) Lwt_result.t
-
     val handle :
       t ->
       state:S.t ->
@@ -233,10 +221,6 @@ module RAISE (OUT_MSG_T : MSG_T) (OUT_T : GADT_T) : sig
     type t
 
     val make : handler:(S.t -> Dap_config.t -> unit -> Out.t Dap_result.t) -> t
-
-    val string_to_input : string -> unit Dap_result.t
-
-    val output_to_string : Out.t -> (string, string) Lwt_result.t
 
     val handle :
       t ->
