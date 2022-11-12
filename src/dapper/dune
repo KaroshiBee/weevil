@@ -9,7 +9,6 @@
    logs
    logs.lwt
    str
-   conduit
  )
  (preprocess (pps lwt_ppx ppx_deriving.show))
  (instrumentation (backend bisect_ppx))

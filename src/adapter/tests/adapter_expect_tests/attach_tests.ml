@@ -9,7 +9,7 @@ module StateMock = struct
     mutable seqr: D.Seqr.t;
   }
 
-  let make_empty = {launch_mode = None; seqr = D.Seqr.make ~seq:0 ()}
+  let make = {launch_mode = None; seqr = D.Seqr.make ~seq:0 ()}
 
   let connect_backend _ip _port = failwith "MOCK connect"
 

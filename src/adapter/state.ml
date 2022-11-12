@@ -12,7 +12,7 @@ type t = {
   mutable seqr : Dap.Data.Seqr.t;
 }
 
-let make_empty = {process = None; ic = None; oc = None; launch_mode = None; seqr = Dap.Data.Seqr.make ~seq:0 ()}
+let make = {process = None; ic = None; oc = None; launch_mode = None; seqr = Dap.Data.Seqr.make ~seq:0 ()}
 
 let process_none t = t.process
 

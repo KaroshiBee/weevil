@@ -1,53 +1,74 @@
 include Test_utils.Include
-
 module Js = Data_encoding.Json
 module Req = Dap.Request
 module Res = Dap.Response
 
-module Launch = Dap_handlers.Request_response.Make (struct
-  type enum = Dap.Commands.launch
-  type in_contents = Dap.Data.LaunchRequestArguments.t
-  type in_presence = Dap.Data.Presence.req
-  type out_contents = Dap.Data.EmptyObject.t option
-  type out_presence = Dap.Data.Presence.opt
-  type in_msg = (enum, in_contents, in_presence) Req.Message.t
-  type out_msg = (enum, out_contents, out_presence) Res.Message.t
+module Launch =
+  Dap_handlers.Request_response.Make
+    (struct
+      type enum = Dap.Commands.launch
 
-  let ctor_in = Req.launchRequest
-  let enc_in = Req.Message.enc Dap.Commands.launch Dap.Data.LaunchRequestArguments.enc
-  let ctor_out = Res.launchResponse
-  let enc_out = Res.Message.enc_opt Dap.Commands.launch Dap.Data.EmptyObject.enc
+      type contents = Dap.Data.LaunchRequestArguments.t
 
-end)
+      type presence = Dap.Data.Presence.req
+
+      type msg = (enum, contents, presence) Req.Message.t
+
+      type t = msg Req.t
+
+      let ctor = Req.launchRequest
+
+      let enc =
+        Req.Message.enc Dap.Commands.launch Dap.Data.LaunchRequestArguments.enc
+    end)
+    (struct
+      type enum = Dap.Commands.launch
+
+      type contents = Dap.Data.EmptyObject.t option
+
+      type presence = Dap.Data.Presence.opt
+
+      type msg = (enum, contents, presence) Res.Message.t
+
+      type t = msg Res.t
+
+      let ctor = Res.launchResponse
+
+      let enc = Res.Message.enc_opt Dap.Commands.launch Dap.Data.EmptyObject.enc
+    end)
+    (Dap_handlers.State)
 
 let%expect_test "Check sequencing request/response" =
   let config = Dap.Config.make () in
+  let state = Dap_handlers.State.make in
   let handler =
-    let l = Launch.make
-        ~handler:(fun _cfg _req ->
-            let body = Dap.Data.EmptyObject.make () in
-            Res.default_response_opt Dap.Commands.launch body
-            |> Res.launchResponse
-            |> Dap_result.ok
-          )
+    let l =
+      Launch.make ~handler:(fun _st _cfg _req ->
+          let body = Dap.Data.EmptyObject.make () in
+          Res.default_response_opt Dap.Commands.launch body
+          |> Res.launchResponse |> Dap_result.ok)
     in
     Launch.handle l
   in
 
-  let req_launch = Req.(launchRequest @@ Message.make ~seq:101 ~command:Dap.Commands.launch ~arguments:(Dap.Data.LaunchRequestArguments.make ()) ()) in
-  let enc_launch = Res.(Message.enc_opt Dap.Commands.launch Dap.Data.EmptyObject.enc) in
-
-  let%lwt s =
-    handler ~config req_launch
-    |> Dap_result.map ~f:(function
-        | Res.LaunchResponse resp ->
-          Js.construct enc_launch resp |> Js.to_string
-        | _ -> assert false
-      )
-    |> Dap_result.to_lwt_result
+  let enc =
+    Req.Message.enc Dap.Commands.launch Dap.Data.LaunchRequestArguments.enc
   in
-  Printf.printf "%s" @@ Result.get_ok s;
-  let%lwt () = [%expect {|
+  let req_launch =
+    Req.(
+      Message.make
+        ~seq:101
+        ~command:Dap.Commands.launch
+        ~arguments:(Dap.Data.LaunchRequestArguments.make ())
+        ()
+      |> Js.construct enc |> Js.to_string)
+  in
+
+  let%lwt s = handler ~state ~config req_launch in
+  Printf.printf "%s" @@ Result.get_ok s ;
+  let%lwt () =
+    [%expect
+      {|
     { "seq": 102, "type": "response", "request_seq": 101, "success": true,
       "command": "launch", "body": {} } |}]
   in
@@ -58,21 +79,17 @@ let%expect_test "Check sequencing request/response" =
 
   (* should also have the correct seq numbers if error happens during handling *)
   let handler_err =
-    let l = Launch.make
-        ~handler:(fun _ _req ->
-            Res.default_response_error "testing error"
-            |> Res.errorResponse
-            |> Dap_result.error
-          )
+    let l =
+      Launch.make ~handler:(fun _ _ _req ->
+          Res.default_response_error "testing error"
+          |> Res.errorResponse |> Dap_result.error)
     in
     Launch.handle l
   in
-  let%lwt s =
-    handler_err ~config req_launch
-    |> Dap_result.to_lwt_error_as_str
-  in
-  Printf.printf "%s" @@ Result.get_error s;
-  [%expect {|
+  let%lwt s = handler_err ~state ~config req_launch in
+  Printf.printf "%s" @@ Result.get_error s ;
+  [%expect
+    {|
     { "seq": 102, "type": "response", "request_seq": 101, "success": false,
       "command": "error",
       "body":

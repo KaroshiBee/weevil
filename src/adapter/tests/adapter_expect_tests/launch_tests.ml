@@ -10,7 +10,7 @@ module LaunchStateMock = struct
     mutable seqr: D.Seqr.t;
   }
 
-  let make_empty = {
+  let make = {
     launch_mode = None;
     oc=None;
     seqr=D.Seqr.make ~seq:0 ()

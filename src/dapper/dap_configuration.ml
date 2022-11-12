@@ -1,25 +1,40 @@
 module D = Dap_message.Data
 
-module On_request = Dap_handlers.Request_response.Make (struct
-  type enum = Dap_commands.configurationDone
+module On_request =
+  Dap_handlers.Request_response.Make
+    (struct
+      type enum = Dap_commands.configurationDone
 
-  type in_contents = D.ConfigurationDoneArguments.t option
+      type contents = D.ConfigurationDoneArguments.t option
 
-  type in_presence = D.Presence.opt
+      type presence = D.Presence.opt
 
-  type out_contents = D.EmptyObject.t option
+      type msg = (enum, contents, presence) Dap_request.Message.t
 
-  type out_presence = D.Presence.opt
+      type t = msg Dap_request.t
 
-  type in_msg = (enum, in_contents, in_presence) Dap_request.Message.t
+      let ctor = Dap_request.configurationDoneRequest
 
-  type out_msg = (enum, out_contents, out_presence) Dap_response.Message.t
+      let enc =
+        Dap_request.Message.enc_opt
+          Dap_commands.configurationDone
+          D.ConfigurationDoneArguments.enc
+    end)
+    (struct
+      type enum = Dap_commands.configurationDone
 
-  let ctor_in = Dap_request.configurationDoneRequest
+      type contents = D.EmptyObject.t option
 
-  let enc_in = Dap_request.Message.enc_opt Dap_commands.configurationDone D.ConfigurationDoneArguments.enc
+      type presence = D.Presence.opt
 
-  let ctor_out = Dap_response.configurationDoneResponse
+      type msg = (enum, contents, presence) Dap_response.Message.t
 
-  let enc_out = Dap_response.Message.enc_opt Dap_commands.configurationDone D.EmptyObject.enc
-end)
+      type t = msg Dap_response.t
+
+      let ctor = Dap_response.configurationDoneResponse
+
+      let enc =
+        Dap_response.Message.enc_opt
+          Dap_commands.configurationDone
+          D.EmptyObject.enc
+    end)

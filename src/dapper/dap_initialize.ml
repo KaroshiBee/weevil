@@ -1,4 +1,4 @@
-  (*
+(*
 Initialization
 
 The Debug Adapter Protocol defines many features and this number is still growing, albeit slowly. However, the protocol is still at its first version because it was an explicit design goal to support new feature in a completely backward compatible way. Making this possible without version numbers requires that every new feature gets a corresponding flag that lets a development tool know whether a debug adapter supports the feature or not. The absence of the flag always means that the feature is not supported.
@@ -19,53 +19,74 @@ The debug adapter returns the supported capabilities in the InitializeResponse v
 
 module D = Dap_message.Data
 
-module On_request = Dap_handlers.Request_response.Make (struct
-  type enum = Dap_commands.initialize
+module On_request =
+  Dap_handlers.Request_response.Make
+    (struct
+      type enum = Dap_commands.initialize
 
-  type in_contents = D.InitializeRequestArguments.t
+      type contents = D.InitializeRequestArguments.t
 
-  type in_presence = D.Presence.req
+      type presence = D.Presence.req
 
-  type out_contents = D.Capabilities.t option
+      type msg = (enum, contents, presence) Dap_request.Message.t
 
-  type out_presence = D.Presence.opt
+      type t = msg Dap_request.t
 
-  type in_msg = (enum, in_contents, in_presence) Dap_request.Message.t
+      let ctor = Dap_request.initializeRequest
 
-  type out_msg = (enum, out_contents, out_presence) Dap_response.Message.t
+      let enc =
+        Dap_request.Message.enc
+          Dap_commands.initialize
+          D.InitializeRequestArguments.enc
+    end)
+    (struct
+      type enum = Dap_commands.initialize
 
-  let ctor_in = Dap_request.initializeRequest
+      type contents = D.Capabilities.t option
 
-  let enc_in = Dap_request.Message.enc Dap_commands.initialize D.InitializeRequestArguments.enc
+      type presence = D.Presence.opt
 
-  let ctor_out = Dap_response.initializeResponse
+      type msg = (enum, contents, presence) Dap_response.Message.t
 
-  let enc_out = Dap_response.Message.enc_opt Dap_commands.initialize D.Capabilities.enc
-end)
+      type t = msg Dap_response.t
 
-module On_response = Dap_handlers.Response_event.Make (struct
-  type in_enum = Dap_commands.initialize
+      let ctor = Dap_response.initializeResponse
 
-  type in_contents = D.Capabilities.t option
+      let enc =
+        Dap_response.Message.enc_opt Dap_commands.initialize D.Capabilities.enc
+    end)
 
-  type in_presence = D.Presence.opt
+module On_response =
+  Dap_handlers.Response_event.Make
+    (struct
+      type enum = Dap_commands.initialize
 
-  type out_enum = Dap_events.initialized
+      type contents = D.Capabilities.t option
 
-  type out_contents = D.EmptyObject.t option
+      type presence = D.Presence.opt
 
-  type out_presence = D.Presence.opt
+      type msg = (enum, contents, presence) Dap_response.Message.t
 
-  type in_msg = (in_enum, in_contents, in_presence) Dap_response.Message.t
+      type t = msg Dap_response.t
 
-  type out_msg = (out_enum, out_contents, out_presence) Dap_event.Message.t
+      let ctor = Dap_response.initializeResponse
 
-  let ctor_in = Dap_response.initializeResponse
+      let enc =
+        Dap_response.Message.enc_opt Dap_commands.initialize D.Capabilities.enc
+    end)
+    (struct
+      type enum = Dap_events.initialized
 
-  let enc_in = Dap_response.Message.enc_opt Dap_commands.initialize D.Capabilities.enc
+      type contents = D.EmptyObject.t option
 
-  let ctor_out = Dap_event.initializedEvent
+      type presence = D.Presence.opt
 
-  let enc_out = Dap_event.Message.enc_opt Dap_events.initialized D.EmptyObject.enc
-end)
+      type msg = (enum, contents, presence) Dap_event.Message.t
 
+      type t = msg Dap_event.t
+
+      let ctor = Dap_event.initializedEvent
+
+      let enc =
+        Dap_event.Message.enc_opt Dap_events.initialized D.EmptyObject.enc
+    end)

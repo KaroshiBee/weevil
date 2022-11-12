@@ -1,51 +1,70 @@
 module D = Dap_message.Data
 
-module On_request = Dap_handlers.Request_response.Make (struct
-  type enum = Dap_commands.attach
+module On_request =
+  Dap_handlers.Request_response.Make
+    (struct
+      type enum = Dap_commands.attach
 
-  type in_contents = D.AttachRequestArguments.t
+      type contents = D.AttachRequestArguments.t
 
-  type in_presence = D.Presence.req
+      type presence = D.Presence.req
 
-  type out_contents = D.EmptyObject.t option
+      type msg = (enum, contents, presence) Dap_request.Message.t
 
-  type out_presence = D.Presence.opt
+      type t = msg Dap_request.t
 
-  type in_msg = (enum, in_contents, in_presence) Dap_request.Message.t
+      let ctor = Dap_request.attachRequest
 
-  type out_msg = (enum, out_contents, out_presence) Dap_response.Message.t
+      let enc =
+        Dap_request.Message.enc Dap_commands.attach D.AttachRequestArguments.enc
+    end)
+    (struct
+      type enum = Dap_commands.attach
 
-  let ctor_in = Dap_request.attachRequest
+      type contents = D.EmptyObject.t option
 
-  let enc_in = Dap_request.Message.enc Dap_commands.attach D.AttachRequestArguments.enc
+      type presence = D.Presence.opt
 
-  let ctor_out = Dap_response.attachResponse
+      type msg = (enum, contents, presence) Dap_response.Message.t
 
-  let enc_out = Dap_response.Message.enc_opt Dap_commands.attach D.EmptyObject.enc
-end)
+      type t = msg Dap_response.t
 
-module On_response = Dap_handlers.Response_event.Make (struct
-  type in_enum = Dap_commands.attach
+      let ctor = Dap_response.attachResponse
 
-  type in_contents = D.EmptyObject.t option
+      let enc =
+        Dap_response.Message.enc_opt Dap_commands.attach D.EmptyObject.enc
+    end)
 
-  type in_presence = D.Presence.opt
+module On_response =
+  Dap_handlers.Response_event.Make
+    (struct
+      type enum = Dap_commands.attach
 
-  type out_enum = Dap_events.process
+      type contents = D.EmptyObject.t option
 
-  type out_contents = D.ProcessEvent_body.t
+      type presence = D.Presence.opt
 
-  type out_presence = D.Presence.req
+      type msg = (enum, contents, presence) Dap_response.Message.t
 
-  type in_msg = (in_enum, in_contents, in_presence) Dap_response.Message.t
+      type t = msg Dap_response.t
 
-  type out_msg = (out_enum, out_contents, out_presence) Dap_event.Message.t
+      let ctor = Dap_response.attachResponse
 
-  let ctor_in = Dap_response.attachResponse
+      let enc =
+        Dap_response.Message.enc_opt Dap_commands.attach D.EmptyObject.enc
+    end)
+    (struct
+      type enum = Dap_events.process
 
-  let enc_in = Dap_response.Message.enc_opt Dap_commands.attach D.EmptyObject.enc
+      type contents = D.ProcessEvent_body.t
 
-  let ctor_out = Dap_event.processEvent
+      type presence = D.Presence.req
 
-  let enc_out = Dap_event.Message.enc Dap_events.process D.ProcessEvent_body.enc
-end)
+      type msg = (enum, contents, presence) Dap_event.Message.t
+
+      type t = msg Dap_event.t
+
+      let ctor = Dap_event.processEvent
+
+      let enc = Dap_event.Message.enc Dap_events.process D.ProcessEvent_body.enc
+    end)

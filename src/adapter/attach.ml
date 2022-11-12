@@ -6,21 +6,20 @@ module Res = Dap.Response
 module Ev = Dap.Event
 
 module T (S : Types.State_intf) = struct
-  (* would be nice if the types were more descriptive *)
-  open [@warning "-33"] Dap.Attach.On_request
-  open [@warning "-33"] Dap.Attach.On_response
 
-  include Types.Includes2 (Dap.Attach.On_request) (Dap.Attach.On_response)
+  module On_request = Dap.Attach.On_request (S)
+  module On_response = Dap.Attach.On_response (S)
+  include Types.Includes2 (On_request) (On_response)
 
   type state = S.t
   type t = S.t
 
-  let make ?state () = Option.value state ~default:S.make_empty
+  let make ?state () = Option.value state ~default:S.make
 
   let state t = t
 
   let attach_handler t =
-    Dap.Attach.On_request.make ~handler:(fun config _req ->
+    On_request.make ~handler:(fun _state config _req ->
         let body = D.EmptyObject.make () in
         let command = Dap.Commands.attach in
         let resp =
@@ -40,7 +39,7 @@ module T (S : Types.State_intf) = struct
           ))
 
   let process_handler _t =
-    Dap.Attach.On_response.make ~handler:(fun _ _resp ->
+    On_response.make ~handler:(fun _ _ _resp ->
         let event = Dap.Events.process in
         let startMethod = D.ProcessEvent_body_startMethod.Attach in
         let body =

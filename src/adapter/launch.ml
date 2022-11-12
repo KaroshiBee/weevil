@@ -29,11 +29,13 @@ module T (S : Types.State_intf) = struct
 
   type t = {state : state}
 
-  let make ?state () = {state = Option.value state ~default:S.make_empty}
+  let make ?state () = {state = Option.value state ~default:S.make}
 
   let state t = t.state
 
-  include Types.Includes2 (Dap.Launch.On_request) (Dap.Launch.On_response)
+  module On_request = Dap.Launch.On_request (S)
+  module On_response = Dap.Launch.On_response (S)
+  include Types.Includes2 (On_request) (On_response)
 
   let _start_background_svc st ip port cmd =
     match S.process_none st with
@@ -54,7 +56,7 @@ module T (S : Types.State_intf) = struct
     S.connect_backend st ip port |> Dap_result.or_log_error
 
   let launch_handler t =
-    Dap.Launch.On_request.make ~handler:(fun config _req ->
+    On_request.make ~handler:(fun _state config _req ->
         let ip = Dap.Config.backend_ip config |> Ipaddr_unix.of_inet_addr in
         let port = Dap.Config.backend_port config in
         let cmd = Dap.Config.backend_cmd config in
@@ -91,7 +93,7 @@ module T (S : Types.State_intf) = struct
                Dap_result.ok ret))
 
   let process_handler _t =
-    Dap.Launch.On_response.make ~handler:(fun _config _resp ->
+    On_response.make ~handler:(fun _state _config _resp ->
         let ev =
           let event = Dap.Events.process in
           let startMethod = D.ProcessEvent_body_startMethod.Launch in
