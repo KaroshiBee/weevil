@@ -1,6 +1,3 @@
-(* for testing *)
-module T : functor (S:Types.State_intf) -> Types.String_handler_intf with type state = S.t
-
 (* Launching and attaching *)
 
 (* After the debug adapter has been initialized, it is ready to accept requests for starting debugging. Two requests exist for this: *)
@@ -11,4 +8,7 @@ module T : functor (S:Types.State_intf) -> Types.String_handler_intf with type s
 
 (* Since arguments for both requests are highly dependent on a specific debugger and debug adapter implementation, the Debug Adapter Protocol does not specify any arguments for these requests. Instead, the development tool is expected to get information about debugger specific arguments from elsewhere (e.g. contributed by some plugin or extension mechanism) and to build a UI and validation mechanism on top of that. *)
 (*   *\) *)
-include Types.String_handler_intf
+
+
+(* keeping as functor for testing *)
+module T : functor (S:Types.State_intf) -> Types.String_handler_intf with type state := S.t

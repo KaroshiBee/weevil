@@ -25,17 +25,9 @@ let _get_onDebug = function
   | _ -> false
 
 module T (S : Types.State_intf) = struct
-  type state = S.t
-
-  type t = {state : state}
-
-  let make ?state () = {state = Option.value state ~default:S.make}
-
-  let state t = t.state
 
   module On_request = Dap.Launch.On_request (S)
-  module On_response = Dap.Launch.On_response (S)
-  include Types.Includes2 (On_request) (On_response)
+  module On_response = Dap.Launch.Raise_process (S)
 
   let _start_background_svc st ip port cmd =
     match S.process_none st with
@@ -55,21 +47,21 @@ module T (S : Types.State_intf) = struct
     in
     S.connect_backend st ip port |> Dap_result.or_log_error
 
-  let launch_handler t =
-    On_request.make ~handler:(fun _state config _req ->
+  let launch_handler =
+    let h =
+      On_request.make ~handler:(fun state config _req ->
         let ip = Dap.Config.backend_ip config |> Ipaddr_unix.of_inet_addr in
         let port = Dap.Config.backend_port config in
         let cmd = Dap.Config.backend_cmd config in
-        let st = state t in
         let resp =
           let command = Dap.Commands.launch in
           let body = D.EmptyObject.make () in
           Res.default_response_opt command body
         in
         let ret = Res.launchResponse resp in
-        let () = S.set_launch_mode st `Launch in
-        _start_background_svc st ip port cmd
-        |> Dap_result.bind ~f:(fun _ -> _connect_background_svc st ip port)
+        let () = S.set_launch_mode state `Launch in
+        _start_background_svc state ip port cmd
+        |> Dap_result.bind ~f:(fun _ -> _connect_background_svc state ip port)
         |> Dap_result.bind ~f:(fun (_ic, oc) ->
                let%lwt () =
                  Logs_lwt.debug (fun m ->
@@ -91,9 +83,12 @@ module T (S : Types.State_intf) = struct
                let%lwt () = Lwt_io.write_line oc runscript_s in
                (* this event is a DAP event message *)
                Dap_result.ok ret))
+    in
+    On_request.handle h
 
-  let process_handler _t =
-    On_response.make ~handler:(fun _state _config _resp ->
+  let process_handler =
+    let h =
+      On_response.make ~handler:(fun _state _config _resp ->
         let ev =
           let event = Dap.Events.process in
           let startMethod = D.ProcessEvent_body_startMethod.Launch in
@@ -107,9 +102,12 @@ module T (S : Types.State_intf) = struct
         in
         let ret = Ev.processEvent ev in
         Dap_result.ok ret)
+    in
+    On_response.handle h
 
-  let handlers =
-    convert_handlers ~handler1:launch_handler ~handler2:process_handler
+  let handlers ~state ~config = [
+    launch_handler ~state ~config;
+    process_handler ~state ~config;
+  ]
+
 end
-
-include T (State)

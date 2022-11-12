@@ -88,6 +88,19 @@ module type LINK_T = sig
     (string, string) Lwt_result.t
 end
 
+module type TYPED_HANDLER = sig
+  type ('state, 'inp, 'out) t
+
+  val make : handler:('state -> Dap_config.t -> 'inp -> 'out Dap_result.t) -> ('state, 'inp, 'out) t
+
+  val handle :
+    ('state, 'inp, 'out) t ->
+    state:'state ->
+    config:Dap_config.t ->
+    string ->
+    (string, string) Lwt_result.t
+end
+
 (* LINK links Input and Output and ensures that the seqr numbers get set properly,
    the input message's seqr data is read and incremented then put onto both
    the output message's & state's seqr data *)
@@ -96,22 +109,12 @@ module LINK
     (IN_T : GADT_T)
     (OUT_MSG_T : MSG_T)
     (OUT_T : GADT_T) : sig
-  module Make : functor
+  module Make :
+    functor
     (In : FULL_T(IN_MSG_T)(IN_T).T)
     (Out : FULL_T(OUT_MSG_T)(OUT_T).T)
     (S : STATE_T)
-    -> sig
-    type t
-
-    val make : handler:(S.t -> Dap_config.t -> In.t -> Out.t Dap_result.t) -> t
-
-    val handle :
-      t ->
-      state:S.t ->
-      config:Dap_config.t ->
-      string ->
-      (string, string) Lwt_result.t
-  end
+    -> LINK_T with type in_t := In.t and type out_t := Out.t and type state := S.t
 end = struct
   module Make
       (In : FULL_T(IN_MSG_T)(IN_T).T)
@@ -191,18 +194,7 @@ module LINK_RESTRICTED
     (In : FULL_T(IN_MSG_T)(IN_T).T)
     (Out : FULL_T(OUT_MSG_T)(OUT_T).T with type enum = In.enum)
     (S : STATE_T)
-    -> sig
-    type t
-
-    val make : handler:(S.t -> Dap_config.t -> In.t -> Out.t Dap_result.t) -> t
-
-    val handle :
-      t ->
-      state:S.t ->
-      config:Dap_config.t ->
-      string ->
-      (string, string) Lwt_result.t
-  end
+    -> LINK_T with type in_t := In.t and type out_t := Out.t and type state := S.t
 end = struct
   module L = LINK (IN_MSG_T) (IN_T) (OUT_MSG_T) (OUT_T)
 
@@ -217,20 +209,12 @@ end
 (* raise an event or a response or whatever directly from the backend,
    NOTE will still have the correct seqr numbers, pulls last known values from state *)
 module RAISE (OUT_MSG_T : MSG_T) (OUT_T : GADT_T) : sig
-  module Make : functor (Out : FULL_T(OUT_MSG_T)(OUT_T).T) (S : STATE_T) -> sig
-    type t
-
-    val make : handler:(S.t -> Dap_config.t -> unit -> Out.t Dap_result.t) -> t
-
-    val handle :
-      t ->
-      state:S.t ->
-      config:Dap_config.t ->
-      string ->
-      (string, string) Lwt_result.t
-  end
+  module Make : functor (Out : FULL_T(OUT_MSG_T)(OUT_T).T) (S : STATE_T) ->
+    LINK_T
+      with type in_t := unit
+       and type out_t := Out.t
+       and type state := S.t
 end = struct
-
   module Make (Out : FULL_T(OUT_MSG_T)(OUT_T).T) (S : STATE_T) :
     LINK_T
       with type in_t := unit

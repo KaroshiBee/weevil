@@ -45,9 +45,8 @@ end
 module Launch = Launch.T (LaunchStateMock)
 
 let%expect_test "Check sequencing etc for launch" =
+  let st = LaunchStateMock.make in
   let config = Dap.Config.make () in
-  let t = Launch.make () in
-  let st = Launch.state t in
   Lwt_io.with_temp_file ~temp_dir:"/dev/shm" (fun (_, oc) ->
       let () = LaunchStateMock.set_io st oc in
       let command = Dap.Commands.launch in
@@ -63,10 +62,11 @@ let%expect_test "Check sequencing etc for launch" =
           {| { "seq": 20, "type": "request", "command": "launch", "arguments": {} } |}]
       in
 
-      match Launch.handlers ~config t with
+      match Launch.handlers ~state:st ~config with
       | f_resp :: f_ev :: [] ->
         (* happy path *)
         let%lwt resp = f_resp req in
+        let resp = Result.get_ok resp in
         Printf.printf "%s" resp ;
         let%lwt () =
           [%expect
@@ -75,7 +75,8 @@ let%expect_test "Check sequencing etc for launch" =
         "command": "launch", "body": {} } |}]
         in
 
-        let%lwt ev = f_ev resp in
+        let%lwt ev = f_ev "doesnt matter" in
+        let ev = Result.get_ok ev in
         Printf.printf "%s" ev ;
         let%lwt () = [%expect {|
         { "seq": 22, "type": "event", "event": "process",
@@ -84,33 +85,21 @@ let%expect_test "Check sequencing etc for launch" =
               "startMethod": "launch" } } |}] in
 
         let lmode =
-          match Launch.state t |> LaunchStateMock.launch_mode |> Option.get with
+          match st |> LaunchStateMock.launch_mode |> Option.get with
           | `Launch -> "launch"
           | _ -> failwith "error: expected 'Launch' launch mode"
         in
         Printf.printf "%s" lmode;
         let%lwt () = [%expect {| launch |}] in
 
-        (* unhappy paths *)
-        let%lwt err =
-          try%lwt
-            f_ev req
-          with
-          | Dap.Wrong_encoder err -> Lwt.return err
-        in
-        Printf.printf "%s" err ;
-        let%lwt () =
-          [%expect {| cannnot destruct: Json_encoding.Cannot_destruct at /: Missing object field request_seq |}]
-        in
-
-        (* unhappy paths *)
+        (* unhappy path *)
         let%lwt err =
           try%lwt
             f_resp ev
           with
-          | Dap.Wrong_encoder err -> Lwt.return err
+          | Dap.Wrong_encoder err -> Lwt_result.fail err
         in
-        Printf.printf "%s" err ;
+        Printf.printf "%s" @@ Result.get_error err ;
         let%lwt () =
           [%expect {| cannnot destruct: Json_encoding.Cannot_destruct at /: Missing object field command |}]
         in

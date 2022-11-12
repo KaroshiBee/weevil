@@ -34,8 +34,8 @@ end
 module Attach = Attach.T (StateMock)
 
 let%expect_test "Check sequencing etc for attach" =
+  let state = StateMock.make in
   let config = Dap.Config.make () in
-  let t = Attach.make () in
   let command = Dap.Commands.attach in
   let req =
     Dap.Request.(
@@ -50,10 +50,11 @@ let%expect_test "Check sequencing etc for attach" =
       {| { "seq": 20, "type": "request", "command": "attach", "arguments": {} } |}]
   in
 
-  match Attach.handlers ~config t with
+  match Attach.handlers ~state ~config with
   | f_resp :: f_ev :: [] ->
     (* happy path *)
     let%lwt resp = f_resp req in
+    let resp = Result.get_ok resp in
     Printf.printf "%s" resp ;
     let%lwt () =
       [%expect
@@ -62,7 +63,8 @@ let%expect_test "Check sequencing etc for attach" =
         "command": "attach", "body": {} } |}]
     in
 
-    let%lwt ev = f_ev resp in
+    let%lwt ev = f_ev "string doesnt matter" in
+    let ev = Result.get_ok ev in
     Printf.printf "%s" ev ;
     let%lwt () = [%expect {|
         { "seq": 22, "type": "event", "event": "process",
@@ -71,33 +73,21 @@ let%expect_test "Check sequencing etc for attach" =
               "startMethod": "attach" } } |}] in
 
     let lmode =
-      match Attach.state t |> StateMock.launch_mode |> Option.get with
+      match state |> StateMock.launch_mode |> Option.get with
       | `Attach -> "attach"
       | _ -> failwith "error: expected 'Attach' launch mode"
     in
     Printf.printf "%s" lmode;
     let%lwt () = [%expect {| attach |}] in
 
-    (* unhappy paths *)
-    let%lwt err =
-      try%lwt
-        f_ev req
-      with
-      | Dap.Wrong_encoder err -> Lwt.return err
-    in
-    Printf.printf "%s" err ;
-    let%lwt () =
-      [%expect {| cannnot destruct: Json_encoding.Cannot_destruct at /: Missing object field request_seq |}]
-    in
-
-    (* unhappy paths *)
+    (* unhappy path *)
     let%lwt err =
       try%lwt
         f_resp ev
       with
-      | Dap.Wrong_encoder err -> Lwt.return err
+      | Dap.Wrong_encoder err -> Lwt_result.fail err
     in
-    Printf.printf "%s" err ;
+    Printf.printf "%s" @@ Result.get_error err ;
     let%lwt () =
       [%expect {| cannnot destruct: Json_encoding.Cannot_destruct at /: Missing object field command |}]
     in

@@ -8,18 +8,10 @@ module Ev = Dap.Event
 module T (S : Types.State_intf) = struct
 
   module On_request = Dap.Configuration.On_request (S)
-  include Types.Includes1 ( On_request )
 
-  type state = S.t
-
-  type t = S.t
-
-  let make ?state () = Option.value state ~default:S.make
-
-  let state t = t
-
-  let configuration_handler (_:t) =
-    On_request.make ~handler:(fun _state _config _req ->
+  let configuration_handler =
+    let h =
+      On_request.make ~handler:(fun _state _config _req ->
         let resp =
           let command = Dap.Commands.configurationDone in
           let body = D.EmptyObject.make () in
@@ -27,8 +19,11 @@ module T (S : Types.State_intf) = struct
         in
         let ret = Dap.Response.configurationDoneResponse resp in
         Dap_result.ok ret)
+    in
+    On_request.handle h
 
-  let handlers = convert_handlers ~handler1:configuration_handler
+  let handlers ~state ~config = [
+    configuration_handler ~state ~config
+  ]
+
 end
-
-include T (State)

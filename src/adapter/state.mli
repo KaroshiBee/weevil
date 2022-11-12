@@ -1,1 +1,1 @@
-include Types.State_intf
+module T : functor () -> Types.State_intf

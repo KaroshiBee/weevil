@@ -1,6 +1,3 @@
-(* for testing *)
-module T : functor (S:Types.State_intf) -> Types.String_handler_intf with type state = S.t
-
   (*
 Initialization
 
@@ -20,4 +17,6 @@ The development tool capabilities are provided in the InitializeRequestArguments
 The debug adapter returns the supported capabilities in the InitializeResponse via the Capabilities type. It is not necessary to return an explicit false for unsupported capabilities.
  *)
 
-include Types.String_handler_intf
+(* for testing *)
+module T : functor (S:Types.State_intf) -> Types.String_handler_intf with type state := S.t
+

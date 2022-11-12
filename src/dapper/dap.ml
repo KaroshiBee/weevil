@@ -23,41 +23,54 @@ module Configuration = Dap_configuration
 
 exception Wrong_encoder = Js_msg.Wrong_encoder
 
-module type TYPED_HANDLER = Dap_handlers.LINK_T
+module Converter (S:STATE_T) = struct
 
-(* (\* machinery to turn our typed handlers into string -> string handlers *\) *)
-(* module type STRING_HANDLER = sig *)
-(*   type typed_handler *)
+  module type TYPED_HANDLER = sig
+    type ('inp, 'out) t
 
-(*   type t *)
+    val make : handler:(S.t -> Config.t -> 'inp -> 'out Dap_result.t) -> ('inp, 'out) t
 
-(*   type state *)
+    val handle :
+      ('inp, 'out) t ->
+      state:S.t ->
+      config:Dap_config.t ->
+      string ->
+      (string, string) Lwt_result.t
+  end
 
-(*   val make : typed_handler -> t *)
+  (* machinery to turn our typed handlers into string -> string handlers *)
+  module type STRING_HANDLER = sig
+    type ('inp, 'out) typed_handler
 
-(*   val handle : t -> state -> Dap_config.t -> string -> string Lwt.t *)
+    type ('inp, 'out) t
 
-(* end *)
+    val make : ('inp, 'out) typed_handler -> ('inp, 'out) t
 
-(* module MakeStringHandler (H : TYPED_HANDLER) : *)
-(*   STRING_HANDLER *)
-(*   with type typed_handler := H.t and type state := H.state = struct *)
+    val handle : ('inp, 'out) t -> S.t -> Dap_config.t -> string -> string Lwt.t
 
-(*   type t = { *)
-(*     typed_handler : H.t; *)
-(*   } *)
+  end
 
-(*   let make typed_handler = *)
-(*     { *)
-(*       typed_handler; *)
-(*     } *)
+  module Make (H : TYPED_HANDLER) :
+    STRING_HANDLER
+    with type ('inp, 'out) typed_handler := ('inp, 'out) H.t = struct
 
-(*   let handle t state config s = *)
-(*     let%lwt out_msg = *)
-(*       match%lwt H.handle t.typed_handler ~state ~config s with *)
-(*       | Result.Ok msg -> Lwt.return msg *)
-(*       | Result.Error err -> Lwt.return err *)
-(*     in *)
-(*     Lwt.return out_msg *)
+    type ('inp, 'out) t = {
+      typed_handler : ('inp, 'out) H.t;
+    }
 
-(* end *)
+    let make typed_handler = {typed_handler}
+
+    let handle t state config s =
+      let%lwt out_msg =
+        match%lwt H.handle t.typed_handler ~state ~config s with
+        | Result.Ok msg -> Lwt.return msg
+        | Result.Error err -> Lwt.return err
+      in
+      Lwt.return out_msg
+
+  end
+
+end
+
+
+
