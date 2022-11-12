@@ -92,7 +92,9 @@ module type LINK_T = sig
     (string, string) Lwt_result.t
 end
 
-(* LINK links Input and Output and ensures that the seqr numbers get set properly  *)
+(* LINK links Input and Output and ensures that the seqr numbers get set properly,
+   the input message's seqr data is read and incremented then put onto both
+   the output message's & state's seqr data *)
 module LINK
     (IN_MSG_T : MSG_T)
     (IN_T : GADT_T)
@@ -187,8 +189,8 @@ end = struct
   end
 end
 
-(* REQ_RESP has just the one enum type for both In_msg and Out_msg ie Request/Response *)
-module REQ_RESP
+(* LINK_RESTRICTED is a LINK that has just the one enum type for both In_msg and Out_msg ie Request/Response *)
+module LINK_RESTRICTED
     (IN_MSG_T : MSG_T)
     (IN_T : GADT_T)
     (OUT_MSG_T : MSG_T)
@@ -225,7 +227,7 @@ end = struct
 end
 
 (* raise an event or a response or whatever directly from the backend,
-   NOTE will still have the correct seqr numbers *)
+   NOTE will still have the correct seqr numbers, pulls last known values from state *)
 module RAISE (OUT_MSG_T : MSG_T) (OUT_T : GADT_T) : sig
   module Make : functor (Out : FULL_T(OUT_MSG_T)(OUT_T).T) (S : STATE_T) -> sig
     type t
@@ -260,6 +262,7 @@ end = struct
         let setseq seq = OUT_T.(fmap_ (OUT_MSG_T.set_seq ~seq)) in
         let setseq_err seq = Err.(fmap_ (Message.set_seq ~seq)) in
         fun ~state ~config msg ->
+          (* have to pull seqr data from state because we dont have an incoming message *)
           let seqr = S.current_seqr state in
           let request_seq = Dap_base.Seqr.seq seqr in
           let seq = 1 + request_seq in
@@ -302,7 +305,9 @@ end = struct
 end
 
 module Request_response =
-  REQ_RESP (Dap_request.Message) (Dap_request) (Dap_response.Message)
+  LINK_RESTRICTED (Dap_request.Message) (Dap_request) (Dap_response.Message)
     (Dap_response)
+
 module Raise_response = RAISE (Dap_response.Message) (Dap_response)
+
 module Raise_event = RAISE (Dap_event.Message) (Dap_event)
