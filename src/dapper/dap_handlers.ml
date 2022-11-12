@@ -308,6 +308,8 @@ module Request_response =
   LINK_RESTRICTED (Dap_request.Message) (Dap_request) (Dap_response.Message)
     (Dap_response)
 
+module Raise_request = RAISE (Dap_request.Message) (Dap_request)
+
 module Raise_response = RAISE (Dap_response.Message) (Dap_response)
 
 module Raise_event = RAISE (Dap_event.Message) (Dap_event)
