@@ -35,24 +35,8 @@ module On_request =
         Dap_response.Message.enc_opt Dap_commands.attach D.EmptyObject.enc
     end)
 
-module On_response =
-  Dap_handlers.Response_event.Make
-    (struct
-      type enum = Dap_commands.attach
-
-      type contents = D.EmptyObject.t option
-
-      type presence = D.Presence.opt
-
-      type msg = (enum, contents, presence) Dap_response.Message.t
-
-      type t = msg Dap_response.t
-
-      let ctor = Dap_response.attachResponse
-
-      let enc =
-        Dap_response.Message.enc_opt Dap_commands.attach D.EmptyObject.enc
-    end)
+module Raise_process =
+  Dap_handlers.Raise_event.Make
     (struct
       type enum = Dap_events.process
 

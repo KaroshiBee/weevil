@@ -56,37 +56,18 @@ module On_request =
         Dap_response.Message.enc_opt Dap_commands.initialize D.Capabilities.enc
     end)
 
-module On_response =
-  Dap_handlers.Response_event.Make
-    (struct
-      type enum = Dap_commands.initialize
+module Raise_initialized = Dap_handlers.Raise_event.Make (struct
+  type enum = Dap_events.initialized
 
-      type contents = D.Capabilities.t option
+  type contents = D.EmptyObject.t option
 
-      type presence = D.Presence.opt
+  type presence = D.Presence.opt
 
-      type msg = (enum, contents, presence) Dap_response.Message.t
+  type msg = (enum, contents, presence) Dap_event.Message.t
 
-      type t = msg Dap_response.t
+  type t = msg Dap_event.t
 
-      let ctor = Dap_response.initializeResponse
+  let ctor = Dap_event.initializedEvent
 
-      let enc =
-        Dap_response.Message.enc_opt Dap_commands.initialize D.Capabilities.enc
-    end)
-    (struct
-      type enum = Dap_events.initialized
-
-      type contents = D.EmptyObject.t option
-
-      type presence = D.Presence.opt
-
-      type msg = (enum, contents, presence) Dap_event.Message.t
-
-      type t = msg Dap_event.t
-
-      let ctor = Dap_event.initializedEvent
-
-      let enc =
-        Dap_event.Message.enc_opt Dap_events.initialized D.EmptyObject.enc
-    end)
+  let enc = Dap_event.Message.enc_opt Dap_events.initialized D.EmptyObject.enc
+end)

@@ -68,8 +68,7 @@ module FULL_T (Msg : MSG_T) (Obj : GADT_T) = struct
   end
 end
 
-(* output sig for linking an input to an output e.g. request -> response,
-   NOTE need to keep in_t, out_t, state visible because of the handler arg in make ctor *)
+(* output sig for linking an input to an output e.g. request -> response *)
 module type LINK_T = sig
   type in_t
 
@@ -93,27 +92,39 @@ module type LINK_T = sig
     (string, string) Lwt_result.t
 end
 
-(* output sig for just creating an output e.g. raising an event from the backend, returning an error not related to a request *)
-module type CREATE_T = sig
-  include LINK_T with type in_t := unit
-end
-
 (* LINK links Input and Output and ensures that the seqr numbers get set properly  *)
 module LINK
     (IN_MSG_T : MSG_T)
     (IN_T : GADT_T)
     (OUT_MSG_T : MSG_T)
-    (OUT_T : GADT_T) =
-struct
+    (OUT_T : GADT_T) : sig
+  module Make : functor
+    (In : FULL_T(IN_MSG_T)(IN_T).T)
+    (Out : FULL_T(OUT_MSG_T)(OUT_T).T)
+    (S : STATE_T)
+    -> sig
+    type t
+
+    val make : handler:(S.t -> Dap_config.t -> In.t -> Out.t Dap_result.t) -> t
+
+    val string_to_input : string -> In.t Dap_result.t
+
+    val output_to_string : Out.t -> (string, string) Lwt_result.t
+
+    val handle :
+      t ->
+      state:S.t ->
+      config:Dap_config.t ->
+      string ->
+      (string, string) Lwt_result.t
+  end
+end = struct
   module Make
       (In : FULL_T(IN_MSG_T)(IN_T).T)
       (Out : FULL_T(OUT_MSG_T)(OUT_T).T)
       (S : STATE_T) :
     LINK_T with type in_t := In.t and type out_t := Out.t and type state := S.t =
   struct
-    (* type in_t = In.t *)
-    (* type out_t = Out.t *)
-    (* type state = S.t *)
     type t = {
       handler : state:S.t -> config:Dap_config.t -> In.t -> Out.t Dap_result.t;
     }
@@ -176,13 +187,33 @@ struct
   end
 end
 
-(* REQ_RESP_T has just the one enum type for both In_msg and Out_msg ie Request/Response *)
+(* REQ_RESP has just the one enum type for both In_msg and Out_msg ie Request/Response *)
 module REQ_RESP
     (IN_MSG_T : MSG_T)
     (IN_T : GADT_T)
     (OUT_MSG_T : MSG_T)
-    (OUT_T : GADT_T) =
-struct
+    (OUT_T : GADT_T) : sig
+  module Make : functor
+    (In : FULL_T(IN_MSG_T)(IN_T).T)
+    (Out : FULL_T(OUT_MSG_T)(OUT_T).T with type enum = In.enum)
+    (S : STATE_T)
+    -> sig
+    type t
+
+    val make : handler:(S.t -> Dap_config.t -> In.t -> Out.t Dap_result.t) -> t
+
+    val string_to_input : string -> In.t Dap_result.t
+
+    val output_to_string : Out.t -> (string, string) Lwt_result.t
+
+    val handle :
+      t ->
+      state:S.t ->
+      config:Dap_config.t ->
+      string ->
+      (string, string) Lwt_result.t
+  end
+end = struct
   module L = LINK (IN_MSG_T) (IN_T) (OUT_MSG_T) (OUT_T)
 
   module Make
@@ -193,61 +224,85 @@ struct
     L.Make (In) (Out) (S)
 end
 
-(* module CREATE (OUT_MSG_T : MSG_T) (OUT_T : GADT_T) = *)
-(* struct *)
+(* raise an event or a response or whatever directly from the backend,
+   NOTE will still have the correct seqr numbers *)
+module RAISE (OUT_MSG_T : MSG_T) (OUT_T : GADT_T) : sig
+  module Make : functor (Out : FULL_T(OUT_MSG_T)(OUT_T).T) (S : STATE_T) -> sig
+    type t
 
-(*   module Make *)
-(*       (S:STATE_T) *)
-(*       (Out:FULL_T (OUT_MSG_T) (OUT_T).T) *)
-(*       : CREATE_T with type out_t := Out.msg Out.t and type state := S.t *)
-(*     = struct *)
+    val make : handler:(S.t -> Dap_config.t -> unit -> Out.t Dap_result.t) -> t
 
-(*       module IN_MSG_FAKE = struct *)
-(*         include OUT_MSG_T *)
-(*       end *)
+    val string_to_input : string -> unit Dap_result.t
 
-(*       module IN_T_FAKE = struct *)
-(*         include OUT_T *)
-(*       end *)
+    val output_to_string : Out.t -> (string, string) Lwt_result.t
 
-(*       module In_fake = struct *)
-(*         include Out *)
-(*       end *)
+    val handle :
+      t ->
+      state:S.t ->
+      config:Dap_config.t ->
+      string ->
+      (string, string) Lwt_result.t
+  end
+end = struct
 
-(*       module L = LINK (IN_MSG_FAKE) (IN_T_FAKE) (OUT_MSG_T) (OUT_T) *)
+  module Make (Out : FULL_T(OUT_MSG_T)(OUT_T).T) (S : STATE_T) :
+    LINK_T
+      with type in_t := unit
+       and type out_t := Out.t
+       and type state := S.t
+= struct
+    type t = {
+      handler : state:S.t -> config:Dap_config.t -> unit -> Out.t Dap_result.t;
+    }
 
-(*       module T = L.Make (S) (In_fake) (Out) *)
+    let make ~handler =
+      let wrapped_handler =
+        let setseq seq = OUT_T.(fmap_ (OUT_MSG_T.set_seq ~seq)) in
+        let setseq_err seq = Err.(fmap_ (Message.set_seq ~seq)) in
+        fun ~state ~config msg ->
+          let seqr = S.current_seqr state in
+          let request_seq = Dap_base.Seqr.seq seqr in
+          let seq = 1 + request_seq in
+          let s = Dap_base.Seqr.make ~seq ~request_seq () in
+          (* setting the new seqr on state because one of the
+             following two messages will always get sent back *)
+          let () = S.set_seqr state s in
+          handler state config msg
+          |> Dap_result.map ~f:(fun v ->
+                 OUT_T.(Out.ctor @@ eval @@ map_ (val_ (setseq s), val_ v)))
+          |> Dap_result.map_error ~f:(fun err ->
+                 Err.(
+                   errorResponse @@ eval @@ map_ (val_ (setseq_err s), val_ err)))
+      in
+      {handler = wrapped_handler}
 
-(*       type t = T.t *)
+    let string_to_input _input = Dap_result.ok ()
 
-(*       let make = T.make *)
+    let output_to_string output =
+      OUT_T.(
+        let to_string =
+          fmap_ (fun msg ->
+              let r =
+                try Result.ok @@ Dap_js_msg.construct Out.enc msg
+                with _ as err -> Result.error @@ Printexc.to_string err
+              in
+              Result.map Dap_js_msg.to_string r)
+        in
+        Lwt.return @@ eval @@ map_ (val_ to_string, val_ output))
 
-(*       let string_to_input = T.string_to_input *)
-
-(*       let handle = T.handle *)
-
-(*       let output_to_string = T.output_to_string *)
-
-(* (\* sig *\) *)
-(* (\*   type out_t *\) *)
-(* (\*   type state *\) *)
-(* (\*   type t *\) *)
-(* (\*   val make : *\) *)
-(* (\*     handler:(state -> Dap_config.t -> unit -> out_t Dap_result.t) -> t *\) *)
-(* (\*   val string_to_input : string -> unit Dap_result.t *\) *)
-(* (\*   val handle : *\) *)
-(* (\*     t -> state:state -> config:Dap_config.t -> unit -> out_t Dap_result.t *\) *)
-(* (\*   val output_to_string : out_t -> (string, string) Lwt_result.t *\) *)
-(* (\* end *\) *)
-
-(*     end *)
-
-(* end *)
+    let handle t ~state ~config msg =
+      let v =
+        string_to_input msg
+        |> Dap_result.bind ~f:(t.handler ~state ~config)
+        |> Dap_result.to_lwt_error_as_str
+      in
+      (* turn into (string, string) Result.t and return either msg as the thing to send on to client *)
+      Lwt_result.(v >>= output_to_string)
+  end
+end
 
 module Request_response =
   REQ_RESP (Dap_request.Message) (Dap_request) (Dap_response.Message)
     (Dap_response)
-module Response_event =
-  LINK (Dap_response.Message) (Dap_response) (Dap_event.Message) (Dap_event)
-module Raise_event =
-  LINK (Dap_event.Message) (Dap_event) (Dap_event.Message) (Dap_event)
+module Raise_response = RAISE (Dap_response.Message) (Dap_response)
+module Raise_event = RAISE (Dap_event.Message) (Dap_event)

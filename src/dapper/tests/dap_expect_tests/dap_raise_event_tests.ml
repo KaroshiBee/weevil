@@ -8,22 +8,6 @@ module TestState = Dap_handlers.State ()
 module BreakStopped =
   Dap_handlers.Raise_event.Make
     (struct
-      type enum = Dap.Events.breakpoint
-
-      type contents = Dap.Data.BreakpointEvent_body.t
-
-      type presence = Dap.Data.Presence.req
-
-      type msg = (enum, contents, presence) Ev.Message.t
-
-      type t = msg Ev.t
-
-      let ctor = Ev.breakpointEvent
-
-      let enc =
-        Ev.Message.enc Dap.Events.breakpoint Dap.Data.BreakpointEvent_body.enc
-    end)
-    (struct
       type enum = Dap.Events.stopped
 
       type contents = Dap.Data.StoppedEvent_body.t
@@ -40,9 +24,14 @@ module BreakStopped =
     end)
     (TestState)
 
-let%expect_test "Check sequencing event/event" =
+let _reset state =
+  (* need to set the state as if messsages have already been exchanged *)
+  TestState.set_seqr state @@ Dap.Seqr.make ~seq:111 ~request_seq:110 ()
+
+let%expect_test "Check sequencing raise event" =
   let config = Dap.Config.make () in
   let state = TestState.make in
+  _reset state;
 
   let handler =
     let l =
@@ -55,36 +44,20 @@ let%expect_test "Check sequencing event/event" =
     BreakStopped.handle l
   in
 
-  let enc =
-    Ev.Message.enc Dap.Events.breakpoint Dap.Data.BreakpointEvent_body.enc
-  in
-  let break_ev =
-    let breakpoint = Dap.Data.Breakpoint.make ~verified:true () in
-    let body =
-      Dap.Data.BreakpointEvent_body.make
-        ~reason:Dap.Data.BreakpointEvent_body_reason.New
-        ~breakpoint
-        ()
-    in
-    Ev.(
-      Message.make ~seq:111 ~event:Dap.Events.breakpoint ~body ()
-      |> Js.construct enc |> Js.to_string)
-  in
-
   let seqr = TestState.current_seqr state in
   let request_seq = Dap.Seqr.request_seq seqr in
   Printf.printf "request_seq %d" request_seq;
   let%lwt () =
-    [%expect {| request_seq -1 |}]
+    [%expect {| request_seq 110 |}]
   in
 
   let seq = Dap.Seqr.seq seqr in
   Printf.printf "seq %d" seq;
   let%lwt () =
-    [%expect {| seq 0 |}]
+    [%expect {| seq 111 |}]
   in
 
-  let%lwt s = handler ~state ~config break_ev in
+  let%lwt s = handler ~state ~config "" in
 
   Printf.printf "%s" @@ Result.get_ok s ;
   let%lwt () =
@@ -108,6 +81,7 @@ let%expect_test "Check sequencing event/event" =
   in
 
   (* should also have the correct seq numbers if error happens during handling *)
+  _reset state;
   let handler_err =
     let l =
       BreakStopped.make ~handler:(fun _ _ _req ->
@@ -116,7 +90,7 @@ let%expect_test "Check sequencing event/event" =
     in
     BreakStopped.handle l
   in
-  let%lwt s = handler_err ~state ~config break_ev in
+  let%lwt s = handler_err ~state ~config "" in
   Printf.printf "%s" @@ Result.get_error s ;
   let%lwt () = [%expect
     {|
