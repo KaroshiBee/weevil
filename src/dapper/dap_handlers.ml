@@ -108,11 +108,11 @@ struct
       (In : FULL_T(IN_MSG_T)(IN_T).T)
       (Out : FULL_T(OUT_MSG_T)(OUT_T).T)
       (S : STATE_T) :
-    LINK_T with type in_t = In.t and type out_t = Out.t and type state = S.t =
+    LINK_T with type in_t := In.t and type out_t := Out.t and type state := S.t =
   struct
-    type in_t = In.t
-    type out_t = Out.t
-    type state = S.t
+    (* type in_t = In.t *)
+    (* type out_t = Out.t *)
+    (* type state = S.t *)
     type t = {
       handler : state:S.t -> config:Dap_config.t -> In.t -> Out.t Dap_result.t;
     }
@@ -188,7 +188,7 @@ struct
       (In : FULL_T(IN_MSG_T)(IN_T).T)
       (Out : FULL_T(OUT_MSG_T)(OUT_T).T with type enum = In.enum)
       (S : STATE_T) :
-    LINK_T with type in_t = In.t and type out_t = Out.t and type state = S.t =
+    LINK_T with type in_t := In.t and type out_t := Out.t and type state := S.t =
     L.Make (In) (Out) (S)
 end
 
