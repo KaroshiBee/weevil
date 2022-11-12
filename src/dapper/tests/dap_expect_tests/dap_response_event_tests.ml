@@ -3,6 +3,8 @@ module Js = Data_encoding.Json
 module Res = Dap.Response
 module Ev = Dap.Event
 
+module TestState = Dap_handlers.State ()
+
 module ProcessLaunched =
   Dap_handlers.Response_event.Make
     (struct
@@ -35,11 +37,11 @@ module ProcessLaunched =
 
       let enc = Ev.Message.enc Dap.Events.process Dap.Data.ProcessEvent_body.enc
     end)
-    (Dap_handlers.State)
+    (TestState)
 
 let%expect_test "Check sequencing response/event" =
   let config = Dap.Config.make () in
-  let state = Dap_handlers.State.make in
+  let state = TestState.make in
   let handler =
     let l =
       ProcessLaunched.make ~handler:(fun _ _ _ ->
@@ -60,8 +62,8 @@ let%expect_test "Check sequencing response/event" =
   let resp_launch =
     Res.(
       Message.make_opt
-        ~seq:111
-        ~request_seq:110
+        ~seq:121
+        ~request_seq:120
         ~success:true
         ~command:Dap.Commands.launch
         ~body:(Dap.Data.EmptyObject.make ())
@@ -69,15 +71,41 @@ let%expect_test "Check sequencing response/event" =
       |> Js.construct enc |> Js.to_string)
   in
 
+  let seqr = TestState.current_seqr state in
+  let request_seq = Dap.Seqr.request_seq seqr in
+  Printf.printf "request_seq %d" request_seq;
+  let%lwt () =
+    [%expect {| request_seq -1 |}]
+  in
+
+  let seq = Dap.Seqr.seq seqr in
+  Printf.printf "seq %d" seq;
+  let%lwt () =
+    [%expect {| seq 0 |}]
+  in
+
   let%lwt s = handler ~state ~config resp_launch in
   Printf.printf "%s" @@ Result.get_ok s ;
   let%lwt () =
     [%expect
       {|
-    { "seq": 112, "type": "event", "event": "process",
+    { "seq": 122, "type": "event", "event": "process",
       "body":
         { "name": "TODO PROCESS EVENT NAME e.g. test.tz",
           "startMethod": "launch" } } |}]
+  in
+
+  let seqr = TestState.current_seqr state in
+  let request_seq = Dap.Seqr.request_seq seqr in
+  Printf.printf "request_seq %d" request_seq;
+  let%lwt () =
+    [%expect {| request_seq 121 |}]
+  in
+
+  let seq = Dap.Seqr.seq seqr in
+  Printf.printf "seq %d" seq;
+  let%lwt () =
+    [%expect {| seq 122 |}]
   in
 
   (* should also have the correct seq numbers if error happens during handling *)
@@ -91,11 +119,23 @@ let%expect_test "Check sequencing response/event" =
   in
   let%lwt s = handler_err ~state ~config resp_launch in
   Printf.printf "%s" @@ Result.get_error s ;
-  [%expect
+  let%lwt () = [%expect
     {|
-    { "seq": 112, "type": "response", "request_seq": 111, "success": false,
+    { "seq": 122, "type": "response", "request_seq": 121, "success": false,
       "command": "error",
       "body":
         { "error":
             { "id": 400237674, "format": "{error}",
               "variables": { "error": "testing error" } } } } |}]
+  in
+
+  let seqr = TestState.current_seqr state in
+  let request_seq = Dap.Seqr.request_seq seqr in
+  Printf.printf "request_seq %d" request_seq;
+  let%lwt () =
+    [%expect {| request_seq 121 |}]
+  in
+
+  let seq = Dap.Seqr.seq seqr in
+  Printf.printf "seq %d" seq;
+  [%expect {| seq 122 |}]

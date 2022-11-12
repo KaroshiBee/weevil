@@ -10,7 +10,8 @@ module type STATE_T = sig
   val set_seqr : t -> Dap_base.Seqr.t -> unit
 end
 
-module State : STATE_T = struct
+(* blank arg functor so can make separate ones for testing *)
+module State () : STATE_T = struct
   type t = {mutable seqr : Dap_base.Seqr.t}
 
   let make = {seqr = Dap_base.Seqr.make ~seq:0 ()}

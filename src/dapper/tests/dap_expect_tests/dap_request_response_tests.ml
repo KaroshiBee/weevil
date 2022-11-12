@@ -3,6 +3,8 @@ module Js = Data_encoding.Json
 module Req = Dap.Request
 module Res = Dap.Response
 
+module TestState = Dap_handlers.State ()
+
 module Launch =
   Dap_handlers.Request_response.Make
     (struct
@@ -36,11 +38,11 @@ module Launch =
 
       let enc = Res.Message.enc_opt Dap.Commands.launch Dap.Data.EmptyObject.enc
     end)
-    (Dap_handlers.State)
+    (TestState)
 
 let%expect_test "Check sequencing request/response" =
   let config = Dap.Config.make () in
-  let state = Dap_handlers.State.make in
+  let state = TestState.make in
   let handler =
     let l =
       Launch.make ~handler:(fun _st _cfg _req ->
@@ -64,6 +66,19 @@ let%expect_test "Check sequencing request/response" =
       |> Js.construct enc |> Js.to_string)
   in
 
+  let seqr = TestState.current_seqr state in
+  let request_seq = Dap.Seqr.request_seq seqr in
+  Printf.printf "request_seq %d" request_seq;
+  let%lwt () =
+    [%expect {| request_seq -1 |}]
+  in
+
+  let seq = Dap.Seqr.seq seqr in
+  Printf.printf "seq %d" seq;
+  let%lwt () =
+    [%expect {| seq 0 |}]
+  in
+
   let%lwt s = handler ~state ~config req_launch in
   Printf.printf "%s" @@ Result.get_ok s ;
   let%lwt () =
@@ -71,6 +86,19 @@ let%expect_test "Check sequencing request/response" =
       {|
     { "seq": 102, "type": "response", "request_seq": 101, "success": true,
       "command": "launch", "body": {} } |}]
+  in
+
+  let seqr = TestState.current_seqr state in
+  let request_seq = Dap.Seqr.request_seq seqr in
+  Printf.printf "request_seq %d" request_seq;
+  let%lwt () =
+    [%expect {| request_seq 101 |}]
+  in
+
+  let seq = Dap.Seqr.seq seqr in
+  Printf.printf "seq %d" seq;
+  let%lwt () =
+    [%expect {| seq 102 |}]
   in
 
   (* NOTE can no longer pass wrong type in *)
@@ -88,7 +116,7 @@ let%expect_test "Check sequencing request/response" =
   in
   let%lwt s = handler_err ~state ~config req_launch in
   Printf.printf "%s" @@ Result.get_error s ;
-  [%expect
+  let%lwt () = [%expect
     {|
     { "seq": 102, "type": "response", "request_seq": 101, "success": false,
       "command": "error",
@@ -96,3 +124,14 @@ let%expect_test "Check sequencing request/response" =
         { "error":
             { "id": 400237674, "format": "{error}",
               "variables": { "error": "testing error" } } } } |}]
+  in
+  let seqr = TestState.current_seqr state in
+  let request_seq = Dap.Seqr.request_seq seqr in
+  Printf.printf "request_seq %d" request_seq;
+  let%lwt () =
+    [%expect {| request_seq 101 |}]
+  in
+
+  let seq = Dap.Seqr.seq seqr in
+  Printf.printf "seq %d" seq;
+  [%expect {| seq 102 |}]

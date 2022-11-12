@@ -13,7 +13,8 @@ module Event = Dap_event
 module Dap_result = Dap_result
 
 module type STATE_T = Dap_handlers.STATE_T
-module State = Dap_handlers.State
+module MakeState = Dap_handlers.State
+module Seqr = Dap_base.Seqr
 
 module Attach = Dap_attach
 module Launch = Dap_launch
@@ -24,39 +25,39 @@ exception Wrong_encoder = Js_msg.Wrong_encoder
 
 module type TYPED_HANDLER = Dap_handlers.LINK_T
 
-(* machinery to turn our typed handlers into string -> string handlers *)
-module type STRING_HANDLER = sig
-  type typed_handler
+(* (\* machinery to turn our typed handlers into string -> string handlers *\) *)
+(* module type STRING_HANDLER = sig *)
+(*   type typed_handler *)
 
-  type t
+(*   type t *)
 
-  type state
+(*   type state *)
 
-  val make : typed_handler -> t
+(*   val make : typed_handler -> t *)
 
-  val handle : t -> state -> Dap_config.t -> string -> string Lwt.t
+(*   val handle : t -> state -> Dap_config.t -> string -> string Lwt.t *)
 
-end
+(* end *)
 
-module MakeStringHandler (H : TYPED_HANDLER) :
-  STRING_HANDLER
-  with type typed_handler := H.t and type state := H.state = struct
+(* module MakeStringHandler (H : TYPED_HANDLER) : *)
+(*   STRING_HANDLER *)
+(*   with type typed_handler := H.t and type state := H.state = struct *)
 
-  type t = {
-    typed_handler : H.t;
-  }
+(*   type t = { *)
+(*     typed_handler : H.t; *)
+(*   } *)
 
-  let make typed_handler =
-    {
-      typed_handler;
-    }
+(*   let make typed_handler = *)
+(*     { *)
+(*       typed_handler; *)
+(*     } *)
 
-  let handle t state config s =
-    let%lwt out_msg =
-      match%lwt H.handle t.typed_handler ~state ~config s with
-      | Result.Ok msg -> Lwt.return msg
-      | Result.Error err -> Lwt.return err
-    in
-    Lwt.return out_msg
+(*   let handle t state config s = *)
+(*     let%lwt out_msg = *)
+(*       match%lwt H.handle t.typed_handler ~state ~config s with *)
+(*       | Result.Ok msg -> Lwt.return msg *)
+(*       | Result.Error err -> Lwt.return err *)
+(*     in *)
+(*     Lwt.return out_msg *)
 
-end
+(* end *)
