@@ -5,7 +5,7 @@ module Js = Data_encoding.Json
 
 module StateMock = struct
   type t = {
-    mutable launch_mode : D.Launch_mode.t option;
+    mutable launch_mode : Launch_mode.t option;
     mutable seqr: D.Seqr.t;
     mutable config : Config.t;
   }

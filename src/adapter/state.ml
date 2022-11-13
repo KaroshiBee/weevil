@@ -1,6 +1,5 @@
 open Conduit_lwt_unix
 module Dap = Dapper.Dap
-module Launch_mode = Dap.Data.Launch_mode
 
 module T () = struct
   type t = {

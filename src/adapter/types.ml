@@ -13,9 +13,9 @@ module type State_intf = sig
 
   val connect_backend : t -> Ipaddr.t -> int -> (Lwt_io.input_channel * Lwt_io.output_channel) Dap.Dap_result.t
 
-  val launch_mode : t -> Dap.Data.Launch_mode.t option
+  val launch_mode : t -> Launch_mode.t option
 
-  val set_launch_mode : t -> Dap.Data.Launch_mode.t -> unit
+  val set_launch_mode : t -> Launch_mode.t -> unit
 
   val config : t -> Config.t
 

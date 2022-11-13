@@ -49,10 +49,6 @@
 
 *)
 
-module Launch_mode = struct
-  type t = [`Launch | `Attach | `AttachForSuspendedLaunch ]
-end
-
 
 (* some helper modules *)
 module EmptyObject : sig
