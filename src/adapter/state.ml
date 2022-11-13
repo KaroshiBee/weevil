@@ -1,19 +1,26 @@
 open Conduit_lwt_unix
 module Dap = Dapper.Dap
 
-module T () = struct
+module T (Dap_state:Dap.STATE_T) = struct
   type t = {
+    dap_state: Dap_state.t;
     (* the backend svc process, using process_none to allow for std redirection if needed later on *)
     mutable process : Lwt_process.process_none option;
     (* the backend comms channels *)
     mutable ic : Lwt_io.input_channel option;
     mutable oc : Lwt_io.output_channel option;
     mutable launch_mode : Launch_mode.t option;
-    mutable seqr : Dap.Data.Seqr.t;
     mutable config : Config.t;
   }
 
-  let make () = {process = None; ic = None; oc = None; launch_mode = None; seqr = Dap.Data.Seqr.make ~seq:0 (); config = Config.make ()}
+  let make () = {
+    dap_state = Dap_state.make ();
+    process = None;
+    ic = None;
+    oc = None;
+    launch_mode = None;
+    config = Config.make ()
+  }
 
   let process_none t = t.process
 
@@ -89,9 +96,9 @@ module T () = struct
 
   let set_launch_mode t launch_mode = t.launch_mode <- Some launch_mode
 
-  let current_seqr t = t.seqr
+  let current_seqr t = Dap_state.current_seqr t.dap_state
 
-  let set_seqr t seqr = t.seqr <- seqr
+  let set_seqr t seqr = Dap_state.set_seqr t.dap_state seqr
 
   let config t = t.config
 

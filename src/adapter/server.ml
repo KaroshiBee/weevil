@@ -2,7 +2,7 @@ module Dap = Dapper.Dap
 module Conduit = Conduit_lwt_unix
 open Lwt
 
-module GlobalState = State.T ()
+module GlobalState = State.T (Dap.MakeState ())
 
 module Handler = Handler.T (GlobalState)
 
