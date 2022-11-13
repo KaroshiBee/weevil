@@ -19,12 +19,12 @@ module LaunchStateMock = struct
   }
 
   let connect_backend t _ip _port =
-    Dap.Dap_result.ok @@ Option.(Lwt_io.stdin, get t.oc)
+    Dap.Result.ok @@ Option.(Lwt_io.stdin, get t.oc)
 
   let process_none _t =
     Option.some @@ Lwt_process.open_process_none ("", [|":"|])
 
-  let start_backend _t _ip _port _cmd = Dap.Dap_result.ok ()
+  let start_backend _t _ip _port _cmd = Dap.Result.ok ()
 
   let ic _t = failwith "MOCK ic"
 

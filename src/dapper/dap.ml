@@ -7,7 +7,7 @@ module Data = Dap_message.Data
 module Request = Dap_request
 module Response = Dap_response
 module Event = Dap_event
-module Dap_result = Dap_result
+module Result = Dap_result
 
 module type STATE_T = Dap_types.STATE_T
 module MakeState = Dap_state.T

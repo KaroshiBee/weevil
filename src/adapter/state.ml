@@ -43,14 +43,14 @@ module T (Dap_state:Dap.STATE_T) = struct
     let pcmd = Config.(to_process_command cmd) in
     let p =
       try%lwt
-        Dap.Dap_result.ok @@ Lwt_process.open_process_none pcmd
+        Dap.Result.ok @@ Lwt_process.open_process_none pcmd
       with
       | _ as err ->
         let err_s = Printexc.to_string err in
-        Dap.Dap_result.(from_error_string err_s |> or_log_error)
+        Dap.Result.(from_error_string err_s |> or_log_error)
     in
 
-    p |> Dap.Dap_result.bind ~f:(fun process ->
+    p |> Dap.Result.bind ~f:(fun process ->
         let%lwt () = Logs_lwt.debug (fun m ->
             m "backend service has state: '%s'"
             @@
@@ -58,7 +58,7 @@ module T (Dap_state:Dap.STATE_T) = struct
             | Lwt_process.Running -> "running"
             | Lwt_process.Exited _ -> "exited")
         in
-        Dap.Dap_result.ok @@ _set_process_none t process
+        Dap.Result.ok @@ _set_process_none t process
       )
 
   (* loop a fixed number of times with a sleep, to make sure to connect when up *)
@@ -83,15 +83,15 @@ module T (Dap_state:Dap.STATE_T) = struct
     let res =
       try%lwt
         let%lwt (_flow, ic, oc) = _aux ~ctx ~client ~port 1 in
-        (ic, oc) |> Dap.Dap_result.ok
+        (ic, oc) |> Dap.Result.ok
       with _ as err ->
         let err_s = Printexc.to_string err in
-        Dap.Dap_result.(from_error_string err_s |> or_log_error)
+        Dap.Result.(from_error_string err_s |> or_log_error)
     in
     res
-    |> Dap.Dap_result.bind ~f:(fun (ic, oc) ->
+    |> Dap.Result.bind ~f:(fun (ic, oc) ->
         let () = _set_io t ic oc in
-        Dap.Dap_result.ok (ic, oc))
+        Dap.Result.ok (ic, oc))
 
   let launch_mode t = t.launch_mode
 
