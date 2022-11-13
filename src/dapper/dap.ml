@@ -13,6 +13,7 @@ module type STATE_T = Dap_types.STATE_T
 module MakeState = Dap_state.T
 module Seqr = Dap_base.Seqr
 
+module Error = Dap_error
 module Attach = Dap_attach
 module Launch = Dap_launch
 module Initialize = Dap_initialize
