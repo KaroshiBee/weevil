@@ -18,7 +18,6 @@ module LaunchStateMock = struct
     config=Dap.Config.make ();
   }
 
-
   let connect_backend t _ip _port =
     Dap.Dap_result.ok @@ Option.(Lwt_io.stdin, get t.oc)
 
