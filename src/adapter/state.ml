@@ -11,10 +11,10 @@ module T () = struct
     mutable oc : Lwt_io.output_channel option;
     mutable launch_mode : Launch_mode.t option;
     mutable seqr : Dap.Data.Seqr.t;
-    mutable config : Dap.Config.t;
+    mutable config : Config.t;
   }
 
-  let make = {process = None; ic = None; oc = None; launch_mode = None; seqr = Dap.Data.Seqr.make ~seq:0 (); config = Dap.Config.make ()}
+  let make = {process = None; ic = None; oc = None; launch_mode = None; seqr = Dap.Data.Seqr.make ~seq:0 (); config = Config.make ()}
 
   let process_none t = t.process
 
@@ -33,7 +33,7 @@ module T () = struct
       Logs_lwt.debug (fun m ->
           m "launching backend service with cmd: '%s'" cmd)
     in
-    let pcmd = Dap.Config.(to_process_command cmd) in
+    let pcmd = Config.(to_process_command cmd) in
     let p =
       try%lwt
         Dap.Dap_result.ok @@ Lwt_process.open_process_none pcmd

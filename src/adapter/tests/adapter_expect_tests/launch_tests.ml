@@ -8,14 +8,14 @@ module LaunchStateMock = struct
     mutable launch_mode : D.Launch_mode.t option;
     mutable oc: Lwt_io.output_channel option;
     mutable seqr: D.Seqr.t;
-    mutable config : Dap.Config.t;
+    mutable config : Config.t;
   }
 
   let make = {
     launch_mode = None;
     oc=None;
     seqr=D.Seqr.make ~seq:0 ();
-    config=Dap.Config.make ();
+    config=Config.make ();
   }
 
   let connect_backend t _ip _port =

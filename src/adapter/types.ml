@@ -17,9 +17,9 @@ module type State_intf = sig
 
   val set_launch_mode : t -> Dap.Data.Launch_mode.t -> unit
 
-  val config : t -> Dapper.Dap_config.t
+  val config : t -> Config.t
 
-  val set_config : t -> Dapper.Dap_config.t -> unit
+  val set_config : t -> Config.t -> unit
 
 end
 

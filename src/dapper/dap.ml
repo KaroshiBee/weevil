@@ -4,8 +4,6 @@ module Events = Dap_events
 module Js_msg = Dap_js_msg
 module Header = Dap_header
 
-module Config = Dap_config
-
 module Data = Dap_message.Data
 module Request = Dap_request
 module Response = Dap_response

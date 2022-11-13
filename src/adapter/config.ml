@@ -6,11 +6,12 @@ type t = {
   backend_echo: string;
   stepper_cmd: string;
 }
+
 let _backend_ip = Defaults.Vals._DEFAULT_LISTEN_ADDRESS
 let _backend_port = Defaults.Vals._DEFAULT_BACKEND_PORT
-let _backend_cmd = "dune exec -- ./src/main.exe backend"
-let _stepper_cmd = "dune exec -- ./src/main.exe stepper example.tz"
-let _backend_echo = "echo 1"
+let _backend_cmd = Defaults.Vals._DEFAULT_BACKEND_CMD
+let _stepper_cmd = Defaults.Vals._DEFAULT_STEPPER_CMD
+let _backend_echo = Defaults.Vals._DEFAULT_BACKEND_ECHO
 
 let make ?(backend_ip=_backend_ip) ?(backend_port=_backend_port) ?(backend_cmd=_backend_cmd) ?(stepper_cmd=_stepper_cmd) ?(backend_echo=_backend_echo) () =
   {backend_ip; backend_port; backend_cmd; stepper_cmd; backend_echo}
@@ -27,4 +28,7 @@ let backend_port t = t.backend_port
 let backend_ip t = t.backend_ip |> make_address
 
 let backend_cmd t = t.backend_cmd
+
 let to_process_command s = ("", s |> String.split_on_char ' ' |> Array.of_list)
+
+let stepper_cmd t = t.stepper_cmd

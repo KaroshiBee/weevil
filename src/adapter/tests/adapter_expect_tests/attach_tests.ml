@@ -7,13 +7,13 @@ module StateMock = struct
   type t = {
     mutable launch_mode : D.Launch_mode.t option;
     mutable seqr: D.Seqr.t;
-    mutable config : Dap.Config.t;
+    mutable config : Config.t;
   }
 
   let make = {
     launch_mode = None;
     seqr = D.Seqr.make ~seq:0 ();
-       config=Dap.Config.make ();
+       config=Config.make ();
   }
 
   let connect_backend _ip _port = failwith "MOCK connect"

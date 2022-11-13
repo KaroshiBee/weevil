@@ -51,9 +51,9 @@ module T (S : Types.State_intf) = struct
     let h =
       On_request.make ~handler:(fun state _req ->
         let config = S.config state in
-        let ip = Dap.Config.backend_ip config |> Ipaddr_unix.of_inet_addr in
-        let port = Dap.Config.backend_port config in
-        let cmd = Dap.Config.backend_cmd config in
+        let ip = Config.backend_ip config |> Ipaddr_unix.of_inet_addr in
+        let port = Config.backend_port config in
+        let cmd = Config.backend_cmd config in
         let resp =
           let command = Dap.Commands.launch in
           let body = D.EmptyObject.make () in
@@ -64,14 +64,15 @@ module T (S : Types.State_intf) = struct
         _start_background_svc state ip port cmd
         |> Dap_result.bind ~f:(fun _ -> _connect_background_svc state ip port)
         |> Dap_result.bind ~f:(fun (_ic, oc) ->
+            let stepper_cmd = Config.stepper_cmd config in
                let%lwt () =
                  Logs_lwt.debug (fun m ->
                      m
                        "trying to start the debugger with cmd: '%s'"
-                       config.stepper_cmd)
+                       stepper_cmd)
                in
                let runscript =
-                 Mich_event.make ~event:(RunScript config.stepper_cmd) ()
+                 Mich_event.make ~event:(RunScript stepper_cmd) ()
                in
                (* NOTE remove all \n with wrap *)
                let runscript_s =

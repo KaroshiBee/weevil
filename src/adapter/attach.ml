@@ -25,8 +25,8 @@ module T (S : Types.State_intf) = struct
             Dap_result.ok resp
         | None -> (
             (* NOTE dont need to start the backend as we are in attach mode, just connect to the backend *)
-            let ip = Dap.Config.backend_ip config |> Ipaddr_unix.of_inet_addr in
-            let port = Dap.Config.backend_port config in
+            let ip = Config.backend_ip config |> Ipaddr_unix.of_inet_addr in
+            let port = Config.backend_port config in
             S.connect_backend state ip port
             |> Dap_result.or_log_error
             |> Dap_result.map ~f:(fun _ -> resp)
