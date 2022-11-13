@@ -8,12 +8,14 @@ module LaunchStateMock = struct
     mutable launch_mode : D.Launch_mode.t option;
     mutable oc: Lwt_io.output_channel option;
     mutable seqr: D.Seqr.t;
+    mutable config : Dap.Config.t;
   }
 
   let make = {
     launch_mode = None;
     oc=None;
-    seqr=D.Seqr.make ~seq:0 ()
+    seqr=D.Seqr.make ~seq:0 ();
+    config=Dap.Config.make ();
   }
 
 
@@ -40,13 +42,16 @@ module LaunchStateMock = struct
 
   let set_seqr t seqr = t.seqr <- seqr
 
+  let config t = t.config
+
+  let set_config t config = t.config <- config
+
 end
 
 module Launch = Launch.T (LaunchStateMock)
 
 let%expect_test "Check sequencing etc for launch" =
   let st = LaunchStateMock.make in
-  let config = Dap.Config.make () in
   Lwt_io.with_temp_file ~temp_dir:"/dev/shm" (fun (_, oc) ->
       let () = LaunchStateMock.set_io st oc in
       let command = Dap.Commands.launch in
@@ -62,7 +67,7 @@ let%expect_test "Check sequencing etc for launch" =
           {| { "seq": 20, "type": "request", "command": "launch", "arguments": {} } |}]
       in
 
-      match Launch.handlers ~state:st ~config with
+      match Launch.handlers ~state:st with
       | f_resp :: f_ev :: [] ->
         (* happy path *)
         let%lwt resp = f_resp req in

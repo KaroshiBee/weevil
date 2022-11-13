@@ -29,13 +29,12 @@ let _reset state =
   TestState.set_seqr state @@ Dap.Seqr.make ~seq:121 ~request_seq:120 ()
 
 let%expect_test "Check sequencing raise response" =
-  let config = Dap.Config.make () in
   let state = TestState.make in
   _reset state;
 
   let handler =
     let l =
-      ProcessLaunched.make ~handler:(fun _ _ _ ->
+      ProcessLaunched.make ~handler:(fun _ _ ->
           Res.(
             let body = Dap.Data.EmptyObject.make () in
             let msg = default_response_opt Dap.Commands.launch body in
@@ -60,7 +59,7 @@ let%expect_test "Check sequencing raise response" =
     [%expect {| seq 121 |}]
   in
 
-  let%lwt s = handler ~state ~config "" in
+  let%lwt s = handler ~state "" in
   Printf.printf "%s" @@ Result.get_ok s ;
   let%lwt () =
     [%expect
@@ -86,13 +85,13 @@ let%expect_test "Check sequencing raise response" =
   _reset state;
   let handler_err =
     let l =
-      ProcessLaunched.make ~handler:(fun _ _ _req ->
+      ProcessLaunched.make ~handler:(fun _ _req ->
           Res.default_response_error "testing error"
           |> Res.errorResponse |> Dap_result.error)
     in
     ProcessLaunched.handle l
   in
-  let%lwt s = handler_err ~state ~config "" in
+  let%lwt s = handler_err ~state "" in
   Printf.printf "%s" @@ Result.get_error s ;
   let%lwt () = [%expect
     {|

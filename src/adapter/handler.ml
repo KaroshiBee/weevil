@@ -57,11 +57,11 @@ module T (S:Types.State_intf) = struct
         |> List.to_seq |> Hashtbl.of_seq;
     }
 
-  let _find_handler ~state ~config message = function
+  let _find_handler ~state message = function
     | None -> Lwt.return_none
     | Some h -> (
         let module H = (val h : HANDLER) in
-        let handlers = H.handlers ~state ~config in
+        let handlers = H.handlers ~state in
         let init = Lwt.return (message, []) in
         try%lwt
           let%lwt (_, output) =
@@ -80,7 +80,7 @@ module T (S:Types.State_intf) = struct
           Lwt.return_some output
         with Dap.Wrong_encoder _ -> Lwt.return_none)
 
-  let handle_exn t state config message =
+  let handle_exn t state message =
     let%lwt output =
       let cmds =
         [
@@ -99,7 +99,7 @@ module T (S:Types.State_intf) = struct
       cmds
       |> Lwt_list.filter_map_p (fun cmd ->
           let h = Hashtbl.find_opt t.handlers cmd in
-          _find_handler ~state ~config message h)
+          _find_handler ~state message h)
     in
 
     let ret =

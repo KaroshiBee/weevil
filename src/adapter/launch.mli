@@ -9,7 +9,7 @@
 (* Since arguments for both requests are highly dependent on a specific debugger and debug adapter implementation, the Debug Adapter Protocol does not specify any arguments for these requests. Instead, the development tool is expected to get information about debugger specific arguments from elsewhere (e.g. contributed by some plugin or extension mechanism) and to build a UI and validation mechanism on top of that. *)
 (*   *\) *)
 
-(* for testing *)
+(* functord for testing purposes *)
 module T : functor (S:Types.State_intf) ->
   Types.String_handler_intf
     with type state := S.t

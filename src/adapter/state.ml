@@ -11,9 +11,10 @@ module T () = struct
     mutable oc : Lwt_io.output_channel option;
     mutable launch_mode : Launch_mode.t option;
     mutable seqr : Dap.Data.Seqr.t;
+    mutable config : Dap.Config.t;
   }
 
-  let make = {process = None; ic = None; oc = None; launch_mode = None; seqr = Dap.Data.Seqr.make ~seq:0 ()}
+  let make = {process = None; ic = None; oc = None; launch_mode = None; seqr = Dap.Data.Seqr.make ~seq:0 (); config = Dap.Config.make ()}
 
   let process_none t = t.process
 
@@ -92,4 +93,9 @@ module T () = struct
   let current_seqr t = t.seqr
 
   let set_seqr t seqr = t.seqr <- seqr
+
+  let config t = t.config
+
+  let set_config t config = t.config <- config
+
 end

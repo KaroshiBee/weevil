@@ -12,7 +12,8 @@ module T (S : Types.State_intf) = struct
 
   let attach_handler =
     let h =
-      On_request.make ~handler:(fun state config _req ->
+      On_request.make ~handler:(fun state _req ->
+        let config = S.config state in
         let body = D.EmptyObject.make () in
         let command = Dap.Commands.attach in
         let resp =
@@ -35,7 +36,7 @@ module T (S : Types.State_intf) = struct
 
   let process_handler =
     let h =
-      On_response.make ~handler:(fun _ _ _resp ->
+      On_response.make ~handler:(fun _ _resp ->
         let event = Dap.Events.process in
         let startMethod = D.ProcessEvent_body_startMethod.Attach in
         let body =
@@ -48,9 +49,9 @@ module T (S : Types.State_intf) = struct
     in
     On_response.handle h
 
-  let handlers ~state ~config = [
-    attach_handler ~state ~config;
-    process_handler ~state ~config;
+  let handlers ~state = [
+    attach_handler ~state;
+    process_handler ~state;
   ]
 
 end

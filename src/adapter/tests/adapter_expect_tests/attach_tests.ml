@@ -7,9 +7,14 @@ module StateMock = struct
   type t = {
     mutable launch_mode : D.Launch_mode.t option;
     mutable seqr: D.Seqr.t;
+    mutable config : Dap.Config.t;
   }
 
-  let make = {launch_mode = None; seqr = D.Seqr.make ~seq:0 ()}
+  let make = {
+    launch_mode = None;
+    seqr = D.Seqr.make ~seq:0 ();
+       config=Dap.Config.make ();
+  }
 
   let connect_backend _ip _port = failwith "MOCK connect"
 
@@ -29,13 +34,16 @@ module StateMock = struct
 
   let set_seqr t seqr = t.seqr <- seqr
 
+  let config t = t.config
+
+  let set_config t config = t.config <- config
+
 end
 
 module Attach = Attach.T (StateMock)
 
 let%expect_test "Check sequencing etc for attach" =
   let state = StateMock.make in
-  let config = Dap.Config.make () in
   let command = Dap.Commands.attach in
   let req =
     Dap.Request.(
@@ -50,7 +58,7 @@ let%expect_test "Check sequencing etc for attach" =
       {| { "seq": 20, "type": "request", "command": "attach", "arguments": {} } |}]
   in
 
-  match Attach.handlers ~state ~config with
+  match Attach.handlers ~state with
   | f_resp :: f_ev :: [] ->
     (* happy path *)
     let%lwt resp = f_resp req in
@@ -80,7 +88,7 @@ let%expect_test "Check sequencing etc for attach" =
     Printf.printf "%s" lmode;
     let%lwt () = [%expect {| attach |}] in
 
-    (* unhappy path *)
+    (* unhappy path, f_resp is expecting a request *)
     let%lwt err =
       try%lwt
         f_resp ev

@@ -49,7 +49,8 @@ module T (S : Types.State_intf) = struct
 
   let launch_handler =
     let h =
-      On_request.make ~handler:(fun state config _req ->
+      On_request.make ~handler:(fun state _req ->
+        let config = S.config state in
         let ip = Dap.Config.backend_ip config |> Ipaddr_unix.of_inet_addr in
         let port = Dap.Config.backend_port config in
         let cmd = Dap.Config.backend_cmd config in
@@ -88,7 +89,7 @@ module T (S : Types.State_intf) = struct
 
   let process_handler =
     let h =
-      On_response.make ~handler:(fun _state _config _resp ->
+      On_response.make ~handler:(fun _state _resp ->
         let ev =
           let event = Dap.Events.process in
           let startMethod = D.ProcessEvent_body_startMethod.Launch in
@@ -105,9 +106,9 @@ module T (S : Types.State_intf) = struct
     in
     On_response.handle h
 
-  let handlers ~state ~config = [
-    launch_handler ~state ~config;
-    process_handler ~state ~config;
+  let handlers ~state = [
+    launch_handler ~state;
+    process_handler ~state;
   ]
 
 end

@@ -17,6 +17,10 @@ module type State_intf = sig
 
   val set_launch_mode : t -> Dap.Data.Launch_mode.t -> unit
 
+  val config : t -> Dapper.Dap_config.t
+
+  val set_config : t -> Dapper.Dap_config.t -> unit
+
 end
 
 
@@ -25,7 +29,7 @@ module type String_handler_intf = sig
   type state
 
   val handlers :
-    state:state -> config:Dap.Config.t -> (string -> (string, string) Lwt_result.t) list
+    state:state -> (string -> (string, string) Lwt_result.t) list
 
 end
 
@@ -53,7 +57,6 @@ module type Handler_intf = sig
   val handle_exn :
     t ->
     state ->
-    Dapper.Dap_config.t ->
     string ->
     (string list, string) Lwt_result.t
 end

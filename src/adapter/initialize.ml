@@ -12,7 +12,7 @@ module T (S : Types.State_intf) = struct
 
   let initialize_handler =
     let h =
-      On_request.make ~handler:(fun _state _config _req ->
+      On_request.make ~handler:(fun _state _req ->
         let resp =
           let command = Dap.Commands.initialize in
           (* TODO hardcode capabilities or pull in from config *)
@@ -26,7 +26,7 @@ module T (S : Types.State_intf) = struct
 
   let raise_initialized =
     let h =
-      On_response.make ~handler:(fun _state _config _req ->
+      On_response.make ~handler:(fun _state _req ->
         let ev =
           let event = Dap.Events.initialized in
           let body = D.EmptyObject.make () in
@@ -37,9 +37,9 @@ module T (S : Types.State_intf) = struct
     in
     On_response.handle h
 
-  let handlers ~state ~config = [
-    initialize_handler ~state ~config;
-    raise_initialized ~state ~config;
+  let handlers ~state = [
+    initialize_handler ~state;
+    raise_initialized ~state;
   ]
 
 end
