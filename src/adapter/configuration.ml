@@ -10,8 +10,7 @@ module T (S : Types.State_intf) = struct
   module On_request = Dap.Configuration.On_request (S)
 
   let configuration_handler =
-    let h =
-      On_request.make ~handler:(fun _state _req ->
+    On_request.make ~handler:(fun ~state:_ _req ->
         let resp =
           let command = Dap.Commands.configurationDone in
           let body = D.EmptyObject.make () in
@@ -19,8 +18,6 @@ module T (S : Types.State_intf) = struct
         in
         let ret = Dap.Response.configurationDoneResponse resp in
         Dap_result.ok ret)
-    in
-    On_request.handle h
 
   let handlers ~state = [
     configuration_handler ~state;

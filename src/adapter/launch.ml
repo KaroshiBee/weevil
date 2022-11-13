@@ -48,8 +48,7 @@ module T (S : Types.State_intf) = struct
     S.connect_backend st ip port |> Dap_result.or_log_error
 
   let launch_handler =
-    let h =
-      On_request.make ~handler:(fun state _req ->
+    On_request.make ~handler:(fun ~state _req ->
         let config = S.config state in
         let ip = Config.backend_ip config |> Ipaddr_unix.of_inet_addr in
         let port = Config.backend_port config in
@@ -85,12 +84,9 @@ module T (S : Types.State_intf) = struct
                let%lwt () = Lwt_io.write_line oc runscript_s in
                (* this event is a DAP event message *)
                Dap_result.ok ret))
-    in
-    On_request.handle h
 
   let process_handler =
-    let h =
-      On_response.make ~handler:(fun _state _resp ->
+    On_response.make ~handler:(fun ~state:_ _resp ->
         let ev =
           let event = Dap.Events.process in
           let startMethod = D.ProcessEvent_body_startMethod.Launch in
@@ -104,8 +100,6 @@ module T (S : Types.State_intf) = struct
         in
         let ret = Ev.processEvent ev in
         Dap_result.ok ret)
-    in
-    On_response.handle h
 
   let handlers ~state = [
     launch_handler ~state;

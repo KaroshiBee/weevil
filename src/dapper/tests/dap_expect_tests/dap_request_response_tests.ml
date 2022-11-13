@@ -43,13 +43,10 @@ module Launch =
 let%expect_test "Check sequencing request/response" =
   let state = TestState.make () in
   let handler =
-    let l =
-      Launch.make ~handler:(fun _st _req ->
-          let body = Dap.Data.EmptyObject.make () in
-          Res.default_response_opt Dap.Commands.launch body
-          |> Res.launchResponse |> Dap_result.ok)
-    in
-    Launch.handle l
+    Launch.make ~handler:(fun ~state:_ _req ->
+        let body = Dap.Data.EmptyObject.make () in
+        Res.default_response_opt Dap.Commands.launch body
+        |> Res.launchResponse |> Dap_result.ok)
   in
 
   let enc =
@@ -106,12 +103,9 @@ let%expect_test "Check sequencing request/response" =
 
   (* should also have the correct seq numbers if error happens during handling *)
   let handler_err =
-    let l =
-      Launch.make ~handler:(fun _ _req ->
-          Res.default_response_error "testing error"
-          |> Res.errorResponse |> Dap_result.error)
-    in
-    Launch.handle l
+    Launch.make ~handler:(fun ~state:_ _req ->
+        Res.default_response_error "testing error"
+        |> Res.errorResponse |> Dap_result.error)
   in
   let%lwt s = handler_err ~state req_launch in
   Printf.printf "%s" @@ Result.get_error s ;

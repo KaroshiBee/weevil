@@ -17,3 +17,4 @@ module Raise_error =
 
       let enc = Dap_response.Message.enc Dap_commands.error D.ErrorResponse_body.enc
     end)
+

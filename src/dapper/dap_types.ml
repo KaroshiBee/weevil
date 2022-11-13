@@ -65,13 +65,8 @@ module type LINK_T = sig
 
   type state
 
-  type t
+  val make :
+    handler:(state:state -> in_t -> out_t Dap_result.t) ->
+    (state:state -> string -> (string, string) Lwt_result.t)
 
-  val make : handler:(state -> in_t -> out_t Dap_result.t) -> t
-
-  val handle :
-    t ->
-    state:state ->
-    string ->
-    (string, string) Lwt_result.t
 end

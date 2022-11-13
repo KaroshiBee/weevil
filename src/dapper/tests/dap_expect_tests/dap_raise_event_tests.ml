@@ -33,14 +33,11 @@ let%expect_test "Check sequencing raise event" =
   _reset state;
 
   let handler =
-    let l =
-      BreakStopped.make ~handler:(fun _ _ ->
-          let reason = Dap.Data.StoppedEvent_body_reason.Breakpoint in
-          let body = Dap.Data.StoppedEvent_body.make ~reason () in
-          Ev.default_event_req Dap.Events.stopped body
-          |> Ev.stoppedEvent |> Dap_result.ok)
-    in
-    BreakStopped.handle l
+    BreakStopped.make ~handler:(fun ~state:_ _ ->
+        let reason = Dap.Data.StoppedEvent_body_reason.Breakpoint in
+        let body = Dap.Data.StoppedEvent_body.make ~reason () in
+        Ev.default_event_req Dap.Events.stopped body
+        |> Ev.stoppedEvent |> Dap_result.ok)
   in
 
   let seqr = TestState.current_seqr state in
@@ -82,12 +79,9 @@ let%expect_test "Check sequencing raise event" =
   (* should also have the correct seq numbers if error happens during handling *)
   _reset state;
   let handler_err =
-    let l =
-      BreakStopped.make ~handler:(fun _ _req ->
-          Res.default_response_error "testing error"
-          |> Res.errorResponse |> Dap_result.error)
-    in
-    BreakStopped.handle l
+    BreakStopped.make ~handler:(fun ~state:_ _req ->
+        Res.default_response_error "testing error"
+        |> Res.errorResponse |> Dap_result.error)
   in
   let%lwt s = handler_err ~state "" in
   Printf.printf "%s" @@ Result.get_error s ;

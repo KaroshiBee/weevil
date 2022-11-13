@@ -21,30 +21,6 @@ end = struct
       (S : STATE_T) :
     LINK_T with type in_t := In.t and type out_t := Out.t and type state := S.t =
   struct
-    type t = {
-      handler : state:S.t -> In.t -> Out.t Dap_result.t;
-    }
-
-    let make ~handler =
-      let wrapped_handler =
-        let getseq = IN_T.(fmap_ IN_MSG_T.seq) in
-        let setseq seq = OUT_T.(fmap_ (OUT_MSG_T.set_seq ~seq)) in
-        let setseq_err seq = Err.(fmap_ (Message.set_seq ~seq)) in
-        fun ~state msg ->
-          let request_seq = IN_T.(eval @@ map_ (val_ getseq, val_ msg)) in
-          let seq = 1 + request_seq in
-          let s = Dap_base.Seqr.make ~seq ~request_seq () in
-          (* setting the new seqr on state because one of the
-             following two messages will always get sent back *)
-          let () = S.set_seqr state s in
-          handler state msg
-          |> Dap_result.map ~f:(fun v ->
-                 OUT_T.(Out.ctor @@ eval @@ map_ (val_ (setseq s), val_ v)))
-          |> Dap_result.map_error ~f:(fun err ->
-                 Err.(
-                   errorResponse @@ eval @@ map_ (val_ (setseq_err s), val_ err)))
-      in
-      {handler = wrapped_handler}
 
     let string_to_input input =
       Result.(
@@ -72,14 +48,33 @@ end = struct
         in
         Lwt.return @@ eval @@ map_ (val_ to_string, val_ output))
 
-    let handle t ~state msg =
-      let v =
-        string_to_input msg
-        |> Dap_result.bind ~f:(t.handler ~state)
-        |> Dap_result.to_lwt_error_as_str
+    let make ~handler =
+      let wrapped_handler =
+        let getseq = IN_T.(fmap_ IN_MSG_T.seq) in
+        let setseq seq = OUT_T.(fmap_ (OUT_MSG_T.set_seq ~seq)) in
+        let setseq_err seq = Err.(fmap_ (Message.set_seq ~seq)) in
+        fun ~state in_t ->
+          let request_seq = IN_T.(eval @@ map_ (val_ getseq, val_ in_t)) in
+          let seq = 1 + request_seq in
+          let s = Dap_base.Seqr.make ~seq ~request_seq () in
+          (* setting the new seqr on state because one of the
+             following two messages will always get sent back *)
+          let () = S.set_seqr state s in
+          handler ~state in_t
+          |> Dap_result.map ~f:(fun v ->
+                 OUT_T.(Out.ctor @@ eval @@ map_ (val_ (setseq s), val_ v)))
+          |> Dap_result.map_error ~f:(fun err ->
+                 Err.(
+                   errorResponse @@ eval @@ map_ (val_ (setseq_err s), val_ err)))
       in
-      (* turn into (string, string) Result.t and return either msg as the thing to send on to client *)
-      Lwt_result.(v >>= output_to_string)
+      fun ~state msg ->
+        let v =
+          string_to_input msg
+          |> Dap_result.bind ~f:(wrapped_handler ~state)
+          |> Dap_result.to_lwt_error_as_str
+        in
+        (* turn into (string, string) Result.t and return either msg as the thing to send on to client *)
+        Lwt_result.(v >>= output_to_string)
   end
 end
 
@@ -120,31 +115,6 @@ end = struct
        and type out_t := Out.t
        and type state := S.t
 = struct
-    type t = {
-      handler : state:S.t -> unit -> Out.t Dap_result.t;
-    }
-
-    let make ~handler =
-      let wrapped_handler =
-        let setseq seq = OUT_T.(fmap_ (OUT_MSG_T.set_seq ~seq)) in
-        let setseq_err seq = Err.(fmap_ (Message.set_seq ~seq)) in
-        fun ~state msg ->
-          (* have to pull seqr data from state because we dont have an incoming message *)
-          let seqr = S.current_seqr state in
-          let request_seq = Dap_base.Seqr.seq seqr in
-          let seq = 1 + request_seq in
-          let s = Dap_base.Seqr.make ~seq ~request_seq () in
-          (* setting the new seqr on state because one of the
-             following two messages will always get sent back *)
-          let () = S.set_seqr state s in
-          handler state msg
-          |> Dap_result.map ~f:(fun v ->
-                 OUT_T.(Out.ctor @@ eval @@ map_ (val_ (setseq s), val_ v)))
-          |> Dap_result.map_error ~f:(fun err ->
-                 Err.(
-                   errorResponse @@ eval @@ map_ (val_ (setseq_err s), val_ err)))
-      in
-      {handler = wrapped_handler}
 
     let string_to_input _input = Dap_result.ok ()
 
@@ -160,14 +130,34 @@ end = struct
         in
         Lwt.return @@ eval @@ map_ (val_ to_string, val_ output))
 
-    let handle t ~state msg =
-      let v =
-        string_to_input msg
-        |> Dap_result.bind ~f:(t.handler ~state)
-        |> Dap_result.to_lwt_error_as_str
+    let make ~handler =
+      let wrapped_handler =
+        let setseq seq = OUT_T.(fmap_ (OUT_MSG_T.set_seq ~seq)) in
+        let setseq_err seq = Err.(fmap_ (Message.set_seq ~seq)) in
+        fun ~state in_t ->
+          (* have to pull seqr data from state because we dont have an incoming message *)
+          let seqr = S.current_seqr state in
+          let request_seq = Dap_base.Seqr.seq seqr in
+          let seq = 1 + request_seq in
+          let s = Dap_base.Seqr.make ~seq ~request_seq () in
+          (* setting the new seqr on state because one of the
+             following two messages will always get sent back *)
+          let () = S.set_seqr state s in
+          handler ~state in_t
+          |> Dap_result.map ~f:(fun v ->
+                 OUT_T.(Out.ctor @@ eval @@ map_ (val_ (setseq s), val_ v)))
+          |> Dap_result.map_error ~f:(fun err ->
+                 Err.(
+                   errorResponse @@ eval @@ map_ (val_ (setseq_err s), val_ err)))
       in
-      (* turn into (string, string) Result.t and return either msg as the thing to send on to client *)
-      Lwt_result.(v >>= output_to_string)
+      fun ~state msg ->
+        let v =
+          string_to_input msg
+          |> Dap_result.bind ~f:(wrapped_handler ~state)
+          |> Dap_result.to_lwt_error_as_str
+        in
+        (* turn into (string, string) Result.t and return either msg as the thing to send on to client *)
+        Lwt_result.(v >>= output_to_string)
   end
 end
 
