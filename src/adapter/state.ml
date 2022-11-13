@@ -3,7 +3,8 @@ module Dap = Dapper.Dap
 
 module T (Dap_state:Dap.STATE_T) = struct
   type t = {
-    dap_state: Dap_state.t;
+    (* sequencing is controlled by Dap_state in dapper lib *)
+    sequencing: Dap_state.t;
     (* the backend svc process, using process_none to allow for std redirection if needed later on *)
     mutable process : Lwt_process.process_none option;
     (* the backend comms channels *)
@@ -14,7 +15,7 @@ module T (Dap_state:Dap.STATE_T) = struct
   }
 
   let make () = {
-    dap_state = Dap_state.make ();
+    sequencing = Dap_state.make ();
     process = None;
     ic = None;
     oc = None;
@@ -96,9 +97,9 @@ module T (Dap_state:Dap.STATE_T) = struct
 
   let set_launch_mode t launch_mode = t.launch_mode <- Some launch_mode
 
-  let current_seqr t = Dap_state.current_seqr t.dap_state
+  let current_seqr t = Dap_state.current_seqr t.sequencing
 
-  let set_seqr t seqr = Dap_state.set_seqr t.dap_state seqr
+  let set_seqr t seqr = Dap_state.set_seqr t.sequencing seqr
 
   let config t = t.config
 
