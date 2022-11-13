@@ -3,7 +3,7 @@ module Js = Data_encoding.Json
 module Req = Dap.Request
 module Res = Dap.Response
 
-module TestState = Dap_handlers.State ()
+module TestState = Dap_state.T ()
 
 module Launch =
   Dap_handlers.Request_response.Make
@@ -41,7 +41,7 @@ module Launch =
     (TestState)
 
 let%expect_test "Check sequencing request/response" =
-  let state = TestState.make in
+  let state = TestState.make () in
   let handler =
     let l =
       Launch.make ~handler:(fun _st _req ->

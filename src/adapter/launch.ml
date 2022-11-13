@@ -79,7 +79,7 @@ module T (S : Types.State_intf) = struct
                  Js.(
                    construct Mich_event.enc runscript
                    |> to_string
-                   |> Dapper.Dap_header.wrap ~add_header:false)
+                   |> Header.wrap ~add_header:false)
                in
                (* NOTE then write_line to make server consume *)
                let%lwt () = Lwt_io.write_line oc runscript_s in

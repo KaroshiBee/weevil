@@ -13,7 +13,7 @@ module T () = struct
     mutable config : Config.t;
   }
 
-  let make = {process = None; ic = None; oc = None; launch_mode = None; seqr = Dap.Data.Seqr.make ~seq:0 (); config = Config.make ()}
+  let make () = {process = None; ic = None; oc = None; launch_mode = None; seqr = Dap.Data.Seqr.make ~seq:0 (); config = Config.make ()}
 
   let process_none t = t.process
 

@@ -10,7 +10,7 @@ let handle_message ~frontend_io hdl state msg =
   let _ic, oc = frontend_io in
   match%lwt Handler.handle_exn hdl state msg with
   | Ok js ->
-    let js = List.map (Dap.Header.wrap ~add_header:true) js
+    let js = List.map (Header.wrap ~add_header:true) js
              |> String.concat ""
         in
     let%lwt _ = Logs_lwt.info (fun m -> m "[DAP] got response: '%s'" js) in
@@ -36,7 +36,7 @@ let rec main_handler hdl state content_length flow ic oc =
       Logs_lwt.info (fun m -> m "[DAP] waiting for messages") >>= fun _ ->
       Lwt_io.read_line_opt ic >>= function
       | Some msg ->
-          let content_length = Dap.Header.content_length msg in
+          let content_length = Header.content_length msg in
           main_handler hdl state content_length flow ic oc
       | None -> Logs_lwt.info (fun m -> m "[DAP] connection closed")
     )
@@ -54,7 +54,7 @@ let svc ~port =
   let mode = `TCP (`Port port) in
   let hdl = Handler.make in
   let content_length = None in
-  let state = GlobalState.make in
+  let state = GlobalState.make () in
   let () = Logs.info (fun m -> m "[DAP] starting adapter server on port %d" port) in
   Lwt_main.run (
     Conduit.init () >>= fun ctx ->

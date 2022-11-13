@@ -10,7 +10,7 @@ module StateMock = struct
     mutable config : Config.t;
   }
 
-  let make = {
+  let make () = {
     launch_mode = None;
     seqr = D.Seqr.make ~seq:0 ();
        config=Config.make ();
@@ -43,7 +43,7 @@ end
 module Attach = Attach.T (StateMock)
 
 let%expect_test "Check sequencing etc for attach" =
-  let state = StateMock.make in
+  let state = StateMock.make () in
   let command = Dap.Commands.attach in
   let req =
     Dap.Request.(

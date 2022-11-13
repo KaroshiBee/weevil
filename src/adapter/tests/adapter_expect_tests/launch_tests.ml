@@ -11,7 +11,7 @@ module LaunchStateMock = struct
     mutable config : Config.t;
   }
 
-  let make = {
+  let make () = {
     launch_mode = None;
     oc=None;
     seqr=D.Seqr.make ~seq:0 ();
@@ -50,7 +50,7 @@ end
 module Launch = Launch.T (LaunchStateMock)
 
 let%expect_test "Check sequencing etc for launch" =
-  let st = LaunchStateMock.make in
+  let st = LaunchStateMock.make () in
   Lwt_io.with_temp_file ~temp_dir:"/dev/shm" (fun (_, oc) ->
       let () = LaunchStateMock.set_io st oc in
       let command = Dap.Commands.launch in

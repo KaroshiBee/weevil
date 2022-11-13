@@ -2,7 +2,6 @@
 module Commands = Dap_commands
 module Events = Dap_events
 module Js_msg = Dap_js_msg
-module Header = Dap_header
 
 module Data = Dap_message.Data
 module Request = Dap_request
@@ -10,8 +9,8 @@ module Response = Dap_response
 module Event = Dap_event
 module Dap_result = Dap_result
 
-module type STATE_T = Dap_handlers.STATE_T
-module MakeState = Dap_handlers.State
+module type STATE_T = Dap_types.STATE_T
+module MakeState = Dap_state.T
 module Seqr = Dap_base.Seqr
 
 module Attach = Dap_attach

@@ -3,7 +3,7 @@ module Js = Data_encoding.Json
 module Res = Dap.Response
 module Ev = Dap.Event
 
-module TestState = Dap_handlers.State ()
+module TestState = Dap_state.T ()
 
 module ProcessLaunched =
   Dap_handlers.Raise_response.Make
@@ -29,7 +29,7 @@ let _reset state =
   TestState.set_seqr state @@ Dap.Seqr.make ~seq:121 ~request_seq:120 ()
 
 let%expect_test "Check sequencing raise response" =
-  let state = TestState.make in
+  let state = TestState.make () in
   _reset state;
 
   let handler =
