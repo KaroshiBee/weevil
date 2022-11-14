@@ -120,7 +120,7 @@ Here 'cmd and 'event relate to the ```command``` and ```event``` enums described
 On processing the JSON schema the auto-generation tool can lock in the correct types of each message kind thus eliminating all kinds of bugs that could arise due to incorrect message construction.  For example 
 
 ``` ocaml
-(Dap_events.stopped, StoppedEvent_body.t, Presence.req) Dap_event_message.t
+( Dap_events.stopped, StoppedEvent_body.t, Presence.req ) Dap_event_message.t
 
 ```
 is a ```stopped``` event message that has some required content data of type ```StoppedEvent_body.t```,
