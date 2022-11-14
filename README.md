@@ -108,16 +108,32 @@ This leads to the following OCaml representation (c.f. in src/dapper/ dap_reques
 
 ``` ocaml
 
-type ('cmd, 'args, 'presence) Dap_request.t
+type ('cmd, 'args, 'presence) Dap_request_message.t
 
-type ('cmd, 'body, 'presence) Dap_response.t
+type ('cmd, 'body, 'presence) Dap_response_message.t
 
-type ('event, 'body, 'presence) Dap_event.t
+type ('event, 'body, 'presence) Dap_event_message.t
 
 ```
-Here 'cmd and 'event relate to the ```command``` and ```event``` enums desribed previously.  The 'args and 'body parameters are the contents of the message, and the 'presence determines whether this content is required or optional.
+Here 'cmd and 'event relate to the ```command``` and ```event``` enums described previously.  The 'args and 'body parameters are the contents of the message, and the 'presence parameter determines whether this content is required or optional.
 
-On processing the JSON schema the auto-generation tool can lock in the correct types of each message kind thus eliminating all kinds of bugs that could arise due to incorrect message construction.  Editor tooling like [Merlin](https://github.com/ocaml/merlin) and [Tuareg](https://github.com/ocaml/tuareg) also helps tremdously as each OCaml message type knows what innards it needs. 
+On processing the JSON schema the auto-generation tool can lock in the correct types of each message kind thus eliminating all kinds of bugs that could arise due to incorrect message construction.  For example 
+
+``` ocaml
+(Dap_events.stopped, StoppedEvent_body.t, Presence.req) Dap_event_message.t
+
+```
+is a ```stopped``` event message that has some required content data of type ```StoppedEvent_body.t```,
+
+where-as 
+
+``` ocaml
+( Dap_commands.initialize, Capabilities.t option, Presence.opt ) Dap_response_message.t
+
+```
+is an ```initialize``` response message that has optional content data of type ```Capabilities.t```.
+
+Editor tooling like [Merlin](https://github.com/ocaml/merlin) and [Tuareg](https://github.com/ocaml/tuareg) also helps tremdously as each OCaml message type knows what innards it needs. 
 
 ## The ```dap-gen``` tool
 
@@ -137,13 +153,15 @@ Will generate dap_commands.ml and dap_commands.mli in $HOME, and
 ``` sh
 $ dune exec -- ./src/main.exe dap-gen events ./schema/debugAdapterProtocol-1.56.X.json $HOME/dap_events
 ```
-will generate dap_events.ml and dap_events.mli in $HOME.  If you are happy with the generated code files then move/copy the files into the dapper library
+will generate dap_events.ml and dap_events.mli in $HOME.
+
+If you are happy with the generated code files then move/copy the files into the dapper library
 
 ``` sh
 $ cp dap_*.ml* ./src/dapper/
 ```
 
-NOTE The dapper library is expecting them to be named as above.
+NOTE The dapper library is expecting these files to be named as above.
 
 
 ## Notes
@@ -152,20 +170,20 @@ The Weevil uses the same JSON encoder lib as [Octez](https://tezos.gitlab.io/), 
 
 All generated message types and object types have a similar structure:
 
-- they all have a constructor called ```make``` that takes named parameters for construction.  Named parameters are required/optional as stated in the JSON schema using the standard OCaml syntax (~ and ?) per:
+- they all have a constructor called ```make``` that takes named parameters for construction.  Named parameters are required/optional as stated in the JSON schema using the standard OCaml syntax (~ and ?) e.g.
 
 ``` ocaml
 let make ~a_required_parameter ?an_optional_parameter ... () =
     ...etc 
 ```
 
-- Request/Response/Event types also have a ```make_opt``` constructor to lock in the appropriate `presence type for the message data,
+- Request/Response/Event types also have a ```make_opt``` constructor for creating message types with optional content data,
 
 - due to the use of named parameters everywhere all of these constructors have to end in () i.e. unit - this is an OCaml artifact related to named parameters and currying,
 
-- they all have an encoder named ```enc```,
+- they all have a ```Data_encoding.t``` encoder named ```enc```,
 
-- Request/Response/Event types also have an ```enc_opt``` encoder to lock in the appropriate `presence type for the message data,
+- Request/Response/Event types also have an ```enc_opt``` encoder to encode/decode message types with optional content data,
 
 - coming soon: qcheck generators for the auto-generated types 
 
