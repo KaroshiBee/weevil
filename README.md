@@ -47,37 +47,43 @@ To run the tests simply do (from project root):
 ``` sh
 $ dune runtest
 ```
-Tests currently consist of [Alcotest](https://github.com/mirage/alcotest) unit tests and [expect](https://github.com/janestreet/ppx_expect) tests.
+Tests currently consist of [Alcotest](https://github.com/mirage/alcotest) unit tests, [expect](https://github.com/janestreet/ppx_expect) tests and [cram](https://dune.readthedocs.io/en/stable/tests.html) tests.
+
 Coverage statistics can be determined using the [bisect ppx](https://github.com/aantron/bisect_ppx#Dune) tool.  
 
 As described in the link, you can perform a full test with statistics gathering using: 
 
 ``` sh
+# make a dir to keep the bisect_ppx output 
+$ mkdir _bisect
+
 # remove previous data
 $ find . -name '*.coverage' | xargs rm -f
 
 # run tests with instrumentation
-$ dune runtest --instrument-with bisect_ppx --force
+$ BISECT_FILE=$PWD/_bisect/bisect dune runtest --force --instrument-with bisect_ppx
 ```
 
-and then look at a short summary:
+The BISECT_FILE env var is used to ensure that the cram test [sandboxing](https://dune.readthedocs.io/en/stable/concepts.html#dune-action-plugin) does not clean up (delete) the coverage data for those same cram tests.  One can then look at a short summary:
 
 ``` sh
-$ bisect-ppx-report summary
+$ bisect-ppx-report summary --coverage-path $PWD/_bisect
 ```
 
 or generate a full report:
 
 ``` sh
-$ bisect-ppx-report html
+$ bisect-ppx-report html --coverage-path $PWD/_bisect
 ```
 
-The html bundle is written to the _coverage directory and can be served with a simple web server a la:
+The html bundle is written to the _coverage directory by default; the contents of which can be served with a simple web server a la:
 
 ``` sh
 $ python -m http.server --directory _coverage/
 Serving HTTP on 0.0.0.0 port 8000 (http://0.0.0.0:8000/) ...
 ```
+
+This html report can then be viewed with your web browser at http://localhost:8000
 
 # Auto-generating code 
 

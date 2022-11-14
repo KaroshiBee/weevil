@@ -6,3 +6,5 @@
 /src/dapper_gen/test.ml
 /_coverage/
 /README.html
+/_bisect/
+*.coverage
