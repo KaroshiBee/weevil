@@ -28,5 +28,6 @@
    Tezos_014_PtKathma_test_helpers
  ))
  (inline_tests (deps (glob_files data/*.json)))
-  (preprocess (pps lwt_ppx ppx_deriving.show ppx_expect))
+ (preprocess (pps lwt_ppx ppx_deriving.show ppx_expect))
+ (instrumentation (backend bisect_ppx))
 )

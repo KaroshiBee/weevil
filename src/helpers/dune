@@ -14,4 +14,5 @@
      logs.lwt
      str
  )
+ (instrumentation (backend bisect_ppx))
 )
