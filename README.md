@@ -104,7 +104,7 @@ $ dune exec -- ./src/main.exe dap-gen --help
 
 As noted above, there are three message types: Request, Response and Event.  Requests and Responses have a related ```command``` value and Events have an ```event``` value.  All message types also carry some sort of data, and this can be required or optional.  The command and event values are basically enumerations and the data content types are typically JSON objects that themselves contain other objects/lists/enums etc.
 
-This leads to the following OCaml representation (c.f. in src/dapper/ dap_request.mli & dap_response.mli & dap_event.mli):
+This leads to the following OCaml representation (c.f. in src/dapper/ dap_request_message.mli & dap_response_message.mli & dap_event_message.mli):
 
 ``` ocaml
 
