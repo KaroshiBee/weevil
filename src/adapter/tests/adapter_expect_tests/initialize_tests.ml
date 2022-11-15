@@ -3,46 +3,10 @@ module Dap = Dapper.Dap
 module D = Dap.Data
 module Js = Data_encoding.Json
 
-module StateMock = struct
-  type t = {
-    mutable launch_mode : Launch_mode.t option;
-    mutable seqr: D.Seqr.t;
-    mutable config : Config.t;
-  }
-
-  let make () = {
-    launch_mode = None;
-    seqr = D.Seqr.make ~seq:0 ();
-       config=Config.make ();
-  }
-
-  let connect_backend _ip _port = failwith "MOCK connect"
-
-  let process_none _t = failwith "MOCK process none"
-
-  let start_backend _t _ip _port _cmd = failwith "MOCK start backend"
-
-  let ic _t = failwith "MOCK ic"
-
-  let oc _t = Some Lwt_io.stdout
-
-  let launch_mode t = t.launch_mode
-
-  let set_launch_mode t launch_mode = t.launch_mode <- Some launch_mode
-
-  let current_seqr t = t.seqr
-
-  let set_seqr t seqr = t.seqr <- seqr
-
-  let config t = t.config
-
-  let set_config t config = t.config <- config
-
-end
-
+module StateMock = Helpers.StateMock
 module Init = Initialize.T(StateMock)
 
-let%expect_test "Check sequencing etc for attach" =
+let%expect_test "Check sequencing etc for init" =
   let state = StateMock.make () in
   let command = Dap.Commands.initialize in
   let req =
@@ -97,4 +61,4 @@ let%expect_test "Check sequencing etc for attach" =
 
     Lwt.return_unit
 
-  | _ -> failwith "error: expected two handlers for attach"
+  | _ -> failwith "error: expected two handlers for init"
