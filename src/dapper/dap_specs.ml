@@ -10,24 +10,24 @@ let unweird_name ?(capitalize=false) name =
   |> Stringext.replace_all ~pattern:" " ~with_:"_"
   |> (fun s -> if capitalize then String.capitalize_ascii s else s)
 
-  let rec make_module_name = function
-    | `Field "definitions" :: rest
-    | `Field "allOf" :: rest
-    | `Field "anyOf" :: rest
-    | `Field "oneOf" :: rest
-    | `Field "not" :: rest
-    | `Field "properties" :: rest
-    | `Field "_enum" :: rest
-    | `Index _ :: rest
-    | `Next :: rest
-    | `Star :: rest
-      -> make_module_name rest
-    | `Field f :: rest -> (
+let rec make_module_name = function
+  | `Field "definitions" :: rest
+  | `Field "allOf" :: rest
+  | `Field "anyOf" :: rest
+  | `Field "oneOf" :: rest
+  | `Field "not" :: rest
+  | `Field "properties" :: rest
+  | `Field "_enum" :: rest
+  | `Index _ :: rest
+  | `Next :: rest
+  | `Star :: rest
+    -> make_module_name rest
+  | `Field f :: rest -> (
       match make_module_name rest with
       | "" -> unweird_name f
       | s -> Printf.sprintf "%s_%s" f s
     )
-    | [] -> ""
+  | [] -> ""
 
 
 module Field_spec = struct
