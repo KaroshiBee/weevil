@@ -25,8 +25,21 @@ let attach_msg ~seq =
 
 let attach_req ~seq = Request.attachRequest @@ attach_msg ~seq
 
+let initialize_msg ~seq =
+  let arguments = Data.InitializeRequestArguments.make ~adapterID:"weevil" () in
+  Request.Message.make ~seq ~command:Commands.initialize ~arguments ()
+
+let initialize_req ~seq = Request.initializeRequest @@ initialize_msg ~seq
+
 let to_msg (type cmd args presence) :
     (cmd, args, presence) Request.Message.t Request.t -> string = function
+  | InitializeRequest req ->
+      let enc =
+        Request.Message.enc
+          Commands.initialize
+          Data.InitializeRequestArguments.enc
+      in
+      Json.(construct enc req |> to_string) |> Header.wrap
   | LaunchRequest req ->
       let enc =
         Request.Message.enc Commands.launch Data.LaunchRequestArguments.enc

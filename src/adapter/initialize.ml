@@ -14,8 +14,13 @@ module T (S : Types.State_intf) = struct
     On_request.make ~handler:(fun ~state:_ _req ->
         let resp =
           let command = Dap.Commands.initialize in
-          (* TODO hardcode capabilities or pull in from config *)
-          let body = D.Capabilities.make () in
+          (* TODO pull in from config *)
+          let body = D.Capabilities.make
+              ~supportsConfigurationDoneRequest:true
+              ~supportsRestartRequest:true
+              ~supportsTerminateRequest:true
+              ()
+          in
           Dap.Response.default_response_opt command body
         in
         let ret = Dap.Response.initializeResponse resp in
