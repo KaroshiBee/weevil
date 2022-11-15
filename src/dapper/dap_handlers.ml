@@ -137,8 +137,11 @@ end = struct
         fun ~state in_t ->
           (* have to pull seqr data from state because we dont have an incoming message *)
           let seqr = S.current_seqr state in
-          let request_seq = Dap_base.Seqr.seq seqr in
-          let seq = 1 + request_seq in
+          (* think we need to keep the request_seq as is,
+             because these messages will all relate to the current request in some way *)
+          let request_seq = Dap_base.Seqr.request_seq seqr in
+          (* but increment the seq number *)
+          let seq = 1 + Dap_base.Seqr.seq seqr in
           let s = Dap_base.Seqr.make ~seq ~request_seq () in
           (* setting the new seqr on state because one of the
              following two messages will always get sent back *)

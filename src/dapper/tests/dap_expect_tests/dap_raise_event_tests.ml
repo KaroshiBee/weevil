@@ -67,7 +67,7 @@ let%expect_test "Check sequencing raise event" =
   let request_seq = Dap.Seqr.request_seq seqr in
   Printf.printf "request_seq %d" request_seq;
   let%lwt () =
-    [%expect {| request_seq 111 |}]
+    [%expect {| request_seq 110 |}]
   in
 
   let seq = Dap.Seqr.seq seqr in
@@ -87,7 +87,7 @@ let%expect_test "Check sequencing raise event" =
   Printf.printf "%s" @@ Result.get_error s ;
   let%lwt () = [%expect
     {|
-    { "seq": 112, "type": "response", "request_seq": 111, "success": false,
+    { "seq": 112, "type": "response", "request_seq": 110, "success": false,
       "command": "error",
       "body":
         { "error":
@@ -98,7 +98,7 @@ let%expect_test "Check sequencing raise event" =
   let request_seq = Dap.Seqr.request_seq seqr in
   Printf.printf "request_seq %d" request_seq;
   let%lwt () =
-    [%expect {| request_seq 111 |}]
+    [%expect {| request_seq 110 |}]
   in
 
   let seq = Dap.Seqr.seq seqr in
