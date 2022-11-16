@@ -18,15 +18,15 @@ module StateMock = struct
     client_config=Option.some @@ Data.InitializeRequestArguments.make ~adapterID:"FAKE" ();
   }
 
-  let connect_backend _ip _port = failwith "MOCK connect"
+  let set_connect_backend _ip _port = failwith "MOCK connect"
 
-  let process_none _t = failwith "MOCK process none"
+  let backend_svc _t = failwith "MOCK process none"
 
-  let start_backend _t _ip _port _cmd = failwith "MOCK start backend"
+  let set_start_backend _t _ip _port _cmd = failwith "MOCK start backend"
 
-  let ic _t = failwith "MOCK ic"
+  let backend_ic _t = failwith "MOCK ic"
 
-  let oc _t = Some Lwt_io.stdout
+  let backend_oc _t = Some Lwt_io.stdout
 
   let launch_mode t = t.launch_mode
 

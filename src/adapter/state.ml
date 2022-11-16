@@ -3,11 +3,8 @@ module Dap = Dapper.Dap
 
 module T (Dap_state:Dap.STATE_T) = struct
   type t = {
-    (* sequencing is controlled by Dap_state in dapper lib *)
     sequencing: Dap_state.t;
-    (* the backend svc process, using process_none to allow for std redirection if needed later on *)
     mutable process : Lwt_process.process_none option;
-    (* the backend comms channels *)
     mutable ic : Lwt_io.input_channel option;
     mutable oc : Lwt_io.output_channel option;
     mutable launch_mode : Launch_mode.t option;
@@ -25,11 +22,11 @@ module T (Dap_state:Dap.STATE_T) = struct
     client_config = None;
   }
 
-  let process_none t = t.process
+  let backend_svc t = t.process
 
-  let ic t = t.ic
+  let backend_ic t = t.ic
 
-  let oc t = t.oc
+  let backend_oc t = t.oc
 
   let _set_io t ic oc =
     t.ic <- Some ic ;
@@ -37,7 +34,7 @@ module T (Dap_state:Dap.STATE_T) = struct
 
   let _set_process_none t process = t.process <- Some process
 
-  let start_backend t _ip _port cmd =
+  let set_start_backend t _ip _port cmd =
     let%lwt () =
       Logs_lwt.debug (fun m ->
           m "launching backend service with cmd: '%s'" cmd)
@@ -79,7 +76,7 @@ module T (Dap_state:Dap.STATE_T) = struct
     with Unix.Unix_error (Unix.ECONNREFUSED, "connect", "") as e ->
       if i > 5 then raise e else _aux ~ctx ~client ~port (i + 1)
 
-  let connect_backend t ip port =
+  let set_connect_backend t ip port =
     let client = `TCP (`IP ip, `Port port) in
     let%lwt ctx = init () in
     let res =

@@ -3,18 +3,23 @@ module Dap = Dapper.Dap
 (* readonly wrt the adapter level state,
    Dap.STATE_T is always needed and that modifies Dapper state *)
 module type State_readonly_intf = sig
+  (* sequencing is controlled by Dap_state in dapper lib *)
   include Dap.STATE_T
 
-  val process_none : t -> Lwt_process.process_none option
+  (* the backend svc process, using process_none to allow for std redirection if needed later on *)
+  val backend_svc : t -> Lwt_process.process_none option
 
-  val ic : t -> Lwt_io.input_channel option
+  (* the backend comms channels *)
+  val backend_ic : t -> Lwt_io.input_channel option
+  val backend_oc : t -> Lwt_io.output_channel option
 
-  val oc : t -> Lwt_io.output_channel option
-
+  (* neede to retain which launch type was requested *)
   val launch_mode : t -> Launch_mode.t option
 
+  (* the adapter internal config data *)
   val config : t -> Config.t
 
+  (* the config data that the client requested when initializing the adapter *)
   val client_config : t -> Dap.Data.InitializeRequestArguments.t option
 
 end
@@ -22,9 +27,9 @@ end
 module type State_intf = sig
   include State_readonly_intf
 
-  val start_backend : t -> Ipaddr.t -> int -> string -> unit Dap.Result.t
+  val set_start_backend : t -> Ipaddr.t -> int -> string -> unit Dap.Result.t
 
-  val connect_backend : t -> Ipaddr.t -> int -> (Lwt_io.input_channel * Lwt_io.output_channel) Dap.Result.t
+  val set_connect_backend : t -> Ipaddr.t -> int -> (Lwt_io.input_channel * Lwt_io.output_channel) Dap.Result.t
 
   val set_launch_mode : t -> Launch_mode.t -> unit
 

@@ -30,9 +30,9 @@ module T (S : Types.State_intf) = struct
   module On_response = Dap.Launch.Raise_process (S)
 
   let _start_background_svc st ip port cmd =
-    match S.process_none st with
+    match S.backend_svc st with
     | None ->
-      S.start_backend st ip port cmd
+      S.set_start_backend st ip port cmd
     | Some _ ->
         let%lwt () =
           Logs_lwt.debug (fun m ->
@@ -45,7 +45,7 @@ module T (S : Types.State_intf) = struct
       Logs_lwt.debug (fun m ->
           m "trying to connect to backend service on port %d" port)
     in
-    S.connect_backend st ip port |> Dap_result.or_log_error
+    S.set_connect_backend st ip port |> Dap_result.or_log_error
 
   let launch_handler =
     On_request.make ~handler:(fun ~state _req ->
