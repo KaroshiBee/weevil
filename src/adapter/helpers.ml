@@ -8,12 +8,14 @@ module StateMock = struct
     mutable launch_mode : Launch_mode.t option;
     mutable seqr: Data.Seqr.t;
     mutable config : Config.t;
+    mutable client_config : Data.InitializeRequestArguments.t option;
   }
 
   let make () = {
     launch_mode = None;
     seqr = Data.Seqr.make ~seq:0 ();
-       config=Config.make ();
+    config=Config.make ();
+    client_config=Option.some @@ Data.InitializeRequestArguments.make ~adapterID:"FAKE" ();
   }
 
   let connect_backend _ip _port = failwith "MOCK connect"
@@ -37,6 +39,10 @@ module StateMock = struct
   let config t = t.config
 
   let set_config t config = t.config <- config
+
+  let client_config t = t.client_config
+
+  let set_client_config t config = t.client_config <- Some config
 
 end
 

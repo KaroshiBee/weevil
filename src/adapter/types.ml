@@ -1,6 +1,8 @@
 module Dap = Dapper.Dap
 
-module type State_intf = sig
+(* readonly wrt the adapter level state,
+   Dap.STATE_T is always needed and that modifies Dapper state *)
+module type State_readonly_intf = sig
   include Dap.STATE_T
 
   val process_none : t -> Lwt_process.process_none option
@@ -9,17 +11,26 @@ module type State_intf = sig
 
   val oc : t -> Lwt_io.output_channel option
 
+  val launch_mode : t -> Launch_mode.t option
+
+  val config : t -> Config.t
+
+  val client_config : t -> Dap.Data.InitializeRequestArguments.t option
+
+end
+
+module type State_intf = sig
+  include State_readonly_intf
+
   val start_backend : t -> Ipaddr.t -> int -> string -> unit Dap.Result.t
 
   val connect_backend : t -> Ipaddr.t -> int -> (Lwt_io.input_channel * Lwt_io.output_channel) Dap.Result.t
 
-  val launch_mode : t -> Launch_mode.t option
-
   val set_launch_mode : t -> Launch_mode.t -> unit
 
-  val config : t -> Config.t
-
   val set_config : t -> Config.t -> unit
+
+  val set_client_config : t -> Dap.Data.InitializeRequestArguments.t -> unit
 
 end
 

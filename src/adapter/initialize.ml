@@ -1,6 +1,5 @@
 module Dap = Dapper.Dap
 module D = Dap.Data
-module Dap_result = Dapper.Dap_result
 module Req = Dap.Request
 module Res = Dap.Response
 module Ev = Dap.Event
@@ -11,10 +10,13 @@ module T (S : Types.State_intf) = struct
   module On_response = Dap.Initialize.Raise_initialized (S)
 
   let initialize_handler =
-    On_request.make ~handler:(fun ~state:_ _req ->
+    On_request.make ~handler:(fun ~state req ->
+        let getargs = Req.(Fmap Message.arguments) in
+        let args = Req.(eval @@ map_ (val_ getargs, val_ req)) in
+        let () = S.set_client_config state args in
         let resp =
           let command = Dap.Commands.initialize in
-          (* TODO pull in from config *)
+          (* TODO pull in from a config file? *)
           let body = D.Capabilities.make
               ~supportsConfigurationDoneRequest:true
               ~supportsRestartRequest:true
@@ -24,7 +26,7 @@ module T (S : Types.State_intf) = struct
           Dap.Response.default_response_opt command body
         in
         let ret = Dap.Response.initializeResponse resp in
-        Dap_result.ok ret)
+        Dap.Result.ok ret)
 
   let raise_initialized =
     On_response.make ~handler:(fun ~state:_ _req ->
@@ -34,7 +36,7 @@ module T (S : Types.State_intf) = struct
           Dap.Event.default_event_opt event body
         in
         let ret = Dap.Event.initializedEvent ev in
-        Dap_result.ok ret)
+        Dap.Result.ok ret)
 
   let handlers ~state = [
     initialize_handler ~state;

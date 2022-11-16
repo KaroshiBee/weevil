@@ -9,6 +9,7 @@ module LaunchStateMock = struct
     mutable oc: Lwt_io.output_channel option;
     mutable seqr: D.Seqr.t;
     mutable config : Config.t;
+    mutable client_config : D.InitializeRequestArguments.t option;
   }
 
   let make () = {
@@ -16,6 +17,7 @@ module LaunchStateMock = struct
     oc=None;
     seqr=D.Seqr.make ~seq:0 ();
     config=Config.make ();
+    client_config=Option.some @@ D.InitializeRequestArguments.make ~adapterID:"FAKE" ();
   }
 
   let connect_backend t _ip _port =
@@ -44,6 +46,10 @@ module LaunchStateMock = struct
   let config t = t.config
 
   let set_config t config = t.config <- config
+
+  let client_config t = t.client_config
+
+  let set_client_config t config = t.client_config <- Some config
 
 end
 

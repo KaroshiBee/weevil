@@ -12,6 +12,7 @@ module T (Dap_state:Dap.STATE_T) = struct
     mutable oc : Lwt_io.output_channel option;
     mutable launch_mode : Launch_mode.t option;
     mutable config : Config.t;
+    mutable client_config : Dap.Data.InitializeRequestArguments.t option;
   }
 
   let make () = {
@@ -20,7 +21,8 @@ module T (Dap_state:Dap.STATE_T) = struct
     ic = None;
     oc = None;
     launch_mode = None;
-    config = Config.make ()
+    config = Config.make ();
+    client_config = None;
   }
 
   let process_none t = t.process
@@ -104,5 +106,9 @@ module T (Dap_state:Dap.STATE_T) = struct
   let config t = t.config
 
   let set_config t config = t.config <- config
+
+  let client_config t = t.client_config
+
+  let set_client_config t config = t.client_config <- Some config
 
 end
