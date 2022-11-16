@@ -80,7 +80,7 @@ module MichEvent = struct
 
 
 end
-(* NOTE needs to be mutable global so different connections can access *)
+(* TODO does this need to be global ref? *)
 let stepper_process : Lwt_process.process_full option ref = ref None
 
 let rec main_handler flow ic oc =
@@ -105,7 +105,7 @@ let rec main_handler flow ic oc =
         let oc_process = process#stdin in
         try
           Lwt_io.write oc_process "step\n" >>= fun _ ->
-          Logs_lwt.debug (fun m -> m "[MICH] Got Next request\n%s\n" msg)
+          Logs_lwt.info (fun m -> m "[MICH] Got Next request\n%s\n" msg)
         with Sys_error _ -> (
             (* run out of contract to step through *)
             try
@@ -117,11 +117,12 @@ let rec main_handler flow ic oc =
       in
       main_handler flow ic oc
     | Some (Step n), Some _ ->
-      let%lwt _ = Logs_lwt.debug (fun m -> m "[MICH] TODO Step %d" n) in
+      let%lwt _ = Logs_lwt.warn (fun m -> m "[MICH] TODO Step %d" n) in
       main_handler flow ic oc
 
     | Some Terminate, Some process when process#state = Lwt_process.Running ->
-      let%lwt () = Logs_lwt.info (fun m -> m "[MICH] Terminating pid '%d'" process#pid) in
+      (* NOTE debug this message because cram tests use Info and we dont want PIDs in the cram test data *)
+      let%lwt () = Logs_lwt.debug (fun m -> m "[MICH] Terminating pid '%d'" process#pid) in
       let () = process#terminate in
       let () = stepper_process := None in
       main_handler flow ic oc
@@ -150,7 +151,6 @@ and stepper_process_start flow ic oc process_full =
   let m = main_handler flow ic oc in
   Lwt.join [st; m]
 
-
 let on_exn exn = Lwt.ignore_result @@ Logs_lwt.err (fun m -> m "%s" @@ Printexc.to_string exn)
 
 let on_connection flow ic oc =
@@ -159,7 +159,7 @@ let on_connection flow ic oc =
 
 let svc ~port =
   let () = Logs.set_reporter (Logs.format_reporter ()) in
-  let () = Logs.set_level (Some Logs.Debug) in
+  let () = Logs.set_level (Some Logs.Info) in
   let mode = `TCP (`Port port) in
   let () = Logs.info (fun m -> m "[MICH] starting backend server on port %d" port) in
   Lwt_main.run (

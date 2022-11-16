@@ -50,7 +50,7 @@ let on_connection hdl state content_length flow ic oc =
 
 let svc ~port =
   let () = Logs.set_reporter (Logs.format_reporter ()) in
-  let () = Logs.set_level (Some Logs.Debug) in
+  let () = Logs.set_level (Some Logs.Info) in
   let mode = `TCP (`Port port) in
   let hdl = Handler.make in
   let content_length = None in

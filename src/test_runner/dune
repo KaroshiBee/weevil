@@ -1,0 +1,20 @@
+(executable
+ (name main)
+ (public_name test_runner)
+ (libraries
+  tezos-base
+  tezos-base.unix
+  tezos-micheline
+  tezos-protocol-environment
+  tezos-stdlib-unix
+  tezos-protocol-014-PtKathma
+  tezos-014-PtKathma-test-helpers
+  lwt
+  conduit-lwt-unix
+  data-encoding
+  cmdliner
+  dapper
+  backend
+  adapter
+ )
+)
