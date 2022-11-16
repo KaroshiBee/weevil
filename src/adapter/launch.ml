@@ -24,7 +24,7 @@ let _get_onDebug = function
       D.LaunchRequestArguments.noDebug args |> Option.value ~default:false
   | _ -> false
 
-module T (S : Types.State_intf) = struct
+module T (S : Types.STATE_T) = struct
 
   module On_request = Dap.Launch.On_request (S)
   module On_response = Dap.Launch.Raise_process (S)

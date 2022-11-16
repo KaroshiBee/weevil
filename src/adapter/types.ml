@@ -2,7 +2,7 @@ module Dap = Dapper.Dap
 
 (* readonly wrt the adapter level state,
    Dap.STATE_T is always needed and that modifies Dapper state *)
-module type State_readonly_intf = sig
+module type STATE_READONLY_T = sig
   (* sequencing is controlled by Dap_state in dapper lib *)
   include Dap.STATE_T
 
@@ -24,8 +24,8 @@ module type State_readonly_intf = sig
 
 end
 
-module type State_intf = sig
-  include State_readonly_intf
+module type STATE_T = sig
+  include STATE_READONLY_T
 
   val set_start_backend : t -> Ipaddr.t -> int -> string -> unit Dap.Result.t
 
@@ -40,7 +40,7 @@ module type State_intf = sig
 end
 
 
-module type String_handler_intf = sig
+module type STRING_HANDLER_T = sig
 
   type state
 
@@ -50,7 +50,7 @@ module type String_handler_intf = sig
 end
 
 
-module type Handler_intf = sig
+module type HANDLER_T = sig
 
   type t
 

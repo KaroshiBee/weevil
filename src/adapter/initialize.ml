@@ -4,7 +4,7 @@ module Req = Dap.Request
 module Res = Dap.Response
 module Ev = Dap.Event
 
-module T (S : Types.State_intf) = struct
+module T (S : Types.STATE_T) = struct
 
   module On_request = Dap.Initialize.On_request (S)
   module On_response = Dap.Initialize.Raise_initialized (S)

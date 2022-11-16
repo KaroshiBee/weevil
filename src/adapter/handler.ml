@@ -29,30 +29,30 @@ let%expect_test "check deduplicate_stable" =
   [%expect {| 555,111,222,333,444 |}]
 
 
-module T (S:Types.State_intf) = struct
+module T (S:Types.STATE_T) = struct
 
-  module type HANDLER = Types.String_handler_intf with type state := S.t
+  module type HANDLER_T = Types.STRING_HANDLER_T with type state := S.t
 
   module Initialize = Initialize.T (S)
   module Configuration = Configuration.T (S)
   module Launch = Launch.T (S)
   module Attach = Attach.T (S)
 
-  type t = {handlers : (string, (module HANDLER)) Hashtbl.t;}
+  type t = {handlers : (string, (module HANDLER_T)) Hashtbl.t;}
 
   let make =
     {
       handlers =
         [
-          (* "cancel", (module Cancel : HANDLER with type state = S.t); *)
-          "initialize", (module Initialize : HANDLER);
-          "configurationDone", (module Configuration : HANDLER);
-          "launch", (module Launch : HANDLER);
-          "attach", (module Attach : HANDLER);
-          (* "next", (module Next : HANDLER with type state = S.t); *)
-          (* "restart", (module Restart : HANDLER with type state = S.t); *)
-          (* "disconnect", (module Disconnect : HANDLER with type state = S.t); *)
-          (* "terminate", (module Terminate : HANDLER with type state = S.t); *)
+          (* "cancel", (module Cancel : HANDLER_T with type state = S.t); *)
+          "initialize", (module Initialize : HANDLER_T);
+          "configurationDone", (module Configuration : HANDLER_T);
+          "launch", (module Launch : HANDLER_T);
+          "attach", (module Attach : HANDLER_T);
+          (* "next", (module Next : HANDLER_T with type state = S.t); *)
+          (* "restart", (module Restart : HANDLER_T with type state = S.t); *)
+          (* "disconnect", (module Disconnect : HANDLER_T with type state = S.t); *)
+          (* "terminate", (module Terminate : HANDLER_T with type state = S.t); *)
         ]
         |> List.to_seq |> Hashtbl.of_seq;
     }
@@ -60,7 +60,7 @@ module T (S:Types.State_intf) = struct
   let _find_handler ~state message = function
     | None -> Lwt.return_none
     | Some h -> (
-        let module H = (val h : HANDLER) in
+        let module H = (val h : HANDLER_T) in
         let handlers = H.handlers ~state in
         let init = Lwt.return (message, []) in
         try%lwt
