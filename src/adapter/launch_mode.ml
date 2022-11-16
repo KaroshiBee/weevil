@@ -1,1 +1,5 @@
-type t = [`Launch | `Attach | `AttachForSuspendedLaunch ]
+type t = [
+  | `Launch
+  | `Attach
+  | `AttachForSuspendedLaunch
+] [@@deriving show]
