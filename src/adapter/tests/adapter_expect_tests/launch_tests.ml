@@ -101,18 +101,49 @@ let%expect_test "Check sequencing etc for launch" =
         in
         Printf.printf "%s" lmode;
         let%lwt () = [%expect {| launch |}] in
+        Lwt.return_unit
 
+      | _ -> failwith "error: expected two handlers for launch"
+    )
+
+let%expect_test "Check bad input for launch" =
+  let st = LaunchStateMock.make () in
+  let lmode = st |> LaunchStateMock.launch_mode |> Option.map Launch_mode.show |> Option.value ~default:"not set" in
+  Printf.printf "%s" lmode;
+  let%lwt () = [%expect {| not set |}] in
+  Lwt_io.with_temp_file ~temp_dir:"/dev/shm" (fun (_, oc) ->
+      let () = LaunchStateMock.set_io st oc in
+      let command = Dap.Commands.attach in
+      let req =
+        Dap.Request.(
+          Helpers.attach_msg ~seq:20
+          |> Js.construct (Message.enc command D.AttachRequestArguments.enc)
+          |> Js.to_string)
+      in
+      Printf.printf "%s" req ;
+      let%lwt () =
+        [%expect
+          {| { "seq": 20, "type": "request", "command": "attach", "arguments": {} } |}]
+      in
+
+      match Launch.handlers ~state:st with
+      | f_resp :: _f_ev :: [] ->
         (* unhappy path *)
         let%lwt err =
           try%lwt
-            f_resp ev
+            f_resp req
           with
           | Dap.Wrong_encoder err -> Lwt_result.fail err
         in
         Printf.printf "%s" @@ Result.get_error err ;
         let%lwt () =
-          [%expect {| cannnot destruct: Json_encoding.Cannot_destruct at /: Missing object field command |}]
+          [%expect {| cannnot destruct: expected 'launch', got 'attach' |}]
         in
+
+        let lmode = st |> LaunchStateMock.launch_mode |> Option.map Launch_mode.show |> Option.value ~default:"not set" in
+        Printf.printf "%s" lmode;
+        let%lwt () = [%expect {| not set |}] in
+
         Lwt.return_unit
 
       | _ -> failwith "error: expected two handlers for launch"
