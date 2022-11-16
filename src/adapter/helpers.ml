@@ -15,7 +15,7 @@ module StateMock = struct
     launch_mode = None;
     seqr = Data.Seqr.make ~seq:0 ();
     config=Config.make ();
-    client_config=Option.some @@ Data.InitializeRequestArguments.make ~adapterID:"FAKE" ();
+    client_config=Option.some @@ Data.InitializeRequestArguments.make ~adapterID:"MOCK" ();
   }
 
   let set_connect_backend _ip _port = failwith "MOCK connect"
@@ -70,7 +70,7 @@ let attach_msg ~seq =
 let attach_req ~seq = Request.attachRequest @@ attach_msg ~seq
 
 let initialize_msg ~seq =
-  let arguments = Data.InitializeRequestArguments.make ~adapterID:"weevil" () in
+  let arguments = Data.InitializeRequestArguments.make ~adapterID:"weevil" ~clientID:"12345" () in
   Request.Message.make ~seq ~command:Commands.initialize ~arguments ()
 
 let initialize_req ~seq = Request.initializeRequest @@ initialize_msg ~seq
