@@ -1,6 +1,7 @@
 testing the backend with an example.tz michelson script, needs to step 8 times
+I send in 10 newlines to check that its ok to send them when it is finished
 
-  $ echo "\n \n \n \n \n \n \n \n" | weevil stepper multiply_2_x_250_equals_500.tz
+  $ echo "\n \n \n \n \n \n \n \n \n \n" | weevil stepper multiply_2_x_250_equals_500.tz
   
   # log_interp @ location 7
   
@@ -53,5 +54,5 @@ testing the backend with an example.tz michelson script, needs to step 8 times
   { "location": 8, "gas": "92.495 units remaining",  "stack": [ "(Pair {} Unit)" ] }
   
   # log_entry @ location 6
-  # got ''
+  # got ' '
   # log_control
