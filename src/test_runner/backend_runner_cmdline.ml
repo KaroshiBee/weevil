@@ -44,8 +44,10 @@ end
       Lwt_io.write_line oc @@ step1 >>= fun _ ->
       Lwt_io.write_line oc @@ step1 >>= fun _ ->
       Lwt_io.write_line oc @@ step1 >>= fun _ ->
+      (* NOTE sleeps to make deterministic *)
       Lwt_unix.sleep 1.0 >>= fun _ ->
-      Lwt_io.write_line oc @@ terminate
+      Lwt_io.write_line oc @@ terminate  >>= fun _ ->
+      Lwt_unix.sleep 1.0
     )
 end
 

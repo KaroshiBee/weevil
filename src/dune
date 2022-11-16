@@ -23,7 +23,7 @@
   backend
   adapter
  )
-
+ (instrumentation (backend bisect_ppx))
  (flags
   (:standard
    -linkall

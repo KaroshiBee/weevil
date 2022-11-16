@@ -17,4 +17,5 @@
   backend
   adapter
  )
+ (instrumentation (backend bisect_ppx))
 )

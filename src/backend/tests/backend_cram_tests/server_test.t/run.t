@@ -61,8 +61,8 @@ run the backend server and connect
   weevil: [INFO] [STEPPER] got msg from subprocess '# log_entry @ location 14'
   weevil: [INFO] [STEPPER] step handler start, waiting for messages
   weevil: [INFO] [MICH] got msg '{ "event": {} }'
-  weevil: [INFO] [MICH] connection closed
   weevil: [INFO] [STEPPER] subprocess complete
+  weevil: [INFO] [MICH] connection closed
 
 connect to weevil, need the sleep to establish the process
   $ sleep 1 && test_runner backend multiply_2_x_25_equals_50.tz

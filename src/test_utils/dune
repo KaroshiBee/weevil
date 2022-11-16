@@ -6,5 +6,6 @@
     ppx_expect
   )
  (preprocess (pps lwt_ppx ppx_expect))
+ (instrumentation (backend bisect_ppx))
 )
 
