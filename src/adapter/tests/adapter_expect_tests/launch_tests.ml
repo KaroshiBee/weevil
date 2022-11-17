@@ -2,13 +2,14 @@ include Test_utils.Include
 module Dap = Dapper.Dap
 module D = Dap.Data
 module Js = Data_encoding.Json
+module Helpers = Utils.Helpers
 
 module LaunchStateMock = struct
   type t = {
-    mutable launch_mode : Launch_mode.t option;
+    mutable launch_mode : Dap.Launch_mode.t option;
     mutable oc: Lwt_io.output_channel option;
     mutable seqr: D.Seqr.t;
-    mutable config : Config.t;
+    mutable config : Dap.Config.t;
     mutable client_config : D.InitializeRequestArguments.t option;
   }
 
@@ -16,7 +17,7 @@ module LaunchStateMock = struct
     launch_mode = None;
     oc=None;
     seqr=D.Seqr.make ~seq:0 ();
-    config=Config.make ();
+    config=Dap.Config.make ();
     client_config=Option.some @@ D.InitializeRequestArguments.make ~adapterID:"FAKE" ();
   }
 
@@ -108,7 +109,7 @@ let%expect_test "Check sequencing etc for launch" =
 
 let%expect_test "Check bad input for launch" =
   let st = LaunchStateMock.make () in
-  let lmode = st |> LaunchStateMock.launch_mode |> Option.map Launch_mode.show |> Option.value ~default:"not set" in
+  let lmode = st |> LaunchStateMock.launch_mode |> Option.map Dap.Launch_mode.show |> Option.value ~default:"not set" in
   Printf.printf "%s" lmode;
   let%lwt () = [%expect {| not set |}] in
   Lwt_io.with_temp_file ~temp_dir:"/dev/shm" (fun (_, oc) ->
@@ -140,7 +141,7 @@ let%expect_test "Check bad input for launch" =
           [%expect {| cannnot destruct: expected 'launch', got 'attach' |}]
         in
 
-        let lmode = st |> LaunchStateMock.launch_mode |> Option.map Launch_mode.show |> Option.value ~default:"not set" in
+        let lmode = st |> LaunchStateMock.launch_mode |> Option.map Dap.Launch_mode.show |> Option.value ~default:"not set" in
         Printf.printf "%s" lmode;
         let%lwt () = [%expect {| not set |}] in
 

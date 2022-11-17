@@ -1,5 +1,5 @@
 let rec lines_from_in_channel =
-  let read_line_ i = try Some (input_line i) with End_of_file -> None
+  let read_line_ i = try (i |> Option.map input_line) with End_of_file -> None
   in
   fun i acc ->
     match (read_line_ i) with
@@ -7,20 +7,22 @@ let rec lines_from_in_channel =
     | Some s -> lines_from_in_channel i (s :: acc)
 
 let read_file filename () =
-  let i = open_in filename in
+  let i : in_channel option ref = ref None in
   try
-    let lns = lines_from_in_channel i [] in
-    close_in i;
+    let () = i := Option.some @@ open_in filename in
+    let lns = lines_from_in_channel !i [] in
+    Option.(!i |> map close_in |> value ~default:());
     lns
-  with _ ->
-    close_in_noerr i;
+  with e ->
+    Logs.err (fun m -> m "%s" @@ Printexc.to_string e);
+    Option.(!i |> map close_in_noerr |> value ~default:());
     []
 
 let process contract_file_arg =
   let contract_text =
     let lns =
       match contract_file_arg with
-      | None -> let s = read_line () in [s]
+      | None -> raise @@ Invalid_argument "expected contract filename"
       | Some contract_file -> read_file contract_file ()
     in
     String.concat " " lns
@@ -29,6 +31,7 @@ let process contract_file_arg =
   let logger = Stepper.Traced_interpreter.trace_logger stdout () in
 
   let stepper =
+    Logs.debug (fun m -> m "got contract data: '%s'" contract_text);
     let open Tezos_base.TzPervasives.Error_monad.Legacy_monad_globals in
     Stepper.test_stepping contract_text logger >|= (fun _ -> `Ok ()) in
 

@@ -1,5 +1,6 @@
 open Conduit_lwt_unix
 module Dap = Dapper.Dap
+module Helpers = Utils.Helpers
 
 module T (Dap_state:Dap.STATE_T) = struct
   type t = {
@@ -7,8 +8,8 @@ module T (Dap_state:Dap.STATE_T) = struct
     mutable process : Lwt_process.process_none option;
     mutable ic : Lwt_io.input_channel option;
     mutable oc : Lwt_io.output_channel option;
-    mutable launch_mode : Launch_mode.t option;
-    mutable config : Config.t;
+    mutable launch_mode : Dap.Launch_mode.t option;
+    mutable config : Dap.Config.t;
     mutable client_config : Dap.Data.InitializeRequestArguments.t option;
   }
 
@@ -18,7 +19,7 @@ module T (Dap_state:Dap.STATE_T) = struct
     ic = None;
     oc = None;
     launch_mode = None;
-    config = Config.make ();
+    config = Dap.Config.make ();
     client_config = None;
   }
 
@@ -39,7 +40,7 @@ module T (Dap_state:Dap.STATE_T) = struct
       Logs_lwt.debug (fun m ->
           m "launching backend service with cmd: '%s'" cmd)
     in
-    let pcmd = Config.(to_process_command cmd) in
+    let pcmd = Dap.Config.(to_process_command cmd) in
     let p =
       try%lwt
         Dap.Result.ok @@ Lwt_process.open_process_none pcmd
@@ -60,28 +61,12 @@ module T (Dap_state:Dap.STATE_T) = struct
         Dap.Result.ok @@ _set_process_none t process
       )
 
-  (* loop a fixed number of times with a sleep, to make sure to connect when up *)
-  let rec _aux ~ctx ~client ~port i =
-    let%lwt () =
-      Logs_lwt.debug (fun m ->
-          m "[%d] trying to connect on locahost port: %d" i port)
-    in
-    let%lwt () = Lwt_unix.sleep @@ float_of_int i in
-    try%lwt
-      let%lwt cn = connect ~ctx client in
-      let%lwt () =
-        Logs_lwt.debug (fun m -> m "connected on locahost port: %d" port)
-      in
-      Lwt.return cn
-    with Unix.Unix_error (Unix.ECONNREFUSED, "connect", "") as e ->
-      if i > 5 then raise e else _aux ~ctx ~client ~port (i + 1)
-
   let set_connect_backend t ip port =
     let client = `TCP (`IP ip, `Port port) in
     let%lwt ctx = init () in
     let res =
       try%lwt
-        let%lwt (_flow, ic, oc) = _aux ~ctx ~client ~port 1 in
+        let%lwt (_flow, ic, oc) = Helpers.loop_connect ~ctx ~client ~port 5 in
         (ic, oc) |> Dap.Result.ok
       with _ as err ->
         let err_s = Printexc.to_string err in

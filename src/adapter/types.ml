@@ -14,10 +14,10 @@ module type STATE_READONLY_T = sig
   val backend_oc : t -> Lwt_io.output_channel option
 
   (* neede to retain which launch type was requested *)
-  val launch_mode : t -> Launch_mode.t option
+  val launch_mode : t -> Dap.Launch_mode.t option
 
   (* the adapter internal config data *)
-  val config : t -> Config.t
+  val config : t -> Dap.Config.t
 
   (* the config data that the client requested when initializing the adapter *)
   val client_config : t -> Dap.Data.InitializeRequestArguments.t option
@@ -31,9 +31,9 @@ module type STATE_T = sig
 
   val set_connect_backend : t -> Ipaddr.t -> int -> (Lwt_io.input_channel * Lwt_io.output_channel) Dap.Result.t
 
-  val set_launch_mode : t -> Launch_mode.t -> unit
+  val set_launch_mode : t -> Dap.Launch_mode.t -> unit
 
-  val set_config : t -> Config.t -> unit
+  val set_config : t -> Dap.Config.t -> unit
 
   val set_client_config : t -> Dap.Data.InitializeRequestArguments.t -> unit
 

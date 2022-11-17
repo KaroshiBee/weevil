@@ -50,9 +50,9 @@ module T (S : Types.STATE_T) = struct
   let launch_handler =
     On_request.make ~handler:(fun ~state _req ->
         let config = S.config state in
-        let ip = Config.backend_ip config |> Ipaddr_unix.of_inet_addr in
-        let port = Config.backend_port config in
-        let cmd = Config.backend_cmd config in
+        let ip = Dap.Config.backend_ip config |> Ipaddr_unix.of_inet_addr in
+        let port = Dap.Config.backend_port config in
+        let cmd = Dap.Config.backend_cmd config in
         let resp =
           let command = Dap.Commands.launch in
           let body = D.EmptyObject.make () in
@@ -63,7 +63,7 @@ module T (S : Types.STATE_T) = struct
         _start_background_svc state ip port cmd
         |> Dap_result.bind ~f:(fun _ -> _connect_background_svc state ip port)
         |> Dap_result.bind ~f:(fun (_ic, oc) ->
-            let stepper_cmd = Config.stepper_cmd config in
+            let stepper_cmd = Dap.Config.stepper_cmd config in
                let%lwt () =
                  Logs_lwt.debug (fun m ->
                      m
@@ -78,7 +78,7 @@ module T (S : Types.STATE_T) = struct
                  Js.(
                    construct Mich_event.enc runscript
                    |> to_string
-                   |> Header.wrap ~add_header:false)
+                   |> Dap.Header.wrap ~add_header:false)
                in
                (* NOTE then write_line to make server consume *)
                let%lwt () = Lwt_io.write_line oc runscript_s in

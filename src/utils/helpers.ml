@@ -109,6 +109,22 @@ let to_msg (type cmd args presence) :
       Json.(construct enc req |> to_string) |> Header.wrap
   | _ -> assert false
 
-module M = Backend.Server.MichEvent
 
-let step = M.make ~event:(M.Step 1) () |> Json.construct M.enc |> Json.to_string
+(* loop a fixed number of times [n] with a sleep, to make sure to connect when up *)
+let loop_connect ~ctx ~client ~port n =
+  let rec _aux i =
+    let%lwt () =
+      Logs_lwt.debug (fun m ->
+          m "[%d] trying to connect on locahost port: %d" i port)
+    in
+    let%lwt () = Lwt_unix.sleep @@ float_of_int i in
+    try%lwt
+      let%lwt cn = connect ~ctx client in
+      let%lwt () =
+        Logs_lwt.debug (fun m -> m "connected on locahost port: %d" port)
+      in
+      Lwt.return cn
+    with Unix.Unix_error (Unix.ECONNREFUSED, "connect", "") as e ->
+      if i > n then raise e else _aux (i + 1)
+  in
+  _aux 1

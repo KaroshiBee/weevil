@@ -1,12 +1,11 @@
 (library
- (name adapter_expect_tests)
+ (name backend_expect_tests)
  (libraries
    adapter
    dapper
    defaults
    backend
    test_utils
-   utils
    lwt
    lwt.unix
    conduit-lwt-unix
@@ -17,12 +16,6 @@
    ppx_expect
    str
  )
- (inline_tests)
+ (inline_tests (deps (glob_files data/*.tz)))
  (preprocess (pps lwt_ppx ppx_expect))
- (flags
-  (:standard
-   -linkall
-   -open
-   Adapter
-   ))
 )

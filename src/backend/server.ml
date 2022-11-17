@@ -3,34 +3,67 @@ module Js = Data_encoding.Json
 
 open Lwt
 
+exception Stepper_error of string
+
 let recs : Model.Weevil_json.t list ref  = ref []
 
-let read_weevil_recs ln =
-  if 0 < String.length ln && String.get ln 0 != '#' then (
-    match Js.from_string ln with
-    | Ok ln ->
-      let ln = Js.destruct Model.Weevil_json.enc ln in
-      Some ln
-    | Error e ->
-      Logs.warn (fun m -> m "Cannot decode '%s': %s" ln e);
-      None
-  ) else None
+let read_weevil_recs = function
+  | ln when 0 < String.length ln && String.get ln 0 != '#' -> (
+      match Js.from_string ln with
+      | Ok js -> (
+          try
+            let js = Js.destruct Model.Weevil_json.enc js in
+            Lwt.return_some js
+          with e ->
+            let%lwt () = Logs_lwt.warn (fun m -> m "Cannot js destruct '%s': %s" ln @@ Printexc.to_string e) in
+            Lwt.return_none
+        )
+      | Error e ->
+        let%lwt () = Logs_lwt.warn (fun m -> m "Cannot decode '%s': %s" ln e) in
+        Lwt.return_none
+    )
+  | ln when 0 < String.length ln && String.get ln 0 = '#' ->
+    let%lwt () = Logs_lwt.info (fun m -> m "%s" ln) in
+    Lwt.return_none
+  | ln ->
+    let%lwt () = Logs_lwt.info (fun m -> m "other: %s" ln) in
+    Lwt.return_none
 
-let rec step_handler ~ic_process =
-  let%lwt _ = Logs_lwt.info (fun m -> m "[STEPPER] step handler start, waiting for messages") in
+(* TODO better error handling *)
+let rec step_handler ~ic_process ~err_process =
+  let%lwt _ = Logs_lwt.info (fun m -> m "[STEPPER] waiting for messages") in
   Lwt_io.read_line_opt ic_process >>= function
   | Some msg ->
-    Logs_lwt.info (fun m -> m "[STEPPER] got msg from subprocess '%s'" msg) >>= fun _ -> (
-      match read_weevil_recs msg with
+    let%lwt () = Logs_lwt.info (fun m -> m "[STEPPER] got msg from subprocess '%s'" msg) in
+    let%lwt () =
+      match%lwt read_weevil_recs msg with
       | Some wrec ->
         recs := wrec :: !recs;
         Logs_lwt.info (fun m -> m "[STEPPER] got weevil log record from subprocess '%s'" msg)
       | None -> Lwt.return_unit
-    ) >>= fun _ ->
-    step_handler ~ic_process
+    in
+    step_handler ~ic_process ~err_process
   | None ->
     Logs_lwt.info (fun m -> m "[STEPPER] subprocess complete")
 
+
+and step_err_handler ~ic_process ~err_process =
+  let errors = ref [] in
+  let rec _aux errs =
+    Lwt_io.read_line_opt err_process >>= function
+    | Some err ->
+      (* TODO horrible, why is info coming back on stderr? *)
+      if String.starts_with ~prefix:"weevil: [ERROR]" err then (
+        let%lwt () = Logs_lwt.err (fun m -> m "err handler: %s" err) in
+        errs := err :: !errs;
+        _aux errs
+      ) else
+        step_handler ~ic_process ~err_process
+    | None -> match !errs with
+      | [] -> step_handler ~ic_process ~err_process
+      | _ -> let err = String.concat "\n" !errs in raise @@ Stepper_error err
+  in
+  _aux errors
 
 module MichEvent = struct
 
@@ -146,25 +179,34 @@ let rec main_handler flow ic oc =
 
 and stepper_process_start flow ic oc process_full =
   let%lwt _ = Logs_lwt.info (fun m -> m "[MICH] stepper_process_start") in
+  let%lwt _ = Logs_lwt.info (fun m -> m "[STEPPER] starting") in
   let () = stepper_process := Some process_full in
-  let st = step_handler ~ic_process:process_full#stdout in
+  let st = step_err_handler ~ic_process:process_full#stdout ~err_process:process_full#stderr in
   let m = main_handler flow ic oc in
   Lwt.join [st; m]
 
-let on_exn exn = Lwt.ignore_result @@ Logs_lwt.err (fun m -> m "%s" @@ Printexc.to_string exn)
+let on_exn exn =
+  Lwt.ignore_result @@ Logs_lwt.err (fun m -> m "%s" @@ Printexc.to_string exn)
 
 let on_connection flow ic oc =
   let%lwt () = Logs_lwt.info (fun m -> m "[MICH] got connection") in
   main_handler flow ic oc
 
+let lwt_svc ?stopper port =
+  let mode = `TCP (`Port port) in
+  let () = Logs.info (fun m -> m "[MICH] starting backend server on port %d" port) in
+  let ret =
+    Conduit.init () >>= fun ctx -> (
+      match stopper with
+      | Some stop -> Conduit.serve ~stop ~on_exn ~ctx ~mode on_connection
+      | None -> Conduit.serve ~on_exn ~ctx ~mode on_connection
+    )
+    >|= fun _ ->
+    `Ok ()
+  in
+  ret
+
 let svc ~port =
   let () = Logs.set_reporter (Logs.format_reporter ()) in
   let () = Logs.set_level (Some Logs.Info) in
-  let mode = `TCP (`Port port) in
-  let () = Logs.info (fun m -> m "[MICH] starting backend server on port %d" port) in
-  Lwt_main.run (
-    Conduit.init () >>= fun ctx ->
-    Conduit.serve ~on_exn ~ctx ~mode on_connection
-    >|= fun _ ->
-    `Ok ()
-  )
+  Lwt_main.run (lwt_svc port)

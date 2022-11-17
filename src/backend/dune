@@ -10,6 +10,7 @@
      tezos-014-PtKathma-test-helpers
      dapper
      defaults
+     utils
      lwt
      lwt.unix
      conduit-lwt-unix
@@ -27,7 +28,6 @@
    -open
    Tezos_014_PtKathma_test_helpers
  ))
- (inline_tests (deps (glob_files data/*.json)))
- (preprocess (pps lwt_ppx ppx_deriving.show ppx_expect))
+ (preprocess (pps lwt_ppx ppx_deriving.show))
  (instrumentation (backend bisect_ppx))
 )

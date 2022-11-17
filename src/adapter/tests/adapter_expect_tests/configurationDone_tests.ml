@@ -2,6 +2,7 @@ include Test_utils.Include
 module Dap = Dapper.Dap
 module D = Dap.Data
 module Js = Data_encoding.Json
+module Helpers = Utils.Helpers
 
 module StateMock = Helpers.StateMock
 module ConfigDone = Configuration.T(StateMock)

@@ -2,6 +2,7 @@ include Test_utils.Include
 module Dap = Dapper.Dap
 module D = Dap.Data
 module Js = Data_encoding.Json
+module Helpers = Utils.Helpers
 
 module StateMock = Helpers.StateMock
 module Attach = Attach.T (StateMock)
@@ -59,7 +60,7 @@ let%expect_test "Check sequencing etc for attach" =
 
 let%expect_test "Check bad input for attach" =
   let state = StateMock.make () in
-  let lmode = state |> StateMock.launch_mode |> Option.map Launch_mode.show |> Option.value ~default:"not set" in
+  let lmode = state |> StateMock.launch_mode |> Option.map Dap.Launch_mode.show |> Option.value ~default:"not set" in
   Printf.printf "%s" lmode;
   let%lwt () = [%expect {| not set |}] in
   let command = Dap.Commands.launch in
@@ -90,7 +91,7 @@ let%expect_test "Check bad input for attach" =
       [%expect {| cannnot destruct: expected 'attach', got 'launch' |}]
     in
 
-    let lmode = state |> StateMock.launch_mode |> Option.map Launch_mode.show |> Option.value ~default:"not set" in
+    let lmode = state |> StateMock.launch_mode |> Option.map Dap.Launch_mode.show |> Option.value ~default:"not set" in
     Printf.printf "%s" lmode;
     let%lwt () = [%expect {| not set |}] in
 
