@@ -52,13 +52,14 @@ and step_err_handler ~ic_process ~err_process =
   let rec _aux errs =
     Lwt_io.read_line_opt err_process >>= function
     | Some err ->
-      (* TODO horrible, why is info coming back on stderr? *)
-      if String.starts_with ~prefix:"weevil: [ERROR]" err then (
-        let%lwt () = Logs_lwt.err (fun m -> m "err handler: %s" err) in
+      (* TODO horrible, why is log info coming back on stderr? *)
+      if String.starts_with ~prefix:"weevil: [INFO]" err then
+        step_handler ~ic_process ~err_process
+      else (
+        let%lwt () = Logs_lwt.err (fun m -> m "step_err_handler: %s" err) in
         errs := err :: !errs;
         _aux errs
-      ) else
-        step_handler ~ic_process ~err_process
+      )
     | None -> match !errs with
       | [] -> step_handler ~ic_process ~err_process
       | _ -> let err = String.concat "\n" !errs in raise @@ Stepper_error err

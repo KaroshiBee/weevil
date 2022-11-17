@@ -6,13 +6,15 @@ module Svc = Backend.Server
 module MichEvent = Svc.MichEvent
 module Helpers = Utils.Helpers
 
+(* use different port than default *)
+let port = 9002
+
 module Msgs : sig
   type t
   val to_string : t -> string
   val runscript : string -> string
   val terminate : string
   val step1 : string
-  (* val logger : Lwt_io.input_channel -> unit Lwt.t *)
   val connect : int -> (Lwt_io.input_channel * Lwt_io.output_channel) Lwt.t
   val run : fname:string -> (Lwt_io.input_channel * Lwt_io.output_channel) -> unit Lwt.t
 end
@@ -36,28 +38,14 @@ end
     let event = MichEvent.(make ~event:(Step 1) ()) in
     to_string event
 
-  (* let logger backend_ic = *)
-  (*   let rec _aux ic = *)
-  (*     let%lwt () = Printf.printf "logger\n"; Lwt.return_unit in *)
-  (*     match%lwt Lwt_io.read_line_opt ic with *)
-  (*     | Some _ln -> let _ = failwith "not happening" in _aux ic (\* Lwt_io.(printl ln >>= fun _ -> flush stdout >>= fun _ -> logger ic) *\) *)
-  (*     | None -> let _ = failwith "blank" in Lwt.return_unit *)
-  (*   in *)
-  (*   let p, r = Lwt.task () in *)
-  (*   let l = p >>= fun ic -> _aux ic in *)
-  (*   let () = wakeup r backend_ic in *)
-  (*   l *)
-
   let connect port =
     let ip = Unix.inet_addr_loopback |> Ipaddr_unix.of_inet_addr in
     let client = `TCP (`IP ip, `Port port) in
     let%lwt ctx = Conduit.init () in
     let%lwt (_, ic, oc) = Helpers.loop_connect ~ctx ~client ~port 5 in
-    (* let%lwt () = Printf.printf "connected on port %d\n" port; Lwt.return_unit in *)
     Lwt.return (ic, oc)
 
   let run ~fname (_ic, oc) =
-    (* let l = logger ic in *)
     let cmd = Printf.sprintf "dune exec -- weevil stepper %s" fname in
     let stepper =
       Lwt_io.write_line oc @@ runscript cmd >>= fun _ ->
@@ -69,10 +57,8 @@ end
       Lwt_unix.sleep 1.0 >>= fun _ ->
       Lwt_io.write_line oc @@ terminate  >>= fun _ ->
       Lwt_unix.sleep 1.0
-      (* Lwt.cancel l |> Lwt.return *)
     in
     stepper
-    (* Lwt.join [l;stepper] *)
 
 end
 
@@ -80,15 +66,10 @@ let () = Logs.set_reporter (Logs.format_reporter ())
 let () = Logs.set_level (Some Logs.Info)
 
 let%expect_test "Check loading/stepping a contract" =
-  let port = 9001 in
   let actions = Msgs.(connect port >>= run ~fname:"data/multiply_2_x_25_equals_50.tz") in
-  let%lwt () =
-    match%lwt Svc.lwt_svc ~stopper:actions port with
-    | `Ok _ -> Printf.printf "ok"; Lwt.return_unit
-    | _ -> failwith "not ok"
-  in
+  let%lwt _ = Svc.lwt_svc ~stopper:actions port in
   let%lwt () = [%expect {|
-    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] starting backend server on port 9001
+    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] starting backend server on port 9002
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got connection
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got msg '{ "event": "dune exec -- weevil stepper data/multiply_2_x_25_equals_50.tz" }'
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] starting new stepper with cmd 'dune exec -- weevil stepper data/multiply_2_x_25_equals_50.tz'
@@ -184,7 +165,50 @@ let%expect_test "Check loading/stepping a contract" =
     inline_test_runner_backend_expect_tests.exe: [INFO] # log_entry @ location 15
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] waiting for messages
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got msg '{ "event": {} }'
-    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] subprocess complete
-    ok |}] in
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] subprocess complete |}] in
 
+  Lwt.return_unit
+
+let%expect_test "check for bad filename" =
+  let actions = Msgs.(connect port >>= run ~fname:"data/notthere.tz") in
+  let%lwt _ = Svc.lwt_svc ~stopper:actions port in
+  let%lwt () = [%expect {|
+    (* CR expect_test_collector: This test expectation appears to contain a backtrace.
+       This is strongly discouraged as backtraces are fragile.
+       Please change this test to not include a backtrace. *)
+
+    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] starting backend server on port 9002
+    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got connection
+    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got msg '{ "event": "dune exec -- weevil stepper data/notthere.tz" }'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] starting new stepper with cmd 'dune exec -- weevil stepper data/notthere.tz'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] stepper_process_start
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] starting
+    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got msg '{ "event": 1 }'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] Got Next request
+    { "event": 1 }
+
+    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got msg '{ "event": 1 }'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] Got Next request
+    { "event": 1 }
+
+    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got msg '{ "event": 1 }'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] Got Next request
+    { "event": 1 }
+
+    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got msg '{ "event": 1 }'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] Got Next request
+    { "event": 1 }
+
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler: weevil: [ERROR] Sys_error("data/notthere.tz: No such file or directory")
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler: tezos-weevil: internal error, uncaught exception:
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:               Tezos_014_PtKathma_test_helpers.Expr.Expression_from_string
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:               Raised at Tezos_014_PtKathma_test_helpers__Expr.from_string in file "src/proto_014_PtKathma/lib_protocol/test/helpers/expr.ml", line 40, characters 6-34
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:               Called from Backend__Stepper.run_script in file "src/backend/stepper.ml", line 37, characters 22-47
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:               Called from Backend__Stepper.test_stepping.(fun) in file "src/backend/stepper.ml", line 65, characters 2-94
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:               Called from Backend__Stepper_cmdline.process in file "src/backend/stepper_cmdline.ml", line 36, characters 4-46
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:               Called from Cmdliner_term.app.(fun) in file "cmdliner_term.ml", line 24, characters 19-24
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:               Called from Cmdliner_term.ret.(fun) in file "cmdliner_term.ml", line 33, characters 25-32
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:               Called from Cmdliner_eval.run_parser in file "cmdliner_eval.ml", line 34, characters 37-44
+    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got msg '{ "event": {} }'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] already terminated |}] in
   Lwt.return_unit
