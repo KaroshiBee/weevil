@@ -1,0 +1,5 @@
+{parameter unit;storage unit;
+code {
+DROP;
+PUSH mutez 250;
+PUSH nat 2;

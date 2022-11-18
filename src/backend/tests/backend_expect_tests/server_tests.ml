@@ -173,10 +173,6 @@ let%expect_test "check for bad filename" =
   let actions = Msgs.(connect port >>= run ~fname:"data/notthere.tz") in
   let%lwt _ = Svc.lwt_svc ~stopper:actions port in
   let%lwt () = [%expect {|
-    (* CR expect_test_collector: This test expectation appears to contain a backtrace.
-       This is strongly discouraged as backtraces are fragile.
-       Please change this test to not include a backtrace. *)
-
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] starting backend server on port 9002
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got connection
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got msg '{ "event": "dune exec -- weevil stepper data/notthere.tz" }'
@@ -200,15 +196,9 @@ let%expect_test "check for bad filename" =
     { "event": 1 }
 
     inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler: weevil: [ERROR] Sys_error("data/notthere.tz: No such file or directory")
-    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler: tezos-weevil: internal error, uncaught exception:
-    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:               Tezos_014_PtKathma_test_helpers.Expr.Expression_from_string
-    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:               Raised at Tezos_014_PtKathma_test_helpers__Expr.from_string in file "src/proto_014_PtKathma/lib_protocol/test/helpers/expr.ml", line 40, characters 6-34
-    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:               Called from Backend__Stepper.run_script in file "src/backend/stepper.ml", line 37, characters 22-47
-    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:               Called from Backend__Stepper.test_stepping.(fun) in file "src/backend/stepper.ml", line 65, characters 2-94
-    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:               Called from Backend__Stepper_cmdline.process in file "src/backend/stepper_cmdline.ml", line 36, characters 4-46
-    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:               Called from Cmdliner_term.app.(fun) in file "cmdliner_term.ml", line 24, characters 19-24
-    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:               Called from Cmdliner_term.ret.(fun) in file "cmdliner_term.ml", line 33, characters 25-32
-    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:               Called from Cmdliner_eval.run_parser in file "cmdliner_eval.ml", line 34, characters 37-44
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler: tezos-weevil: Stepper error - Error:
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                                 Sys_error("data/notthere.tz: No such file or directory")
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got msg '{ "event": {} }'
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] already terminated |}] in
   Lwt.return_unit

@@ -56,3 +56,82 @@ I send in 10 newlines to check that its ok to send them when it is finished
   # log_entry @ location 6
   # got ' '
   # log_control
+
+
+testing with bad filename
+  $ weevil stepper notthere.tz
+  weevil: [ERROR] Sys_error("notthere.tz: No such file or directory")
+  tezos-weevil: Stepper error - Error:
+                                  Sys_error("notthere.tz: No such file or directory")
+                
+  [124]
+
+
+testing with no filename
+  $ weevil stepper
+  tezos-weevil: Stepper error - Error:
+                                  Invalid_argument("expected contract filename")
+                
+  [124]
+
+testing with bad michelson
+  $ weevil stepper bad_michelson.tz
+  expr_from_string: Error:
+                      At line 1 characters 35 to 36, unclosed curly brace,
+                      trace:
+                      At line 1 characters 0 to 1, unclosed curly brace
+                      At line 1 characters 35 to 36, unclosed curly brace
+  tezos-weevil: Stepper error - Error:
+                                  Tezos_014_PtKathma_test_helpers.Expr.Expression_from_string
+                
+  
+  [124]
+
+
+show the help
+  $ weevil stepper --help
+  TEZOS-WEEVIL-STEPPER(1)       Tezos-weevil Manual      TEZOS-WEEVIL-STEPPER(1)
+  
+  
+  
+  NNAAMMEE
+         tezos-weevil-stepper - Run the Weevil Michelson stepper for the backend
+         service
+  
+  SSYYNNOOPPSSIISS
+         tteezzooss--wweeeevviill sstteeppppeerr [_O_P_T_I_O_N]… [_F_I_L_E]
+  
+  DDEESSCCRRIIPPTTIIOONN
+         Run the Weevil Michelson stepper for the backend service
+  
+  AARRGGUUMMEENNTTSS
+         _F_I_L_E
+             The Michelson contract filename that the weevil stepper will
+             execute (required).
+  
+  CCOOMMMMOONN OOPPTTIIOONNSS
+         ----hheellpp[=_F_M_T] (default=aauuttoo)
+             Show this help in format _F_M_T. The value _F_M_T must be one of aauuttoo,
+             ppaaggeerr, ggrrooffff or ppllaaiinn. With aauuttoo, the format is ppaaggeerr or ppllaaiinn
+             whenever the TTEERRMM env var is dduummbb or undefined.
+  
+         ----vveerrssiioonn
+             Show version information.
+  
+  EEXXIITT SSTTAATTUUSS
+         sstteeppppeerr exits with the following status:
+  
+         0   on success.
+  
+         123 on indiscriminate errors reported on standard error.
+  
+         124 on command line parsing errors.
+  
+         125 on unexpected internal errors (bugs).
+  
+  SSEEEE AALLSSOO
+         tezos-weevil(1)
+  
+  
+  
+  Tezos-weevil 1.0                                       TEZOS-WEEVIL-STEPPER(1)
