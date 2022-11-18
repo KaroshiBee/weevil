@@ -29,6 +29,27 @@ let default_step_constants =
 
 let (>>=??) = Error_monad_operators.(>>=??)
 
+(* need to retain the trace of code locs of any michelson errors *)
+module Expr = struct
+  include Expr
+
+  exception Expression_from_string_with_locs of Tz.error list
+
+  module Michelson_v1_parser = Tezos_client_014_PtKathma.Michelson_v1_parser
+
+  (** Parse a Michelson expression from string, raising an exception on error. *)
+  let from_string ?(check_micheline_indentation = false) str : Ctx.Script.expr =
+    let ast, errs =
+      Michelson_v1_parser.parse_expression ~check:check_micheline_indentation str
+    in
+    (match errs with
+     | [] -> ()
+     | lst -> raise @@ Expression_from_string_with_locs lst
+    );
+    ast.expanded
+
+end
+
 (** Helper function that parses and types a script, its initial storage and
    parameters from strings. It then executes the typed script with the storage
    and parameter and returns the result. *)
@@ -69,12 +90,6 @@ let test_stepping contract logger =
     ~storage:"Unit"
     ~parameter:"Unit"
     ()
-  >>= function
-  | Ok _ ->
-    return_unit
-  | Error errs ->
-    let ss = Format.asprintf "Unexpected error: %a" Tz.Error_monad.pp_print_trace errs in
-    Lwt.bind (Lwt_io.printl ss) (fun _ -> return_unit)
 
 
 module Traced_interpreter = struct

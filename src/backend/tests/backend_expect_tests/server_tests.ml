@@ -196,9 +196,9 @@ let%expect_test "check for bad filename" =
     { "event": 1 }
 
     inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler: weevil: [ERROR] Sys_error("data/notthere.tz: No such file or directory")
-    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler: tezos-weevil: Stepper error - Error:
-    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                                 Sys_error("data/notthere.tz: No such file or directory")
-    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler: tezos-weevil: { "error":
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                   [ { "kind": "temporary", "id": "failure",
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                       "msg": "Sys_error(\"data/notthere.tz: No such file or directory\")" } ] }
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got msg '{ "event": {} }'
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] already terminated |}] in
   Lwt.return_unit

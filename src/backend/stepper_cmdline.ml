@@ -21,9 +21,6 @@ let read_file_exn filename () =
 let file_arg = "FILE"
 
 let process headless contract_file =
-  (* if in headless mode then dont show --help if the cli has errors *)
-  let show_help = not headless in
-
   (* special logger that halts at each michelson logger call-back *)
   let logger = Stepper.Traced_interpreter.trace_logger stdout () in
 
@@ -55,15 +52,23 @@ let process headless contract_file =
         Logs.debug (fun m -> m "got contract data: '%s'" contract_text);
         Stepper.test_stepping contract_text logger
       with
+      | Stepper.Expr.Expression_from_string_with_locs errs -> Lwt.return @@ Error errs
       | e -> Lwt.return @@ Error [Tz.error_of_exn e]
     in
 
-    (* convert Tz.Error_monad result to cmdline output *)
+    (* convert Tz.Error_monad result to cmdline output, if headless then convert errors to json *)
     match%lwt res with
-    | Ok () -> Lwt.return @@ `Ok ()
-    | Error errs ->
-      let ss = Format.asprintf "Stepper error - %a" Tz.Error_monad.pp_print_trace errs in
-      Lwt.return @@ `Error (show_help, ss)
+    | Ok _ -> (* TODO dont ignore OK output *) Lwt.return @@ `Ok ()
+    | Error errs as e ->
+      let ss =
+        if headless then
+          let enc = Tz.Error_monad.result_encoding Tz.Data_encoding.unit in
+          Tz.Data_encoding.Json.(construct enc e |> to_string)
+        else
+          Format.asprintf "Stepper error - %a" Tz.Error_monad.pp_print_trace errs
+      in
+      (* if in headless mode then dont show --help if the cli has errors *)
+      Lwt.return @@ `Error (not headless, ss)
   in
 
   Lwt_main.run stepper

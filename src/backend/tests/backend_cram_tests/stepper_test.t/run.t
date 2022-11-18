@@ -69,30 +69,32 @@ testing with no filename
 
 testing with no filename in headless mode
   $ weevil stepper --headless
-  tezos-weevil: Stepper error - Error:
-                                  Invalid_argument("required argument FILE is missing")
-                
+  tezos-weevil: { "error":
+                    [ { "kind": "temporary", "id": "failure",
+                        "msg": "Invalid_argument(\"required argument FILE is missing\")" } ] }
   [124]
 
 testing with bad filename in headless mode
   $ weevil stepper -h notthere.tz
   weevil: [ERROR] Sys_error("notthere.tz: No such file or directory")
-  tezos-weevil: Stepper error - Error:
-                                  Sys_error("notthere.tz: No such file or directory")
-                
+  tezos-weevil: { "error":
+                    [ { "kind": "temporary", "id": "failure",
+                        "msg": "Sys_error(\"notthere.tz: No such file or directory\")" } ] }
   [124]
 
 testing with bad michelson in headless mode
   $ weevil stepper -h bad_michelson.tz
-  expr_from_string: Error:
-                      At line 1 characters 35 to 36, unclosed curly brace,
-                      trace:
-                      At line 1 characters 0 to 1, unclosed curly brace
-                      At line 1 characters 35 to 36, unclosed curly brace
-  tezos-weevil: Stepper error - Error:
-                                  Tezos_014_PtKathma_test_helpers.Expr.Expression_from_string
-                
-  
+  tezos-weevil: { "error":
+                    [ { "kind": "permanent", "id": "micheline.parse_error.unclosed_token",
+                        "location":
+                          { "start": { "line": 1, "column": 35, "point": 35, "byte": 35 },
+                            "stop": { "line": 1, "column": 36, "point": 36, "byte": 36 } },
+                        "token": { "punctuation": "{" } },
+                      { "kind": "permanent", "id": "micheline.parse_error.unclosed_token",
+                        "location":
+                          { "start": { "line": 1, "column": 0, "point": 0, "byte": 0 },
+                            "stop": { "line": 1, "column": 1, "point": 1, "byte": 1 } },
+                        "token": { "punctuation": "{" } } ] }
   [124]
 
 
