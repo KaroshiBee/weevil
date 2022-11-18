@@ -58,24 +58,32 @@ I send in 10 newlines to check that its ok to send them when it is finished
   # log_control
 
 
-testing with bad filename
-  $ weevil stepper notthere.tz
+testing with no filename
+  $ weevil stepper
+  tezos-weevil: Stepper error - Error:
+                                  Invalid_argument("required argument FILE is missing")
+                
+  Usage: tezos-weevil stepper [--headless] [OPTION]… [FILE]
+  Try 'tezos-weevil stepper --help' or 'tezos-weevil --help' for more information.
+  [124]
+
+testing with no filename in headless mode
+  $ weevil stepper --headless
+  tezos-weevil: Stepper error - Error:
+                                  Invalid_argument("required argument FILE is missing")
+                
+  [124]
+
+testing with bad filename in headless mode
+  $ weevil stepper -h notthere.tz
   weevil: [ERROR] Sys_error("notthere.tz: No such file or directory")
   tezos-weevil: Stepper error - Error:
                                   Sys_error("notthere.tz: No such file or directory")
                 
   [124]
 
-
-testing with no filename
-  $ weevil stepper
-  tezos-weevil: Stepper error - Error:
-                                  Invalid_argument("expected contract filename")
-                
-  [124]
-
-testing with bad michelson
-  $ weevil stepper bad_michelson.tz
+testing with bad michelson in headless mode
+  $ weevil stepper -h bad_michelson.tz
   expr_from_string: Error:
                       At line 1 characters 35 to 36, unclosed curly brace,
                       trace:
@@ -99,7 +107,7 @@ show the help
          service
   
   SSYYNNOOPPSSIISS
-         tteezzooss--wweeeevviill sstteeppppeerr [_O_P_T_I_O_N]… [_F_I_L_E]
+         tteezzooss--wweeeevviill sstteeppppeerr [----hheeaaddlleessss] [_O_P_T_I_O_N]… [_F_I_L_E]
   
   DDEESSCCRRIIPPTTIIOONN
          Run the Weevil Michelson stepper for the backend service
@@ -108,6 +116,11 @@ show the help
          _F_I_L_E
              The Michelson contract filename that the weevil stepper will
              execute (required).
+  
+  OOPPTTIIOONNSS
+         --hh, ----hheeaaddlleessss
+             Run the tool in headless mode, this means that --help is not shown
+             on error and any errors are returned as JSON
   
   CCOOMMMMOONN OOPPTTIIOONNSS
          ----hheellpp[=_F_M_T] (default=aauuttoo)

@@ -18,23 +18,17 @@ let read_file_exn filename () =
     Option.(!i |> map close_in_noerr |> value ~default:());
     raise e
 
-let process contract_file_arg =
-  (* reads the contract text and raises exceptions if file not there or not given *)
-  let read_contract_text () =
-    let lns =
-      match contract_file_arg with
-      | None -> raise @@ Invalid_argument "expected contract filename"
-      | Some contract_file -> read_file_exn contract_file ()
-    in
-    String.concat " " lns
-  in
+let file_arg = "FILE"
+
+let process headless contract_file =
+  (* if in headless mode then dont show --help if the cli has errors *)
+  let show_help = not headless in
 
   (* special logger that halts at each michelson logger call-back *)
   let logger = Stepper.Traced_interpreter.trace_logger stdout () in
 
   (* step through the contract text and halt until newline read from stdin *)
   let stepper =
-
     let module Tz = Tezos_base.TzPervasives in
     let open Tz.Error_monad.Legacy_monad_globals in
 
@@ -42,7 +36,14 @@ let process contract_file_arg =
     let contract_txt =
       Lwt.return @@
       try
-        Ok (read_contract_text ())
+        Ok (
+          (* reads the contract text and raises exceptions if file not there or not given *)
+          match contract_file with
+          | Some fname ->
+            let lns = read_file_exn fname () in
+            String.concat " " lns
+          | None -> raise @@ Invalid_argument (Printf.sprintf "required argument %s is missing" file_arg)
+        )
       with
       | e -> Error [Tz.error_of_exn e]
     in
@@ -62,28 +63,38 @@ let process contract_file_arg =
     | Ok () -> Lwt.return @@ `Ok ()
     | Error errs ->
       let ss = Format.asprintf "Stepper error - %a" Tz.Error_monad.pp_print_trace errs in
-      Lwt.return @@ `Error (false, ss)
+      Lwt.return @@ `Error (show_help, ss)
   in
 
   Lwt_main.run stepper
 
 
-module Term = struct
-  let contract_file_arg =
-    let open Cmdliner in
+module Tm = struct
+  open Cmdliner
+  let headless_arg =
     let doc =
-      Format.sprintf
-        "The Michelson contract filename that the weevil stepper will execute (required)."
-
+      "Run the tool in headless mode, \
+       this means that --help is not shown on error and \
+       any errors are returned as JSON"
     in
     Arg.(
-      value & pos 0 (some string) None & info [] ~doc ~docv:"FILE"
+      value & flag & info ["h"; "headless"] ~doc
+    )
+
+  let contract_file_arg =
+    let doc =
+      "The Michelson contract filename that the weevil stepper will execute (required)."
+    in
+    (* NOTE we use value here rather than required because
+       we want headless mode to not show --help when this arg is not given *)
+    Arg.(
+      value & pos 0 (some string) None & info [] ~doc ~docv:file_arg
     )
 
   let term =
-    Cmdliner.Term.(
+    Term.(
       ret
-        (const process $ contract_file_arg)
+        (const process $ headless_arg $ contract_file_arg)
     )
 
 end
@@ -99,4 +110,4 @@ module Manpage = struct
   let info = Cmdliner.Cmd.info ~doc:command_description ~man "stepper"
 end
 
-let cmd = Cmdliner.Cmd.v Manpage.info Term.term
+let cmd = Cmdliner.Cmd.v Manpage.info Tm.term

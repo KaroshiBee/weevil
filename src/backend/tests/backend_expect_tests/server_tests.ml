@@ -46,7 +46,7 @@ end
     Lwt.return (ic, oc)
 
   let run ~fname (_ic, oc) =
-    let cmd = Printf.sprintf "dune exec -- weevil stepper %s" fname in
+    let cmd = Printf.sprintf "dune exec -- weevil stepper --headless %s" fname in
     let stepper =
       Lwt_io.write_line oc @@ runscript cmd >>= fun _ ->
       Lwt_io.write_line oc @@ step1 >>= fun _ ->
@@ -71,8 +71,8 @@ let%expect_test "Check loading/stepping a contract" =
   let%lwt () = [%expect {|
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] starting backend server on port 9002
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got connection
-    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got msg '{ "event": "dune exec -- weevil stepper data/multiply_2_x_25_equals_50.tz" }'
-    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] starting new stepper with cmd 'dune exec -- weevil stepper data/multiply_2_x_25_equals_50.tz'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got msg '{ "event":    "dune exec -- weevil stepper --headless data/multiply_2_x_25_equals_50.tz" }'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] starting new stepper with cmd 'dune exec -- weevil stepper --headless data/multiply_2_x_25_equals_50.tz'
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] stepper_process_start
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] starting
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got msg '{ "event": 1 }'
@@ -175,8 +175,8 @@ let%expect_test "check for bad filename" =
   let%lwt () = [%expect {|
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] starting backend server on port 9002
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got connection
-    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got msg '{ "event": "dune exec -- weevil stepper data/notthere.tz" }'
-    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] starting new stepper with cmd 'dune exec -- weevil stepper data/notthere.tz'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got msg '{ "event": "dune exec -- weevil stepper --headless data/notthere.tz" }'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] starting new stepper with cmd 'dune exec -- weevil stepper --headless data/notthere.tz'
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] stepper_process_start
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] starting
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got msg '{ "event": 1 }'
