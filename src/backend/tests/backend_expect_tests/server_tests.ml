@@ -196,9 +196,9 @@ let%expect_test "check for bad filename" =
     { "event": 1 }
 
     inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler: weevil: [ERROR] Sys_error("data/notthere.tz: No such file or directory")
-    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler: tezos-weevil: { "error":
-    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                   [ { "kind": "temporary", "id": "failure",
-    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                       "msg": "Sys_error(\"data/notthere.tz: No such file or directory\")" } ] }
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler: tezos-weevil: Content-Length: 136
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:               { "error":    [ { "kind": "temporary", "id": "failure",        "msg": "Sys_error(\"data/notthere.tz: No such file or directory\")" } ] }
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got msg '{ "event": {} }'
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] already terminated |}] in
   Lwt.return_unit
@@ -230,26 +230,9 @@ let%expect_test "check for bad michelson" =
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] Got Next request
     { "event": 1 }
 
-    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler: tezos-weevil: { "error":
-    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                   [ { "kind": "permanent",
-    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                       "id": "proto.014-PtKathma.michelson_v1.invalid_primitive_name",
-    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                       "expression":
-    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                         [ { "prim": "parameter", "args": [ { "prim": "unit" } ] },
-    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                           { "prim": "storage", "args": [ { "prim": "unit" } ] },
-    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                           { "prim": "code",
-    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                             "args":
-    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                               [ [ { "prim": "DROP" },
-    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                                   { "prim": "PUSH",
-    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                                     "args": [ { "prim": "mutez" }, { "int": "25" } ] },
-    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                                   { "prim": "PUSH",
-    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                                     "args": [ { "prim": "nat" }, { "int": "2" } ] },
-    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                                   { "prim": "MUL" }, { "prim": "DROP_IT_LIKE_ITS_HOT" },
-    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                                   { "prim": "UNIT" },
-    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                                   { "prim": "NIL", "args": [ { "prim": "operation" } ] },
-    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                                   { "prim": "PAIR" } ] ] } ], "location": 15 },
-    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                     { "kind": "permanent",
-    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                       "id": "proto.014-PtKathma.michelson_v1.unknown_primitive_name",
-    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                       "wrong_primitive_name": "DROP_IT_LIKE_ITS_HOT" } ] }
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler: tezos-weevil: Content-Length: 982
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:               { "error":    [ { "kind": "permanent",        "id": "proto.014-PtKathma.michelson_v1.invalid_primitive_name",        "expression":          [ { "prim": "parameter", "args": [ { "prim": "unit" } ] },            { "prim": "storage", "args": [ { "prim": "unit" } ] },            { "prim": "code",              "args":                [ [ { "prim": "DROP" },                    { "prim": "PUSH",                      "args": [ { "prim": "mutez" }, { "int": "25" } ] },                    { "prim": "PUSH",                      "args": [ { "prim": "nat" }, { "int": "2" } ] },                    { "prim": "MUL" }, { "prim": "DROP_IT_LIKE_ITS_HOT" },                    { "prim": "UNIT" },                    { "prim": "NIL", "args": [ { "prim": "operation" } ] },                    { "prim": "PAIR" } ] ] } ], "location": 15 },      { "kind": "permanent",        "id": "proto.014-PtKathma.michelson_v1.unknown_primitive_name",        "wrong_primitive_name": "DROP_IT_LIKE_ITS_HOT" } ] }
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got msg '{ "event": {} }'
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] already terminated |}] in
   Lwt.return_unit

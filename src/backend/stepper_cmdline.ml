@@ -24,7 +24,7 @@ let process headless contract_file =
   (* special logger that halts at each michelson logger call-back *)
   let logger = Stepper.Traced_interpreter.trace_logger stdout () in
 
-  (* step through the contract text and halt until newline read from stdin *)
+  (* incremental step through the contract text and halt until newline read from stdin *)
   let stepper =
     let module Tz = Tezos_base.TzPervasives in
     let open Tz.Error_monad.Legacy_monad_globals in
@@ -63,7 +63,7 @@ let process headless contract_file =
       let ss =
         if headless then
           let enc = Tz.Error_monad.result_encoding Tz.Data_encoding.unit in
-          Tz.Data_encoding.Json.(construct enc e |> to_string)
+          Tz.Data_encoding.Json.(construct enc e |> to_string) |> Dapper.Dap.Header.wrap
         else
           Format.asprintf "Stepper error - %a" Tz.Error_monad.pp_print_trace errs
       in

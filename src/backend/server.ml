@@ -1,5 +1,7 @@
 module Conduit = Conduit_lwt_unix
 module Js = Data_encoding.Json
+module Dap = Dapper.Dap
+module MichEvent = Stepper_event
 
 open Lwt
 
@@ -9,11 +11,12 @@ let recs : Model.Weevil_json.t list ref  = ref []
 
 let read_weevil_recs = function
   | ln when 0 < String.length ln && String.get ln 0 != '#' -> (
+      (* non-comments *)
       match Js.from_string ln with
       | Ok js -> (
           try
-            let js = Js.destruct Model.Weevil_json.enc js in
-            Lwt.return_some js
+            let t = Js.destruct Model.Weevil_json.enc js in
+            Lwt.return_some t
           with e ->
             let%lwt () = Logs_lwt.warn (fun m -> m "Cannot js destruct '%s': %s" ln @@ Printexc.to_string e) in
             Lwt.return_none
@@ -23,9 +26,11 @@ let read_weevil_recs = function
         Lwt.return_none
     )
   | ln when 0 < String.length ln && String.get ln 0 = '#' ->
+    (* comments *)
     let%lwt () = Logs_lwt.info (fun m -> m "%s" ln) in
     Lwt.return_none
   | ln ->
+    (* other stuff - octez writes out to stdout sometimes *)
     let%lwt () = Logs_lwt.info (fun m -> m "other: %s" ln) in
     Lwt.return_none
 
@@ -66,67 +71,16 @@ and step_err_handler ~ic_process ~err_process =
   in
   _aux errors
 
-module MichEvent = struct
-
-  type ev =
-  | RunScript of string
-  | Terminate
-  | Step of int
-
-  type t = {
-    event: ev;
-  }
-
-  let make ~event () = {event;}
-
-  let enc_ev =
-    let open Data_encoding in
-    union [
-      case ~title:"RunScript" (Tag 0)
-        string
-        (function RunScript s -> Some s | _ -> None)
-        (fun s -> RunScript s);
-      case ~title:"Terminate" (Tag 1)
-        empty
-        (function Terminate -> Some () | _ -> None)
-        (fun _ -> Terminate);
-      case ~title:"Step" (Tag 2)
-        int31
-        (function Step n -> Some n | _ -> None)
-        (fun n -> Step n);
-    ]
-
-  let enc =
-    let open Data_encoding in
-    conv
-      (function {event;} -> event)
-      (fun event -> {event;})
-      (obj1
-         (req "event" enc_ev))
-
-  let from_msg_opt msg =
-    try
-      (* TODO be better *)
-      let r : t = Js.(from_string msg |> Result.get_ok |> destruct enc) in
-      Option.Some (r.event)
-    with _ ->
-      None
-
-
-end
-(* TODO does this need to be global ref? *)
-let stepper_process : Lwt_process.process_full option ref = ref None
-
-let rec main_handler flow ic oc =
+let rec main_handler ~stepper_process flow ic oc =
   let%lwt ln = Lwt_io.read_line_opt ic in
   match ln with
   | Some msg -> (
     let%lwt _ = Logs_lwt.info (fun m -> m "[MICH] got msg '%s'" msg) in
-    match (MichEvent.from_msg_opt msg, !stepper_process) with
+    match (MichEvent.from_msg_opt msg, stepper_process) with
 
     | Some (RunScript _), Some process when process#state = Lwt_process.Running ->
       let%lwt _ = Logs_lwt.err (fun m -> m "[MICH] trying to start a new stepper with old one still running, ignore") in
-      main_handler flow ic oc
+      main_handler ~stepper_process flow ic oc
 
     | Some (RunScript cmd), Some _
     | Some (RunScript cmd), None ->
@@ -149,31 +103,31 @@ let rec main_handler flow ic oc =
               Logs_lwt.warn (fun m -> m "[MICH] Process finished: unix error")
           )
       in
-      main_handler flow ic oc
+      main_handler ~stepper_process flow ic oc
     | Some (Step n), Some _ ->
       let%lwt _ = Logs_lwt.warn (fun m -> m "[MICH] TODO Step %d" n) in
-      main_handler flow ic oc
+      main_handler ~stepper_process flow ic oc
 
     | Some Terminate, Some process when process#state = Lwt_process.Running ->
       (* NOTE debug this message because cram tests use Info and we dont want PIDs in the cram test data *)
       let%lwt () = Logs_lwt.debug (fun m -> m "[MICH] Terminating pid '%d'" process#pid) in
       let () = process#terminate in
-      let () = stepper_process := None in
-      main_handler flow ic oc
+      let stepper_process = None in
+      main_handler ~stepper_process flow ic oc
 
     | Some Terminate, Some _
     | Some Terminate, None ->
       let%lwt () = Logs_lwt.info (fun m -> m "[MICH] already terminated") in
-      let () = stepper_process := None in
-      main_handler flow ic oc
+      let stepper_process = None in
+      main_handler ~stepper_process flow ic oc
 
     | Some _, None ->
       let%lwt _ = Logs_lwt.warn (fun m -> m "[MICH] LOST PROCESS '%s'" msg) in
-      main_handler flow ic oc
+      main_handler ~stepper_process flow ic oc
 
     | None, _ ->
       let%lwt _ = Logs_lwt.warn (fun m -> m "[MICH] couldn't decode '%s'" msg) in
-      main_handler flow ic oc
+      main_handler ~stepper_process flow ic oc
   )
 
   | None -> Logs_lwt.info (fun m -> m "[MICH] connection closed")
@@ -181,9 +135,9 @@ let rec main_handler flow ic oc =
 and stepper_process_start flow ic oc process_full =
   let%lwt _ = Logs_lwt.info (fun m -> m "[MICH] stepper_process_start") in
   let%lwt _ = Logs_lwt.info (fun m -> m "[STEPPER] starting") in
-  let () = stepper_process := Some process_full in
+  let stepper_process = Some process_full in
   let st = step_err_handler ~ic_process:process_full#stdout ~err_process:process_full#stderr in
-  let m = main_handler flow ic oc in
+  let m = main_handler ~stepper_process flow ic oc in
   Lwt.join [st; m]
 
 let on_exn exn =
@@ -191,7 +145,7 @@ let on_exn exn =
 
 let on_connection flow ic oc =
   let%lwt () = Logs_lwt.info (fun m -> m "[MICH] got connection") in
-  main_handler flow ic oc
+  main_handler ~stepper_process:None flow ic oc
 
 let lwt_svc ?stopper port =
   let mode = `TCP (`Port port) in
