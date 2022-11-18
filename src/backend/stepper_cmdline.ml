@@ -34,7 +34,7 @@ let process headless contract_file =
       Lwt.return @@
       try
         Ok (
-          (* reads the contract text and raises exceptions if file not there or not given *)
+          (* reads the contract text and raises exceptions if file not exist or not given *)
           match contract_file with
           | Some fname ->
             let lns = read_file_exn fname () in
