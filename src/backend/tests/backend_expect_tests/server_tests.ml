@@ -202,3 +202,54 @@ let%expect_test "check for bad filename" =
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got msg '{ "event": {} }'
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] already terminated |}] in
   Lwt.return_unit
+
+
+let%expect_test "check for bad michelson" =
+  let actions = Msgs.(connect port >>= run ~fname:"data/bad_michelson.tz") in
+  let%lwt _ = Svc.lwt_svc ~stopper:actions port in
+  let%lwt () = [%expect {|
+    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] starting backend server on port 9002
+    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got connection
+    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got msg '{ "event": "dune exec -- weevil stepper --headless data/bad_michelson.tz" }'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] starting new stepper with cmd 'dune exec -- weevil stepper --headless data/bad_michelson.tz'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] stepper_process_start
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] starting
+    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got msg '{ "event": 1 }'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] Got Next request
+    { "event": 1 }
+
+    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got msg '{ "event": 1 }'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] Got Next request
+    { "event": 1 }
+
+    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got msg '{ "event": 1 }'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] Got Next request
+    { "event": 1 }
+
+    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got msg '{ "event": 1 }'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] Got Next request
+    { "event": 1 }
+
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler: tezos-weevil: { "error":
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                   [ { "kind": "permanent",
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                       "id": "proto.014-PtKathma.michelson_v1.invalid_primitive_name",
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                       "expression":
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                         [ { "prim": "parameter", "args": [ { "prim": "unit" } ] },
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                           { "prim": "storage", "args": [ { "prim": "unit" } ] },
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                           { "prim": "code",
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                             "args":
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                               [ [ { "prim": "DROP" },
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                                   { "prim": "PUSH",
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                                     "args": [ { "prim": "mutez" }, { "int": "25" } ] },
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                                   { "prim": "PUSH",
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                                     "args": [ { "prim": "nat" }, { "int": "2" } ] },
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                                   { "prim": "MUL" }, { "prim": "DROP_IT_LIKE_ITS_HOT" },
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                                   { "prim": "UNIT" },
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                                   { "prim": "NIL", "args": [ { "prim": "operation" } ] },
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                                   { "prim": "PAIR" } ] ] } ], "location": 15 },
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                     { "kind": "permanent",
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                       "id": "proto.014-PtKathma.michelson_v1.unknown_primitive_name",
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler:                       "wrong_primitive_name": "DROP_IT_LIKE_ITS_HOT" } ] }
+    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got msg '{ "event": {} }'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] already terminated |}] in
+  Lwt.return_unit
