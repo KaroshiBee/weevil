@@ -30,14 +30,15 @@ let default_step_constants =
 let (>>=??) = Error_monad_operators.(>>=??)
 
 (* need to retain the trace of code locs of any michelson errors *)
-module Expr = struct
+module StepperExpr = struct
   include Expr
 
   exception Expression_from_string_with_locs of Tz.error list
 
   module Michelson_v1_parser = Tezos_client_014_PtKathma.Michelson_v1_parser
 
-  (** Parse a Michelson expression from string, raising an exception on error. *)
+  (** Parse a Michelson expression from string, raising an exception on error,
+      in this version we keep hold of the inner errors. *)
   let from_string ?(check_micheline_indentation = false) str : Ctx.Script.expr =
     let ast, errs =
       Michelson_v1_parser.parse_expression ~check:check_micheline_indentation str
@@ -55,9 +56,9 @@ end
    and parameter and returns the result. *)
 let run_script ?logger ctx ?(step_constants = default_step_constants) contract
     ?(entrypoint = Ctx.Entrypoint.default) ~storage ~parameter () =
-  let contract_expr = Expr.from_string contract in
-  let storage_expr = Expr.from_string storage in
-  let parameter_expr = Expr.from_string parameter in
+  let contract_expr = StepperExpr.from_string contract in
+  let storage_expr = StepperExpr.from_string storage in
+  let parameter_expr = StepperExpr.from_string parameter in
   let script =
     Ctx.Script.{code = lazy_expr contract_expr; storage = lazy_expr storage_expr}
   in
@@ -102,9 +103,8 @@ module Traced_interpreter = struct
         -> log_element
 
   let unparse_stack ~oc ctxt (stack, stack_ty) =
-    (* We drop the gas limit as this function is only used for debugging/errors. *)
-    (* let ctxt = Gas.set_unlimited ctxt in *)
-    let rec unparse_stack :
+
+    let rec _unparse_stack :
       type a s.
       (a, s) P.Script_typed_ir.stack_ty * (a * s) ->
       (Ctx.Script.expr * string option * bool) list Environment.Error_monad.tzresult Lwt.t = function
@@ -128,7 +128,7 @@ module Traced_interpreter = struct
           ty
           v
         >>=? fun (data, _ctxt) ->
-        unparse_stack (rest_ty, rest) >|=? fun rest ->
+        _unparse_stack (rest_ty, rest) >|=? fun rest ->
         let annot = None in
         (*   match Script_ir_annot.unparse_var_annot annot with *)
         (*   | [] -> None *)
@@ -138,7 +138,7 @@ module Traced_interpreter = struct
         let data = M.Micheline.strip_locations data in
         (data, annot, is_ticket) :: rest
     in
-    unparse_stack (stack_ty, stack)
+    _unparse_stack (stack_ty, stack)
 
   let unparse_log ~oc (Log (ctxt, loc, stack, stack_ty)) =
     (* trace Cannot_serialize_log (unparse_stack ctxt (stack, stack_ty)) *)
@@ -170,7 +170,7 @@ module Traced_interpreter = struct
         let js = Data_encoding.Json.(
             construct Model.Weevil_json.enc wrec
             |> to_string
-            |> Str.global_replace (Str.regexp "\n") ""
+            |> Dapper.Dap.Header.wrap
           ) in
         return @@ Printf.fprintf oc "%s\n" js
       in

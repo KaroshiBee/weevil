@@ -52,7 +52,7 @@ let process headless contract_file =
         Logs.debug (fun m -> m "got contract data: '%s'" contract_text);
         Stepper.test_stepping contract_text logger
       with
-      | Stepper.Expr.Expression_from_string_with_locs errs -> Lwt.return @@ Error errs
+      | Stepper.StepperExpr.Expression_from_string_with_locs errs -> Lwt.return @@ Error errs
       | e -> Lwt.return @@ Error [Tz.error_of_exn e]
     in
 
