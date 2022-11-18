@@ -1,7 +1,7 @@
 testing the backend with an example.tz michelson script, needs to step 8 times
 I send in 10 newlines to check that its ok to send them when it is finished
 
-  $ echo "\n \n \n \n \n \n \n \n \n \n" | weevil stepper multiply_2_x_250_equals_500.tz
+  $ echo "\n \n \n \n \n \n \n \n \n \n" | weevil stepper --headless multiply_2_x_250_equals_500.tz
   
   # log_interp @ location 7
   
@@ -58,7 +58,7 @@ I send in 10 newlines to check that its ok to send them when it is finished
   # log_control
 
 
-testing with no filename
+testing with no filename and not headless
   $ weevil stepper
   tezos-weevil: Stepper error - Error:
                                   Invalid_argument("required argument FILE is missing")
