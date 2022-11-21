@@ -75,8 +75,8 @@ let%expect_test "Check loading/stepping a contract" =
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] starting new stepper with cmd 'dune exec -- weevil stepper --headless data/multiply_2_x_25_equals_50.tz'
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] stepper_process_start
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] starting
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got msg '{ "event": 1 }'
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] Got Next request
     { "event": 1 }
@@ -93,89 +93,89 @@ let%expect_test "Check loading/stepping a contract" =
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] Got Next request
     { "event": 1 }
 
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage ''
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage '# log_interp @ location 7'
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage ''
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage '# log_entry @ location 7'
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage '# got 'step''
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage '# log_exit @ location 7, line 1'
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage 'Content-Length: 67'
-    inline_test_runner_backend_expect_tests.exe: [INFO] got content-length message with length 67
-    inline_test_runner_backend_expect_tests.exe: [INFO] got content-length message with message '{ "location": 1, "gas": "92.555 units remaining", "stack": [ "" ] }'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got messsage ''
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got messsage '# log_interp @ location 7'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got messsage ''
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got messsage '# log_entry @ location 7'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got messsage '# got 'step''
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got messsage '# log_exit @ location 7, line 1'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got messsage 'Content-Length: 67'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got content-length message with length 67
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got content-length message with message '{ "location": 1, "gas": "92.555 units remaining", "stack": [ "" ] }'
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got msg from subprocess '{ "location": 1, "gas": "92.555 units remaining", "stack": [ "" ] }'
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got weevil log record from subprocess '{ "location": 1, "gas": "92.555 units remaining", "stack": [ "" ] }'
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage ''
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage ''
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage '# log_entry @ location 8'
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage '# got 'step''
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage '# log_exit @ location 8, line 2'
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage 'Content-Length: 69'
-    inline_test_runner_backend_expect_tests.exe: [INFO] got content-length message with length 69
-    inline_test_runner_backend_expect_tests.exe: [INFO] got content-length message with message '{ "location": 2, "gas": "92.545 units remaining", "stack": [ "25" ] }'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got messsage ''
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got messsage ''
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got messsage '# log_entry @ location 8'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got messsage '# got 'step''
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got messsage '# log_exit @ location 8, line 2'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got messsage 'Content-Length: 69'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got content-length message with length 69
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got content-length message with message '{ "location": 2, "gas": "92.545 units remaining", "stack": [ "25" ] }'
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got msg from subprocess '{ "location": 2, "gas": "92.545 units remaining", "stack": [ "25" ] }'
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got weevil log record from subprocess '{ "location": 2, "gas": "92.545 units remaining", "stack": [ "25" ] }'
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage ''
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage ''
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage '# log_entry @ location 11'
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage '# got 'step''
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage '# log_exit @ location 11, line 3'
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage 'Content-Length: 75'
-    inline_test_runner_backend_expect_tests.exe: [INFO] got content-length message with length 75
-    inline_test_runner_backend_expect_tests.exe: [INFO] got content-length message with message '{ "location": 3, "gas": "92.535 units remaining", "stack": [ "2", " 25" ] }'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got messsage ''
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got messsage ''
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got messsage '# log_entry @ location 11'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got messsage '# got 'step''
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got messsage '# log_exit @ location 11, line 3'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got messsage 'Content-Length: 75'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got content-length message with length 75
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got content-length message with message '{ "location": 3, "gas": "92.535 units remaining", "stack": [ "2", " 25" ] }'
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got msg from subprocess '{ "location": 3, "gas": "92.535 units remaining", "stack": [ "2", " 25" ] }'
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got weevil log record from subprocess '{ "location": 3, "gas": "92.535 units remaining", "stack": [ "2", " 25" ] }'
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage ''
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage ''
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage '# log_entry @ location 14'
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage '# got 'step''
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage '# log_exit @ location 14, line 4'
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage 'Content-Length: 69'
-    inline_test_runner_backend_expect_tests.exe: [INFO] got content-length message with length 69
-    inline_test_runner_backend_expect_tests.exe: [INFO] got content-length message with message '{ "location": 4, "gas": "92.535 units remaining", "stack": [ "50" ] }'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got messsage ''
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got messsage ''
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got messsage '# log_entry @ location 14'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got messsage '# got 'step''
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got messsage '# log_exit @ location 14, line 4'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got messsage 'Content-Length: 69'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got content-length message with length 69
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got content-length message with message '{ "location": 4, "gas": "92.535 units remaining", "stack": [ "50" ] }'
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got msg from subprocess '{ "location": 4, "gas": "92.535 units remaining", "stack": [ "50" ] }'
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got weevil log record from subprocess '{ "location": 4, "gas": "92.535 units remaining", "stack": [ "50" ] }'
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage ''
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage ''
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage '# log_entry @ location 15'
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage 'weevil: [INFO] 25'
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage 'weevil: [INFO] 2'
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage 'weevil: [INFO] 25'
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage 'weevil: [INFO] 50'
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got messsage ''
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got messsage ''
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got messsage '# log_entry @ location 15'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] 25'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] 2'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] 25'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] 50'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got msg '{ "event": {} }'
-    inline_test_runner_backend_expect_tests.exe: [INFO] connection closed
-    inline_test_runner_backend_expect_tests.exe: [INFO] connection closed |}] in
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] connection closed
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER ERR] connection closed |}] in
 
   Lwt.return_unit
 
@@ -189,8 +189,8 @@ let%expect_test "check for bad filename" =
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] starting new stepper with cmd 'dune exec -- weevil stepper --headless data/notthere.tz'
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] stepper_process_start
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] starting
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got msg '{ "event": 1 }'
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] Got Next request
     { "event": 1 }
@@ -207,16 +207,11 @@ let%expect_test "check for bad filename" =
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] Got Next request
     { "event": 1 }
 
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage 'weevil: [ERROR] Sys_error("data/notthere.tz: No such file or directory")'
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage 'tezos-weevil: Content-Length: 136'
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage '              '
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage '              { "error":    [ { "kind": "temporary", "id": "failure",        "msg": "Sys_error(\"data/notthere.tz: No such file or directory\")" } ] }'
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] connection closed
-    inline_test_runner_backend_expect_tests.exe: [INFO] connection closed
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [ERROR] Sys_error("data/notthere.tz: No such file or directory")'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'tezos-weevil: Content-Length: 136'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER ERR] got content-length message with length 136
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] connection closed
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got msg '{ "event": {} }'
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] already terminated |}] in
   Lwt.return_unit
@@ -232,8 +227,8 @@ let%expect_test "check for bad michelson" =
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] starting new stepper with cmd 'dune exec -- weevil stepper --headless data/bad_michelson.tz'
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] stepper_process_start
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] starting
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got msg '{ "event": 1 }'
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] Got Next request
     { "event": 1 }
@@ -250,14 +245,9 @@ let%expect_test "check for bad michelson" =
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] Got Next request
     { "event": 1 }
 
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage 'tezos-weevil: Content-Length: 982'
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage '              '
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] got messsage '              { "error":    [ { "kind": "permanent",        "id": "proto.014-PtKathma.michelson_v1.invalid_primitive_name",        "expression":          [ { "prim": "parameter", "args": [ { "prim": "unit" } ] },            { "prim": "storage", "args": [ { "prim": "unit" } ] },            { "prim": "code",              "args":                [ [ { "prim": "DROP" },                    { "prim": "PUSH",                      "args": [ { "prim": "mutez" }, { "int": "25" } ] },                    { "prim": "PUSH",                      "args": [ { "prim": "nat" }, { "int": "2" } ] },                    { "prim": "MUL" }, { "prim": "DROP_IT_LIKE_ITS_HOT" },                    { "prim": "UNIT" },                    { "prim": "NIL", "args": [ { "prim": "operation" } ] },                    { "prim": "PAIR" } ] ] } ], "location": 15 },      { "kind": "permanent",        "id": "proto.014-PtKathma.michelson_v1.unknown_primitive_name",        "wrong_primitive_name": "DROP_IT_LIKE_ITS_HOT" } ] }'
-    inline_test_runner_backend_expect_tests.exe: [INFO] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] connection closed
-    inline_test_runner_backend_expect_tests.exe: [INFO] connection closed
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'tezos-weevil: Content-Length: 982'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER ERR] got content-length message with length 982
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] connection closed
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got msg '{ "event": {} }'
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] already terminated |}] in
   Lwt.return_unit

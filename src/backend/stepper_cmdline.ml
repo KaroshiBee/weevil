@@ -61,11 +61,14 @@ let process headless contract_file =
     | Ok _ -> (* TODO dont ignore OK output *) Lwt.return @@ `Ok ()
     | Error errs as e ->
       let ss =
+        Format.asprintf "Stepper error - %a" Tz.Error_monad.pp_print_trace errs
+      in
+      let () =
         if headless then
           let enc = Tz.Error_monad.result_encoding Tz.Data_encoding.unit in
-          Tz.Data_encoding.Json.(construct enc e |> to_string) |> Dapper.Dap.Header.wrap
-        else
-          Format.asprintf "Stepper error - %a" Tz.Error_monad.pp_print_trace errs
+          let err_msg = Tz.Data_encoding.Json.(construct enc e |> to_string) |> Dapper.Dap.Header.wrap in
+          Printf.fprintf stderr "%s" err_msg;
+        else ()
       in
       (* if in headless mode then dont show --help if the cli has errors *)
       Lwt.return @@ `Error (not headless, ss)

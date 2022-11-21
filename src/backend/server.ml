@@ -111,20 +111,22 @@ and stepper_process_start ic oc process_full =
   let%lwt _ = Logs_lwt.info (fun m -> m "[MICH] stepper_process_start") in
   let%lwt _ = Logs_lwt.info (fun m -> m "[STEPPER] starting") in
   let stepper_process = Some process_full in
-  let st = Dap.content_length_message_handler
+  let st_out = Dap.content_length_message_handler
+      ~name:"STEPPER"
       ~handle_message:step_handler
       ~content_length:None
       process_full#stdout
       process_full#stdin
   in
   let st_err = Dap.content_length_message_handler
+      ~name:"STEPPER ERR"
       ~handle_message:step_err_handler
       ~content_length:None
       process_full#stderr
       process_full#stdin
   in
   let m = main_handler ~stepper_process ic oc in
-  Lwt.join [st_err; st; m]
+  Lwt.join [st_err; st_out; m]
 
 let on_exn exn =
   Lwt.ignore_result @@ Logs_lwt.err (fun m -> m "%s" @@ Printexc.to_string exn)

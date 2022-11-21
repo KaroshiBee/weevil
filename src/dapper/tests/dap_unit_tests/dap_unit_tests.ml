@@ -1,6 +1,13 @@
 open Alcotest
 
 let () =
+  run "Dap_header" [
+    "content length", [
+      test_case "extracts correct number - simple" `Quick Dap_header_tests.HeaderTests.test_content_length_simple;
+      test_case "extracts correct number - complex" `Quick Dap_header_tests.HeaderTests.test_content_length_complex;
+    ]
+  ];
+
   run "Dap_specs" [
     "path wrangling", [
       test_case "module names" `Quick Dap_specs_tests.MakeModuleNameTests.test_module_name;

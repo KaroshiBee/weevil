@@ -22,6 +22,7 @@ let on_exn exn = Lwt.ignore_result @@ Logs_lwt.err (fun m -> m "%s" @@ Printexc.
 let on_connection hdl state _flow ic oc =
   let%lwt () = Logs_lwt.info (fun m -> m "[DAP] got connection") in
   Dap.content_length_message_handler
+    ~name:"DAP"
     ~handle_message:(handle_message ~hdl ~state)
     ~content_length:None
     ic

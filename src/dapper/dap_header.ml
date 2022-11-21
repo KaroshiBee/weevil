@@ -26,8 +26,10 @@ let content_length =
   fun msg ->
     if _contains msg _HEADER_FIELD then
       match Str.split rgx msg with
+      | [_; n]
       | [n] ->
         let i = int_of_string n in
         Some i
       | _ -> None
     else None
+
