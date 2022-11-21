@@ -1,11 +1,11 @@
-{parameter unit;storage unit;
-code {
-DROP;
-PUSH mutez 250;
-PUSH nat 2;
-MUL;
-DROP;
-UNIT;
-NIL operation;
-PAIR
-}}
+parameter unit;
+storage unit;
+code { # multiplies 2 * 250, can run with $ cd ~/tezos && dune exec -- tezos-client --mode mockup run script ../dev/weevil/src/backend/tests/backend_cram_tests/stepper_test.t/multiply_2_x_250_equals_500.tz on storage 'Unit' and input 'Unit' --trace-stack
+       DROP;
+       PUSH mutez 250;
+       PUSH nat 2;
+       MUL;
+       DROP;
+       UNIT;
+       NIL operation;
+       PAIR} ;
