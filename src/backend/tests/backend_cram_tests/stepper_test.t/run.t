@@ -85,24 +85,33 @@ testing with no filename and not headless
 
 testing with no filename in headless mode
   $ weevil stepper --headless
-  tezos-weevil: Content-Length: 133
+  Content-Length: 133
+  
+  { "error":    [ { "kind": "temporary", "id": "failure",        "msg": "Invalid_argument(\"required argument FILE is missing\")" } ] }tezos-weevil: Stepper error - Error:
+                                  Invalid_argument("required argument FILE is missing")
                 
-                { "error":    [ { "kind": "temporary", "id": "failure",        "msg": "Invalid_argument(\"required argument FILE is missing\")" } ] }
   [124]
 
 testing with bad filename in headless mode
   $ weevil stepper -h notthere.tz
   weevil: [ERROR] Sys_error("notthere.tz: No such file or directory")
-  tezos-weevil: Content-Length: 131
+  Content-Length: 131
+  
+  { "error":    [ { "kind": "temporary", "id": "failure",        "msg": "Sys_error(\"notthere.tz: No such file or directory\")" } ] }tezos-weevil: Stepper error - Error:
+                                  Sys_error("notthere.tz: No such file or directory")
                 
-                { "error":    [ { "kind": "temporary", "id": "failure",        "msg": "Sys_error(\"notthere.tz: No such file or directory\")" } ] }
   [124]
 
 testing with bad michelson in headless mode
   $ weevil stepper -h bad_michelson.tz
-  tezos-weevil: Content-Length: 575
+  Content-Length: 575
+  
+  { "error":    [ { "kind": "permanent", "id": "micheline.parse_error.unclosed_token",        "location":          { "start": { "line": 1, "column": 35, "point": 35, "byte": 35 },            "stop": { "line": 1, "column": 36, "point": 36, "byte": 36 } },        "token": { "punctuation": "{" } },      { "kind": "permanent", "id": "micheline.parse_error.unclosed_token",        "location":          { "start": { "line": 1, "column": 0, "point": 0, "byte": 0 },            "stop": { "line": 1, "column": 1, "point": 1, "byte": 1 } },        "token": { "punctuation": "{" } } ] }tezos-weevil: Stepper error - Error:
+                                  At line 1 characters 35 to 36, unclosed curly brace,
+                                  trace:
+                                  At line 1 characters 0 to 1, unclosed curly brace
+                                  At line 1 characters 35 to 36, unclosed curly brace
                 
-                { "error":    [ { "kind": "permanent", "id": "micheline.parse_error.unclosed_token",        "location":          { "start": { "line": 1, "column": 35, "point": 35, "byte": 35 },            "stop": { "line": 1, "column": 36, "point": 36, "byte": 36 } },        "token": { "punctuation": "{" } },      { "kind": "permanent", "id": "micheline.parse_error.unclosed_token",        "location":          { "start": { "line": 1, "column": 0, "point": 0, "byte": 0 },            "stop": { "line": 1, "column": 1, "point": 1, "byte": 1 } },        "token": { "punctuation": "{" } } ] }
   [124]
 
 

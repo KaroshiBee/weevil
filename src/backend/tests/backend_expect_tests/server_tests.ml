@@ -107,6 +107,8 @@ let%expect_test "Check loading/stepping a contract" =
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got messsage 'Content-Length: 67'
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got content-length message with length 67
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got content-length message with length 67 and header_break '
+    '
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got content-length message with message '{ "location": 1, "gas": "92.555 units remaining", "stack": [ "" ] }'
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got msg from subprocess '{ "location": 1, "gas": "92.555 units remaining", "stack": [ "" ] }'
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got weevil log record from subprocess '{ "location": 1, "gas": "92.555 units remaining", "stack": [ "" ] }'
@@ -123,6 +125,8 @@ let%expect_test "Check loading/stepping a contract" =
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got messsage 'Content-Length: 69'
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got content-length message with length 69
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got content-length message with length 69 and header_break '
+    '
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got content-length message with message '{ "location": 2, "gas": "92.545 units remaining", "stack": [ "25" ] }'
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got msg from subprocess '{ "location": 2, "gas": "92.545 units remaining", "stack": [ "25" ] }'
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got weevil log record from subprocess '{ "location": 2, "gas": "92.545 units remaining", "stack": [ "25" ] }'
@@ -139,6 +143,8 @@ let%expect_test "Check loading/stepping a contract" =
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got messsage 'Content-Length: 75'
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got content-length message with length 75
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got content-length message with length 75 and header_break '
+    '
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got content-length message with message '{ "location": 3, "gas": "92.535 units remaining", "stack": [ "2", " 25" ] }'
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got msg from subprocess '{ "location": 3, "gas": "92.535 units remaining", "stack": [ "2", " 25" ] }'
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got weevil log record from subprocess '{ "location": 3, "gas": "92.535 units remaining", "stack": [ "2", " 25" ] }'
@@ -155,6 +161,8 @@ let%expect_test "Check loading/stepping a contract" =
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got messsage 'Content-Length: 69'
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got content-length message with length 69
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got content-length message with length 69 and header_break '
+    '
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got content-length message with message '{ "location": 4, "gas": "92.535 units remaining", "stack": [ "50" ] }'
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got msg from subprocess '{ "location": 4, "gas": "92.535 units remaining", "stack": [ "50" ] }'
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] got weevil log record from subprocess '{ "location": 4, "gas": "92.535 units remaining", "stack": [ "50" ] }'
@@ -209,8 +217,12 @@ let%expect_test "check for bad filename" =
 
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [ERROR] Sys_error("data/notthere.tz: No such file or directory")'
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
-    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'tezos-weevil: Content-Length: 136'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'Content-Length: 136'
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER ERR] got content-length message with length 136
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER ERR] got content-length message with length 136 and header_break '
+    '
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER ERR] got content-length message with message '{ "error":    [ { "kind": "temporary", "id": "failure",        "msg": "Sys_error(\"data/notthere.tz: No such file or directory\")" } ] }'
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler: { "error":    [ { "kind": "temporary", "id": "failure",        "msg": "Sys_error(\"data/notthere.tz: No such file or directory\")" } ] }
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] connection closed
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got msg '{ "event": {} }'
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] already terminated |}] in
@@ -245,8 +257,12 @@ let%expect_test "check for bad michelson" =
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] Got Next request
     { "event": 1 }
 
-    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'tezos-weevil: Content-Length: 982'
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'Content-Length: 982'
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER ERR] got content-length message with length 982
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER ERR] got content-length message with length 982 and header_break '
+    '
+    inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER ERR] got content-length message with message '{ "error":    [ { "kind": "permanent",        "id": "proto.014-PtKathma.michelson_v1.invalid_primitive_name",        "expression":          [ { "prim": "parameter", "args": [ { "prim": "unit" } ] },            { "prim": "storage", "args": [ { "prim": "unit" } ] },            { "prim": "code",              "args":                [ [ { "prim": "DROP" },                    { "prim": "PUSH",                      "args": [ { "prim": "mutez" }, { "int": "25" } ] },                    { "prim": "PUSH",                      "args": [ { "prim": "nat" }, { "int": "2" } ] },                    { "prim": "MUL" }, { "prim": "DROP_IT_LIKE_ITS_HOT" },                    { "prim": "UNIT" },                    { "prim": "NIL", "args": [ { "prim": "operation" } ] },                    { "prim": "PAIR" } ] ] } ], "location": 15 },      { "kind": "permanent",        "id": "proto.014-PtKathma.michelson_v1.unknown_primitive_name",        "wrong_primitive_name": "DROP_IT_LIKE_ITS_HOT" } ] }'
+    inline_test_runner_backend_expect_tests.exe: [ERROR] step_err_handler: { "error":    [ { "kind": "permanent",        "id": "proto.014-PtKathma.michelson_v1.invalid_primitive_name",        "expression":          [ { "prim": "parameter", "args": [ { "prim": "unit" } ] },            { "prim": "storage", "args": [ { "prim": "unit" } ] },            { "prim": "code",              "args":                [ [ { "prim": "DROP" },                    { "prim": "PUSH",                      "args": [ { "prim": "mutez" }, { "int": "25" } ] },                    { "prim": "PUSH",                      "args": [ { "prim": "nat" }, { "int": "2" } ] },                    { "prim": "MUL" }, { "prim": "DROP_IT_LIKE_ITS_HOT" },                    { "prim": "UNIT" },                    { "prim": "NIL", "args": [ { "prim": "operation" } ] },                    { "prim": "PAIR" } ] ] } ], "location": 15 },      { "kind": "permanent",        "id": "proto.014-PtKathma.michelson_v1.unknown_primitive_name",        "wrong_primitive_name": "DROP_IT_LIKE_ITS_HOT" } ] }
     inline_test_runner_backend_expect_tests.exe: [INFO] [STEPPER] connection closed
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] got msg '{ "event": {} }'
     inline_test_runner_backend_expect_tests.exe: [INFO] [MICH] already terminated |}] in
