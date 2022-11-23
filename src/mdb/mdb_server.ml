@@ -118,6 +118,7 @@ let lwt_svc ?stopper port =
   let mode = `TCP (`Port port) in
   let () = Logs.info (fun m -> m "[MICH] starting backend server on port %d" port) in
   let () = Lwt_preemptive.simple_init () in
+  (* only allowing one interp process at a time *)
   let () = Lwt_preemptive.set_bounds (1,1) in
   let ret =
     Conduit.init () >>= fun ctx -> (
