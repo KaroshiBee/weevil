@@ -8,6 +8,7 @@
      tezos-stdlib-unix
      tezos-protocol-014-PtKathma
      tezos-014-PtKathma-test-helpers
+     tezos-protocol-plugin-014-PtKathma
      dapper
      defaults
      utils
