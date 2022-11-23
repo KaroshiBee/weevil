@@ -20,7 +20,7 @@
   data-encoding
   cmdliner
   dapper
-  backend
+  mdb
   adapter
  )
  (instrumentation (backend bisect_ppx))

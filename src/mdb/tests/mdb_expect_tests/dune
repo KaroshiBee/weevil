@@ -1,10 +1,10 @@
 (library
- (name backend_expect_tests)
+ (name mdb_expect_tests)
  (libraries
    adapter
    dapper
    defaults
-   backend
+   mdb
    test_utils
    lwt
    lwt.unix

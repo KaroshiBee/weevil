@@ -1,7 +1,7 @@
 module Conduit = Conduit_lwt_unix
 module Js = Data_encoding.Json
 module Dap = Dapper.Dap
-module MichEvent = Stepper_event
+module MichEvent = Mdb_event
 
 open Lwt
 
@@ -29,7 +29,7 @@ let file_arg = "FILE"
 
 let process ~msg_mvar headless contract_file =
   (* special logger that halts at each michelson logger call-back *)
-  let logger = Stepper.Traced_interpreter.trace_logger ~msg_mvar stdout () in
+  let logger = Mdb_stepper.Traced_interpreter.trace_logger ~msg_mvar stdout () in
 
   (* incremental step through the contract text and halt until newline read from stdin *)
   let stepper =
@@ -57,9 +57,9 @@ let process ~msg_mvar headless contract_file =
       try%lwt
         contract_txt >>=? fun contract_text ->
         Logs.debug (fun m -> m "got contract data: '%s'" contract_text);
-        Stepper.test_stepping contract_text logger
+        Mdb_stepper.test_stepping contract_text logger
       with
-      | Stepper.StepperExpr.Expression_from_string_with_locs errs -> Lwt.return @@ Error errs
+      | Mdb_stepper.StepperExpr.Expression_from_string_with_locs errs -> Lwt.return @@ Error errs
       | e -> Lwt.return @@ Error [Tz.error_of_exn e]
     in
 

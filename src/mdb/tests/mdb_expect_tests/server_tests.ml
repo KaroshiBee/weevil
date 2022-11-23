@@ -2,7 +2,7 @@ include Test_utils.Include
 open Lwt
 module Conduit = Conduit_lwt_unix
 module Js = Data_encoding.Json
-module Svc = Backend.Server
+module Svc = Mdb.Mdb_server
 module MichEvent = Svc.MichEvent
 module Helpers = Utils.Helpers
 

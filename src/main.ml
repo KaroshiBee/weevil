@@ -1,6 +1,5 @@
 let commands = [
-  Backend.Stepper_cmdline.cmd;
-  Backend.Service_cmdline.cmd;
+  Mdb.Mdb_cmdline.cmd;
   Adapter.Service_cmdline.cmd;
   Dapper.Dap_cmdline.cmd;
 ]

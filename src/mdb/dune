@@ -1,5 +1,5 @@
 (library
- (name backend)
+ (name mdb)
  (libraries
      tezos-base
      tezos-base.unix
