@@ -5,7 +5,7 @@ let process port_arg =
   let p
       ?port_arg:(port:int=default_port)
       () =
-    Server2.svc ~port
+    Mdb_server.svc ~port
   in
   p ?port_arg ()
 

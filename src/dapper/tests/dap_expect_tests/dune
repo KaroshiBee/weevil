@@ -3,7 +3,7 @@
  (libraries
    dapper
    defaults
-   backend
+   mdb
    test_utils
    lwt
    lwt.unix

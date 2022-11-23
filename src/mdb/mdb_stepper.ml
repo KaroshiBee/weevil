@@ -164,11 +164,11 @@ module Traced_interpreter = struct
       let l = Log (ctxt, loc_, stack, sty) in
       let _ = unparse_log ~oc l
         >>=? fun (_loc, gas, expr) ->
-        return @@ Model.Weevil_record.make loc gas expr
+        return @@ Mdb_model.Weevil_record.make loc gas expr
         >>=? fun wrec ->
-        let wrec = Model.Weevil_record.to_weevil_json wrec in
+        let wrec = Mdb_model.Weevil_record.to_weevil_json wrec in
         let js = Data_encoding.Json.(
-            construct Model.Weevil_json.enc wrec
+            construct Mdb_model.Weevil_json.enc wrec
             |> to_string
             |> Dapper.Dap.Header.wrap
           ) in

@@ -4,7 +4,7 @@ module Dap_result = Dapper.Dap_result
 module Req = Dap.Request
 module Res = Dap.Response
 module Ev = Dap.Event
-module Mich_event = Backend.Server.MichEvent
+module Mich_event = Mdb.Mdb_server.MichEvent
 module Js = Data_encoding.Json
 
 (* Launching and attaching *)
