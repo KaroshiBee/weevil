@@ -27,9 +27,9 @@ let read_file_exn filename () =
 
 let file_arg = "FILE"
 
-let process headless contract_file =
+let process ~msg_mvar headless contract_file =
   (* special logger that halts at each michelson logger call-back *)
-  let logger = Stepper.Traced_interpreter.trace_logger stdout () in
+  let logger = Stepper.Traced_interpreter.trace_logger ~msg_mvar stdout () in
 
   (* incremental step through the contract text and halt until newline read from stdin *)
   let stepper =
@@ -65,7 +65,7 @@ let process headless contract_file =
 
     (* convert Tz.Error_monad result to cmdline output, if headless then convert errors to json *)
     match%lwt res with
-    | Ok _ -> (* TODO dont ignore OK output *) Lwt.return @@ `Ok ()
+    | Ok _ -> (* TODO dont ignore OK output *) Lwt.return_unit
     | Error errs as e ->
       let ss =
         Format.asprintf "Stepper error - %a" Tz.Error_monad.pp_print_trace errs
@@ -78,25 +78,31 @@ let process headless contract_file =
         else ()
       in
       (* if in headless mode then dont show --help if the cli has errors *)
-      Lwt.return @@ `Error (not headless, ss)
+      raise @@ Sys_error ss
   in
+  Lwt_preemptive.run_in_main (fun () -> stepper)
 
-  Lwt_preemptive.run_in_main @@ fun () -> stepper
 
-let rec main_handler ~stepper_process ic oc =
-  let () = Lwt_preemptive.simple_init () in
-  let () = Lwt_preemptive.set_bounds (1,1) in
+let rec main_handler ~msg_mvar ~stepper_process ic oc =
   let%lwt ln = Lwt_io.read_line_opt ic in
   match ln, stepper_process with
   | Some _msg, None -> (
       let fname = "/home/wyn/dev/weevil/src/backend/tests/backend_cram_tests/stepper_test.t/multiply_2_x_250_equals_500.tz" in
-      let%lwt p = Lwt_preemptive.detach (fun (headless, filename) -> process headless (Some filename)) (true, fname) in
+      let p = Lwt_preemptive.detach (fun (headless, filename) -> process ~msg_mvar headless (Some filename)) (true, fname) in
       let%lwt () = Logs_lwt.info (fun m -> m "[MICH] spawned '%s'" fname) in
-      main_handler ~stepper_process:(Some p) ic oc
+      Lwt.join [p; main_handler ~msg_mvar ~stepper_process:(Some p) ic oc]
     )
 
-  | Some _msg, Some _p ->
-    Logs_lwt.info (fun m -> m "[MICH] process already spawned")
+  | Some _msg, Some p -> (
+    let%lwt () = Logs_lwt.info (fun m -> m "[MICH] process already spawned") in
+    let%lwt () = Logs_lwt.info (fun m -> m "[MICH] process state %s" @@ match Lwt.state p with | Return _x -> "finished" | Sleep -> "sleep" | Fail _exn -> "failed") in
+    match Lwt.state p with
+    | Sleep ->
+      let p = Lwt_mvar.put msg_mvar _msg in
+      Lwt.join [p; main_handler ~msg_mvar ~stepper_process ic oc]
+    | Return _ | Fail _ ->
+      main_handler ~msg_mvar ~stepper_process:None ic oc
+  )
 
   | None, _ -> Logs_lwt.info (fun m -> m "[MICH] connection closed")
 
@@ -105,11 +111,14 @@ let on_exn exn =
 
 let on_connection _flow ic oc =
   let%lwt () = Logs_lwt.info (fun m -> m "[MICH] got connection") in
-  main_handler ~stepper_process:None ic oc
+  let msg_mvar = Lwt_mvar.create_empty () in
+  main_handler ~msg_mvar ~stepper_process:None ic oc
 
 let lwt_svc ?stopper port =
   let mode = `TCP (`Port port) in
   let () = Logs.info (fun m -> m "[MICH] starting backend server on port %d" port) in
+  let () = Lwt_preemptive.simple_init () in
+  let () = Lwt_preemptive.set_bounds (1,1) in
   let ret =
     Conduit.init () >>= fun ctx -> (
       match stopper with

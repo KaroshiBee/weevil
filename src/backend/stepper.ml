@@ -145,7 +145,7 @@ module Traced_interpreter = struct
     (unparse_stack ~oc ctxt (stack, stack_ty))
     >>=? fun stack -> return (loc, Ctx.Gas.level ctxt, stack)
 
-  let trace_logger oc () : P.Script_typed_ir.logger =
+  let trace_logger ~msg_mvar oc () : P.Script_typed_ir.logger =
     let log : log_element list ref = ref [] in
     let log_interp _ ctxt loc sty stack =
       Printf.(fprintf oc "\n# log_interp @ location %d\n" loc; flush oc);
@@ -153,7 +153,7 @@ module Traced_interpreter = struct
     in
     let log_entry _ _ctxt loc _sty _stack =
       Printf.(fprintf oc "\n# log_entry @ location %d\n" loc; flush oc);
-      let msg = read_line () in
+      let msg = Lwt_preemptive.run_in_main (fun () -> Printf.(fprintf oc "\n# trying to get mvar\n"; flush oc); Lwt_mvar.take msg_mvar) in
       Printf.(fprintf oc "# got '%s'\n" msg; flush oc);
     in
     (* TODO location here needs to be understood,

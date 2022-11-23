@@ -22,7 +22,7 @@ let file_arg = "FILE"
 
 let process headless contract_file =
   (* special logger that halts at each michelson logger call-back *)
-  let logger = Stepper.Traced_interpreter.trace_logger stdout () in
+  let logger = Stepper.Traced_interpreter.trace_logger ~msg_mvar:(Lwt_mvar.create_empty ()) stdout () in
 
   (* incremental step through the contract text and halt until newline read from stdin *)
   let stepper =
