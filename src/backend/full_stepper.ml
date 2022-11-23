@@ -9,6 +9,26 @@ module RPC = struct
     val unparsing_mode : Script_ir_translator.unparsing_mode
   end
 
+  module type INTERPRETER = sig
+    type log_element =
+        Log : t * int * ('a * 's) *
+          ('a, 's) Script_typed_ir.stack_ty -> log_element
+    val unparse_stack :
+      t ->
+      ('a * 'b) * ('a, 'b) Script_typed_ir.stack_ty ->
+      Script.expr list tzresult Lwt.t
+    val trace_logger : unit -> Script_typed_ir.logger
+    val execute :
+      t ->
+      Script_typed_ir.step_constants ->
+      script:Script.t ->
+      entrypoint:Entrypoint_repr.t ->
+      parameter:Script.expr ->
+      ((Script_interpreter.execution_result * t) *
+       Script_typed_ir.execution_trace, error trace)
+      result Lwt.t
+  end
+
   module Traced_interpreter (Unparsing_mode : UNPARSING_MODE) = struct
     type log_element =
       | Log :
