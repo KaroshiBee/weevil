@@ -27,9 +27,9 @@ let read_file_exn filename () =
 
 let file_arg = "FILE"
 
-let process ~msg_mvar headless contract_file =
+let process ~input_mvar headless contract_file =
   (* special logger that halts at each michelson logger call-back *)
-  let logger = Mdb_stepper.Traced_interpreter.trace_logger ~msg_mvar stdout () in
+  let logger = Mdb_stepper.Traced_interpreter.trace_logger ~input_mvar stdout () in
 
   (* incremental step through the contract text and halt until newline read from stdin *)
   let stepper =
@@ -83,14 +83,14 @@ let process ~msg_mvar headless contract_file =
   Lwt_preemptive.run_in_main (fun () -> stepper)
 
 
-let rec main_handler ~msg_mvar ~stepper_process ic oc =
+let rec main_handler ~input_mvar ~stepper_process ic oc =
   let%lwt ln = Lwt_io.read_line_opt ic in
   match ln, stepper_process with
   | Some _msg, None -> (
       let fname = "/home/wyn/dev/weevil/src/backend/tests/backend_cram_tests/stepper_test.t/multiply_2_x_250_equals_500.tz" in
-      let p = Lwt_preemptive.detach (fun (headless, filename) -> process ~msg_mvar headless (Some filename)) (true, fname) in
+      let p = Lwt_preemptive.detach (fun (headless, filename) -> process ~input_mvar headless (Some filename)) (true, fname) in
       let%lwt () = Logs_lwt.info (fun m -> m "[MICH] spawned '%s'" fname) in
-      Lwt.join [p; main_handler ~msg_mvar ~stepper_process:(Some p) ic oc]
+      Lwt.join [p; main_handler ~input_mvar ~stepper_process:(Some p) ic oc]
     )
 
   | Some _msg, Some p -> (
@@ -98,10 +98,10 @@ let rec main_handler ~msg_mvar ~stepper_process ic oc =
     let%lwt () = Logs_lwt.info (fun m -> m "[MICH] process state %s" @@ match Lwt.state p with | Return _x -> "finished" | Sleep -> "sleep" | Fail _exn -> "failed") in
     match Lwt.state p with
     | Sleep ->
-      let p = Lwt_mvar.put msg_mvar _msg in
-      Lwt.join [p; main_handler ~msg_mvar ~stepper_process ic oc]
+      let p = Lwt_mvar.put input_mvar _msg in
+      Lwt.join [p; main_handler ~input_mvar ~stepper_process ic oc]
     | Return _ | Fail _ ->
-      main_handler ~msg_mvar ~stepper_process:None ic oc
+      main_handler ~input_mvar ~stepper_process:None ic oc
   )
 
   | None, _ -> Logs_lwt.info (fun m -> m "[MICH] connection closed")
@@ -111,8 +111,8 @@ let on_exn exn =
 
 let on_connection _flow ic oc =
   let%lwt () = Logs_lwt.info (fun m -> m "[MICH] got connection") in
-  let msg_mvar = Lwt_mvar.create_empty () in
-  main_handler ~msg_mvar ~stepper_process:None ic oc
+  let input_mvar = Lwt_mvar.create_empty () in
+  main_handler ~input_mvar ~stepper_process:None ic oc
 
 let lwt_svc ?stopper port =
   let mode = `TCP (`Port port) in

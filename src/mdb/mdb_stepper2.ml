@@ -61,7 +61,7 @@ let configure_contracts ctxt script balance ~src_opt ~pay_opt ~self_opt =
 (* self:Contract_hash.t option -> *)
 (* now:Script_timestamp.t option -> *)
 (* level:Script_int.n Script_int.num option -> *)
-(* msg_mvar:string Lwt_mvar.t -> *)
+(* input_mvar:string Lwt_mvar.t -> *)
 (* t -> *)
 (* (Script.expr * Apply_internal_results.packed_internal_contents list * *)
 (*  Script_typed_ir.execution_trace * Lazy_storage.diffs option, error trace) *)
@@ -81,11 +81,11 @@ let trace_code
     ~self
     ~now
     ~level
-    ~msg_mvar
+    ~input_mvar
     ctxt =
   (* NOTE the RPC call to this also has block parameter after ctxt and type of ctxt is
      'pr #Environment.RPC_context.simple where type of block is 'pr *)
-  (* NOTE type unparsing_mode = Optimized | Readable | Optimized_legacy *)
+  (* NOTE type unparsing_mode = Optimized | Readable | Optimized_legacy, could we phantom this into the logger type? *)
   let unparsing_mode =
     Option.value ~default:Script_ir_translator.Readable unparsing_mode
   in
@@ -123,7 +123,7 @@ let trace_code
     let unparsing_mode = unparsing_mode
   end in
   let module Interp = Mdb_traced_interpreter.T (Unparsing_mode) in
-  let logger = Interp.trace_logger ~msg_mvar () in
+  let logger = Interp.trace_logger ~input_mvar () in
   Interp.execute
     ctxt
     step_constants
