@@ -35,7 +35,7 @@ module T (Unparsing_mode : Mdb_types.UNPARSING_MODE) = struct
     in
     unparse_stack (stack_ty, stack)
 
-  let trace_logger ~msg_mvar () : Script_typed_ir.logger =
+  let trace_logger ~input_mvar () : Script_typed_ir.logger =
     let log : log_element list ref = ref [] in
     let log_interp _ ctxt loc sty stack =
       Logs.info (fun m -> m "log_interp @ location %d" loc);
@@ -45,7 +45,7 @@ module T (Unparsing_mode : Mdb_types.UNPARSING_MODE) = struct
       Logs.info (fun m -> m "log_entry @ location %d" loc);
       let msg = Lwt_preemptive.run_in_main (fun () ->
           let%lwt () = Logs_lwt.info (fun m -> m "trying to get mvar") in
-          Lwt_mvar.take msg_mvar
+          Lwt_mvar.take input_mvar
         ) in
       Logs.info (fun m -> m "log_entry got '%s'" msg)
     in

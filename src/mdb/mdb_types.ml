@@ -20,7 +20,7 @@ module type INTERPRETER = sig
   (*   Script.expr list tzresult Lwt.t *)
 
   val trace_logger :
-    msg_mvar:string Lwt_mvar.t -> unit -> Script_typed_ir.logger
+    input_mvar:string Lwt_mvar.t -> unit -> Script_typed_ir.logger
 
   val execute :
     t ->
