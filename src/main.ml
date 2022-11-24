@@ -1,3 +1,4 @@
+(* group together all cmd lines *)
 let commands = [
   Mdb.Mdb_cmdline.cmd;
   Adapter.Service_cmdline.cmd;
