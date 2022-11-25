@@ -3,7 +3,7 @@ open Alpha_context
 open Environment.Error_monad
 module Plugin = Tezos_protocol_plugin_014_PtKathma
 
-let originate_dummy_contract ctxt script balance =
+let _originate_dummy_contract ctxt script balance =
   let ctxt = Origination_nonce.init ctxt Environment.Operation_hash.zero in
   Contract.fresh_contract_from_current_nonce ctxt
   >>?= fun (ctxt, dummy_contract_hash) ->
@@ -22,13 +22,13 @@ let originate_dummy_contract ctxt script balance =
     balance
   >>=? fun (ctxt, _) -> return (ctxt, dummy_contract_hash)
 
-let configure_contracts ctxt script balance ~src_opt ~pay_opt ~self_opt =
+let _configure_contracts ctxt script balance ~src_opt ~pay_opt ~self_opt =
   (match self_opt with
   | None ->
       let balance =
         Option.value ~default:Plugin.RPC.Scripts.default_balance balance
       in
-      originate_dummy_contract ctxt script balance >>=? fun (ctxt, addr) ->
+      _originate_dummy_contract ctxt script balance >>=? fun (ctxt, addr) ->
       return (ctxt, addr, balance)
   | Some addr ->
       Plugin.RPC.Scripts.default_from_context
@@ -74,13 +74,13 @@ let trace_code
     ~script
     ~storage
     ~input
-    ?(amount = Tez.zero)
+    ?(amount = Tez.fifty_cents)
     ?(chain_id = Tezos_base.TzPervasives.Chain_id.zero)
-    ~source
-    ~payer
-    ~self
-    ~now
-    ~level
+    ?source
+    ?payer
+    ?self
+    ?now
+    ?level
     ~input_mvar
     ctxt =
   (* NOTE the RPC call to this also has block parameter after ctxt and type of ctxt is
@@ -91,7 +91,7 @@ let trace_code
   in
   let storage = Script.lazy_expr storage in
   let code = Script.lazy_expr script in
-  configure_contracts
+  _configure_contracts
     ctxt
     {storage; code}
     balance

@@ -9,3 +9,4 @@
 /_bisect/
 *.coverage
 /trace.out
+/mockup_create.log 

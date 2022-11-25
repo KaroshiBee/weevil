@@ -3,12 +3,14 @@
  (libraries
      tezos-base
      tezos-base.unix
+     tezos-client-base-unix
      tezos-micheline
      tezos-protocol-environment
      tezos-stdlib-unix
      tezos-protocol-014-PtKathma
      tezos-014-PtKathma-test-helpers
      tezos-protocol-plugin-014-PtKathma
+     tezos-rpc-http-client-unix
      dapper
      defaults
      utils
