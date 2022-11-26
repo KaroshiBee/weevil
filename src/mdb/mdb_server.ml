@@ -21,6 +21,7 @@ let setup_mockup_rpc_client_config
     match protocol with
     | None -> Tezos_mockup.Persistence.default_mockup_context cctxt
     | Some protocol_hash ->
+        Printf.printf "making with a protocol hash\n";
         Tezos_mockup.Persistence.init_mockup_context_by_protocol_hash
           ~cctxt
           ~protocol_hash
@@ -96,7 +97,7 @@ let process
     ?input_mvar:_
     ?(_headless=true)
     contract_file =
-  (* TODO do we need Random.init () *)
+
   Random.self_init ();
 
   let open Lwt_result_syntax in
@@ -178,9 +179,6 @@ let process
       ~block:cpctxt#block
       run_params
   in
-
-    (* (cpctxt :> Protocol_client_Context.rpc_context) *)
-    (* run_params *)
 
   return (unix_mockup, cpctxt, res)
 
