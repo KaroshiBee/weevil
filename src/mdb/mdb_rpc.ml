@@ -731,19 +731,6 @@ module Scripts = struct
 
 end
 
-type Environment.Error_monad.error += Negative_level_offset
-
-let () =
-  Environment.Error_monad.register_error_kind
-    `Permanent
-    ~id:"negative_level_offset"
-    ~title:"The specified level offset is negative"
-    ~description:"The specified level offset is negative"
-    ~pp:(fun ppf () ->
-      Format.fprintf ppf "The specified level offset should be positive.")
-    Data_encoding.unit
-    (function Negative_level_offset -> Some () | _ -> None)
-    (fun () -> Negative_level_offset)
 
 let register () =
   Printf.printf "registering RPC stuff\n";

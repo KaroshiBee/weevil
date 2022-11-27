@@ -2,6 +2,9 @@ open Protocol
 open Alpha_context
 open Environment.Error_monad
 module Plugin = Tezos_protocol_plugin_014_PtKathma
+module RPC = Tezos_rpc_http_client_unix.RPC_client_unix (* TODO use lib_mockup one? *)
+module Client_context_unix = Tezos_client_base_unix.Client_context_unix
+module Client_context = Tezos_client_base.Client_context
 
 let _originate_dummy_contract ctxt script balance =
   let ctxt = Origination_nonce.init ctxt Environment.Operation_hash.zero in
@@ -146,36 +149,187 @@ let trace_code
     trace,
     lazy_storage_diff )
 
+(* need to retain the trace of code locs of any michelson errors *)
+module StepperExpr = struct
+  include Expr
 
-(* let trace (cctxt : #Protocol_client_context.rpc_context) *)
-(*     ~(chain : Chain_services.chain) ~block (params : run_params) = *)
-(*   Chain_services.chain_id cctxt ~chain () >>=? fun chain_id -> *)
-(*   let { *)
-(*     shared_params = {input; unparsing_mode; now; level; source; payer; gas}; *)
-(*     program; *)
-(*     amount; *)
-(*     balance; *)
-(*     storage; *)
-(*     entrypoint; *)
-(*     self; *)
-(*   } = *)
-(*     params *)
+  exception Expression_from_string_with_locs of Tezos_error_monad.Error_monad.error list
+
+  module Michelson_v1_parser = Tezos_client_014_PtKathma.Michelson_v1_parser
+
+  let of_source ?(check=false) script =
+    let ast, errs =
+      Michelson_v1_parser.parse_toplevel ~check script
+    in
+    (match errs with
+     | [] -> ()
+     | lst -> raise @@ Expression_from_string_with_locs lst
+    );
+    ast
+
+  (** Parse a Michelson expression from string, raising an exception on error,
+      in this version we keep hold of the inner errors. *)
+  let from_string ?(check_micheline_indentation = false) str =
+    let ast, errs =
+      Michelson_v1_parser.parse_expression ~check:check_micheline_indentation str
+    in
+    (match errs with
+     | [] -> ()
+     | lst -> raise @@ Expression_from_string_with_locs lst
+    );
+    ast
+
+end
+
+
+let process
+    ?(protocol_str="PtKathmankSpLLDALzWw7CGD2j2MtyveTwboEYokqUCP4a1LxMg")
+    ?(base_dir="/tmp/.weevil")
+    ?input_mvar:_
+    ?(_headless=true)
+    _contract_file =
+
+  Random.self_init ();
+
+  let open Lwt_result_syntax in
+  (* believe this RPC config gets overwritten in mock creation, same for the #full cctxt? *)
+  Printf.printf "making rpc config\n";
+  let rpc_config = RPC.{media_type=Any; endpoint=Uri.empty; logger=null_logger} in
+  Printf.printf "making client context unix full\n";
+  let cctxt =
+    new Client_context_unix.unix_full
+      ~chain:`Test
+      ~block:(`Head 0)
+      ~confirmations:None
+      ~password_filename:None
+      ~base_dir
+      ~rpc_config
+      ~verbose_rpc_error_diagnostics:true
+  in
+
+  Printf.printf "making client context unix mockup\n";
+  let protocol_hash = Environment.Protocol_hash.of_b58check_opt protocol_str in
+  let* (chain_id, rpc_context, unix_mockup) = Mdb_stepper_config.setup_mockup_rpc_client_config
+      (cctxt :> Client_context.printer)
+      ?protocol_hash
+      base_dir
+  in
+  return (chain_id, rpc_context, unix_mockup)
+
+  (* let timestamp = rpc_context.block_header.timestamp in *)
+  (* let level = Int32.succ rpc_context.block_header.level in (\* `Successor_level is safer? *\) *)
+  (* let a = Protocol.Alpha_context.prepare *)
+  (*   ~level *)
+  (*   ~predecessor_timestamp:timestamp *)
+  (*   ~timestamp *)
+  (*   rpc_context.context *)
+  (* |> Lwt_result.map (fun (actxt, _, _) -> actxt) *)
+
+  (* in *)
+
+  (* (\* Printf.printf "doing client config init mockup - ONLY NEEDED FOR DISK BASED MOCKS\n"; *\) *)
+  (* (\* let* () = Client_config.config_init_mockup *\) *)
+  (* (\*     unix_mockup *\) *)
+  (* (\*     protocol_hash *\) *)
+  (* (\*     bootstrap_accounts_filename *\) *)
+  (* (\*     protocol_constants_filename *\) *)
+  (* (\*     base_dir *\) *)
+  (* (\* in *\) *)
+
+
+  (* (\* TODO not sure if we need a remote signer in mock mode *\) *)
+  (* (\* Printf.printf "setup remote signer with mock client config\n\n"; *\) *)
+  (* (\* setup_remote_signer *\) *)
+  (* (\*   (module C) *\) *)
+  (* (\*   client_config *\) *)
+  (* (\*   rpc_config *\) *)
+  (* (\*   parsed_config_file ; *\) *)
+
+  (* Printf.printf "reading contract file\n"; *)
+  (* let* source = unix_mockup#read_file contract_file in *)
+  (* let script = StepperExpr.of_source source in *)
+  (* let mich_unit = StepperExpr.from_string "Unit" in *)
+
+  (* let* res_ = Mdb_stepper2.trace_code *)
+  (*   ~script:script.expanded *)
+  (*   ~storage:mich_unit.expanded *)
+  (*   ~input:mich_unit.expanded *)
+  (*   ~input_mvar:(Lwt_mvar.create_empty ()) *)
+  (*   alpha_ctxt *)
+  (* in *)
+
+  (* let shared_params = Programs.{ *)
+  (*   input=mich_unit; *)
+  (*   unparsing_mode=Protocol.Script_ir_translator.Readable; *)
+  (*   now=None; *)
+  (*   level=None; *)
+  (*   source=None; *)
+  (*   payer=None; *)
+  (*   gas=None; *)
+  (* } *)
+  (* in *)
+
+  (* let run_params = Programs.{ *)
+  (*   shared_params; *)
+  (*   amount=None; *)
+  (*   balance=None; *)
+  (*   program=script; *)
+  (*   storage=mich_unit; *)
+  (*   entrypoint=None; *)
+  (*   self=None *)
+  (* } *)
+  (* in *)
+
+  (* (\* Printf.printf "making protocol client context\n"; *\) *)
+  (* (\* (\\* this thing can do the call_proto_service0 thing *\\) *\) *)
+  (* (\* let cpctxt = (new Protocol_client_context.wrap_full unix_mockup) in *\) *)
+  (* (\* (\\* ok so there is a bit of wrangling to turn this into an Alpha context, *\) *)
+  (* (\*    this gets done on registration with the Resto directory services, *\) *)
+  (* (\*    I think we need to go: *\) *)
+  (* (\*    cpctxt:full -> Updater.rpc_context = {context:Context.t; _ stuff} -> Services_registration.rpc_context = {context:Alpha_context.t; _ stuff} *\) *)
+  (* (\*    then with the alpha context we can call trace_code directly *\) *)
+  (* (\* *\\) *\) *)
+
+
+
+  (* (\* let* res = Programs.trace *\) *)
+  (* (\*     cpctxt *\) *)
+  (* (\*     ~chain:cpctxt#chain *\) *)
+  (* (\*     ~block:cpctxt#block *\) *)
+  (* (\*     run_params *\) *)
+  (* (\* in *\) *)
+
+  (* return (chain_id, rpc_context, unix_mockup, res_) *)
+(*   let stepper = *)
+(*     (\* step but catch any unhandled exceptions and convert to Tz.Error_monad traces *\) *)
+(*     let res = *)
+(*       try%lwt *)
+(*         Mdb_stepper2.trace_code *)
+(*           ~script *)
+(*           ~storage:mich_unit *)
+(*           ~input:mich_unit *)
+(*           ~input_mvar *)
+(*           cpctxt *)
+(*       with *)
+(*       | StepperExpr.Expression_from_string_with_locs errs -> Lwt.return @@ Error errs *)
+(*       | e -> Lwt.return @@ Error [Tz.error_of_exn e] *)
+(*     in *)
+
+(*     (\* convert Tz.Error_monad result to cmdline output, if headless then convert errors to json *\) *)
+(*     match%lwt res with *)
+(*     | Ok _ -> (\* TODO dont ignore OK output *\) Lwt.return_unit *)
+(*     | Error errs as e -> *)
+(*       let ss = *)
+(*         Format.asprintf "Stepper error - %a" Tz.Error_monad.pp_print_trace errs *)
+(*       in *)
+(*       let () = *)
+(*         if headless then *)
+(*           let enc = Tz.Error_monad.result_encoding Tz.Data_encoding.unit in *)
+(*           let err_msg = Tz.Data_encoding.Json.(construct enc e |> to_string) |> Dapper.Dap.Header.wrap in *)
+(*           Printf.fprintf stderr "%s" err_msg; *)
+(*         else () *)
+(*       in *)
+(*       (\* if in headless mode then dont show --help if the cli has errors *\) *)
+(*       raise @@ Sys_error ss *)
 (*   in *)
-(*   let amount = Option.value ~default:Tez.fifty_cents amount in *)
-(*   Plugin.RPC.Scripts.trace_code *)
-(*     cctxt *)
-(*     (chain, block) *)
-(*     ?gas *)
-(*     ?entrypoint *)
-(*     ~unparsing_mode *)
-(*     ~script:program.expanded *)
-(*     ~storage:storage.expanded *)
-(*     ~input:input.expanded *)
-(*     ~amount *)
-(*     ?balance *)
-(*     ~chain_id *)
-(*     ~source *)
-(*     ~payer *)
-(*     ~self *)
-(*     ~now *)
-(*     ~level *)
+(*   Lwt_preemptive.run_in_main (fun () -> stepper) *)
