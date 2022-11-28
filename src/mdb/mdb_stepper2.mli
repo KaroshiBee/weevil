@@ -5,23 +5,26 @@ module T : functor (INTERP:Mdb_types.INTERPRETER) -> sig
 
 type t
 
-val code_trace : t -> (Script.expr * Apply_internal_results.packed_internal_contents trace * Script_typed_ir.execution_trace * Lazy_storage.diffs option)
+val code_trace : t -> (Script.expr * Apply_internal_results.packed_internal_contents trace * Script_typed_ir.execution_trace * Lazy_storage.diffs option) option
 val chain_id : t -> Chain_id.t
-val rpc_context : t ->  Environment.Updater.rpc_context
+val alpha_context : t ->  Alpha_context.t
 val mock_context : t -> Tezos_client_base_unix.Client_context_unix.unix_mockup
+
+val init :
+  protocol_str:string ->
+  base_dir:string ->
+  unit ->
+  (t, error trace) result Lwt.t
 
 val process :
   logger:INTERP.logger ->
-  string ->
-  string ->
+  t ->
   string ->
   (t, error trace) result Lwt.t
 
-
 val step :
   logger:INTERP.logger ->
-  protocol_str:string ->
-  base_dir:string ->
+  t ->
   string ->
   (t, error trace) result
 end
