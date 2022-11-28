@@ -8,6 +8,7 @@ module Client_context = Tezos_client_base.Client_context
 type code_trace = (Script.expr * Apply_internal_results.packed_internal_contents trace * Script_typed_ir.execution_trace * Lazy_storage.diffs option)
 type t = {chain_id:Chain_id.t; rpc_context:Environment.Updater.rpc_context; mock_context:Client_context_unix.unix_mockup; code_trace:code_trace}
 type input = string
+type output = string
 
 let code_trace t = t.code_trace
 let chain_id t = t.chain_id
@@ -91,6 +92,7 @@ let trace_code
     ?now
     ?level
     ?input_mvar
+    ?output_mvar
     ctxt =
 
   let open Lwt_result_syntax in
@@ -137,7 +139,7 @@ let trace_code
     let unparsing_mode = unparsing_mode
   end in
   let module Interp = Mdb_traced_interpreter.T (Unparsing_mode) in
-  let logger = Interp.trace_logger ?input_mvar () in
+  let logger = Interp.trace_logger ?input_mvar ?output_mvar () in
 
   (* NOTE in the old code this was a Lwt_result.map - so wouldnt need the return() at end of code block *)
   let* res =
@@ -206,7 +208,7 @@ let process
     ?(protocol_str="PtKathmankSpLLDALzWw7CGD2j2MtyveTwboEYokqUCP4a1LxMg")
     ?(base_dir="/tmp/.weevil")
     ?input_mvar
-    ?output_mvar:_
+    ?output_mvar
     ?(_headless=true)
     contract_file =
 
@@ -277,28 +279,8 @@ let process
     ~storage:mich_unit.expanded
     ~input:mich_unit.expanded
     ?input_mvar
+    ?output_mvar
     alpha_ctxt
   in
 
   return {chain_id; rpc_context; mock_context; code_trace}
-
-
-
-(*     (\* convert Tz.Error_monad result to cmdline output, if headless then convert errors to json *\) *)
-(*     match%lwt res with *)
-(*     | Ok _ -> (\* TODO dont ignore OK output *\) Lwt.return_unit *)
-(*     | Error errs as e -> *)
-(*       let ss = *)
-(*         Format.asprintf "Stepper error - %a" Tz.Error_monad.pp_print_trace errs *)
-(*       in *)
-(*       let () = *)
-(*         if headless then *)
-(*           let enc = Tz.Error_monad.result_encoding Tz.Data_encoding.unit in *)
-(*           let err_msg = Tz.Data_encoding.Json.(construct enc e |> to_string) |> Dapper.Dap.Header.wrap in *)
-(*           Printf.fprintf stderr "%s" err_msg; *)
-(*         else () *)
-(*       in *)
-(*       (\* if in headless mode then dont show --help if the cli has errors *\) *)
-(*       raise @@ Sys_error ss *)
-(*   in *)
-(*   Lwt_preemptive.run_in_main (fun () -> stepper) *)
