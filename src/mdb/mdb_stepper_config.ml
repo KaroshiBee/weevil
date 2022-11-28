@@ -1,16 +1,24 @@
-(* open Protocol *)
-open Environment
-open Environment.Error_monad
-
 module Client_context = Tezos_client_base.Client_context
 module Client_context_unix = Tezos_client_base_unix.Client_context_unix
 
-
-let setup_mockup_rpc_client_config
+type t = {
+  chain_id:Chain_id.t;
+  rpc_context:Environment.Updater.rpc_context;
+  unix_mockup:Client_context_unix.unix_mockup;
+}
+(* NOTE we are in Tezos_base.TzPervasives.tzresult Lwt.t because of Tezos_mockup lib calls *)
+let setup_mockup_rpc_client_config :
+  Client_context.printer ->
+  Protocol_hash.t option ->
+  string ->
+  t tzresult Lwt.t =
+  fun
     (cctxt : Client_context.printer)
-    ?(protocol_hash : Protocol_hash.t option)
-    base_dir =
+    (protocol_hash : Protocol_hash.t option)
+    base_dir ->
+
   let open Lwt_result_syntax in
+
   let in_memory_mockup (protocol : Protocol_hash.t option) =
     match protocol with
     | None -> Tezos_mockup.Persistence.default_mockup_context cctxt
@@ -22,6 +30,7 @@ let setup_mockup_rpc_client_config
           ~constants_overrides_json:None
           ~bootstrap_accounts_json:None
   in
+
   let* b = Tezos_mockup.Persistence.classify_base_dir base_dir in
   let* (mockup_env, {chain = chain_id; rpc_context; protocol_data}), mem_only =
     match b with
@@ -42,13 +51,17 @@ let setup_mockup_rpc_client_config
         in
         return (res, mem_only)
   in
-  return (
-    chain_id, rpc_context,
-    (new Client_context_unix.unix_mockup
-       ~base_dir
-       ~mem_only
-       ~mockup_env
-       ~chain_id
-       ~rpc_context
-       ~protocol_data)
-  )
+  let unix_mockup = new Client_context_unix.unix_mockup
+    ~base_dir
+    ~mem_only
+    ~mockup_env
+    ~chain_id
+    ~rpc_context
+    ~protocol_data
+  in
+
+  return {
+    chain_id;
+    rpc_context;
+    unix_mockup;
+  }
