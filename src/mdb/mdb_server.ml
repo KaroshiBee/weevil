@@ -22,35 +22,64 @@ let protocol_str = "PtKathmankSpLLDALzWw7CGD2j2MtyveTwboEYokqUCP4a1LxMg"
 let base_dir = "/tmp/.weevil"
 
 let rec main_handler ~stepper ~make_logger ~input_mvar ~output_mvar ~stepper_process ic oc =
-  let%lwt ln = Lwt_io.read_line_opt ic in
+  let open Lwt_syntax in
+  let* ln = Lwt_io.read_line_opt ic in
   match ln, stepper_process with
   | Some _msg, None -> (
       (*TODO  _msg will contain the script name *)
       let fname = "/home/wyn/mich/multiply_2_x_250_equals_500.tz" in
+      let* () = Logs_lwt.info (fun m -> m "[MICH] spawning '%s', joining with main_handler" fname) in
+      let nts = Lwt_preemptive.nbthreads () in
+      let ntsbusy = Lwt_preemptive.nbthreadsbusy () in
+      let ntsq = Lwt_preemptive.nbthreadsqueued () in
+      let* () = Logs_lwt.info (fun m -> m "[MICH] 1 preemptive info: nbthreads %d, busy %d, queued %d" nts ntsbusy ntsq) in
       let p = fname |> Lwt_preemptive.detach (fun filename ->
           Logs.info (fun m -> m "[MICH] preemptive: starting stepper");
+          let nts = Lwt_preemptive.nbthreads () in
+          let ntsbusy = Lwt_preemptive.nbthreadsbusy () in
+          let ntsq = Lwt_preemptive.nbthreadsqueued () in
+          let () = Logs.info (fun m -> m "[MICH] 2 preemptive info: nbthreads %d, busy %d, queued %d" nts ntsbusy ntsq) in
           match Stepper.step ~make_logger stepper filename with
           | Ok _ -> ()
           | Error errs ->
             Logs.info (fun m -> m "[MICH] preemptive: got errors '%s'" @@ Data_encoding.Json.(construct trace_encoding errs |> to_string))
         ) in
-      let%lwt () = Logs_lwt.info (fun m -> m "[MICH] spawned '%s', joining with main_handler" fname) in
-      Lwt.join [p; main_handler ~stepper ~make_logger ~input_mvar ~output_mvar ~stepper_process:(Some p) ic oc]
+      let nts = Lwt_preemptive.nbthreads () in
+      let ntsbusy = Lwt_preemptive.nbthreadsbusy () in
+      let ntsq = Lwt_preemptive.nbthreadsqueued () in
+      let* () = Logs_lwt.info (fun m -> m "[MICH] 3 preemptive info: nbthreads %d, busy %d, queued %d" nts ntsbusy ntsq) in
+      let h = main_handler ~stepper ~make_logger ~input_mvar ~output_mvar ~stepper_process:(Some p) ic oc
+      in
+      let* _ = both p h in return_unit
     )
 
   | Some msg, Some p -> (
-    let%lwt () = Logs_lwt.info (fun m -> m "[MICH] process already spawned") in
-    let%lwt () = Logs_lwt.info (fun m -> m "[MICH] process state %s" @@ match Lwt.state p with | Return _x -> "finished" | Sleep -> "sleep" | Fail _exn -> "failed") in
+    let* () = Logs_lwt.info (fun m -> m "[MICH] process already spawned") in
+    let* () = Logs_lwt.info (fun m -> m "[MICH] process state %s" @@ match Lwt.state p with
+      | Return _x -> "finished"
+      | Sleep -> "sleep"
+      | Fail _exn -> "failed"
+      ) in
+
     match Lwt.state p with
     | Sleep ->
-      let p = Lwt_mvar.put input_mvar msg in
-      Lwt.join [p; main_handler ~stepper ~make_logger ~input_mvar ~output_mvar ~stepper_process ic oc]
+      let* _ = Lwt_mvar.put input_mvar msg
+      and* _ = main_handler ~stepper ~make_logger ~input_mvar ~output_mvar ~stepper_process ic oc
+      in
+      return_unit
     | Return _ | Fail _ ->
       (* finished subprocess, reset to None *)
-      main_handler ~stepper ~make_logger ~input_mvar ~output_mvar ~stepper_process:None ic oc
+      let* _ = return_unit
+      and* _ = main_handler ~stepper ~make_logger ~input_mvar ~output_mvar ~stepper_process:None ic oc
+      in
+      return_unit
   )
 
-  | None, _ -> Logs_lwt.info (fun m -> m "[MICH] connection closed")
+  | None, _ ->
+    let* _ = return_unit
+    and* _ = Logs_lwt.info (fun m -> m "[MICH] connection closed")
+    in
+    return_unit
 
 let on_exn exn =
   Lwt.ignore_result @@ Logs_lwt.err (fun m -> m "%s" @@ Printexc.to_string exn)
@@ -69,8 +98,8 @@ let lwt_svc ?stopper port =
   (* we run the stepper in a preemptive thread
      so that can pause it without pausing the main thread,
      NOTE currently only allowing one interp process at a time *)
-  let () = Lwt_preemptive.simple_init () in
-  let () = Lwt_preemptive.set_bounds (1,1) in
+  (* let () = Lwt_preemptive.simple_init () in *)
+  (* let () = Lwt_preemptive.set_bounds (1,1) in *)
   let* stepper = Stepper.init ~protocol_str ~base_dir () in
   let*! ctx = Conduit.init () in
   let*! ret =
