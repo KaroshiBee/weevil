@@ -6,7 +6,13 @@ module Client_context_unix = Tezos_client_base_unix.Client_context_unix
 module Client_context = Tezos_client_base.Client_context
 
 type code_trace = (Script.expr * Apply_internal_results.packed_internal_contents trace * Script_typed_ir.execution_trace * Lazy_storage.diffs option)
-type t = Chain_id.t * Environment.Updater.rpc_context * Client_context_unix.unix_mockup * code_trace
+type t = {chain_id:Chain_id.t; rpc_context:Environment.Updater.rpc_context; mock_context:Client_context_unix.unix_mockup; code_trace:code_trace}
+type input = string
+
+let code_trace t = t.code_trace
+let chain_id t = t.chain_id
+let rpc_context t = t.rpc_context
+let mock_context t = t.mock_context
 
 let originate_dummy_contract ctxt script balance =
   let open Lwt_result_syntax in
@@ -84,7 +90,7 @@ let trace_code
     ?self
     ?now
     ?level
-    ~input_mvar
+    ?input_mvar
     ctxt =
 
   let open Lwt_result_syntax in
@@ -131,7 +137,7 @@ let trace_code
     let unparsing_mode = unparsing_mode
   end in
   let module Interp = Mdb_traced_interpreter.T (Unparsing_mode) in
-  let logger = Interp.trace_logger ~input_mvar () in
+  let logger = Interp.trace_logger ?input_mvar () in
 
   (* NOTE in the old code this was a Lwt_result.map - so wouldnt need the return() at end of code block *)
   let* res =
@@ -199,7 +205,7 @@ end
 let process
     ?(protocol_str="PtKathmankSpLLDALzWw7CGD2j2MtyveTwboEYokqUCP4a1LxMg")
     ?(base_dir="/tmp/.weevil")
-    ?input_mvar:_
+    ?input_mvar
     ?output_mvar:_
     ?(_headless=true)
     contract_file =
@@ -225,7 +231,7 @@ let process
 
   Printf.printf "making client context unix mockup\n";
   let protocol_hash = Protocol_hash.of_b58check_opt protocol_str in
-  let* {chain_id; rpc_context; unix_mockup} = Mdb_stepper_config.setup_mockup_rpc_client_config
+  let* {chain_id; rpc_context; unix_mockup=mock_context} = Mdb_stepper_config.setup_mockup_rpc_client_config
       (cctxt :> Client_context.printer)
       protocol_hash
       base_dir
@@ -262,37 +268,21 @@ let process
   (*   parsed_config_file ; *)
 
   Printf.printf "reading contract file\n";
-  let* source = unix_mockup#read_file contract_file in
+  let* source = mock_context#read_file contract_file in
   let script = StepperExpr.of_source_exn source in
   let mich_unit = StepperExpr.from_string_exn "Unit" in
 
-  let* res = trace_code
+  let* code_trace = trace_code
     ~script:script.expanded
     ~storage:mich_unit.expanded
     ~input:mich_unit.expanded
-    ~input_mvar:(Lwt_mvar.create_empty ())
+    ?input_mvar
     alpha_ctxt
   in
 
-  return (chain_id, rpc_context, unix_mockup, res)
+  return {chain_id; rpc_context; mock_context; code_trace}
 
 
-
-
-(*   let stepper = *)
-(*     (\* step but catch any unhandled exceptions and convert to Tz.Error_monad traces *\) *)
-(*     let res = *)
-(*       try%lwt *)
-(*         Mdb_stepper2.trace_code *)
-(*           ~script *)
-(*           ~storage:mich_unit *)
-(*           ~input:mich_unit *)
-(*           ~input_mvar *)
-(*           cpctxt *)
-(*       with *)
-(*       | StepperExpr.Expression_from_string_with_locs errs -> Lwt.return @@ Error errs *)
-(*       | e -> Lwt.return @@ Error [Tz.error_of_exn e] *)
-(*     in *)
 
 (*     (\* convert Tz.Error_monad result to cmdline output, if headless then convert errors to json *\) *)
 (*     match%lwt res with *)
