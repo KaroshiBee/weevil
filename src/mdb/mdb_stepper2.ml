@@ -197,10 +197,11 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
       lazy_storage_diff
     )
 
+
   let process
-      ?(protocol_str="PtKathmankSpLLDALzWw7CGD2j2MtyveTwboEYokqUCP4a1LxMg")
-      ?(base_dir="/tmp/.weevil")
       ~logger
+      protocol_str
+      base_dir
       contract_file =
 
     let open Lwt_result_syntax in
@@ -276,16 +277,16 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
     return {chain_id; rpc_context; mock_context; code_trace}
 
 
-  let stepper
-      ?(protocol_str="PtKathmankSpLLDALzWw7CGD2j2MtyveTwboEYokqUCP4a1LxMg")
-      ?(base_dir="/tmp/.weevil")
+  let step
       ~logger
+      ~protocol_str
+      ~base_dir
       contract_file =
     Lwt_preemptive.run_in_main (
       fun () -> process
-          ~protocol_str
-          ~base_dir
           ~logger
+          protocol_str
+          base_dir
           contract_file
     )
 end

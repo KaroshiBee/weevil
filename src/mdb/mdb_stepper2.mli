@@ -11,17 +11,17 @@ val rpc_context : t ->  Environment.Updater.rpc_context
 val mock_context : t -> Tezos_client_base_unix.Client_context_unix.unix_mockup
 
 val process :
-  ?protocol_str:string ->
-  ?base_dir:string ->
   logger:INTERP.logger ->
+  string ->
+  string ->
   string ->
   (t, error trace) result Lwt.t
 
 
-val stepper :
-  ?protocol_str:string ->
-  ?base_dir:string ->
+val step :
   logger:INTERP.logger ->
+  protocol_str:string ->
+  base_dir:string ->
   string ->
   (t, error trace) result
 end
