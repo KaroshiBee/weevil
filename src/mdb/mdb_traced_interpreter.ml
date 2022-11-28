@@ -55,6 +55,8 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
              by passing some data into the mvar,
              meanwhile the cooperative main thread remains responsive,
              this way we achieve incremental stepping through a contract *)
+            Printf.(fprintf stdout "trying to get mvar (printf)\n"; flush stdout);
+          Logs.info (fun m -> m "trying to get mvar (normal logging)");
           let%lwt () = Logs_lwt.info (fun m -> m "trying to get mvar") in
           Lwt_mvar.take input_mvar
         ) in
