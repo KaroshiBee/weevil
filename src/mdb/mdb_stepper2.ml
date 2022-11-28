@@ -43,14 +43,14 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
 
   type t = {
     chain_id:Chain_id.t;
-    rpc_context:Environment.Updater.rpc_context;
+    alpha_context:Alpha_context.t;
     mock_context:Client_context_unix.unix_mockup;
-    code_trace:code_trace;
+    code_trace:code_trace option;
   }
 
   let code_trace t = t.code_trace
   let chain_id t = t.chain_id
-  let rpc_context t = t.rpc_context
+  let alpha_context t = t.alpha_context
   let mock_context t = t.mock_context
 
   let originate_dummy_contract ctxt script balance =
@@ -198,11 +198,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
     )
 
 
-  let process
-      ~logger
-      protocol_str
-      base_dir
-      contract_file =
+  let init ~protocol_str ~base_dir () =
 
     let open Lwt_result_syntax in
 
@@ -234,7 +230,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
 
     let timestamp = rpc_context.block_header.timestamp in
     let level = Int32.succ rpc_context.block_header.level in (* `Successor_level is safer? *)
-    let* (alpha_ctxt, _, _) =
+    let* (alpha_context, _, _) =
       Protocol.Alpha_context.prepare
         ~level
         ~predecessor_timestamp:timestamp
@@ -242,7 +238,6 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
         rpc_context.context
       |> Lwt.map Environment.wrap_tzresult
     in
-
     (* Printf.printf "doing client config init mockup - ONLY NEEDED FOR DISK BASED MOCKS\n"; *)
     (* let* () = Client_config.config_init_mockup *)
     (*     unix_mockup *)
@@ -261,8 +256,14 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
     (*   rpc_config *)
     (*   parsed_config_file ; *)
 
+    return {chain_id; alpha_context; mock_context; code_trace=None}
+
+  let process ~logger t contract_file =
+
+    let open Lwt_result_syntax in
+
     Printf.printf "reading contract file\n";
-    let* source = mock_context#read_file contract_file in
+    let* source = t.mock_context#read_file contract_file in
     let script = StepperExpr.of_source_exn source in
     let mich_unit = StepperExpr.from_string_exn "Unit" in
 
@@ -271,22 +272,14 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
         ~storage:mich_unit.expanded
         ~input:mich_unit.expanded
         ~logger
-        alpha_ctxt
+        t.alpha_context
     in
 
-    return {chain_id; rpc_context; mock_context; code_trace}
+    return {t with code_trace=(Some code_trace)}
 
 
-  let step
-      ~logger
-      ~protocol_str
-      ~base_dir
-      contract_file =
+  let step ~logger t contract_file =
     Lwt_preemptive.run_in_main (
-      fun () -> process
-          ~logger
-          protocol_str
-          base_dir
-          contract_file
+      fun () -> process ~logger t contract_file
     )
 end
