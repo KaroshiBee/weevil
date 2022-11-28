@@ -114,6 +114,9 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
     let run_code_config = Plugin.RPC.Scripts.{balance; self; source; payer} in
     return (ctxt, run_code_config)
 
+
+  let (>>=??) = Error_monad_operators.(>>=??)
+
   (* TODO move all these args to API call points *)
   let trace_code
       ?gas
@@ -136,8 +139,10 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
 
     (* NOTE the RPC call to this also has block parameter after ctxt and type of ctxt is
        'pr #Environment.RPC_context.simple where type of block is 'pr *)
+    let*! () = Logs_lwt.info (fun m -> m "getting storage and code") in
     let storage = Script.lazy_expr storage in
     let code = Script.lazy_expr script in
+    let*! () = Logs_lwt.info (fun m -> m "getting ctxt config from configure contracts") in
     let* ctxt_config =
       configure_contracts
         ctxt
@@ -148,6 +153,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
         ~self_opt:self
     in
     let (ctxt, Plugin.RPC.Scripts.{balance; self; source; payer}) = ctxt_config in
+    let*! () = Logs_lwt.info (fun m -> m "getting gas") in
     let gas =
       match gas with
       | Some gas -> gas
@@ -155,8 +161,11 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
         Gas.Arith.integral_of_int_exn
           100 (* Constants.hard_gas_limit_per_operation ctxt *)
     in
+    let*! () = Logs_lwt.info (fun m -> m "setting gas limit") in
     let ctxt = Gas.set_limit ctxt gas in
+    let*! () = Logs_lwt.info (fun m -> m "getting now timestamp") in
     let now = match now with None -> Script_timestamp.now ctxt | Some t -> t in
+    let*! () = Logs_lwt.info (fun m -> m "getting level") in
     let level =
       match level with
       | None ->
@@ -164,36 +173,40 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
         |> Script_int.abs
       | Some z -> z
     in
+    let*! () = Logs_lwt.info (fun m -> m "getting step constants") in
     let step_constants =
       let open Script_interpreter in
       {source; payer; self; amount; balance; chain_id; now; level}
     in
 
+    let*! () = Logs_lwt.info (fun m -> m "getting logger") in
     let logger = make_logger () in
 
+    let*! () = Logs_lwt.info (fun m -> m "executing contract") in
     (* NOTE in the old code this was a Lwt_result.map - so wouldnt need the return() at end of code block *)
-    let+ res =
-      Interp.execute
-        ctxt
-        step_constants
-        ~script:{storage; code}
-        ~entrypoint
-        ~parameter:input
-        ~logger
-      |> Lwt.map Environment.wrap_tzresult
-    in
+    Interp.execute
+      ctxt
+      step_constants
+      ~script:{storage; code}
+      ~entrypoint
+      ~parameter:input
+      ~logger
+    >>=?? fun res ->
+    (* |> Lwt.map Environment.wrap_tzresult (\* TODO suspicious here, i think old one used >>=?? from test helpers *\) *)
+    (* in *)
+    let*! () = Logs_lwt.info (fun m -> m "executed all of contract") in
     let (
       ( Script_interpreter.{
             script = _;
             code_size = _;
             storage;
-            operations;
+            operations = _;
             lazy_storage_diff;
             ticket_diffs = _;
           }, _ctxt ), trace ) = res
     in
-    let ops = Apply_internal_results.contents_of_packed_internal_operations operations in
-    (
+    let ops = [] in (* Apply_internal_results.contents_of_packed_internal_operations operations in *)
+    return (
       storage,
       ops,
       trace,
@@ -267,9 +280,11 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
 
     let*! () = Logs_lwt.info (fun m -> m "reading contract file") in
     let* source = t.mock_context#read_file contract_file in
+    let*! () = Logs_lwt.info (fun m -> m "parsing contract source") in
     let script = StepperExpr.of_source_exn source in
     let mich_unit = StepperExpr.from_string_exn "Unit" in
 
+    let*! () = Logs_lwt.info (fun m -> m "running contract code") in
     let* code_trace = trace_code
         ~script:script.expanded
         ~storage:mich_unit.expanded
@@ -279,7 +294,6 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
     in
 
     return {t with code_trace=(Some code_trace)}
-
 
   let step ~make_logger t contract_file =
     Lwt_preemptive.run_in_main (
