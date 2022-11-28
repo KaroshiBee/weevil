@@ -29,7 +29,7 @@ module type INTERPRETER = sig
   type logger = Script_typed_ir.logger
 
   val trace_logger :
-    ?input_mvar:input Lwt_mvar.t -> ?output_mvar:output Lwt_mvar.t -> unit -> logger
+    input_mvar:input Lwt_mvar.t -> output_mvar:output Lwt_mvar.t -> unit -> logger
 
   val execute :
     Alpha_context.t ->

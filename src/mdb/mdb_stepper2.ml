@@ -172,7 +172,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
     let logger = make_logger () in
 
     (* NOTE in the old code this was a Lwt_result.map - so wouldnt need the return() at end of code block *)
-    let* res =
+    let+ res =
       Interp.execute
         ctxt
         step_constants
@@ -193,7 +193,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
           }, _ctxt ), trace ) = res
     in
     let ops = Apply_internal_results.contents_of_packed_internal_operations operations in
-    return (
+    (
       storage,
       ops,
       trace,
