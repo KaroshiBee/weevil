@@ -39,7 +39,7 @@ let enc =
 let from_msg_opt msg =
   try
     (* TODO be better *)
-    let r : t = Js.(from_string msg |> Result.get_ok |> destruct enc) in
+    let r : t = Js.(from_string msg |> Stdlib.Result.get_ok |> destruct enc) in
     Option.Some (r.event)
   with _ ->
     None
