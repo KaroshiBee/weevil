@@ -28,12 +28,13 @@ let rec main_handler ~stepper ~make_logger ~input_mvar ~output_mvar ~stepper_pro
       (*TODO  _msg will contain the script name *)
       let fname = "/home/wyn/mich/multiply_2_x_250_equals_500.tz" in
       let p = fname |> Lwt_preemptive.detach (fun filename ->
+          Logs.info (fun m -> m "[MICH] preemptive: starting stepper");
           match Stepper.step ~make_logger stepper filename with
           | Ok _ -> ()
           | Error errs ->
             Logs.info (fun m -> m "[MICH] preemptive: got errors '%s'" @@ Data_encoding.Json.(construct trace_encoding errs |> to_string))
         ) in
-      let%lwt () = Logs_lwt.info (fun m -> m "[MICH] spawned '%s'" fname) in
+      let%lwt () = Logs_lwt.info (fun m -> m "[MICH] spawned '%s', joining with main_handler" fname) in
       Lwt.join [p; main_handler ~stepper ~make_logger ~input_mvar ~output_mvar ~stepper_process:(Some p) ic oc]
     )
 
