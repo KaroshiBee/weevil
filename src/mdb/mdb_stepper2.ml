@@ -114,6 +114,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
     let run_code_config = Plugin.RPC.Scripts.{balance; self; source; payer} in
     return (ctxt, run_code_config)
 
+  (* TODO move all these args to API call points *)
   let trace_code
       ?gas
       ?(entrypoint = Entrypoint.default)
@@ -128,7 +129,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
       ?self
       ?now
       ?level
-      ~logger
+      ~make_logger
       ctxt =
 
     let open Lwt_result_syntax in
@@ -168,6 +169,8 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
       {source; payer; self; amount; balance; chain_id; now; level}
     in
 
+    let logger = make_logger () in
+
     (* NOTE in the old code this was a Lwt_result.map - so wouldnt need the return() at end of code block *)
     let* res =
       Interp.execute
@@ -205,9 +208,9 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
     Random.self_init ();
 
     (* believe this RPC config gets overwritten in mock creation, same for the #full cctxt? *)
-    Printf.printf "making rpc config\n";
+    let*! () = Logs_lwt.info (fun m -> m "making rpc config") in
     let rpc_config = RPC.{media_type=Any; endpoint=Uri.empty; logger=null_logger} in
-    Printf.printf "making client context unix full\n";
+    let*! () = Logs_lwt.info (fun m -> m "making client context unix full") in
     let cctxt =
       new Client_context_unix.unix_full
         ~chain:`Test
@@ -219,7 +222,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
         ~verbose_rpc_error_diagnostics:true
     in
 
-    Printf.printf "making client context unix mockup\n";
+    let*! () = Logs_lwt.info (fun m -> m "making client context unix mockup") in
     let protocol_hash = Protocol_hash.of_b58check_opt protocol_str in
     let* {chain_id; rpc_context; unix_mockup=mock_context} = Mdb_stepper_config.setup_mockup_rpc_client_config
         (cctxt :> Client_context.printer)
@@ -238,7 +241,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
         rpc_context.context
       |> Lwt.map Environment.wrap_tzresult
     in
-    (* Printf.printf "doing client config init mockup - ONLY NEEDED FOR DISK BASED MOCKS\n"; *)
+    (* let*! () = Logs_lwt.info (fun m -> m "doing client config init mockup - ONLY NEEDED FOR DISK BASED MOCKS") *)
     (* let* () = Client_config.config_init_mockup *)
     (*     unix_mockup *)
     (*     protocol_hash *)
@@ -249,7 +252,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
 
 
     (* TODO not sure if we need a remote signer in mock mode *)
-    (* Printf.printf "setup remote signer with mock client config\n\n"; *)
+    (* let*! () = Logs_lwt.info (fun m -> m "setup remote signer with mock client config\n") *)
     (* setup_remote_signer *)
     (*   (module C) *)
     (*   client_config *)
@@ -258,11 +261,11 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
 
     return {chain_id; alpha_context; mock_context; code_trace=None}
 
-  let process ~logger t contract_file =
+  let process ~make_logger t contract_file =
 
     let open Lwt_result_syntax in
 
-    Printf.printf "reading contract file\n";
+    let*! () = Logs_lwt.info (fun m -> m "reading contract file") in
     let* source = t.mock_context#read_file contract_file in
     let script = StepperExpr.of_source_exn source in
     let mich_unit = StepperExpr.from_string_exn "Unit" in
@@ -271,15 +274,15 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
         ~script:script.expanded
         ~storage:mich_unit.expanded
         ~input:mich_unit.expanded
-        ~logger
+        ~make_logger
         t.alpha_context
     in
 
     return {t with code_trace=(Some code_trace)}
 
 
-  let step ~logger t contract_file =
+  let step ~make_logger t contract_file =
     Lwt_preemptive.run_in_main (
-      fun () -> process ~logger t contract_file
+      fun () -> process ~make_logger t contract_file
     )
 end
