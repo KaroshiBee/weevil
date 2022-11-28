@@ -35,7 +35,7 @@ module T (Unparsing_mode : Mdb_types.UNPARSING_MODE) = struct
     in
     unparse_stack (stack_ty, stack)
 
-  let trace_logger ?input_mvar () : Script_typed_ir.logger =
+  let trace_logger ?input_mvar ?output_mvar:_ () : Script_typed_ir.logger =
     (* let input_mvar = Option.value input_mvar ~default:(Lwt_mvar.create_empty ()) in *)
     let log : log_element list ref = ref [] in
     let log_interp _ ctxt loc sty stack =
