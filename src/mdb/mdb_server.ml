@@ -18,12 +18,16 @@ end
 module Interpreter = Mdb_traced_interpreter.T (Interpreter_cfg)
 module Stepper = Mdb_stepper2.T (Interpreter)
 
+let protocol_str = "PtKathmankSpLLDALzWw7CGD2j2MtyveTwboEYokqUCP4a1LxMg"
+let base_dir = "/tmp/.weevil"
+
 let rec main_handler ~logger ~input_mvar ~output_mvar ~stepper_process ic oc =
   let%lwt ln = Lwt_io.read_line_opt ic in
   match ln, stepper_process with
   | Some _msg, None -> (
+      (*TODO  _msg will contain the script name *)
       let fname = "/home/wyn/dev/weevil/src/backend/tests/backend_cram_tests/stepper_test.t/multiply_2_x_250_equals_500.tz" in
-      let p = Lwt_preemptive.detach (fun filename -> let _ = Stepper.stepper ~logger filename in ()) fname in
+      let p = fname |> Lwt_preemptive.detach (fun filename -> let _ = Stepper.step ~logger ~protocol_str ~base_dir filename in ()) in
       let%lwt () = Logs_lwt.info (fun m -> m "[MICH] spawned '%s'" fname) in
       Lwt.join [p; main_handler ~logger ~input_mvar ~output_mvar ~stepper_process:(Some p) ic oc]
     )
@@ -36,6 +40,7 @@ let rec main_handler ~logger ~input_mvar ~output_mvar ~stepper_process ic oc =
       let p = Lwt_mvar.put input_mvar msg in
       Lwt.join [p; main_handler ~logger ~input_mvar ~output_mvar ~stepper_process ic oc]
     | Return _ | Fail _ ->
+      (* finished subprocess, reset to None *)
       main_handler ~logger ~input_mvar ~output_mvar ~stepper_process:None ic oc
   )
 
