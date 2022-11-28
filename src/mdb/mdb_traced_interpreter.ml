@@ -39,7 +39,7 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
     in
     unparse_stack (stack_ty, stack)
 
-  let trace_logger ?input_mvar ?output_mvar:_ () : Script_typed_ir.logger =
+  let trace_logger ~input_mvar ~output_mvar:_ () : Script_typed_ir.logger =
     (* let input_mvar = Option.value input_mvar ~default:(Lwt_mvar.create_empty ()) in *)
     let log : log_element list ref = ref [] in
     let log_interp _ ctxt loc sty stack =
@@ -48,20 +48,17 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
     in
     let log_entry _ _ctxt loc _sty _stack =
       Logs.info (fun m -> m "log_entry @ location %d" loc);
-      match input_mvar with
-      | Some mvar ->
-        let msg = Lwt_preemptive.run_in_main (fun () ->
-            (* we run this on main thread but immediately block
-               waiting for the mvar, NOTE the main thread can carry on,
-               so the preemptive thread pauses until we 'step' it
-               by passing some data into the mvar,
-               meanwhile the cooperative main thread remains responsive,
-               this way we achieve incremental stepping through a contract *)
-            let%lwt () = Logs_lwt.info (fun m -> m "trying to get mvar") in
-            Lwt_mvar.take mvar
+      let msg = Lwt_preemptive.run_in_main (fun () ->
+          (* we run this on main thread but immediately block
+             waiting for the mvar, NOTE the main thread can carry on,
+             so the preemptive thread pauses until we 'step' it
+             by passing some data into the mvar,
+             meanwhile the cooperative main thread remains responsive,
+             this way we achieve incremental stepping through a contract *)
+          let%lwt () = Logs_lwt.info (fun m -> m "trying to get mvar") in
+          Lwt_mvar.take input_mvar
         ) in
-        Logs.info (fun m -> m "log_entry got '%s'" @@ Cfg.to_string_input msg)
-      | None -> ()
+      Logs.info (fun m -> m "log_entry got '%s'" @@ Cfg.to_string_input msg)
     in
     let log_exit _ ctxt loc sty stack =
       Logs.info (fun m -> m "log_exit @ location %d" loc);
