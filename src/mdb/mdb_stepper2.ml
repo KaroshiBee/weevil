@@ -5,7 +5,6 @@ module RPC = Tezos_rpc_http_client_unix.RPC_client_unix (* TODO use lib_mockup o
 module Client_context_unix = Tezos_client_base_unix.Client_context_unix
 module Client_context = Tezos_client_base.Client_context
 
-type ctxt = Alpha_context.t
 type code_trace = (Script.expr * Apply_internal_results.packed_internal_contents trace * Script_typed_ir.execution_trace * Lazy_storage.diffs option)
 type t = Chain_id.t * Environment.Updater.rpc_context * Client_context_unix.unix_mockup * code_trace
 
@@ -133,6 +132,8 @@ let trace_code
   end in
   let module Interp = Mdb_traced_interpreter.T (Unparsing_mode) in
   let logger = Interp.trace_logger ~input_mvar () in
+
+  (* NOTE in the old code this was a Lwt_result.map - so wouldnt need the return() at end of code block *)
   let* res =
     Interp.execute
       ctxt
@@ -275,49 +276,9 @@ let process
 
   return (chain_id, rpc_context, unix_mockup, res)
 
-  (* let shared_params = Programs.{ *)
-  (*   input=mich_unit; *)
-  (*   unparsing_mode=Protocol.Script_ir_translator.Readable; *)
-  (*   now=None; *)
-  (*   level=None; *)
-  (*   source=None; *)
-  (*   payer=None; *)
-  (*   gas=None; *)
-  (* } *)
-  (* in *)
-
-  (* let run_params = Programs.{ *)
-  (*   shared_params; *)
-  (*   amount=None; *)
-  (*   balance=None; *)
-  (*   program=script; *)
-  (*   storage=mich_unit; *)
-  (*   entrypoint=None; *)
-  (*   self=None *)
-  (* } *)
-  (* in *)
-
-  (* Printf.printf "making protocol client context\n"; *)
-  (* (\* this thing can do the call_proto_service0 thing *\) *)
-  (* let cpctxt = (new Protocol_client_context.wrap_full unix_mockup) in *)
-  (* (\* ok so there is a bit of wrangling to turn this into an Alpha context, *)
-  (*    this gets done on registration with the Resto directory services, *)
-  (*    I think we need to go: *)
-  (*    cpctxt:full -> Updater.rpc_context = {context:Context.t; _ stuff} -> Services_registration.rpc_context = {context:Alpha_context.t; _ stuff} *)
-  (*    then with the alpha context we can call trace_code directly *)
-  (* *\) *)
-
-  (* let* res = Programs.trace *)
-  (*     cpctxt *)
-  (*     ~chain:cpctxt#chain *)
-  (*     ~block:cpctxt#block *)
-  (*     run_params *)
-  (* in *)
 
 
 
-
-  (* return (chain_id, rpc_context, unix_mockup, res_) *)
 (*   let stepper = *)
 (*     (\* step but catch any unhandled exceptions and convert to Tz.Error_monad traces *\) *)
 (*     let res = *)
