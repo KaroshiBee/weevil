@@ -21,15 +21,20 @@ module Stepper = Mdb_stepper2.T (Interpreter)
 let protocol_str = "PtKathmankSpLLDALzWw7CGD2j2MtyveTwboEYokqUCP4a1LxMg"
 let base_dir = "/tmp/.weevil"
 
-let rec main_handler ~stepper ~logger ~input_mvar ~output_mvar ~stepper_process ic oc =
+let rec main_handler ~stepper ~make_logger ~input_mvar ~output_mvar ~stepper_process ic oc =
   let%lwt ln = Lwt_io.read_line_opt ic in
   match ln, stepper_process with
   | Some _msg, None -> (
       (*TODO  _msg will contain the script name *)
-      let fname = "/home/wyn/dev/weevil/src/backend/tests/backend_cram_tests/stepper_test.t/multiply_2_x_250_equals_500.tz" in
-      let p = fname |> Lwt_preemptive.detach (fun filename -> let _ = Stepper.step ~logger stepper filename in ()) in
+      let fname = "/home/wyn/mich/multiply_2_x_250_equals_500.tz" in
+      let p = fname |> Lwt_preemptive.detach (fun filename ->
+          match Stepper.step ~make_logger stepper filename with
+          | Ok _ -> ()
+          | Error errs ->
+            Logs.info (fun m -> m "[MICH] preemptive: got errors '%s'" @@ Data_encoding.Json.(construct trace_encoding errs |> to_string))
+        ) in
       let%lwt () = Logs_lwt.info (fun m -> m "[MICH] spawned '%s'" fname) in
-      Lwt.join [p; main_handler ~stepper ~logger ~input_mvar ~output_mvar ~stepper_process:(Some p) ic oc]
+      Lwt.join [p; main_handler ~stepper ~make_logger ~input_mvar ~output_mvar ~stepper_process:(Some p) ic oc]
     )
 
   | Some msg, Some p -> (
@@ -38,10 +43,10 @@ let rec main_handler ~stepper ~logger ~input_mvar ~output_mvar ~stepper_process 
     match Lwt.state p with
     | Sleep ->
       let p = Lwt_mvar.put input_mvar msg in
-      Lwt.join [p; main_handler ~stepper ~logger ~input_mvar ~output_mvar ~stepper_process ic oc]
+      Lwt.join [p; main_handler ~stepper ~make_logger ~input_mvar ~output_mvar ~stepper_process ic oc]
     | Return _ | Fail _ ->
       (* finished subprocess, reset to None *)
-      main_handler ~stepper ~logger ~input_mvar ~output_mvar ~stepper_process:None ic oc
+      main_handler ~stepper ~make_logger ~input_mvar ~output_mvar ~stepper_process:None ic oc
   )
 
   | None, _ -> Logs_lwt.info (fun m -> m "[MICH] connection closed")
@@ -53,8 +58,8 @@ let on_connection ~stepper _flow ic oc =
   let%lwt () = Logs_lwt.info (fun m -> m "[MICH] got connection") in
   let input_mvar = Lwt_mvar.create_empty () in
   let output_mvar = Lwt_mvar.create_empty () in
-  let logger = Interpreter.trace_logger ~input_mvar ~output_mvar () in
-  main_handler ~stepper ~logger ~input_mvar ~output_mvar ~stepper_process:None ic oc
+  let make_logger = Interpreter.trace_logger ~input_mvar ~output_mvar in
+  main_handler ~stepper ~make_logger ~input_mvar ~output_mvar ~stepper_process:None ic oc
 
 let lwt_svc ?stopper port =
   let open Lwt_result_syntax in

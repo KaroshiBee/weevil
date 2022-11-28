@@ -7,15 +7,7 @@ type t = {
   unix_mockup:Client_context_unix.unix_mockup;
 }
 (* NOTE we are in Tezos_base.TzPervasives.tzresult Lwt.t because of Tezos_mockup lib calls *)
-let setup_mockup_rpc_client_config :
-  Client_context.printer ->
-  Protocol_hash.t option ->
-  string ->
-  t tzresult Lwt.t =
-  fun
-    (cctxt : Client_context.printer)
-    (protocol_hash : Protocol_hash.t option)
-    base_dir ->
+let setup_mockup_rpc_client_config cctxt protocol_hash base_dir =
 
   let open Lwt_result_syntax in
 
@@ -23,7 +15,7 @@ let setup_mockup_rpc_client_config :
     match protocol with
     | None -> Tezos_mockup.Persistence.default_mockup_context cctxt
     | Some protocol_hash ->
-        Printf.printf "making with a protocol hash\n";
+        let*! () = Logs_lwt.info (fun m -> m "making with a protocol hash") in
         Tezos_mockup.Persistence.init_mockup_context_by_protocol_hash
           ~cctxt
           ~protocol_hash

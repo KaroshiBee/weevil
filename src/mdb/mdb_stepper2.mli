@@ -17,13 +17,13 @@ val init :
   (t, error trace) result Lwt.t
 
 val process :
-  logger:INTERP.logger ->
+  make_logger:(unit -> INTERP.logger) ->
   t ->
   string ->
   (t, error trace) result Lwt.t
 
 val step :
-  logger:INTERP.logger ->
+  make_logger:(unit -> INTERP.logger) ->
   t ->
   string ->
   (t, error trace) result
