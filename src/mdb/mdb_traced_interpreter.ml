@@ -4,7 +4,11 @@ open Environment.Error_monad
 module Plugin = Tezos_protocol_plugin_014_PtKathma
 
 
-module T (Unparsing_mode : Mdb_types.UNPARSING_MODE) = struct
+module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
+
+  type input = Cfg.input
+  type output = Cfg.output
+  type logger = Script_typed_ir.logger
 
   type log_element =
     | Log :
@@ -25,7 +29,7 @@ module T (Unparsing_mode : Mdb_types.UNPARSING_MODE) = struct
       | Item_t (ty, rest_ty), (v, rest) ->
         Script_ir_translator.unparse_data
           ctxt
-          Unparsing_mode.unparsing_mode
+          Cfg.unparsing_mode
           ty
           v
         >>=? fun (data, _ctxt) ->
@@ -56,7 +60,7 @@ module T (Unparsing_mode : Mdb_types.UNPARSING_MODE) = struct
             let%lwt () = Logs_lwt.info (fun m -> m "trying to get mvar") in
             Lwt_mvar.take mvar
         ) in
-        Logs.info (fun m -> m "log_entry got '%s'" msg)
+        Logs.info (fun m -> m "log_entry got '%s'" @@ Cfg.to_string_input msg)
       | None -> ()
     in
     let log_exit _ ctxt loc sty stack =
@@ -84,7 +88,7 @@ module T (Unparsing_mode : Mdb_types.UNPARSING_MODE) = struct
       ~logger
       ~cached_script:None
       ctxt
-      Unparsing_mode.unparsing_mode
+      Cfg.unparsing_mode
       step_constants
       ~script
       ~entrypoint

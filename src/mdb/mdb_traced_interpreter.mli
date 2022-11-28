@@ -1,1 +1,1 @@
-module T : functor (MODE:Mdb_types.UNPARSING_MODE) -> Mdb_types.INTERPRETER
+module T : functor (CFG:Mdb_types.INTERPRETER_CFG) -> Mdb_types.INTERPRETER with type input = CFG.input and type output = CFG.output
