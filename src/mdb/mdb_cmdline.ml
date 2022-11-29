@@ -1,7 +1,8 @@
 module Defaults = Defaults.Vals
 let default_port = Defaults._DEFAULT_BACKEND_PORT
 
-let process port_arg =
+(* NOTE type unparsing_mode = Optimized | Readable | Optimized_legacy, could we phantom this into the logger type? *)
+let process port_arg () =
   let p
       ?port_arg:(port:int=default_port)
       () =
@@ -23,10 +24,10 @@ module Term = struct
       value & pos 0 (some int) None & info [] ~doc ~docv:"PORT"
     )
 
-  let term =
+  let term setup_log =
     Cmdliner.Term.(
       ret
-        (const process $ listen_port_arg)
+        (const process $ listen_port_arg $ setup_log)
     )
 
 end
@@ -42,4 +43,4 @@ module Manpage = struct
   let info = Cmdliner.Cmd.info ~doc:command_description ~man "backend"
 end
 
-let cmd = Cmdliner.Cmd.v Manpage.info Term.term
+let cmd setup_log = Cmdliner.Cmd.v Manpage.info @@ Term.term setup_log

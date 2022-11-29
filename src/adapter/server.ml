@@ -29,8 +29,6 @@ let on_connection hdl state _flow ic oc =
     oc
 
 let svc ~port =
-  let () = Logs.set_reporter (Logs.format_reporter ()) in
-  let () = Logs.set_level (Some Logs.Info) in
   let mode = `TCP (`Port port) in
   (* handler and state are global to the svc *)
   let hdl = Handler.make in

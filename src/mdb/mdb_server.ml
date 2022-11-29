@@ -113,8 +113,6 @@ let lwt_svc ?stopper port =
   return ret
 
 let svc ~port =
-  let () = Logs.set_reporter (Logs.format_reporter ()) in
-  let () = Logs.set_level (Some Logs.Info) in
   match Lwt_main.run (lwt_svc port) with
   | Ok _ -> `Ok ()
   | Error err -> `Error (true, Data_encoding.Json.(construct trace_encoding err |> to_string))

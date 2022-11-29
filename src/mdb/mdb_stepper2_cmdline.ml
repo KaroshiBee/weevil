@@ -23,7 +23,8 @@ let base_dir = "/tmp/.weevil"
 
 let make_logger = Interpreter.trace_logger ~in_channel:stdin ~out_channel:stdout
 
-let process headless script_filename_opt =
+(* NOTE unit on end is for the logging setup *)
+let process headless script_filename_opt () =
   let stepper =
     let open Lwt_result_syntax in
     match script_filename_opt with
@@ -80,10 +81,10 @@ module Tm = struct
       value & pos 0 (some string) None & info [] ~doc ~docv:file_arg
     )
 
-  let term =
+  let term (setup_log:unit Term.t) =
     Term.(
-      ret
-        (const process $ headless_arg $ contract_file_arg)
+      let t = (const process $ headless_arg $ contract_file_arg $ setup_log) in
+      ret t
     )
 
 end
@@ -99,4 +100,4 @@ module Manpage = struct
   let info = Cmdliner.Cmd.info ~doc:command_description ~man "stepper"
 end
 
-let cmd = Cmdliner.Cmd.v Manpage.info Tm.term
+let cmd setup_log = Cmdliner.Cmd.v Manpage.info @@ Tm.term setup_log

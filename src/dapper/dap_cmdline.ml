@@ -2,7 +2,8 @@ let _DEFAULT_SCHEMA = "./schema/debugAdapterProtocol-1.56.X.json"
 let _DEFAULT_OUTPUT = "test"
 let _DEFAULT_WHAT = Dap_render.Messages
 
-let process what_arg json_schema_arg output_file_arg =
+(* NOTE type unparsing_mode = Optimized | Readable | Optimized_legacy, could we phantom this into the logger type? *)
+let process what_arg json_schema_arg output_file_arg () =
   let p ?what_arg ?(json_schema_arg=_DEFAULT_SCHEMA) ?(output_file_arg=_DEFAULT_OUTPUT) () =
     let schema_js = Ezjsonm.from_channel @@ open_in json_schema_arg in
     let dfs = Dap_dfs.Dfs.make ~schema_js in
@@ -80,10 +81,10 @@ module Term = struct
       value & pos 2 (some string) None & info [] ~doc ~docv:"FILE"
     )
 
-  let term =
+  let term setup_log =
     Cmdliner.Term.(
       ret
-        (const process $ what_arg $ json_schema_arg $ output_file_arg)
+        (const process $ what_arg $ json_schema_arg $ output_file_arg $ setup_log)
     )
 
 end
@@ -99,4 +100,4 @@ module Manpage = struct
   let info = Cmdliner.Cmd.info ~doc:command_description ~man "dap-gen"
 end
 
-let cmd = Cmdliner.Cmd.v Manpage.info Term.term
+let cmd setup_log = Cmdliner.Cmd.v Manpage.info @@ Term.term setup_log

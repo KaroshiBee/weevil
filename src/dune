@@ -19,6 +19,8 @@
   conduit-lwt-unix
   data-encoding
   cmdliner
+  logs
+  logs.cli
   dapper
   mdb
   adapter

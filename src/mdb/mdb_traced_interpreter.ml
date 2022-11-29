@@ -59,7 +59,7 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
     let log_exit _ ctxt loc sty stack =
       Logs.info (fun m -> m "log_exit @ location %d" loc);
       let l = Log (ctxt, loc, stack, sty) in
-      (* TODO can we serialise l and send that? then unparse on main thread in order*)
+      (* TODO can we serialise l and send that? then unparse on main thread *)
       let _ = Lwt.ignore_result @@ (
           let open Lwt_result_syntax in
           let*! is_sent = (

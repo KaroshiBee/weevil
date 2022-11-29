@@ -1,9 +1,17 @@
 (* group together all cmd lines *)
+let setup_log =
+  let init style_renderer level =
+    Fmt_tty.setup_std_outputs ?style_renderer ();
+    Logs.set_level level;
+    Logs.set_reporter (Logs_fmt.reporter ())
+  in
+  Cmdliner.Term.(const init $ Fmt_cli.style_renderer () $ Logs_cli.level ())
+
 let commands = [
-  Mdb.Mdb_stepper2_cmdline.cmd;
-  Mdb.Mdb_cmdline.cmd;
-  Adapter.Service_cmdline.cmd;
-  Dapper.Dap_cmdline.cmd;
+  Mdb.Mdb_stepper2_cmdline.cmd setup_log;
+  Mdb.Mdb_cmdline.cmd setup_log;
+  Adapter.Service_cmdline.cmd setup_log;
+  Dapper.Dap_cmdline.cmd setup_log;
 ]
 
 let info =
@@ -17,7 +25,4 @@ let main_cmd =
   Cmdliner.Cmd.group info commands
 
 let () =
-  Logs.set_reporter (Logs.format_reporter ());
-  Logs.set_level (Some Logs.Info);
   exit (Cmdliner.Cmd.eval main_cmd)
-
