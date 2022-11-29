@@ -3,76 +3,30 @@ multiplies 2 * 250, can run with $ cd ~/tezos && dune exec -- tezos-client --mod
 I send in 10 newlines to check that its ok to send them when it is finished
 
   $ echo "\n \n \n \n \n \n \n \n \n \n" | weevil stepper --headless multiply_2_x_250_equals_500.tz
-  
-  # log_interp @ location 7
-  
-  # log_entry @ location 7
-  # got ''
-  # log_exit @ location 7, line 1
   Content-Length: 67
   
-  { "location": 1, "gas": "92.555 units remaining", "stack": [ "" ] }
-  
-  # log_entry @ location 8
-  # got ' '
-  # log_exit @ location 8, line 2
-  weevil: [INFO] 250
+  { "location": 7, "gas": "92.555 units remaining", "stack": [ "" ] }
   Content-Length: 70
   
-  { "location": 2, "gas": "92.545 units remaining", "stack": [ "250" ] }
+  { "location": 8, "gas": "92.545 units remaining", "stack": [ "250" ] }
+  Content-Length: 77
   
-  # log_entry @ location 11
-  # got ' '
-  # log_exit @ location 11, line 3
-  weevil: [INFO] 2
-  weevil: [INFO] 250
-  Content-Length: 76
-  
-  { "location": 3, "gas": "92.535 units remaining", "stack": [ "2", " 250" ] }
-  
-  # log_entry @ location 14
-  # got ' '
-  # log_exit @ location 14, line 4
-  weevil: [INFO] 500
-  Content-Length: 70
-  
-  { "location": 4, "gas": "92.535 units remaining", "stack": [ "500" ] }
-  
-  # log_entry @ location 15
-  # got ' '
-  # log_exit @ location 15, line 5
-  Content-Length: 67
-  
-  { "location": 5, "gas": "92.525 units remaining", "stack": [ "" ] }
-  
-  # log_entry @ location 16
-  # got ' '
-  # log_exit @ location 16, line 6
-  weevil: [INFO] Unit
+  { "location": 11, "gas": "92.535 units remaining", "stack": [ "2", " 250" ] }
   Content-Length: 71
   
-  { "location": 6, "gas": "92.515 units remaining", "stack": [ "Unit" ] }
+  { "location": 14, "gas": "92.535 units remaining", "stack": [ "500" ] }
+  Content-Length: 68
   
-  # log_entry @ location 17
-  # got ' '
-  # log_exit @ location 17, line 7
-  weevil: [INFO] {}
-  weevil: [INFO] Unit
-  Content-Length: 79
+  { "location": 15, "gas": "92.525 units remaining", "stack": [ "" ] }
+  Content-Length: 72
   
-  { "location": 7, "gas": "92.505 units remaining",  "stack": [ "{}", " Unit" ] }
+  { "location": 16, "gas": "92.515 units remaining", "stack": [ "Unit" ] }
+  Content-Length: 80
   
-  # log_entry @ location 19
-  # got ' '
-  # log_exit @ location 19, line 8
-  weevil: [INFO] (Pair {} Unit)
-  Content-Length: 82
+  { "location": 17, "gas": "92.505 units remaining",  "stack": [ "{}", " Unit" ] }
+  Content-Length: 83
   
-  { "location": 8, "gas": "92.495 units remaining",  "stack": [ "(Pair {} Unit)" ] }
-  
-  # log_entry @ location 6
-  # got ' '
-  # log_control
+  { "location": 19, "gas": "92.495 units remaining",  "stack": [ "(Pair {} Unit)" ] }
 
 
 testing with no filename and not headless
@@ -80,7 +34,7 @@ testing with no filename and not headless
   tezos-weevil: Stepper error - Error:
                                   Invalid_argument("required argument FILE is missing")
                 
-  Usage: tezos-weevil stepper [--headless] [OPTION]… [FILE]
+  Usage: tezos-weevil stepper [OPTION]… [FILE]
   Try 'tezos-weevil stepper --help' or 'tezos-weevil --help' for more information.
   [124]
 
@@ -95,23 +49,22 @@ testing with no filename in headless mode
 
 testing with bad filename in headless mode
   $ weevil stepper -h notthere.tz
-  weevil: [ERROR] Sys_error("notthere.tz: No such file or directory")
-  Content-Length: 131
+  Content-Length: 161
   
-  { "error":    [ { "kind": "temporary", "id": "failure",        "msg": "Sys_error(\"notthere.tz: No such file or directory\")" } ] }tezos-weevil: Stepper error - Error:
-                                  Sys_error("notthere.tz: No such file or directory")
+  { "error":    [ { "kind": "temporary", "id": "failure",        "msg":          "cannot read file (Unix.Unix_error(Unix.ENOENT, \"open\", \"notthere.tz\"))" } ] }tezos-weevil: Stepper error - Error:
+                                  cannot read file (Unix.Unix_error(Unix.ENOENT, "open", "notthere.tz"))
                 
   [124]
 
 testing with bad michelson in headless mode
   $ weevil stepper -h bad_michelson.tz
-  Content-Length: 575
+  Content-Length: 573
   
-  { "error":    [ { "kind": "permanent", "id": "micheline.parse_error.unclosed_token",        "location":          { "start": { "line": 1, "column": 35, "point": 35, "byte": 35 },            "stop": { "line": 1, "column": 36, "point": 36, "byte": 36 } },        "token": { "punctuation": "{" } },      { "kind": "permanent", "id": "micheline.parse_error.unclosed_token",        "location":          { "start": { "line": 1, "column": 0, "point": 0, "byte": 0 },            "stop": { "line": 1, "column": 1, "point": 1, "byte": 1 } },        "token": { "punctuation": "{" } } ] }tezos-weevil: Stepper error - Error:
-                                  At line 1 characters 35 to 36, unclosed curly brace,
+  { "error":    [ { "kind": "permanent", "id": "micheline.parse_error.unclosed_token",        "location":          { "start": { "line": 2, "column": 5, "point": 35, "byte": 35 },            "stop": { "line": 2, "column": 6, "point": 36, "byte": 36 } },        "token": { "punctuation": "{" } },      { "kind": "permanent", "id": "micheline.parse_error.unclosed_token",        "location":          { "start": { "line": 1, "column": 0, "point": 0, "byte": 0 },            "stop": { "line": 1, "column": 1, "point": 1, "byte": 1 } },        "token": { "punctuation": "{" } } ] }tezos-weevil: Stepper error - Error:
+                                  At line 2 characters 5 to 6, unclosed curly brace,
                                   trace:
                                   At line 1 characters 0 to 1, unclosed curly brace
-                                  At line 1 characters 35 to 36, unclosed curly brace
+                                  At line 2 characters 5 to 6, unclosed curly brace
                 
   [124]
 
@@ -127,7 +80,7 @@ show the help
          service
   
   SSYYNNOOPPSSIISS
-         tteezzooss--wweeeevviill sstteeppppeerr [----hheeaaddlleessss] [_O_P_T_I_O_N]… [_F_I_L_E]
+         tteezzooss--wweeeevviill sstteeppppeerr [_O_P_T_I_O_N]… [_F_I_L_E]
   
   DDEESSCCRRIIPPTTIIOONN
          Run the Weevil Michelson stepper for the backend service
@@ -138,9 +91,23 @@ show the help
              execute (required).
   
   OOPPTTIIOONNSS
+         ----ccoolloorr=_W_H_E_N (absent=aauuttoo)
+             Colorize the output. _W_H_E_N must be one of aauuttoo, aallwwaayyss or nneevveerr.
+  
          --hh, ----hheeaaddlleessss
              Run the tool in headless mode, this means that --help is not shown
              on error and any errors are returned as JSON
+  
+         --qq, ----qquuiieett
+             Be quiet. Takes over --vv and ----vveerrbboossiittyy.
+  
+         --vv, ----vveerrbboossee
+             Increase verbosity. Repeatable, but more than twice does not bring
+             more.
+  
+         ----vveerrbboossiittyy=_L_E_V_E_L (absent=wwaarrnniinngg)
+             Be more or less verbose. _L_E_V_E_L must be one of qquuiieett, eerrrroorr,
+             wwaarrnniinngg, iinnffoo or ddeebbuugg. Takes over --vv.
   
   CCOOMMMMOONN OOPPTTIIOONNSS
          ----hheellpp[=_F_M_T] (default=aauuttoo)

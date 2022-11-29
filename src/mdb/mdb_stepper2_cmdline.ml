@@ -33,7 +33,8 @@ let process headless script_filename_opt () =
       let* script = Stepper.typecheck ~script_filename stepper in
       Stepper.step ~make_logger ~script stepper
     | None ->
-      Lwt.return @@ error_with_exn @@ Invalid_argument "expected a script filename"
+      let s = Printf.sprintf "required argument %s is missing" file_arg in
+      Lwt.return @@ error_with_exn @@ Invalid_argument s
   in
 
   let post_process res =
