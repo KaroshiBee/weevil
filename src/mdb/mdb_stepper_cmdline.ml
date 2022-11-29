@@ -16,7 +16,7 @@ module Interpreter_cfg = struct
 end
 
 module Interpreter = Mdb_traced_interpreter.T (Interpreter_cfg)
-module Stepper = Mdb_stepper2.T (Interpreter)
+module Stepper = Mdb_stepper.T (Interpreter)
 
 let protocol_str = "PtKathmankSpLLDALzWw7CGD2j2MtyveTwboEYokqUCP4a1LxMg"
 let base_dir = "/tmp/.weevil"

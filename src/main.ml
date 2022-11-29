@@ -8,7 +8,7 @@ let setup_log =
   Cmdliner.Term.(const init $ Fmt_cli.style_renderer () $ Logs_cli.level ())
 
 let commands = [
-  Mdb.Mdb_stepper2_cmdline.cmd setup_log;
+  Mdb.Mdb_stepper_cmdline.cmd setup_log;
   Mdb.Mdb_cmdline.cmd setup_log;
   Adapter.Service_cmdline.cmd setup_log;
   Dapper.Dap_cmdline.cmd setup_log;

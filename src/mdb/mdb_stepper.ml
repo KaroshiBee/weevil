@@ -1,195 +1,275 @@
-(* Tezos_protocol_014_PtKathma opened globally gives the Protocol import *)
-module P = Protocol
-module Ctx = P.Alpha_context
-(* Tezos_014_PtKathma_test_helpers gives Error_monad_operators, Context, Incremental, Expr *)
-module M = Tezos_micheline
-module Tz = Tezos_base.TzPervasives
-open Tz.Error_monad.Legacy_monad_globals (* other bind infix operators *)
+open Protocol
+open Alpha_context
+module Plugin = Tezos_protocol_plugin_014_PtKathma
+module RPC = Tezos_rpc_http_client_unix.RPC_client_unix (* TODO use lib_mockup one? *)
+module Client_context_unix = Tezos_client_base_unix.Client_context_unix
+module Client_context = Tezos_client_base.Client_context
 
 
-let fake_KT1 =
-  P.Contract_hash.of_b58check_exn "KT1FAKEFAKEFAKEFAKEFAKEFAKEFAKGGSE2x"
+module T (Interp : Mdb_types.INTERPRETER) = struct
 
-let default_self = fake_KT1
+  type code_trace = (Script.expr * Apply_internal_results.packed_internal_contents trace * Script_typed_ir.execution_trace * Lazy_storage.diffs option)
 
-let default_source = Ctx.Contract.Implicit Tz.Signature.Public_key_hash.zero
+  type t = {
+    chain_id:Chain_id.t;
+    alpha_context:Alpha_context.t;
+    mock_context:Client_context_unix.unix_mockup;
+    code_trace:code_trace option;
+  }
 
-let default_step_constants =
-  P.Script_interpreter.
-    {
-      source = default_source;
-      payer = default_source;
-      self = default_self;
-      amount = Ctx.Tez.zero;
-      balance = Ctx.Tez.zero;
-      chain_id = Tz.Chain_id.zero;
-      now = P.Script_timestamp.of_zint Z.zero;
-      level = P.Script_int.zero_n;
-    }
+  let code_trace t = t.code_trace
+  let chain_id t = t.chain_id
+  let alpha_context t = t.alpha_context
+  let mock_context t = t.mock_context
 
-let (>>=??) = Error_monad_operators.(>>=??)
-
-(* need to retain the trace of code locs of any michelson errors *)
-module StepperExpr = struct
-  include Expr
-
-  exception Expression_from_string_with_locs of Tz.error list
-
-  module Michelson_v1_parser = Tezos_client_014_PtKathma.Michelson_v1_parser
-
-  (** Parse a Michelson expression from string, raising an exception on error,
-      in this version we keep hold of the inner errors. *)
-  let from_string ?(check_micheline_indentation = false) str : Ctx.Script.expr =
-    let ast, errs =
-      Michelson_v1_parser.parse_expression ~check:check_micheline_indentation str
+  let originate_dummy_contract ctxt script balance =
+    let open Lwt_result_syntax in
+    let ctxt = Origination_nonce.init ctxt Environment.Operation_hash.zero in
+    let* (ctxt, dummy_contract_hash) =
+      Lwt.return @@
+      Environment.wrap_tzresult @@
+      Contract.fresh_contract_from_current_nonce ctxt
     in
-    (match errs with
-     | [] -> ()
-     | lst -> raise @@ Expression_from_string_with_locs lst
-    );
-    ast.expanded
+    let dummy_contract = Contract.Originated dummy_contract_hash in
+    let* ctxt =
+      Contract.raw_originate
+        ctxt
+        ~prepaid_bootstrap_storage:false
+        dummy_contract_hash
+        ~script:(script, None)
+      |> Lwt.map Environment.wrap_tzresult
+    in
+    let* (ctxt, _) =
+      Token.transfer
+        ~origin:Simulation
+        ctxt
+        `Minted
+        (`Contract dummy_contract)
+        balance
+      |> Lwt.map Environment.wrap_tzresult
+    in
+    return (ctxt, dummy_contract_hash)
+
+  let configure_contracts ctxt script balance ~src_opt ~pay_opt ~self_opt =
+    let open Lwt_result_syntax in
+    let* (ctxt, self, balance) =
+      (match self_opt with
+       | None ->
+         let balance =
+           Option.value ~default:Plugin.RPC.Scripts.default_balance balance
+         in
+         let* (ctxt, addr) =
+           originate_dummy_contract ctxt script balance
+         in
+         return (ctxt, addr, balance)
+       | Some addr ->
+         let* bal =
+           Plugin.RPC.Scripts.default_from_context
+             ctxt
+             (fun c -> Contract.get_balance c @@ Contract.Originated addr)
+             balance
+           |> Lwt.map Environment.wrap_tzresult
+         in
+         return (ctxt, addr, bal))
+    in
+    let (source, payer) =
+      match (src_opt, pay_opt) with
+      | (None, None) ->
+        let self = Contract.Originated self in
+        (self, self)
+      | (Some c, None) | (None, Some c) -> (c, c)
+      | (Some src, Some pay) -> (src, pay)
+    in
+    let run_code_config = Plugin.RPC.Scripts.{balance; self; source; payer} in
+    return (ctxt, run_code_config)
+
+
+  (* TODO move all these args to API call points *)
+  let trace_code
+      ?gas
+      ?(entrypoint = Entrypoint.default)
+      ?balance
+      ~script
+      ~storage
+      ~input
+      ?(amount = Tez.fifty_cents)
+      ?(chain_id = Chain_id.zero)
+      ?source
+      ?payer
+      ?self
+      ?now
+      ?level
+      ~make_logger
+      ctxt =
+
+    let open Lwt_result_syntax in
+
+    (* NOTE the RPC call to this also has block parameter after ctxt and type of ctxt is
+       'pr #Environment.RPC_context.simple where type of block is 'pr *)
+    let*! () = Logs_lwt.info (fun m -> m "getting storage and code") in
+    let storage = Script.lazy_expr storage in
+    let code = Script.lazy_expr script in
+    let*! () = Logs_lwt.info (fun m -> m "getting ctxt config from configure contracts") in
+    let* ctxt_config =
+      configure_contracts
+        ctxt
+        {storage; code}
+        balance
+        ~src_opt:source
+        ~pay_opt:payer
+        ~self_opt:self
+    in
+    let (ctxt, Plugin.RPC.Scripts.{balance; self; source; payer}) = ctxt_config in
+    let*! () = Logs_lwt.info (fun m -> m "getting gas") in
+    let gas =
+      match gas with
+      | Some gas -> gas
+      | None ->
+        Gas.Arith.integral_of_int_exn
+          100 (* Constants.hard_gas_limit_per_operation ctxt *)
+    in
+    let*! () = Logs_lwt.info (fun m -> m "setting gas limit") in
+    let ctxt = Gas.set_limit ctxt gas in
+    let*! () = Logs_lwt.info (fun m -> m "getting now timestamp") in
+    let now = match now with None -> Script_timestamp.now ctxt | Some t -> t in
+    let*! () = Logs_lwt.info (fun m -> m "getting level") in
+    let level =
+      match level with
+      | None ->
+        (Level.current ctxt).level |> Raw_level.to_int32 |> Script_int.of_int32
+        |> Script_int.abs
+      | Some z -> z
+    in
+    let*! () = Logs_lwt.info (fun m -> m "getting step constants") in
+    let step_constants =
+      let open Script_interpreter in
+      {source; payer; self; amount; balance; chain_id; now; level}
+    in
+
+    let*! () = Logs_lwt.info (fun m -> m "getting logger") in
+    let logger = make_logger () in
+
+    let*! () = Logs_lwt.info (fun m -> m "executing contract") in
+    (* NOTE in the old code this was a Lwt_result.map - so wouldnt need the return() at end of code block *)
+    let* res = Interp.execute
+      ctxt
+      step_constants
+      ~script:{storage; code}
+      ~entrypoint
+      ~parameter:input
+      ~logger
+    |> Lwt.map Environment.wrap_tzresult
+    in
+
+    let*! () = Logs_lwt.info (fun m -> m "executed all of contract") in
+    let (
+      ( Script_interpreter.{
+            script = _;
+            code_size = _;
+            storage;
+            operations;
+            lazy_storage_diff;
+            ticket_diffs = _;
+          }, _ctxt ), trace ) = res
+    in
+
+    let ops = Apply_internal_results.contents_of_packed_internal_operations operations in
+
+    return (
+      storage,
+      ops,
+      trace,
+      lazy_storage_diff
+    )
+
+
+  let init ~protocol_str ~base_dir () =
+
+    let open Lwt_result_syntax in
+
+    Random.self_init ();
+
+    (* believe this RPC config gets overwritten in mock creation, same for the #full cctxt? *)
+    let*! () = Logs_lwt.info (fun m -> m "making rpc config") in
+    let rpc_config = RPC.{media_type=Any; endpoint=Uri.empty; logger=null_logger} in
+    let*! () = Logs_lwt.info (fun m -> m "making client context unix full") in
+    let cctxt =
+      new Client_context_unix.unix_full
+        ~chain:`Test
+        ~block:(`Head 0)
+        ~confirmations:None
+        ~password_filename:None
+        ~base_dir
+        ~rpc_config
+        ~verbose_rpc_error_diagnostics:true
+    in
+
+    let*! () = Logs_lwt.info (fun m -> m "making client context unix mockup") in
+    let protocol_hash = Protocol_hash.of_b58check_opt protocol_str in
+    let* {chain_id; rpc_context; unix_mockup=mock_context} = Mdb_stepper_config.setup_mockup_rpc_client_config
+        (cctxt :> Client_context.printer)
+        protocol_hash
+        base_dir
+    in
+
+
+    let timestamp = rpc_context.block_header.timestamp in
+    let level = Int32.succ rpc_context.block_header.level in (* `Successor_level is safer? *)
+    let* (alpha_context, _, _) =
+      Protocol.Alpha_context.prepare
+        ~level
+        ~predecessor_timestamp:timestamp
+        ~timestamp
+        rpc_context.context
+      |> Lwt.map Environment.wrap_tzresult
+    in
+    (* let*! () = Logs_lwt.info (fun m -> m "doing client config init mockup - ONLY NEEDED FOR DISK BASED MOCKS") *)
+    (* let* () = Client_config.config_init_mockup *)
+    (*     unix_mockup *)
+    (*     protocol_hash *)
+    (*     bootstrap_accounts_filename *)
+    (*     protocol_constants_filename *)
+    (*     base_dir *)
+    (* in *)
+
+
+    (* TODO not sure if we need a remote signer in mock mode *)
+    (* let*! () = Logs_lwt.info (fun m -> m "setup remote signer with mock client config\n") *)
+    (* setup_remote_signer *)
+    (*   (module C) *)
+    (*   client_config *)
+    (*   rpc_config *)
+    (*   parsed_config_file ; *)
+
+    return {chain_id; alpha_context; mock_context; code_trace=None}
+
+  let typecheck ~script_filename t =
+
+    let open Lwt_result_syntax in
+
+    let*! () = Logs_lwt.info (fun m -> m "reading contract file") in
+    let* source = t.mock_context#read_file script_filename in
+    let*! () = Logs_lwt.info (fun m -> m "parsing contract source") in
+    let*? script = Mdb_typechecker.of_source source in
+    return script
+
+
+  let step ~make_logger ~(script:Mdb_typechecker.t) t =
+
+    let open Lwt_result_syntax in
+
+    (* TODO input and storage need to passed in too *)
+    let*? mich_unit = Mdb_typechecker.from_string "Unit" in
+
+    let*! () = Logs_lwt.info (fun m -> m "running contract code") in
+    let* code_trace = trace_code
+        ~script:script.expanded
+        ~storage:mich_unit.expanded
+        ~input:mich_unit.expanded
+        ~make_logger
+        t.alpha_context
+    in
+
+    return {t with code_trace=(Some code_trace)}
 
 end
-
-(** Helper function that parses and types a script, its initial storage and
-   parameters from strings. It then executes the typed script with the storage
-   and parameter and returns the result. *)
-let run_script ?logger ctx ?(step_constants = default_step_constants) contract
-    ?(entrypoint = Ctx.Entrypoint.default) ~storage ~parameter () =
-  let contract_expr = StepperExpr.from_string contract in
-  let storage_expr = StepperExpr.from_string storage in
-  let parameter_expr = StepperExpr.from_string parameter in
-  let script =
-    Ctx.Script.{code = lazy_expr contract_expr; storage = lazy_expr storage_expr}
-  in
-  P.Script_interpreter.execute
-    ?logger
-    ctx
-    Readable
-    step_constants
-    ~script
-    ~cached_script:None
-    ~entrypoint
-    ~parameter:parameter_expr
-    ~internal:false
-  >>=?? fun res -> Tz.Result.return res |> Lwt.return
-
-
-
-let test_context () =
-  Context.init1 () >>=? fun (b, _cs) ->
-  Incremental.begin_construction b >>=? fun v ->
-  return (Incremental.alpha_ctxt v)
-
-let test_stepping contract logger =
-  test_context () >>=? fun ctx ->
-  let ctx = Ctx.Gas.set_limit ctx (Ctx.Gas.Arith.integral_of_int_exn 100) in
-  run_script
-    ~logger
-    ctx
-    contract
-    ~storage:"Unit"
-    ~parameter:"Unit"
-    ()
-
-
-module Traced_interpreter = struct
-  type log_element =
-    | Log :
-        Ctx.context
-        * Ctx.Script.location
-        * ('a * 's)
-        * ('a, 's) P.Script_typed_ir.stack_ty
-        -> log_element
-
-  let unparse_stack ~oc ctxt (stack, stack_ty) =
-
-    let rec _unparse_stack :
-      type a s.
-      (a, s) P.Script_typed_ir.stack_ty * (a * s) ->
-      (Ctx.Script.expr * string option * bool) list Environment.Error_monad.tzresult Lwt.t = function
-      | (Bot_t, (EmptyCell, EmptyCell)) -> return_nil
-      | (Item_t  (ty, rest_ty), (v, rest)) ->
-        let is_ticket = match ty with
-        | Ticket_t (Pair_t (_l, _r, _, _), _meta) ->
-          Printf.(fprintf oc "\n# GOT TICKET TY\n"; flush oc);
-          true
-        | Option_t (Pair_t (
-            (Ticket_t (Pair_t (_l, _r, _, _), _meta)),
-            (Ticket_t (Pair_t (_l', _r', _, _), _meta')),
-            _, _), _, _) ->
-          Printf.(fprintf oc "\n# GOT SPLIT TICKET TY\n"; flush oc);
-          true
-        | _ -> false
-        in
-        P.Script_ir_translator.unparse_data
-          ctxt
-          Readable
-          ty
-          v
-        >>=? fun (data, _ctxt) ->
-        _unparse_stack (rest_ty, rest) >|=? fun rest ->
-        let annot = None in
-        (*   match Script_ir_annot.unparse_var_annot annot with *)
-        (*   | [] -> None *)
-        (*   | [a] -> Some a *)
-        (*   | _ -> assert false *)
-        (* in *)
-        let data = M.Micheline.strip_locations data in
-        (data, annot, is_ticket) :: rest
-    in
-    _unparse_stack (stack_ty, stack)
-
-  let unparse_log ~oc (Log (ctxt, loc, stack, stack_ty)) =
-    (* trace Cannot_serialize_log (unparse_stack ctxt (stack, stack_ty)) *)
-    (unparse_stack ~oc ctxt (stack, stack_ty))
-    >>=? fun stack -> return (loc, Ctx.Gas.level ctxt, stack)
-
-  let trace_logger ~input_mvar oc () : P.Script_typed_ir.logger =
-    let log : log_element list ref = ref [] in
-    let log_interp _ ctxt loc sty stack =
-      Printf.(fprintf oc "\n# log_interp @ location %d\n" loc; flush oc);
-      log := Log (ctxt, loc, stack, sty) :: !log
-    in
-    let log_entry _ _ctxt loc _sty _stack =
-      Printf.(fprintf oc "\n# log_entry @ location %d\n" loc; flush oc);
-      let msg = Lwt_preemptive.run_in_main (fun () -> Printf.(fprintf oc "\n# trying to get mvar\n"; flush oc); Lwt_mvar.take input_mvar) in
-      Printf.(fprintf oc "# got '%s'\n" msg; flush oc);
-    in
-    (* TODO location here needs to be understood,
-       line number is taken to be length !log for now *)
-    let log_exit _ ctxt loc_ sty stack =
-      let loc = List.length !log in
-      Printf.(fprintf oc "# log_exit @ location %d, line %d\n" loc_ loc; flush oc);
-      let l = Log (ctxt, loc_, stack, sty) in
-      let _ = unparse_log ~oc l
-        >>=? fun (_loc, gas, expr) ->
-        return @@ Mdb_model.Weevil_record.make loc gas expr
-        >>=? fun wrec ->
-        let wrec = Mdb_model.Weevil_record.to_weevil_json wrec in
-        let js = Data_encoding.Json.(
-            construct Mdb_model.Weevil_json.enc wrec
-            |> to_string
-            |> Dapper.Dap.Header.wrap
-          ) in
-        return @@ Printf.fprintf oc "%s\n" js
-      in
-      log := l :: !log
-    in
-    let log_control _ =
-      Printf.(fprintf oc "# log_control\n"; flush oc);
-    in
-    let get_log () =
-      Tz.List.map_es (unparse_log ~oc) !log
-      >>=? fun res ->
-      let res = res
-      |> List.map (fun (loc, gas, exprs) ->
-          let exprs = exprs
-                      |> List.map (fun (e, _, _) -> e) in (loc, gas, exprs))
-      in
-      return (Some (List.rev res))
-    in
-    {log_exit; log_entry; log_interp; get_log; log_control}
-
-end
-
