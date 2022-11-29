@@ -35,16 +35,17 @@ let rec main_handler ~stepper ~make_logger ~input_mvar ~output_mvar ~stepper_pro
       let ntsbusy = Lwt_preemptive.nbthreadsbusy () in
       let ntsq = Lwt_preemptive.nbthreadsqueued () in
       let* () = Logs_lwt.info (fun m -> m "[MICH] 1 preemptive info: nbthreads %d, busy %d, queued %d" nts ntsbusy ntsq) in
-      let p = fname |> Lwt_preemptive.detach (fun filename ->
+      let p = fname |> Lwt_preemptive.detach (fun _filename ->
           Logs.info (fun m -> m "[MICH] preemptive: starting stepper");
           let nts = Lwt_preemptive.nbthreads () in
           let ntsbusy = Lwt_preemptive.nbthreadsbusy () in
           let ntsq = Lwt_preemptive.nbthreadsqueued () in
           let () = Logs.info (fun m -> m "[MICH] 2 preemptive info: nbthreads %d, busy %d, queued %d" nts ntsbusy ntsq) in
-          match Stepper.step ~make_logger stepper filename with
-          | Ok _ -> ()
-          | Error errs ->
-            Logs.info (fun m -> m "[MICH] preemptive: got errors '%s'" @@ Data_encoding.Json.(construct trace_encoding errs |> to_string))
+          ()
+          (* match Stepper.step ~make_logger stepper filename with *)
+          (* | Ok _ -> () *)
+          (* | Error errs -> *)
+          (*   Logs.info (fun m -> m "[MICH] preemptive: got errors '%s'" @@ Data_encoding.Json.(construct trace_encoding errs |> to_string)) *)
         ) in
       let nts = Lwt_preemptive.nbthreads () in
       let ntsbusy = Lwt_preemptive.nbthreadsbusy () in

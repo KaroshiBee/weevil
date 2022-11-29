@@ -5,37 +5,6 @@ module RPC = Tezos_rpc_http_client_unix.RPC_client_unix (* TODO use lib_mockup o
 module Client_context_unix = Tezos_client_base_unix.Client_context_unix
 module Client_context = Tezos_client_base.Client_context
 
-(* need to retain the trace of code locs of any michelson errors *)
-module StepperExpr = struct
-  include Expr
-
-  exception Expression_from_string_with_locs of error trace
-
-  module Michelson_v1_parser = Tezos_client_014_PtKathma.Michelson_v1_parser
-
-  let of_source_exn ?(check=false) script =
-    let ast, errs =
-      Michelson_v1_parser.parse_toplevel ~check script
-    in
-    (match errs with
-     | [] -> ()
-     | lst -> raise @@ Expression_from_string_with_locs lst
-    );
-    ast
-
-  (** Parse a Michelson expression from string, raising an exception on error,
-      in this version we keep hold of the inner errors. *)
-  let from_string_exn ?(check_micheline_indentation = false) str =
-    let ast, errs =
-      Michelson_v1_parser.parse_expression ~check:check_micheline_indentation str
-    in
-    (match errs with
-     | [] -> ()
-     | lst -> raise @@ Expression_from_string_with_locs lst
-    );
-    ast
-
-end
 
 module T (Interp : Mdb_types.INTERPRETER) = struct
 
@@ -274,15 +243,26 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
 
     return {chain_id; alpha_context; mock_context; code_trace=None}
 
-  let process ~make_logger t contract_file =
+  let typecheck t contract_file =
 
     let open Lwt_result_syntax in
 
     let*! () = Logs_lwt.info (fun m -> m "reading contract file") in
     let* source = t.mock_context#read_file contract_file in
     let*! () = Logs_lwt.info (fun m -> m "parsing contract source") in
-    let script = StepperExpr.of_source_exn source in
-    let mich_unit = StepperExpr.from_string_exn "Unit" in
+    let*? script = Mdb_typechecker.of_source source in
+    return script
+
+
+  let process ~make_logger t contract_file =
+
+    let open Lwt_result_syntax in
+
+    (* TODO just re-read and re-typecheck for now *)
+    let* script = typecheck t contract_file in
+
+    (* TODO input and storage need to passed in too *)
+    let*? mich_unit = Mdb_typechecker.from_string "Unit" in
 
     let*! () = Logs_lwt.info (fun m -> m "running contract code") in
     let* code_trace = trace_code
@@ -295,8 +275,4 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
 
     return {t with code_trace=(Some code_trace)}
 
-  let step ~make_logger t contract_file =
-    Lwt_preemptive.run_in_main (
-      fun () -> process ~make_logger t contract_file
-    )
 end

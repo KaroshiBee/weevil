@@ -16,15 +16,15 @@ val init :
   unit ->
   (t, error trace) result Lwt.t
 
+val typecheck :
+  t ->
+  string ->
+  (Mdb_typechecker.t, error trace) result Lwt.t
+
 val process :
   make_logger:(unit -> INTERP.logger) ->
   t ->
   string ->
   (t, error trace) result Lwt.t
 
-val step :
-  make_logger:(unit -> INTERP.logger) ->
-  t ->
-  string ->
-  (t, error trace) result
 end
