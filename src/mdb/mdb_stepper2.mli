@@ -23,8 +23,8 @@ val init :
   (t, error trace) result Lwt.t
 
 val typecheck :
+  script_filename:string ->
   t ->
-  string ->
   (Mdb_typechecker.t, error trace) result Lwt.t
 
 val step :

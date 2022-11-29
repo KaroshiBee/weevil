@@ -243,12 +243,12 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
 
     return {chain_id; alpha_context; mock_context; code_trace=None}
 
-  let typecheck t contract_file =
+  let typecheck ~script_filename t =
 
     let open Lwt_result_syntax in
 
     let*! () = Logs_lwt.info (fun m -> m "reading contract file") in
-    let* source = t.mock_context#read_file contract_file in
+    let* source = t.mock_context#read_file script_filename in
     let*! () = Logs_lwt.info (fun m -> m "parsing contract source") in
     let*? script = Mdb_typechecker.of_source source in
     return script
