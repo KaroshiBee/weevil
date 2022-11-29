@@ -84,8 +84,6 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
     return (ctxt, run_code_config)
 
 
-  let (>>=??) = Error_monad_operators.(>>=??)
-
   (* TODO move all these args to API call points *)
   let trace_code
       ?gas
@@ -153,16 +151,16 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
 
     let*! () = Logs_lwt.info (fun m -> m "executing contract") in
     (* NOTE in the old code this was a Lwt_result.map - so wouldnt need the return() at end of code block *)
-    Interp.execute
+    let* res = Interp.execute
       ctxt
       step_constants
       ~script:{storage; code}
       ~entrypoint
       ~parameter:input
       ~logger
-    >>=?? fun res ->
-    (* |> Lwt.map Environment.wrap_tzresult (\* TODO suspicious here, i think old one used >>=?? from test helpers *\) *)
-    (* in *)
+    |> Lwt.map Environment.wrap_tzresult
+    in
+
     let*! () = Logs_lwt.info (fun m -> m "executed all of contract") in
     let (
       ( Script_interpreter.{
@@ -174,7 +172,9 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
             ticket_diffs = _;
           }, _ctxt ), trace ) = res
     in
+
     let ops = Apply_internal_results.contents_of_packed_internal_operations operations in
+
     return (
       storage,
       ops,
