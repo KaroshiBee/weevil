@@ -49,6 +49,7 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
     in
     let log_entry _ _ctxt loc _sty _stack =
       Logs.info (fun m -> m "log_entry @ location %d" loc);
+      (* block waiting for a \n on in_channel *)
       let _msg = input_line ic in
       ()
     in
