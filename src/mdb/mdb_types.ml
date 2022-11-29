@@ -8,7 +8,10 @@ module type INTERPRETER_CFG = sig
   type output
   val unparsing_mode : Script_ir_translator.unparsing_mode
   val to_string_input : input -> string
+  val from_string_input : string -> input tzresult
+
   val to_string_output : output -> string
+  val from_string_output : string -> output tzresult
 
 end
 
@@ -29,7 +32,7 @@ module type INTERPRETER = sig
   type logger = Script_typed_ir.logger
 
   val trace_logger :
-    input_mvar:input Lwt_mvar.t -> output_mvar:output Lwt_mvar.t -> unit -> logger
+    in_channel:in_channel -> out_channel:out_channel -> unit -> logger
 
   val execute :
     Alpha_context.t ->
@@ -38,6 +41,6 @@ module type INTERPRETER = sig
     entrypoint:Entrypoint_repr.t ->
     parameter:Script.expr ->
     logger:Script_typed_ir.logger ->
-    ( (Script_interpreter.execution_result * Alpha_context.t) * Script_typed_ir.execution_trace,
-      error trace ) result Lwt.t
+    ( (Script_interpreter.execution_result * Alpha_context.t) * Script_typed_ir.execution_trace) tzresult Lwt.t
+
 end

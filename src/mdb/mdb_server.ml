@@ -8,9 +8,11 @@ module MichEvent = Mdb_event
 module Interpreter_cfg = struct
   type input = string
   let to_string_input i = i
+  let from_string_input s = Environment.Error_monad.ok s
 
   type output = string
   let to_string_output o = o
+  let from_string_output s = Environment.Error_monad.ok s
 
   let unparsing_mode = Script_ir_translator.Readable
 end
@@ -88,7 +90,7 @@ let on_connection ~stepper _flow ic oc =
   let%lwt () = Logs_lwt.info (fun m -> m "[MICH] got connection") in
   let input_mvar = Lwt_mvar.create_empty () in
   let output_mvar = Lwt_mvar.create_empty () in
-  let make_logger = Interpreter.trace_logger ~input_mvar ~output_mvar in
+  let make_logger = Interpreter.trace_logger ~in_channel:stdin ~out_channel:stdout in
   main_handler ~stepper ~make_logger ~input_mvar ~output_mvar ~stepper_process:None ic oc
 
 let lwt_svc ?stopper port =
