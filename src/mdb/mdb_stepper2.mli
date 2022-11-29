@@ -5,7 +5,13 @@ module T : functor (INTERP:Mdb_types.INTERPRETER) -> sig
 
 type t
 
-val code_trace : t -> (Script.expr * Apply_internal_results.packed_internal_contents trace * Script_typed_ir.execution_trace * Lazy_storage.diffs option) option
+val code_trace : t -> (
+    Script.expr *
+    Apply_internal_results.packed_internal_contents trace *
+    Script_typed_ir.execution_trace *
+    Lazy_storage.diffs option
+  ) option
+
 val chain_id : t -> Chain_id.t
 val alpha_context : t ->  Alpha_context.t
 val mock_context : t -> Tezos_client_base_unix.Client_context_unix.unix_mockup
@@ -21,10 +27,10 @@ val typecheck :
   string ->
   (Mdb_typechecker.t, error trace) result Lwt.t
 
-val process :
+val step :
   make_logger:(unit -> INTERP.logger) ->
+  script:Mdb_typechecker.t ->
   t ->
-  string ->
   (t, error trace) result Lwt.t
 
 end

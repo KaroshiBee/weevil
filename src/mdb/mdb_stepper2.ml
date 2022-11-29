@@ -254,12 +254,9 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
     return script
 
 
-  let process ~make_logger t contract_file =
+  let step ~make_logger ~(script:Mdb_typechecker.t) t =
 
     let open Lwt_result_syntax in
-
-    (* TODO just re-read and re-typecheck for now *)
-    let* script = typecheck t contract_file in
 
     (* TODO input and storage need to passed in too *)
     let*? mich_unit = Mdb_typechecker.from_string "Unit" in
