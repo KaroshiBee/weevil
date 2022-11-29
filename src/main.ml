@@ -1,5 +1,6 @@
 (* group together all cmd lines *)
 let commands = [
+  Mdb.Mdb_stepper2_cmdline.cmd;
   Mdb.Mdb_cmdline.cmd;
   Adapter.Service_cmdline.cmd;
   Dapper.Dap_cmdline.cmd;
