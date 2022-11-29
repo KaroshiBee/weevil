@@ -200,12 +200,12 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
             script = _;
             code_size = _;
             storage;
-            operations = _;
+            operations;
             lazy_storage_diff;
             ticket_diffs = _;
           }, _ctxt ), trace ) = res
     in
-    let ops = [] in (* Apply_internal_results.contents_of_packed_internal_operations operations in *)
+    let ops = Apply_internal_results.contents_of_packed_internal_operations operations in
     return (
       storage,
       ops,
