@@ -1,114 +1,150 @@
-open Protocol
 module Conduit = Conduit_lwt_unix
 module Js = Data_encoding.Json
 module Dap = Dapper.Dap
 module MichEvent = Mdb_event
+module Model = Mdb_model
 
-(* NOTE type unparsing_mode = Optimized | Readable | Optimized_legacy, could we phantom this into the logger type? *)
-module Interpreter_cfg = struct
-  type input = string
-  let to_string_input i = i
-  let from_string_input s = Environment.Error_monad.ok s
+open Lwt
 
-  type output = string
-  let to_string_output o = o
-  let from_string_output s = Environment.Error_monad.ok s
+exception Stepper_error of string
 
-  let unparsing_mode = Script_ir_translator.Readable
-end
+let recs : Model.Weevil_json.t list ref  = ref []
 
-module Interpreter = Mdb_traced_interpreter.T (Interpreter_cfg)
-module Stepper = Mdb_stepper.T (Interpreter)
-
-let protocol_str = "PtKathmankSpLLDALzWw7CGD2j2MtyveTwboEYokqUCP4a1LxMg"
-let base_dir = "/tmp/.weevil"
-
-let rec main_handler ~stepper ~make_logger ~input_mvar ~output_mvar ~stepper_process ic oc =
-  let open Lwt_syntax in
-  let* ln = Lwt_io.read_line_opt ic in
-  match ln, stepper_process with
-  | Some _msg, None -> (
-      (*TODO  _msg will contain the script name *)
-      let fname = "/home/wyn/mich/multiply_2_x_250_equals_500.tz" in
-      let* () = Logs_lwt.info (fun m -> m "[MICH] spawning '%s', joining with main_handler" fname) in
-      let nts = Lwt_preemptive.nbthreads () in
-      let ntsbusy = Lwt_preemptive.nbthreadsbusy () in
-      let ntsq = Lwt_preemptive.nbthreadsqueued () in
-      let* () = Logs_lwt.info (fun m -> m "[MICH] 1 preemptive info: nbthreads %d, busy %d, queued %d" nts ntsbusy ntsq) in
-      let p = fname |> Lwt_preemptive.detach (fun _filename ->
-          Logs.info (fun m -> m "[MICH] preemptive: starting stepper");
-          let nts = Lwt_preemptive.nbthreads () in
-          let ntsbusy = Lwt_preemptive.nbthreadsbusy () in
-          let ntsq = Lwt_preemptive.nbthreadsqueued () in
-          let () = Logs.info (fun m -> m "[MICH] 2 preemptive info: nbthreads %d, busy %d, queued %d" nts ntsbusy ntsq) in
-          ()
-          (* match Stepper.step ~make_logger stepper filename with *)
-          (* | Ok _ -> () *)
-          (* | Error errs -> *)
-          (*   Logs.info (fun m -> m "[MICH] preemptive: got errors '%s'" @@ Data_encoding.Json.(construct trace_encoding errs |> to_string)) *)
-        ) in
-      let nts = Lwt_preemptive.nbthreads () in
-      let ntsbusy = Lwt_preemptive.nbthreadsbusy () in
-      let ntsq = Lwt_preemptive.nbthreadsqueued () in
-      let* () = Logs_lwt.info (fun m -> m "[MICH] 3 preemptive info: nbthreads %d, busy %d, queued %d" nts ntsbusy ntsq) in
-      let h = main_handler ~stepper ~make_logger ~input_mvar ~output_mvar ~stepper_process:(Some p) ic oc
-      in
-      let* _ = both p h in return_unit
+let read_weevil_recs = function
+  | ln when 0 < String.length ln && String.get ln 0 != '#' -> (
+      (* non-comments *)
+      match Js.from_string ln with
+      | Ok js -> (
+          try
+            let t = Js.destruct Model.Weevil_json.enc js in
+            Lwt.return_some t
+          with e ->
+            let%lwt () = Logs_lwt.warn (fun m -> m "Cannot js destruct '%s': %s" ln @@ Printexc.to_string e) in
+            Lwt.return_none
+        )
+      | Error e ->
+        let%lwt () = Logs_lwt.warn (fun m -> m "Cannot decode '%s': %s" ln e) in
+        Lwt.return_none
     )
+  | ln when 0 < String.length ln && String.get ln 0 = '#' ->
+    (* comments *)
+    let%lwt () = Logs_lwt.info (fun m -> m "%s" ln) in
+    Lwt.return_none
+  | ln ->
+    (* other stuff - octez writes out to stdout sometimes *)
+    let%lwt () = Logs_lwt.info (fun m -> m "other: %s" ln) in
+    Lwt.return_none
 
-  | Some msg, Some p -> (
-    let* () = Logs_lwt.info (fun m -> m "[MICH] process already spawned") in
-    let* () = Logs_lwt.info (fun m -> m "[MICH] process state %s" @@ match Lwt.state p with
-      | Return _x -> "finished"
-      | Sleep -> "sleep"
-      | Fail _exn -> "failed"
-      ) in
+let step_handler msg _ic _oc =
+  let%lwt () = Logs_lwt.info (fun m -> m "[STEPPER] got msg from subprocess '%s'" msg) in
+  match%lwt read_weevil_recs msg with
+  | Some wrec ->
+    recs := wrec :: !recs;
+    Logs_lwt.info (fun m -> m "[STEPPER] got weevil log record from subprocess '%s'" msg)
+  | None -> Lwt.return_unit
 
-    match Lwt.state p with
-    | Sleep ->
-      let* _ = Lwt_mvar.put input_mvar msg
-      and* _ = main_handler ~stepper ~make_logger ~input_mvar ~output_mvar ~stepper_process ic oc
+and step_err_handler err _ic _oc =
+  let%lwt () = Logs_lwt.err (fun m -> m "step_err_handler: %s" err) in
+	raise @@ Stepper_error err
+
+let rec main_handler ~stepper_process ic oc =
+  let%lwt ln = Lwt_io.read_line_opt ic in
+  match ln with
+  | Some msg -> (
+    let%lwt _ = Logs_lwt.info (fun m -> m "[MICH] got msg '%s'" msg) in
+    match (MichEvent.from_msg_opt msg, stepper_process) with
+
+    | Some (RunScript _), Some process when process#state = Lwt_process.Running ->
+      let%lwt _ = Logs_lwt.err (fun m -> m "[MICH] trying to start a new stepper with old one still running, ignore") in
+      main_handler ~stepper_process ic oc
+
+    | Some (RunScript cmd), Some _
+    | Some (RunScript cmd), None ->
+      let%lwt _ = Logs_lwt.info (fun m -> m "[MICH] starting new stepper with cmd '%s'" cmd) in
+      let cmd = ("", String.split_on_char ' ' cmd |> Array.of_list) in
+      Lwt_process.with_process_full cmd (stepper_process_start ic oc)
+
+    | Some (Step 1), Some process ->
+      let _ =
+        let oc_process = process#stdin in
+        try
+          Lwt_io.write oc_process "step\n" >>= fun _ ->
+          Logs_lwt.info (fun m -> m "[MICH] Got Next request\n%s\n" msg)
+        with Sys_error _ -> (
+            (* run out of contract to step through *)
+            try
+              (* let _ = Unix.close_process (ic_process, oc_process) in (); *)
+              Logs_lwt.warn (fun m -> m "[MICH] Process finished: sys error")
+            with Unix.Unix_error _ ->
+              Logs_lwt.warn (fun m -> m "[MICH] Process finished: unix error")
+          )
       in
-      return_unit
-    | Return _ | Fail _ ->
-      (* finished subprocess, reset to None *)
-      let* _ = return_unit
-      and* _ = main_handler ~stepper ~make_logger ~input_mvar ~output_mvar ~stepper_process:None ic oc
-      in
-      return_unit
+      main_handler ~stepper_process ic oc
+    | Some (Step n), Some _ ->
+      let%lwt _ = Logs_lwt.warn (fun m -> m "[MICH] TODO Step %d" n) in
+      main_handler ~stepper_process ic oc
+
+    | Some Terminate, Some process when process#state = Lwt_process.Running ->
+      (* NOTE debug this message because cram tests use Info and we dont want PIDs in the cram test data *)
+      let%lwt () = Logs_lwt.debug (fun m -> m "[MICH] Terminating pid '%d'" process#pid) in
+      let () = process#terminate in
+      let stepper_process = None in
+      main_handler ~stepper_process ic oc
+
+    | Some Terminate, Some _
+    | Some Terminate, None ->
+      let%lwt () = Logs_lwt.info (fun m -> m "[MICH] already terminated") in
+      let stepper_process = None in
+      main_handler ~stepper_process ic oc
+
+    | Some _, None ->
+      let%lwt _ = Logs_lwt.warn (fun m -> m "[MICH] LOST PROCESS '%s'" msg) in
+      main_handler ~stepper_process ic oc
+
+    | None, _ ->
+      let%lwt _ = Logs_lwt.warn (fun m -> m "[MICH] couldn't decode '%s'" msg) in
+      main_handler ~stepper_process ic oc
   )
 
-  | None, _ ->
-    let* _ = return_unit
-    and* _ = Logs_lwt.info (fun m -> m "[MICH] connection closed")
-    in
-    return_unit
+  | None -> Logs_lwt.info (fun m -> m "[MICH] connection closed")
+
+and stepper_process_start ic oc process_full =
+  let%lwt _ = Logs_lwt.info (fun m -> m "[MICH] stepper_process_start") in
+  let%lwt _ = Logs_lwt.info (fun m -> m "[STEPPER] starting") in
+  let stepper_process = Some process_full in
+  let st_out = Dap.content_length_message_handler
+      ~name:"STEPPER"
+      ~handle_message:step_handler
+      ~content_length:None
+      process_full#stdout
+      process_full#stdin
+  in
+  let st_err = Dap.content_length_message_handler
+      ~name:"STEPPER ERR"
+      ~handle_message:step_err_handler
+      ~content_length:None
+      process_full#stderr
+      process_full#stdin
+  in
+  let m = main_handler ~stepper_process ic oc in
+  Lwt.join [st_err; st_out; m]
 
 let on_exn exn =
   Lwt.ignore_result @@ Logs_lwt.err (fun m -> m "%s" @@ Printexc.to_string exn)
 
-let on_connection ~stepper _flow ic oc =
+let on_connection _flow ic oc =
   let%lwt () = Logs_lwt.info (fun m -> m "[MICH] got connection") in
-  let input_mvar = Lwt_mvar.create_empty () in
-  let output_mvar = Lwt_mvar.create_empty () in
-  let make_logger = Interpreter.trace_logger ~in_channel:stdin ~out_channel:stdout in
-  main_handler ~stepper ~make_logger ~input_mvar ~output_mvar ~stepper_process:None ic oc
+  main_handler ~stepper_process:None ic oc
 
 let lwt_svc ?stopper port =
   let open Lwt_result_syntax in
   let mode = `TCP (`Port port) in
   let () = Logs.info (fun m -> m "[MICH] starting backend server on port %d" port) in
-  (* we run the stepper in a preemptive thread
-     so that can pause it without pausing the main thread,
-     NOTE currently only allowing one interp process at a time *)
-  (* let () = Lwt_preemptive.simple_init () in *)
-  (* let () = Lwt_preemptive.set_bounds (1,1) in *)
-  let* stepper = Stepper.init ~protocol_str ~base_dir () in
   let*! ctx = Conduit.init () in
   let*! ret =
     match stopper with
-    | Some stop -> Conduit.serve ~stop ~on_exn ~ctx ~mode @@ on_connection ~stepper
-    | None -> Conduit.serve ~on_exn ~ctx ~mode @@ on_connection ~stepper
+    | Some stop -> Conduit.serve ~stop ~on_exn ~ctx ~mode @@ on_connection
+    | None -> Conduit.serve ~on_exn ~ctx ~mode @@ on_connection
   in
   return ret
 
