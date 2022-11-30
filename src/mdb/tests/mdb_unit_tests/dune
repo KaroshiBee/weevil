@@ -1,8 +1,7 @@
 (test
- (name adapter_tests)
+ (name mdb_tests)
  (libraries
-   adapter
-   dapper
+   mdb
    defaults
    test_utils
    lwt
@@ -18,6 +17,6 @@
   (:standard
    -linkall
    -open
-   Adapter
+   Mdb
    ))
 )

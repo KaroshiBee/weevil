@@ -1,4 +1,4 @@
-(* group together all cmd lines *)
+(* a generic setup for logging *)
 let setup_log =
   let init style_renderer level =
     Fmt_tty.setup_std_outputs ?style_renderer ();
@@ -7,6 +7,7 @@ let setup_log =
   in
   Cmdliner.Term.(const init $ Fmt_cli.style_renderer () $ Logs_cli.level ())
 
+(* group together all cmd lines *)
 let commands = [
   Mdb.Mdb_stepper_cmdline.cmd setup_log;
   Mdb.Mdb_cmdline.cmd setup_log;

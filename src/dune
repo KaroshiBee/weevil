@@ -25,7 +25,6 @@
   mdb
   adapter
  )
- (instrumentation (backend bisect_ppx))
  (flags
   (:standard
    -linkall
@@ -34,4 +33,5 @@
    -open
    Tezos_014_PtKathma_test_helpers
  ))
+ (instrumentation (backend bisect_ppx))
 )

@@ -11,9 +11,8 @@
      tezos-014-PtKathma-test-helpers
      tezos-protocol-plugin-014-PtKathma
      tezos-rpc-http-client-unix
+     ; Dap.Header.wrap
      dapper
-     defaults
-     utils
      lwt
      lwt.unix
      conduit-lwt-unix

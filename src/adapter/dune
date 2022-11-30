@@ -3,6 +3,9 @@
  (libraries
    dapper
    defaults
+   ; loop_connect
+   utils
+   ; MichEvent
    mdb
    lwt
    lwt.unix
@@ -14,7 +17,6 @@
    str
    ppx_expect
  )
- (inline_tests)
  (preprocess (pps lwt_ppx ppx_deriving.show ppx_expect))
  (instrumentation (backend bisect_ppx))
 )
