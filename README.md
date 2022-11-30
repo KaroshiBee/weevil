@@ -73,7 +73,7 @@ $ bisect-ppx-report summary --per-file --coverage-path $PWD/_bisect
 or generate a full report:
 
 ``` sh
-$ bisect-ppx-report html --coverage-path $PWD/_bisect
+$ bisect-ppx-report html --tree --coverage-path $PWD/_bisect
 ```
 
 The html bundle is written to the _coverage directory by default; the contents of which can be served with a simple web server a la:
