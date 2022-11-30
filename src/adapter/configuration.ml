@@ -5,6 +5,7 @@ module Req = Dap.Request
 module Res = Dap.Response
 module Ev = Dap.Event
 
+(* TODO old one had a stopped event for thread id *)
 module T (S : Types.STATE_READONLY_T) = struct
 
   module On_request = Dap.Configuration.On_request (S)

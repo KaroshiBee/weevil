@@ -4,8 +4,8 @@ let _DEFAULT_ADAPTER_PORT = 9000
 let _DEFAULT_BACKEND_PORT = 9001
 let _DEFAULT_BACKLOG = 10
 
-let _DEFAULT_BACKEND_CMD = "dune exec -- ./src/main.exe backend"
-let _DEFAULT_STEPPER_CMD = "dune exec -- ./src/main.exe stepper example.tz"
+let _DEFAULT_BACKEND_CMD = "dune exec -- weevil backend"
+let _DEFAULT_STEPPER_CMD = "dune exec -- weevil stepper example.tz"
 let _DEFAULT_BACKEND_ECHO = "echo 1"
 
 let _THE_THREAD_ID = 1

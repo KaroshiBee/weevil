@@ -109,9 +109,11 @@ let%expect_test "Check sequencing etc for launch" =
 
 let%expect_test "Check bad input for launch" =
   let st = LaunchStateMock.make () in
+  (* first show that the launch mode is not set *)
   let lmode = st |> LaunchStateMock.launch_mode |> Option.map Dap.Launch_mode.show |> Option.value ~default:"not set" in
   Printf.printf "%s" lmode;
   let%lwt () = [%expect {| not set |}] in
+  (* now show that given an attach command, it errors correctly *)
   Lwt_io.with_temp_file ~temp_dir:"/dev/shm" (fun (_, oc) ->
       let () = LaunchStateMock.set_io st oc in
       let command = Dap.Commands.attach in
@@ -141,6 +143,7 @@ let%expect_test "Check bad input for launch" =
           [%expect {| cannnot destruct: expected 'launch', got 'attach' |}]
         in
 
+        (* show that the launch mode doesnt get set when in error *)
         let lmode = st |> LaunchStateMock.launch_mode |> Option.map Dap.Launch_mode.show |> Option.value ~default:"not set" in
         Printf.printf "%s" lmode;
         let%lwt () = [%expect {| not set |}] in
