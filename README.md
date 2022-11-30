@@ -64,10 +64,10 @@ $ find . -name '*.coverage' | xargs rm -f
 $ BISECT_FILE=$PWD/_bisect/bisect dune runtest --force --instrument-with bisect_ppx
 ```
 
-The BISECT_FILE env var is used to ensure that the cram test [sandboxing](https://dune.readthedocs.io/en/stable/concepts.html#dune-action-plugin) does not clean up (delete) the coverage data for those same cram tests.  One can then look at a short summary:
+The BISECT_FILE env var is used to ensure that the cram test [sandboxing](https://dune.readthedocs.io/en/stable/concepts.html#dune-action-plugin) does not clean up (delete) the coverage data for those same cram tests.  One can then look at a summary:
 
 ``` sh
-$ bisect-ppx-report summary --coverage-path $PWD/_bisect
+$ bisect-ppx-report summary --per-file --coverage-path $PWD/_bisect
 ```
 
 or generate a full report:
