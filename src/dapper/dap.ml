@@ -20,6 +20,7 @@ module Attach = Dap_attach
 module Launch = Dap_launch
 module Initialize = Dap_initialize
 module Configuration = Dap_configuration
+module Threads = Dap_threads
 
 exception Wrong_encoder = Js_msg.Wrong_encoder
 
