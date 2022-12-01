@@ -28,7 +28,7 @@ module T (S : Types.STATE_T) = struct
 
   module On_request = Dap.Launch.On_request (S)
   module On_response = Dap.Launch.Raise_process (S)
-  module On_program_started = Dap.Launch.Raise_stopped (S)
+  module On_launched = Dap.Launch.Raise_stopped (S)
 
   let _start_background_svc st ip port cmd =
     match S.backend_svc st with
@@ -93,6 +93,8 @@ module T (S : Types.STATE_T) = struct
           let startMethod = D.ProcessEvent_body_startMethod.Launch in
           let body =
             D.ProcessEvent_body.make
+              (* * The logical name of the process. This is usually the full path to *)
+              (* * process's executable file. Example: /home/example/myproj/program.js. *)
               ~name:"TODO PROCESS EVENT NAME e.g. test.tz"
               ~startMethod
               ()
@@ -102,8 +104,8 @@ module T (S : Types.STATE_T) = struct
         let ret = Ev.processEvent ev in
         Dap_result.ok ret)
 
-  let program_started_handler =
-    On_program_started.make ~handler:(fun ~state:_ _ ->
+  let launched_handler =
+    On_launched.make ~handler:(fun ~state:_ _ ->
         let ev =
           let event = Dap.Events.stopped in
           let reason = D.StoppedEvent_body_reason.Entry in
@@ -123,7 +125,7 @@ module T (S : Types.STATE_T) = struct
   let handlers ~state = [
     launch_handler ~state;
     process_handler ~state;
-    program_started_handler ~state;
+    launched_handler ~state;
   ]
 
 end

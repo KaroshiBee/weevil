@@ -74,7 +74,7 @@ let%expect_test "Check sequencing etc for launch" =
       in
 
       match Launch.handlers ~state:st with
-      | f_resp :: f_ev_process :: f_ev_stopped :: [] ->
+      | f_resp :: f_ev :: f_ev_launched :: [] ->
         (* happy path *)
         let%lwt resp = f_resp req in
         let resp = Result.get_ok resp in
@@ -86,7 +86,7 @@ let%expect_test "Check sequencing etc for launch" =
         "command": "launch", "body": {} } |}]
         in
 
-        let%lwt ev = f_ev_process "doesnt matter" in
+        let%lwt ev = f_ev "doesnt matter" in
         let ev = Result.get_ok ev in
         Printf.printf "%s" ev ;
         let%lwt () = [%expect {|
@@ -95,7 +95,7 @@ let%expect_test "Check sequencing etc for launch" =
             { "name": "TODO PROCESS EVENT NAME e.g. test.tz",
               "startMethod": "launch" } } |}] in
 
-        let%lwt ev = f_ev_stopped "doesnt matter" in
+        let%lwt ev = f_ev_launched "doesnt matter" in
         let ev = Result.get_ok ev in
         Printf.printf "%s" ev ;
         let%lwt () = [%expect {|

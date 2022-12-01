@@ -38,6 +38,8 @@ module T (S : Types.STATE_T) = struct
         let startMethod = D.ProcessEvent_body_startMethod.Attach in
         let body =
           D.ProcessEvent_body.make
+              (* * The logical name of the process. This is usually the full path to *)
+              (* * process's executable file. Example: /home/example/myproj/program.js. *)
             ~name:"TODO PROCESS EVENT NAME e.g. test.tz"
             ~startMethod
             ()
