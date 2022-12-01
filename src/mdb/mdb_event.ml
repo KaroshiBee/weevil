@@ -4,6 +4,7 @@ type ev =
   | RunScript of string
   | Terminate
   | Step of int
+  | GetRecords
 
 type t = {
   event: ev;
@@ -26,6 +27,10 @@ let enc_ev =
       int31
       (function Step n -> Some n | _ -> None)
       (fun n -> Step n);
+    case ~title:"GetRecords" (Tag 3)
+      empty
+      (function GetRecords -> Some () | _ -> None)
+      (fun _ -> GetRecords);
   ]
 
 let enc =

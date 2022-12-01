@@ -53,6 +53,12 @@ let rec main_handler ~stepper_process ic oc =
   | Some msg -> (
     let%lwt _ = Logs_lwt.info (fun m -> m "[MICH] got msg '%s'" msg) in
     match (MichEvent.from_msg_opt msg, stepper_process) with
+    | Some (GetRecords), _ ->
+      let%lwt _ = Logs_lwt.err (fun m -> m "[MICH] getting current records") in
+      let enc = Data_encoding.list Model.Weevil_json.enc in
+      let msg = Js.(construct enc !recs |> to_string |> Dapper.Dap.Header.wrap) in
+      let%lwt () = Lwt_io.write oc msg in
+      main_handler ~stepper_process ic oc
 
     | Some (RunScript _), Some process when process#state = Lwt_process.Running ->
       let%lwt _ = Logs_lwt.err (fun m -> m "[MICH] trying to start a new stepper with old one still running, ignore") in
@@ -61,6 +67,7 @@ let rec main_handler ~stepper_process ic oc =
     | Some (RunScript cmd), Some _
     | Some (RunScript cmd), None ->
       let%lwt _ = Logs_lwt.info (fun m -> m "[MICH] starting new stepper with cmd '%s'" cmd) in
+      let () = recs := [] in
       let cmd = ("", String.split_on_char ' ' cmd |> Array.of_list) in
       Lwt_process.with_process_full cmd (stepper_process_start ic oc)
 
