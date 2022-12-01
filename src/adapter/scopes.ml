@@ -10,7 +10,7 @@ module T (S : Types.STATE_READONLY_T) = struct
   module On_request = Dap.Scopes.On_request (S)
 
   let scopes_handler =
-    (* TODO scopes request has a framsID - use it *)
+    (* TODO scopes request has a framesID - use it *)
     On_request.make ~handler:(fun ~state:_ _req ->
         let resp =
           let command = Dap.Commands.scopes in
