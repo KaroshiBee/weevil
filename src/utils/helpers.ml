@@ -81,6 +81,12 @@ let configurationDone_msg ~seq =
 
 let configurationDone_req ~seq = Request.configurationDoneRequest @@ configurationDone_msg ~seq
 
+let threads_msg ~seq =
+  let arguments = Data.EmptyObject.make () in
+  Request.Message.make_opt ~seq ~command:Commands.threads ~arguments ()
+
+let threads_req ~seq = Request.threadsRequest @@ threads_msg ~seq
+
 let to_msg (type cmd args presence) :
     (cmd, args, presence) Request.Message.t Request.t -> string = function
   | InitializeRequest req ->
