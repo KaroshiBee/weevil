@@ -30,17 +30,6 @@ module T (S : Types.STATE_T) = struct
   module On_response = Dap.Launch.Raise_process (S)
   module On_launched = Dap.Launch.Raise_stopped (S)
 
-  let _start_background_svc st ip port cmd =
-    match S.backend_svc st with
-    | None ->
-      S.set_start_backend st ip port cmd
-    | Some _ ->
-        let%lwt () =
-          Logs_lwt.debug (fun m ->
-              m "backend service already running on port %d" port)
-        in
-        Dap_result.ok ()
-
   let _connect_background_svc st ip port =
     let%lwt () =
       Logs_lwt.debug (fun m ->
@@ -48,21 +37,13 @@ module T (S : Types.STATE_T) = struct
     in
     S.set_connect_backend st ip port |> Dap_result.or_log_error
 
+  (* connects to the mdb backend and runs a script *)
   let launch_handler =
     On_request.make ~handler:(fun ~state _req ->
         let config = S.config state in
         let ip = Dap.Config.backend_ip config |> Ipaddr_unix.of_inet_addr in
         let port = Dap.Config.backend_port config in
-        let cmd = Dap.Config.backend_cmd config in
-        let resp =
-          let command = Dap.Commands.launch in
-          let body = D.EmptyObject.make () in
-          Res.default_response_opt command body
-        in
-        let ret = Res.launchResponse resp in
-        let () = S.set_launch_mode state `Launch in
-        _start_background_svc state ip port cmd
-        |> Dap_result.bind ~f:(fun _ -> _connect_background_svc state ip port)
+        _connect_background_svc state ip port
         |> Dap_result.bind ~f:(fun (_ic, oc) ->
             let stepper_cmd = Dap.Config.stepper_cmd config in
                let%lwt () =
@@ -79,11 +60,19 @@ module T (S : Types.STATE_T) = struct
                  Js.(
                    construct Mich_event.enc runscript
                    |> to_string
-                   |> Dap.Header.wrap ~add_header:false)
+                   |> Dap.Header.wrap
+                 )
                in
                (* NOTE then write_line to make server consume *)
                let%lwt () = Lwt_io.write_line oc runscript_s in
-               (* this event is a DAP event message *)
+               (* this is a DAP response message *)
+               let resp =
+                 let command = Dap.Commands.launch in
+                 let body = D.EmptyObject.make () in
+                 Res.default_response_opt command body
+               in
+               let ret = Res.launchResponse resp in
+               let () = S.set_launch_mode state `Launch in
                Dap_result.ok ret))
 
   let process_handler =

@@ -19,9 +19,9 @@ module T (S : Types.STATE_T) = struct
         let resp =
           Res.attachResponse @@ Res.default_response_opt command body
         in
-        let () = S.set_launch_mode state `Attach in
         match S.backend_oc state with
         | Some _ ->
+          let () = S.set_launch_mode state `Attach in
           Dap_result.ok resp
         | None -> (
             (* NOTE dont need to start the backend as we are in attach mode, just connect to the backend *)
@@ -29,7 +29,9 @@ module T (S : Types.STATE_T) = struct
             let port = Dap.Config.backend_port config in
             S.set_connect_backend state ip port
             |> Dap_result.or_log_error
-            |> Dap_result.map ~f:(fun _ -> resp)
+            |> Dap_result.map ~f:(fun _ ->
+                let () = S.set_launch_mode state `Attach in
+                resp)
           ))
 
   let process_handler =

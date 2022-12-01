@@ -4,7 +4,17 @@ module D = Dap.Data
 module Js = Data_encoding.Json
 module Helpers = Utils.Helpers
 
-module StateMock = Helpers.StateMock
+module StateMock = struct
+  include Helpers.StateMock
+
+  let set_connect_backend _t _ip _port =
+    Dap.Result.ok (Lwt_io.stdin, Lwt_io.stdout)
+
+  let backend_svc _t =
+    Option.some @@ Lwt_process.open_process_none ("", [|":"|])
+
+end
+
 module Init = Initialize.T(StateMock)
 
 let%expect_test "Check sequencing etc for init" =
