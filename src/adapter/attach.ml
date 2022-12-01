@@ -9,6 +9,7 @@ module T (S : Types.STATE_T) = struct
 
   module On_request = Dap.Attach.On_request (S)
   module On_response = Dap.Attach.Raise_process (S)
+  module On_attached = Dap.Attach.Raise_stopped (S)
 
   let attach_handler =
     On_request.make ~handler:(fun ~state _req ->
@@ -43,9 +44,29 @@ module T (S : Types.STATE_T) = struct
         in
         Ev.default_event_req event body |> Ev.processEvent |> Dap_result.ok)
 
+  let attached_handler =
+    On_attached.make ~handler:(fun ~state:_ _ ->
+        let ev =
+          let event = Dap.Events.stopped in
+          let reason = D.StoppedEvent_body_reason.Entry in
+          let body =
+            D.StoppedEvent_body.make
+              ~reason
+              ~threadId:Defaults.Vals._THE_THREAD_ID
+              ~preserveFocusHint:true
+              ~allThreadsStopped:true
+              ()
+          in
+          Ev.default_event_req event body
+        in
+        let ret = Ev.stoppedEvent ev in
+        Dap_result.ok ret)
+
+
   let handlers ~state = [
     attach_handler ~state;
     process_handler ~state;
+    attached_handler ~state;
   ]
 
 end

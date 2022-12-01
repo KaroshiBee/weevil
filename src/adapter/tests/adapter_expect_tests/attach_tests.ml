@@ -24,7 +24,7 @@ let%expect_test "Check sequencing etc for attach" =
   in
 
   match Attach.handlers ~state with
-  | f_resp :: f_ev :: [] ->
+  | f_resp :: f_ev :: f_attached :: [] ->
     (* happy path *)
     let%lwt resp = f_resp req in
     let resp = Result.get_ok resp in
@@ -45,6 +45,15 @@ let%expect_test "Check sequencing etc for attach" =
             { "name": "TODO PROCESS EVENT NAME e.g. test.tz",
               "startMethod": "attach" } } |}] in
 
+    let%lwt ev = f_attached "string doesnt matter" in
+    let ev = Result.get_ok ev in
+    Printf.printf "%s" ev ;
+    let%lwt () = [%expect {|
+        { "seq": 23, "type": "event", "event": "stopped",
+          "body":
+            { "reason": "entry", "threadId": 1, "preserveFocusHint": true,
+              "allThreadsStopped": true } } |}] in
+
     let lmode =
       match state |> StateMock.launch_mode |> Option.get with
       | `Attach -> "attach"
@@ -55,7 +64,7 @@ let%expect_test "Check sequencing etc for attach" =
 
     Lwt.return_unit
 
-  | _ -> failwith "error: expected two handlers for attach"
+  | _ -> failwith "error: expected three handlers for attach"
 
 
 let%expect_test "Check bad input for attach" =
@@ -78,7 +87,7 @@ let%expect_test "Check bad input for attach" =
   in
 
   match Attach.handlers ~state with
-  | f_resp :: _f_ev :: [] ->
+  | f_resp :: _f_ev :: _f_attached :: [] ->
     (* unhappy path, f_resp is expecting an attach request *)
     let%lwt err =
       try%lwt
@@ -97,4 +106,4 @@ let%expect_test "Check bad input for attach" =
 
     Lwt.return_unit
 
-  | _ -> failwith "error: expected two handlers for attach"
+  | _ -> failwith "error: expected three handlers for attach"
