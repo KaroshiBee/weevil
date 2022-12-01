@@ -52,3 +52,21 @@ module Raise_process =
 
       let enc = Dap_event.Message.enc Dap_events.process D.ProcessEvent_body.enc
     end)
+
+module Raise_stopped =
+  Dap_handlers.Raise_event.Make
+    (struct
+      type enum = Dap_events.stopped
+
+      type contents = D.StoppedEvent_body.t
+
+      type presence = D.Presence.req
+
+      type msg = (enum, contents, presence) Dap_event.Message.t
+
+      type t = msg Dap_event.t
+
+      let ctor = Dap_event.stoppedEvent
+
+      let enc = Dap_event.Message.enc Dap_events.stopped D.StoppedEvent_body.enc
+    end)

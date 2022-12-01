@@ -28,6 +28,7 @@ module T (S : Types.STATE_T) = struct
 
   module On_request = Dap.Launch.On_request (S)
   module On_response = Dap.Launch.Raise_process (S)
+  module On_program_started = Dap.Launch.Raise_stopped (S)
 
   let _start_background_svc st ip port cmd =
     match S.backend_svc st with
@@ -86,7 +87,7 @@ module T (S : Types.STATE_T) = struct
                Dap_result.ok ret))
 
   let process_handler =
-    On_response.make ~handler:(fun ~state:_ _resp ->
+    On_response.make ~handler:(fun ~state:_ _ ->
         let ev =
           let event = Dap.Events.process in
           let startMethod = D.ProcessEvent_body_startMethod.Launch in
@@ -101,9 +102,28 @@ module T (S : Types.STATE_T) = struct
         let ret = Ev.processEvent ev in
         Dap_result.ok ret)
 
+  let program_started_handler =
+    On_program_started.make ~handler:(fun ~state:_ _ ->
+        let ev =
+          let event = Dap.Events.stopped in
+          let reason = D.StoppedEvent_body_reason.Entry in
+          let body =
+            D.StoppedEvent_body.make
+              ~reason
+              ~threadId:Defaults.Vals._THE_THREAD_ID
+              ~preserveFocusHint:true
+              ~allThreadsStopped:true
+              ()
+          in
+          Ev.default_event_req event body
+        in
+        let ret = Ev.stoppedEvent ev in
+        Dap_result.ok ret)
+
   let handlers ~state = [
     launch_handler ~state;
     process_handler ~state;
+    program_started_handler ~state;
   ]
 
 end

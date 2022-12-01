@@ -74,7 +74,7 @@ let%expect_test "Check sequencing etc for launch" =
       in
 
       match Launch.handlers ~state:st with
-      | f_resp :: f_ev :: [] ->
+      | f_resp :: f_ev_process :: f_ev_stopped :: [] ->
         (* happy path *)
         let%lwt resp = f_resp req in
         let resp = Result.get_ok resp in
@@ -86,7 +86,7 @@ let%expect_test "Check sequencing etc for launch" =
         "command": "launch", "body": {} } |}]
         in
 
-        let%lwt ev = f_ev "doesnt matter" in
+        let%lwt ev = f_ev_process "doesnt matter" in
         let ev = Result.get_ok ev in
         Printf.printf "%s" ev ;
         let%lwt () = [%expect {|
@@ -94,6 +94,15 @@ let%expect_test "Check sequencing etc for launch" =
           "body":
             { "name": "TODO PROCESS EVENT NAME e.g. test.tz",
               "startMethod": "launch" } } |}] in
+
+        let%lwt ev = f_ev_stopped "doesnt matter" in
+        let ev = Result.get_ok ev in
+        Printf.printf "%s" ev ;
+        let%lwt () = [%expect {|
+        { "seq": 23, "type": "event", "event": "stopped",
+          "body":
+            { "reason": "entry", "threadId": 1, "preserveFocusHint": true,
+              "allThreadsStopped": true } } |}] in
 
         let lmode =
           match st |> LaunchStateMock.launch_mode |> Option.get with
@@ -104,7 +113,7 @@ let%expect_test "Check sequencing etc for launch" =
         let%lwt () = [%expect {| launch |}] in
         Lwt.return_unit
 
-      | _ -> failwith "error: expected two handlers for launch"
+      | _ -> failwith "error: expected three handlers for launch"
     )
 
 let%expect_test "Check bad input for launch" =
@@ -130,7 +139,7 @@ let%expect_test "Check bad input for launch" =
       in
 
       match Launch.handlers ~state:st with
-      | f_resp :: _f_ev :: [] ->
+      | f_resp :: _f_ev_process :: _f_ev_stopped :: [] ->
         (* unhappy path *)
         let%lwt err =
           try%lwt
@@ -150,5 +159,5 @@ let%expect_test "Check bad input for launch" =
 
         Lwt.return_unit
 
-      | _ -> failwith "error: expected two handlers for launch"
+      | _ -> failwith "error: expected three handlers for launch"
     )
