@@ -22,6 +22,7 @@ module Initialize = Dap_initialize
 module Configuration = Dap_configuration
 module Threads = Dap_threads
 module Scopes = Dap_scopes
+module Stack_trace = Dap_stack_trace
 
 exception Wrong_encoder = Js_msg.Wrong_encoder
 
