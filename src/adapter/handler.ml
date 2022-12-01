@@ -34,7 +34,7 @@ module T (S:Types.STATE_T) = struct
   module type HANDLER_T = Types.STRING_HANDLER_T with type state := S.t
 
   module Initialize = Initialize.T (S)
-  module Configuration = Configuration.T (S)
+  module Configuration_done = Configuration_done.T (S)
   module Launch = Launch.T (S)
   module Attach = Attach.T (S)
 
@@ -46,7 +46,7 @@ module T (S:Types.STATE_T) = struct
         [
           (* "cancel", (module Cancel : HANDLER_T with type state = S.t); *)
           "initialize", (module Initialize : HANDLER_T);
-          "configurationDone", (module Configuration : HANDLER_T);
+          "configurationDone", (module Configuration_done : HANDLER_T);
           "launch", (module Launch : HANDLER_T);
           "attach", (module Attach : HANDLER_T);
           (* "next", (module Next : HANDLER_T with type state = S.t); *)

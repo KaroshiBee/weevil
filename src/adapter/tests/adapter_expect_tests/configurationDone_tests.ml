@@ -5,7 +5,7 @@ module Js = Data_encoding.Json
 module Helpers = Utils.Helpers
 
 module StateMock = Helpers.StateMock
-module ConfigDone = Configuration.T(StateMock)
+module ConfigDone = Configuration_done.T(StateMock)
 
 let%expect_test "Check sequencing etc for configurationDone" =
   let state = StateMock.make () in
