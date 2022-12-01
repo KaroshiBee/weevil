@@ -19,7 +19,7 @@ module T (Dap_state:Dap.STATE_T) = struct
     ic = None;
     oc = None;
     launch_mode = None;
-    config = Dap.Config.make ();
+    config = Dap.Config.make ~script_filename:"example.tz" ();
     client_config = None;
   }
 

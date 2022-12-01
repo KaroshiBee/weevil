@@ -34,7 +34,7 @@ let () =
 (* include Test_utils.Include *)
 (* module Js_msg = Dapper.Dap_js_msg *)
 
-(* let config = Dapper.Dap_config.make () *)
+(* let config = Dapper.Dap_config.make ~script_filename:"example.tz" () *)
 
 (* let%expect_test "Check cancel handler" = *)
 (*   let open Cancel in *)

@@ -17,7 +17,7 @@ module LaunchStateMock = struct
     launch_mode = None;
     oc=None;
     seqr=D.Seqr.make ~seq:0 ();
-    config=Dap.Config.make ();
+    config=Dap.Config.make ~script_filename:"example.tz" ();
     client_config=Option.some @@ D.InitializeRequestArguments.make ~adapterID:"FAKE" ();
   }
 

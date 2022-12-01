@@ -14,7 +14,7 @@ module StateMock = struct
   let make () = {
     launch_mode = None;
     seqr = Data.Seqr.make ~seq:0 ();
-    config=Config.make ();
+    config=Config.make ~script_filename:"example.tz" ();
     client_config=Option.some @@ Data.InitializeRequestArguments.make ~adapterID:"MOCK" ();
   }
 
@@ -86,6 +86,18 @@ let threads_msg ~seq =
   Request.Message.make_opt ~seq ~command:Commands.threads ~arguments ()
 
 let threads_req ~seq = Request.threadsRequest @@ threads_msg ~seq
+
+let stack_trace_msg ~seq =
+  let arguments = Data.StackTraceArguments.make ~threadId:1 () in
+  Request.Message.make ~seq ~command:Commands.stackTrace ~arguments ()
+
+let stack_trace_req ~seq = Request.stackTraceRequest @@ stack_trace_msg ~seq
+
+let scopes_msg ~seq =
+  let arguments = Data.ScopesArguments.make ~frameId:1 () in
+  Request.Message.make ~seq ~command:Commands.scopes ~arguments ()
+
+let scopes_req ~seq = Request.scopesRequest @@ scopes_msg ~seq
 
 let to_msg (type cmd args presence) :
     (cmd, args, presence) Request.Message.t Request.t -> string = function
