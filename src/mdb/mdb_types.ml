@@ -17,22 +17,14 @@ end
 
 module type INTERPRETER = sig
 
-  (* type log_element = *)
-  (*   | Log : *)
-  (*       t * int * ('a * 's) * ('a, 's) Script_typed_ir.stack_ty *)
-  (*       -> log_element *)
-
-  (* val unparse_stack : *)
-  (*   t -> *)
-  (*   ('a * 'b) * ('a, 'b) Script_typed_ir.stack_ty -> *)
-  (*   Script.expr list tzresult Lwt.t *)
-
   type input
-  type output
   type logger = Script_typed_ir.logger
 
   val trace_logger :
-    in_channel:in_channel -> out_channel:out_channel -> unit -> logger
+    in_channel:in_channel -> unit -> logger
+
+  val get_execution_trace_updates :
+    logger -> Script_typed_ir.execution_trace tzresult Lwt.t
 
   val execute :
     Alpha_context.t ->
@@ -40,7 +32,7 @@ module type INTERPRETER = sig
     script:Script.t ->
     entrypoint:Entrypoint_repr.t ->
     parameter:Script.expr ->
-    logger:Script_typed_ir.logger ->
-    ( (Script_interpreter.execution_result * Alpha_context.t) * Script_typed_ir.execution_trace) tzresult Lwt.t
+    logger:logger ->
+    (Script_interpreter.execution_result * Alpha_context.t) tzresult Lwt.t
 
 end

@@ -7,7 +7,6 @@ module Plugin = Tezos_protocol_plugin_014_PtKathma
 module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
 
   type input = Cfg.input
-  type output = Cfg.output
   type logger = Script_typed_ir.logger
 
   type log_element =
@@ -18,7 +17,7 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
         * ('a, 's) Script_typed_ir.stack_ty
         -> log_element
 
-  let unparse_stack ~oc:_ ctxt (stack, stack_ty) =
+  let unparse_stack ctxt (stack, stack_ty) =
     let open Lwt_result_syntax in
     (* We drop the gas limit as this function is only used for debugging/errors. *)
     let ctxt = Gas.set_unlimited ctxt in
@@ -35,14 +34,7 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
     in
     unparse_stack (stack_ty, stack)
 
-  let unparse_log ~oc (Log (ctxt, loc, stack, stack_ty)) =
-    let open Lwt_result_syntax in
-    trace
-      Plugin.Plugin_errors.Cannot_serialize_log
-      (let* stack = unparse_stack ~oc ctxt (stack, stack_ty) in
-       return (loc, Gas.level ctxt, stack))
-
-  let trace_logger ~in_channel:ic ~out_channel:oc () : Script_typed_ir.logger =
+  let trace_logger ~in_channel:ic () : Script_typed_ir.logger =
 
     let log : log_element list ref = ref [] in
 
@@ -58,41 +50,20 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
     in
     let log_exit _ ctxt loc sty stack =
       Logs.info (fun m -> m "log_exit @ location %d" loc);
-      let l = Log (ctxt, loc, stack, sty) in
-      (* TODO can we serialise l and send that? then unparse on main thread *)
-      let _ = Lwt.ignore_result @@ (
-          let open Lwt_result_syntax in
-          let*! is_sent = (
-            let* (_loc, gas, expr) = unparse_log ~oc l in
-            let wrec = Mdb_model.Weevil_record.make loc gas expr in
-            let wrec_js = Mdb_model.Weevil_record.to_weevil_json wrec in
-            let js = Data_encoding.Json.(
-                construct Mdb_model.Weevil_json.enc wrec_js
-                |> to_string
-                |> Dapper.Dap.Header.wrap
-              ) in
-            return @@ Printf.(fprintf oc "%s\n" js; flush oc)
-          )
-          in
-          match is_sent with
-          | Ok () ->
-            Lwt.return @@ Logs.info (fun m -> m "sent weevil record")
-          | Error errs ->
-            Lwt.return @@ Logs.err (fun m -> m "%s" @@ Data_encoding.Json.(construct trace_encoding errs |> to_string))
-        )
-      in
-      log := l :: !log
+      log := Log (ctxt, loc, stack, sty) :: !log
     in
     let log_control _ =
       Logs.info (fun m -> m "log_control");
     in
     let get_log () =
+      (* TODO change so that can call this repeatedly
+         but it only returns new records *)
       let open Lwt_result_syntax in
       Environment.List.map_es
         (fun (Log (ctxt, loc, stack, stack_ty)) ->
            trace
              Plugin.Plugin_errors.Cannot_serialize_log
-             (let* stack = unparse_stack ~oc ctxt (stack, stack_ty) in
+             (let* stack = unparse_stack ctxt (stack, stack_ty) in
               let stack = Environment.List.map (fun (expr, _, _) -> expr) stack in
               return (loc, Gas.level ctxt, stack))
         )
@@ -100,6 +71,12 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
       >>=? fun res -> return (Some (List.rev res))
     in
     {log_exit; log_entry; log_interp; get_log; log_control}
+
+  let get_execution_trace_updates (logger:logger) =
+    let open Lwt_result_syntax in
+    let* trace = logger.get_log () in
+    let trace = Option.value trace ~default:[] in
+    return trace
 
   let execute ctxt step_constants ~script ~entrypoint ~parameter ~logger =
     let open Script_interpreter in
@@ -113,8 +90,4 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
       ~entrypoint
       ~parameter
       ~internal:true
-    >>=? fun res ->
-    logger.get_log () >|=? fun trace ->
-    let trace = Option.value ~default:[] trace in
-    (res, trace)
 end

@@ -8,7 +8,7 @@ module Client_context = Tezos_client_base.Client_context
 
 module T (Interp : Mdb_types.INTERPRETER) = struct
 
-  type code_trace = (Script.expr * Apply_internal_results.packed_internal_contents trace * Script_typed_ir.execution_trace * Lazy_storage.diffs option)
+  type code_trace = (Script.expr * Apply_internal_results.packed_internal_contents trace * Lazy_storage.diffs option)
 
   type t = {
     chain_id:Chain_id.t;
@@ -99,7 +99,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
       ?self
       ?now
       ?level
-      ~make_logger
+      ~logger
       ctxt =
 
     let open Lwt_result_syntax in
@@ -146,9 +146,6 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
       {source; payer; self; amount; balance; chain_id; now; level}
     in
 
-    let*! () = Logs_lwt.info (fun m -> m "getting logger") in
-    let logger = make_logger () in
-
     let*! () = Logs_lwt.info (fun m -> m "executing contract") in
     (* NOTE in the old code this was a Lwt_result.map - so wouldnt need the return() at end of code block *)
     let* res = Interp.execute
@@ -162,15 +159,14 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
     in
 
     let*! () = Logs_lwt.info (fun m -> m "executed all of contract") in
-    let (
-      ( Script_interpreter.{
+    let ( Script_interpreter.{
             script = _;
             code_size = _;
             storage;
             operations;
             lazy_storage_diff;
             ticket_diffs = _;
-          }, _ctxt ), trace ) = res
+          }, _ctxt ) = res
     in
 
     let ops = Apply_internal_results.contents_of_packed_internal_operations operations in
@@ -178,7 +174,6 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
     return (
       storage,
       ops,
-      trace,
       lazy_storage_diff
     )
 
@@ -254,7 +249,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
     return script
 
 
-  let step ~make_logger ~(script:Mdb_typechecker.t) t =
+  let step ~logger ~(script:Mdb_typechecker.t) t =
 
     let open Lwt_result_syntax in
 
@@ -266,10 +261,16 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
         ~script:script.expanded
         ~storage:mich_unit.expanded
         ~input:mich_unit.expanded
-        ~make_logger
+        ~logger
         t.alpha_context
     in
 
     return {t with code_trace=(Some code_trace)}
+
+  let get_execution_trace_updates ~logger =
+    let open Lwt_syntax in
+    let* res = Interp.get_execution_trace_updates logger in
+    return @@ Environment.wrap_tzresult res
+
 
 end

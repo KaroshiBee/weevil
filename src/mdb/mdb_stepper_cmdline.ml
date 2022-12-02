@@ -21,43 +21,82 @@ module Stepper = Mdb_stepper.T (Interpreter)
 let protocol_str = "PtKathmankSpLLDALzWw7CGD2j2MtyveTwboEYokqUCP4a1LxMg"
 let base_dir = "/tmp/.weevil"
 
-let make_logger = Interpreter.trace_logger ~in_channel:stdin ~out_channel:stdout
+let logger = Interpreter.trace_logger ~in_channel:stdin ()
+
 
 (* NOTE unit on end is for the logging setup *)
 let process headless script_filename_opt () =
-  let stepper =
-    let open Lwt_result_syntax in
+  let open Lwt_result_syntax in
+  let pause = 0.1 in
+
+  (* loop and call logger.get_logs ()
+     it loops for ever but this process is spawned as a child process
+     of the mdb service and will complete when the script execution completes
+     *)
+  let rec get_logging_records : unit -> unit Cmdliner.Term.ret Lwt.t = fun () ->
+    let*! recs = Stepper.get_execution_trace_updates ~logger in
+    let*! _ = match recs with
+    | Ok [] -> return ()
+    | Ok recs ->
+      let*! ret =
+        List.iter_s (fun (loc, gas, exprs) ->
+            (* TODO better handling of mich expressions/tickets *)
+            let wrec = Mdb_model.Weevil_record.make loc gas (exprs |> List.map (fun e -> (e, None, false))) in
+            let wrec_js = Mdb_model.Weevil_record.to_weevil_json wrec in
+            let js = Data_encoding.Json.(
+                construct Mdb_model.Weevil_json.enc wrec_js
+                |> to_string
+                |> Dapper.Dap.Header.wrap
+              ) in
+            Lwt_io.(write stdout js)
+          ) recs
+      in
+      return ret
+
+    | Error _ as e ->
+      let enc = result_encoding Data_encoding.unit in
+      let err_msg = Data_encoding.Json.(construct enc e |> to_string) |> Dapper.Dap.Header.wrap in
+      let*! ret = Lwt_io.(write stderr err_msg) in
+      return ret
+    in
+
+    let*! () = Lwt_unix.sleep pause in
+    get_logging_records ()
+  in
+
+  let stepper : Stepper.t tzresult Lwt.t =
     match script_filename_opt with
     | Some script_filename ->
       let* stepper = Stepper.init ~protocol_str ~base_dir () in
       let* script = Stepper.typecheck ~script_filename stepper in
-      Stepper.step ~make_logger ~script stepper
+      Stepper.step ~logger ~script stepper
     | None ->
       let s = Printf.sprintf "required argument %s is missing" file_arg in
       Lwt.return @@ error_with_exn @@ Invalid_argument s
   in
 
-  let post_process res =
-    let open Lwt_syntax in
-    let* stepper_result = res in
+  let post_process : Stepper.t tzresult Lwt.t -> unit Cmdliner.Term.ret Lwt.t = fun res ->
+    let*! stepper_result = res in
     match stepper_result with
     | Ok _ -> (* TODO dont ignore OK output *) Lwt.return @@ `Ok ()
     | Error errs as e ->
       let ss =
         Format.asprintf "Stepper error - %a" pp_print_trace errs
       in
-      let () =
+      let*! () =
         if headless then
           let enc = result_encoding Data_encoding.unit in
           let err_msg = Data_encoding.Json.(construct enc e |> to_string) |> Dapper.Dap.Header.wrap in
-          Printf.fprintf stderr "%s" err_msg;
-        else ()
+          Lwt_io.(write stderr err_msg)
+        else Lwt.return_unit
       in
       (* if in headless mode then dont show --help if the cli has errors *)
       Lwt.return @@ `Error (not headless, ss)
   in
 
-  Lwt_main.run @@ post_process stepper
+  let p = post_process stepper in
+  let l = get_logging_records ()  in
+  Lwt_main.run @@ Lwt.pick [l; p]
 
 
 module Tm = struct
