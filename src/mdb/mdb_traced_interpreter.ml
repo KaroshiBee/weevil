@@ -3,6 +3,11 @@ open Alpha_context
 open Environment.Error_monad
 module Plugin = Tezos_protocol_plugin_014_PtKathma
 
+module LocHashtbl = Hashtbl.Make(struct
+    type t = Script.location
+    let equal i j = i=j
+    let hash i = i land max_int
+  end)
 
 module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
 
@@ -16,6 +21,12 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
         * ('a * 's)
         * ('a, 's) Script_typed_ir.stack_ty
         -> log_element
+
+  type status = | New of log_element | Old of log_element
+  let make_new l = New l
+  let make_old l = Old l
+
+  type log_elements = status LocHashtbl.t
 
   let unparse_stack ctxt (stack, stack_ty) =
     let open Lwt_result_syntax in
@@ -36,11 +47,15 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
 
   let trace_logger ~in_channel:ic () : Script_typed_ir.logger =
 
-    let log : log_element list ref = ref [] in
+    (* NOTE storage for the logs,
+       new ones are Hashtbl.add'd because for now we keep everything,
+       maybe later we will remove old ones as we go ? *)
+    let log : log_elements = LocHashtbl.create 500 in
 
     let log_interp _ ctxt loc sty stack =
       Logs.info (fun m -> m "log_interp @ location %d" loc);
-      log := Log (ctxt, loc, stack, sty) :: !log
+      let () = if LocHashtbl.mem log loc then Logs.debug (fun m -> m "log_interp @ overwriting location %d with new log record" loc) else () in
+      LocHashtbl.add log loc @@ make_new @@ Log (ctxt, loc, stack, sty)
     in
     let log_entry _ _ctxt loc _sty _stack =
       Logs.info (fun m -> m "log_entry @ location %d" loc);
@@ -50,25 +65,35 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
     in
     let log_exit _ ctxt loc sty stack =
       Logs.info (fun m -> m "log_exit @ location %d" loc);
-      log := Log (ctxt, loc, stack, sty) :: !log
+      let () = if LocHashtbl.mem log loc then Logs.debug (fun m -> m "log_exit @ overwriting location %d with new log record" loc) else () in
+      LocHashtbl.add log loc @@ make_new @@ Log (ctxt, loc, stack, sty)
     in
     let log_control _ =
       Logs.info (fun m -> m "log_control");
     in
     let get_log () =
-      (* TODO change so that can call this repeatedly
+      (* NOTE can call this repeatedly
          but it only returns new records *)
       let open Lwt_result_syntax in
-      Environment.List.map_es
-        (fun (Log (ctxt, loc, stack, stack_ty)) ->
-           trace
-             Plugin.Plugin_errors.Cannot_serialize_log
-             (let* stack = unparse_stack ctxt (stack, stack_ty) in
-              let stack = Environment.List.map (fun (expr, _, _) -> expr) stack in
-              return (loc, Gas.level ctxt, stack))
-        )
-        !log
-      >>=? fun res -> return (Some (List.rev res))
+      let module List = Environment.List in
+      let* res =
+        LocHashtbl.to_seq log
+        |> List.of_seq
+        |> List.sort (fun (locX, _) (locY, _) -> Int.compare locX locY)
+        |> List.filter_map_es
+          (function
+            | (_, Old _ ) -> return None
+            | (_, New (Log (ctxt, loc, stack, stack_ty))) ->
+              trace
+                Plugin.Plugin_errors.Cannot_serialize_log
+                (let* stack = unparse_stack ctxt (stack, stack_ty) in
+                 let stack = List.map (fun (expr, _, _) -> expr) stack in
+                 return @@ Some (loc, Gas.level ctxt, stack))
+          )
+      in
+      (* update all the New ones to Old, keep old ones as old *)
+      let () = LocHashtbl.filter_map_inplace (fun _ky -> function | New l -> Some (make_old l) | Old _ as l -> Some l) log in
+      return @@ Some res
     in
     {log_exit; log_entry; log_interp; get_log; log_control}
 
