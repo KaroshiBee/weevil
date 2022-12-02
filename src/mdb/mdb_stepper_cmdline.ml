@@ -94,9 +94,12 @@ let process headless script_filename_opt () =
       Lwt.return @@ `Error (not headless, ss)
   in
 
-  let p = post_process stepper in
-  let l = get_logging_records ()  in
-  Lwt_main.run @@ Lwt.pick [l; p]
+  let step = post_process stepper in
+  let logging = get_logging_records ()  in
+  (* NOTE the use of Lwt.pick means that log polling
+     should get cancelled when stepping finishes,
+     as logging runs forever and stepping doesnt *)
+  Lwt_main.run @@ Lwt.pick [step; logging]
 
 
 module Tm = struct
