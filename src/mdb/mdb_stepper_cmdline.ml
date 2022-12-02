@@ -4,14 +4,6 @@ let file_arg = "FILE"
 
 (* NOTE type unparsing_mode = Optimized | Readable | Optimized_legacy, could we phantom this into the logger type? *)
 module Interpreter_cfg = struct
-  type input = string
-  let to_string_input i = i
-  let from_string_input s = Environment.Error_monad.ok s
-
-  type output = string
-  let to_string_output o = o
-  let from_string_output s = Environment.Error_monad.ok s
-
   let unparsing_mode = Script_ir_translator.Readable
 end
 

@@ -2,16 +2,10 @@ open Protocol
 open Alpha_context
 open Environment.Error_monad
 module Plugin = Tezos_protocol_plugin_014_PtKathma
-
-module LocHashtbl = Hashtbl.Make(struct
-    type t = Script.location
-    let equal i j = i=j
-    let hash i = i land max_int
-  end)
+module LocHashtbl = Mdb_types.LocHashtbl
 
 module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
 
-  type input = Cfg.input
   type logger = Script_typed_ir.logger
 
   type log_element =
@@ -22,11 +16,11 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
         * ('a, 's) Script_typed_ir.stack_ty
         -> log_element
 
-  type status = | New of log_element | Old of log_element
+  type log_record = | New of log_element | Old of log_element
   let make_new l = New l
   let make_old l = Old l
 
-  type log_elements = status LocHashtbl.t
+  type log_elements = log_record LocHashtbl.t
 
   let unparse_stack ctxt (stack, stack_ty) =
     let open Lwt_result_syntax in
@@ -45,17 +39,17 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
     in
     unparse_stack (stack_ty, stack)
 
-  let trace_logger ~in_channel:ic () : Script_typed_ir.logger =
+  let trace_logger ?log_elements:log_elements ~in_channel:ic () : Script_typed_ir.logger =
 
     (* NOTE storage for the logs,
        new ones are Hashtbl.add'd because for now we keep everything,
        maybe later we will remove old ones as we go ? *)
-    let log : log_elements = LocHashtbl.create 500 in
+    let log_elements : log_elements = Option.value log_elements ~default:(LocHashtbl.create 500) in
 
     let log_interp _ ctxt loc sty stack =
       Logs.info (fun m -> m "log_interp @ location %d" loc);
-      let () = if LocHashtbl.mem log loc then Logs.debug (fun m -> m "log_interp @ overwriting location %d with new log record" loc) else () in
-      LocHashtbl.add log loc @@ make_new @@ Log (ctxt, loc, stack, sty)
+      let () = if LocHashtbl.mem log_elements loc then Logs.debug (fun m -> m "log_interp @ overwriting location %d with new log record" loc) else () in
+      LocHashtbl.add log_elements loc @@ make_new @@ Log (ctxt, loc, stack, sty)
     in
     let log_entry _ _ctxt loc _sty _stack =
       Logs.info (fun m -> m "log_entry @ location %d" loc);
@@ -65,8 +59,8 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
     in
     let log_exit _ ctxt loc sty stack =
       Logs.info (fun m -> m "log_exit @ location %d" loc);
-      let () = if LocHashtbl.mem log loc then Logs.debug (fun m -> m "log_exit @ overwriting location %d with new log record" loc) else () in
-      LocHashtbl.add log loc @@ make_new @@ Log (ctxt, loc, stack, sty)
+      let () = if LocHashtbl.mem log_elements loc then Logs.debug (fun m -> m "log_exit @ overwriting location %d with new log record" loc) else () in
+      LocHashtbl.add log_elements loc @@ make_new @@ Log (ctxt, loc, stack, sty)
     in
     let log_control _ =
       Logs.info (fun m -> m "log_control");
@@ -77,7 +71,7 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
       let open Lwt_result_syntax in
       let module List = Environment.List in
       let* res =
-        LocHashtbl.to_seq log
+        LocHashtbl.to_seq log_elements
         |> List.of_seq
         |> List.sort (fun (locX, _) (locY, _) -> Int.compare locX locY)
         |> List.filter_map_es
@@ -92,7 +86,11 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
           )
       in
       (* update all the New ones to Old, keep old ones as old *)
-      let () = LocHashtbl.filter_map_inplace (fun _ky -> function | New l -> Some (make_old l) | Old _ as l -> Some l) log in
+      let () = LocHashtbl.filter_map_inplace (fun _ky -> function
+          | New l -> Some (make_old l)
+          | Old _ as l -> Some l
+        ) log_elements
+      in
       return @@ Some res
     in
     {log_exit; log_entry; log_interp; get_log; log_control}
