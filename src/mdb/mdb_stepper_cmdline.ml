@@ -1,45 +1,7 @@
-open Protocol
-open Alpha_context
+module Interpreter = Mdb_traced_interpreter.T (Mdb_traced_interpreter_cfg)
+module Stepper = Mdb_stepper.T (Interpreter)
 
 let file_arg = "FILE"
-
-(* NOTE type unparsing_mode = Optimized | Readable | Optimized_legacy, could we phantom this into the logger type? *)
-module Interpreter_cfg = struct
-
-  type log_element =
-    | Log :
-        context
-        * Script.location
-        * ('a * 's)
-        * ('a, 's) Script_typed_ir.stack_ty
-        -> log_element
-
-  let unparsing_mode = Script_ir_translator.Readable
-
-  let unparse_stack = function
-    | Log (ctxt_in, _loc, stack, stack_ty) ->
-      let open Environment.Error_monad in
-      let open Lwt_result_syntax in
-      (* We drop the gas limit as this function is only used for debugging/errors. *)
-      let ctxt = Gas.set_unlimited ctxt_in in
-      let rec _unparse_stack :
-        type a s.
-        (a, s) Script_typed_ir.stack_ty * (a * s) ->
-        (Script.expr * string option * bool) list tzresult Lwt.t = function
-        | Bot_t, (EmptyCell, EmptyCell) -> return_nil
-        | Item_t (ty, rest_ty), (v, rest) ->
-          let* (data, _ctxt) = Script_ir_translator.unparse_data ctxt unparsing_mode ty v in
-          let+ rest = _unparse_stack (rest_ty, rest) in
-          let data = Environment.Micheline.strip_locations data in
-          (data, None, false) :: rest
-      in
-      _unparse_stack (stack_ty, stack)
-
-end
-
-
-module Interpreter = Mdb_traced_interpreter.T (Interpreter_cfg)
-module Stepper = Mdb_stepper.T (Interpreter)
 
 let protocol_str = "PtKathmankSpLLDALzWw7CGD2j2MtyveTwboEYokqUCP4a1LxMg"
 let base_dir = "/tmp/.weevil"
