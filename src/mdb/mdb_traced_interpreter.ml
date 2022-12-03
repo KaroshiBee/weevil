@@ -1,5 +1,4 @@
 open Protocol
-open Alpha_context
 open Environment.Error_monad
 module Plugin = Tezos_protocol_plugin_014_PtKathma
 module LocHashtbl = Mdb_types.LocHashtbl
@@ -7,7 +6,7 @@ module LocHashtbl = Mdb_types.LocHashtbl
 module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
 
   type logger = Script_typed_ir.logger
-  type log_element = Cfg.log_element
+  type log_element = Cfg.t
   type log_record = | New of log_element | Old of log_element
   let make_new l = New l
   let make_old l = Old l
@@ -24,7 +23,7 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
     let log_interp _ ctxt loc sty stack =
       Logs.info (fun m -> m "log_interp @ location %d" loc);
       let () = if LocHashtbl.mem log_elements loc then Logs.debug (fun m -> m "log_interp @ overwriting location %d with new log record" loc) else () in
-      LocHashtbl.add log_elements loc @@ make_new @@ Log (ctxt, loc, stack, sty)
+      LocHashtbl.add log_elements loc @@ make_new @@ Cfg.make_log ctxt loc stack sty
     in
     let log_entry _ _ctxt loc _sty _stack =
       Logs.info (fun m -> m "log_entry @ location %d" loc);
@@ -36,7 +35,7 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
       Logs.info (fun m -> m "log_exit @ location %d" loc);
       (* NOTE with looping constructs in mich you will overwrite the same locs again *)
       let () = if LocHashtbl.mem log_elements loc then Logs.debug (fun m -> m "log_exit @ overwriting location %d with new log record" loc) else () in
-      LocHashtbl.add log_elements loc @@ make_new @@ Log (ctxt, loc, stack, sty)
+      LocHashtbl.add log_elements loc @@ make_new @@ Cfg.make_log ctxt loc stack sty
     in
     let log_control _ =
       Logs.info (fun m -> m "log_control");
@@ -53,12 +52,14 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
         |> List.filter_map_es
           (function
             | (_, Old _ ) -> return None
-            | (_, New (Log (ctxt, loc, _, _) as log_element)) ->
+            | (_, New log_element) ->
               trace
                 Plugin.Plugin_errors.Cannot_serialize_log
                 (let* stack = Cfg.unparse_stack log_element in
                  let stack = List.map (fun (expr, _, _) -> expr) stack in
-                 return @@ Some (loc, Gas.level ctxt, stack))
+                 let loc = Cfg.get_loc log_element in
+                 let gas = Cfg.get_gas log_element in
+                 return @@ Some (loc, gas, stack))
           )
       in
       (* update all the New ones to Old, if full_trace then keep old ones as old *)

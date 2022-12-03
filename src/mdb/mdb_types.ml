@@ -4,19 +4,26 @@ open Alpha_context
 open Environment.Error_monad
 
 module type INTERPRETER_CFG = sig
-  type log_element =
-    | Log :
-        context
-        * Script.location
-        * ('a * 's) (* stack *)
-        * ('a, 's) Script_typed_ir.stack_ty (* stack type *)
-        -> log_element
+  type t
+
+  val make_log :
+    context ->
+    Script.location ->
+    ('a * 's) ->
+    ('a, 's) Script_typed_ir.stack_ty ->
+    t
 
   val unparsing_mode : Script_ir_translator.unparsing_mode
 
   val unparse_stack :
-    log_element ->
+    t ->
     (Script.expr * string option * bool) list tzresult Lwt.t
+
+  val get_loc :
+    t -> Script.location
+
+  val get_gas :
+    t -> Gas.t
 end
 
 module LocHashtbl = Hashtbl.Make(struct

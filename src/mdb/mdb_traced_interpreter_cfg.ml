@@ -3,13 +3,16 @@ open Alpha_context
 
 (* NOTE type unparsing_mode = Optimized | Readable | Optimized_legacy, could we phantom this into the logger type? *)
 
-type log_element =
+type t =
   | Log :
       context
       * Script.location
       * ('a * 's)
       * ('a, 's) Script_typed_ir.stack_ty
-      -> log_element
+      -> t
+
+let make_log ctxt loc stack stack_ty =
+  Log (ctxt, loc, stack, stack_ty)
 
 let unparsing_mode = Script_ir_translator.Readable
 
@@ -31,3 +34,9 @@ let unparse_stack = function
         (data, None, false) :: rest
     in
     _unparse_stack (stack_ty, stack)
+
+let get_loc = function
+  | Log (_, loc, _, _) -> loc
+
+let get_gas = function
+  | Log (ctxt, _, _, _) -> Gas.level ctxt
