@@ -1,7 +1,7 @@
 open Protocol
 open Environment.Error_monad
 module Plugin = Tezos_protocol_plugin_014_PtKathma
-module Log_records = Mdb_types.Log_records
+module Log_records = Mdb_log_records
 
 module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
 
@@ -42,18 +42,15 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
       let module List = Environment.List in
       let* res =
         Log_records.to_list log_records
-        |> List.sort (fun (locX, _) (locY, _) -> Int.compare locX locY)
-        |> List.filter_map_es
-          (function
-            | (_, `Old _ ) -> return None
-            | (_, `New log_element) ->
-              trace
-                Plugin.Plugin_errors.Cannot_serialize_log
-                (let* stack = Cfg.unparse_stack log_element in
-                 let stack = List.map (fun (expr, _, _) -> expr) stack in
-                 let loc = Cfg.get_loc log_element in
-                 let gas = Cfg.get_gas log_element in
-                 return @@ Some (loc, gas, stack))
+        |> List.map_es
+          (fun log_element ->
+             trace
+               Plugin.Plugin_errors.Cannot_serialize_log
+               (let* stack = Cfg.unparse_stack log_element in
+                let stack = List.map (fun (expr, _, _) -> expr) stack in
+                let loc = Cfg.get_loc log_element in
+                let gas = Cfg.get_gas log_element in
+                return (loc, gas, stack))
           )
       in
       (* update all the New ones to Old, if full_trace then keep old ones as old *)

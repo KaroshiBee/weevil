@@ -4,7 +4,7 @@ open Alpha_context
 open Environment.Error_monad
 
 module TI = Mdb.Mdb_traced_interpreter
-module Tbl = Mdb.Mdb_types.Log_records
+module Tbl = Mdb.Mdb_log_records
 
 module TestCfg = struct
 
@@ -12,7 +12,7 @@ module TestCfg = struct
     | TestLog of int
 
   let make_log _ctxt _loc _stack _stack_ty =
-    TestLog 100
+    TestLog 1
 
   let unparsing_mode = Script_ir_translator.Readable
 
@@ -31,9 +31,10 @@ module TestInterp = TI.T (TestCfg)
 (* The tests *)
 let test_get_execution_trace_updates () =
   let tbl = Tbl.make () in
-  Tbl.add_new tbl 1 @@ TestCfg.TestLog 1;
-  Tbl.add_old tbl 2 @@ TestCfg.TestLog 2;
   Tbl.add_new tbl 3 @@ TestCfg.TestLog 3;
+  Tbl.add_old tbl 2 @@ TestCfg.TestLog 2;
+  Tbl.add_new tbl 1 @@ TestCfg.TestLog 1;
+
   (* check before *)
   let is_in = Tbl.mem tbl in
   let all_in = is_in 1 && is_in 2 && is_in 3 in
@@ -52,7 +53,7 @@ let test_get_execution_trace_updates () =
 
     let two_not_in = is_in 2 in
     Alcotest.(check bool) "doesnt contain loc 2 after" two_not_in false
-  | Ok other -> let n = List.length other in failwith @@ Printf.sprintf "should only have loc 100 @ keys 1 and 3, got %d list" n
+  | Ok other -> let n = List.length other in failwith @@ Printf.sprintf "should only have loc 100 @ keys 1 and 3, got %d-list" n
 
 let () =
   let open Alcotest in
