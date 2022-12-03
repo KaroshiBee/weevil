@@ -31,6 +31,7 @@ module type INTERPRETER = sig
   type log_record
 
   val trace_logger :
+    ?full_trace:bool ->
     ?log_elements:log_record LocHashtbl.t ->
     in_channel:in_channel ->
     unit ->

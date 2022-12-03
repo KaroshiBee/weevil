@@ -14,7 +14,7 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
 
   type log_elements = log_record LocHashtbl.t
 
-  let trace_logger ?log_elements:log_elements ~in_channel:ic () : Script_typed_ir.logger =
+  let trace_logger ?(full_trace=false) ?log_elements:log_elements ~in_channel:ic () =
 
     (* NOTE storage for the logs,
        new ones are Hashtbl.add'd because for now we keep everything,
@@ -34,6 +34,7 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
     in
     let log_exit _ ctxt loc sty stack =
       Logs.info (fun m -> m "log_exit @ location %d" loc);
+      (* NOTE with looping constructs in mich you will overwrite the same locs again *)
       let () = if LocHashtbl.mem log_elements loc then Logs.debug (fun m -> m "log_exit @ overwriting location %d with new log record" loc) else () in
       LocHashtbl.add log_elements loc @@ make_new @@ Log (ctxt, loc, stack, sty)
     in
@@ -42,7 +43,7 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
     in
     let get_log () =
       (* NOTE can call this repeatedly
-         but it only returns new records *)
+         but it should only returns new records *)
       let open Lwt_result_syntax in
       let module List = Environment.List in
       let* res =
@@ -60,15 +61,15 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
                  return @@ Some (loc, Gas.level ctxt, stack))
           )
       in
-      (* update all the New ones to Old, keep old ones as old *)
+      (* update all the New ones to Old, if full_trace then keep old ones as old *)
       let () = LocHashtbl.filter_map_inplace (fun _ky -> function
           | New l -> Some (make_old l)
-          | Old _ as l -> Some l
+          | Old _ as l -> if full_trace then Some l else None
         ) log_elements
       in
       return @@ Some res
     in
-    {log_exit; log_entry; log_interp; get_log; log_control}
+    Script_typed_ir.{log_exit; log_entry; log_interp; get_log; log_control}
 
   let get_execution_trace_updates (logger:logger) =
     let open Lwt_result_syntax in
