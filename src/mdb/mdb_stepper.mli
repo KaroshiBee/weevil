@@ -27,13 +27,13 @@ module T : functor (INTERP:Mdb_types.INTERPRETER) -> sig
     Mdb_typechecker.t tzresult Lwt.t
 
   val step :
-    logger:INTERP.logger ->
+    logger:INTERP.t ->
     script:Mdb_typechecker.t ->
     t ->
     t tzresult Lwt.t
 
   val get_execution_trace_updates :
-    logger:INTERP.logger ->
+    logger:INTERP.t ->
     Script_typed_ir.execution_trace tzresult Lwt.t
 
 end

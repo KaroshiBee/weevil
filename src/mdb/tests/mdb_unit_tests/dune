@@ -1,6 +1,7 @@
 (test
  (name mdb_tests)
  (libraries
+   tezos-protocol-014-PtKathma
    mdb
    defaults
    test_utils
@@ -17,6 +18,5 @@
   (:standard
    -linkall
    -open
-   Mdb
-   ))
+   Tezos_protocol_014_PtKathma))
 )

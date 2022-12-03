@@ -26,26 +26,52 @@ module type INTERPRETER_CFG = sig
     t -> Gas.t
 end
 
-module LocHashtbl = Hashtbl.Make(struct
-    type t = Script.location
-    let equal i j = i=j
-    let hash i = i land max_int
-  end)
+module Log_records = struct
+  module LocHashtbl = Hashtbl.Make(struct
+      type t = Script.location
+      let equal i j = i=j
+      let hash i = i land max_int
+    end)
+
+  type 'log_element log_record = [ `New of 'log_element | `Old of 'log_element ]
+  let make_new l = `New l
+  let make_old l = `Old l
+
+  type 'log_element t = 'log_element log_record LocHashtbl.t
+  let make () = LocHashtbl.create 500
+
+  let add_new t loc log_element =
+    LocHashtbl.add t loc @@ make_new log_element
+
+  let add_old t loc log_element =
+    LocHashtbl.add t loc @@ make_old log_element
+
+  let mem t = LocHashtbl.mem t
+  let to_list t = LocHashtbl.to_seq t |> List.of_seq
+
+  let new_to_old_inplace ~keep_old t =
+    LocHashtbl.filter_map_inplace (fun _ky -> function
+        | `New l -> Some (make_old l)
+        | `Old _ as l -> if keep_old then Some l else None
+      ) t
+
+end
+
 
 module type INTERPRETER = sig
 
-  type logger
-  type log_record
+  type t
+  type log_records
 
   val trace_logger :
     ?full_trace:bool ->
-    ?log_elements:log_record LocHashtbl.t ->
+    ?log_records:log_records ->
     in_channel:in_channel ->
     unit ->
-    logger
+    t
 
   val get_execution_trace_updates :
-    logger -> Script_typed_ir.execution_trace tzresult Lwt.t
+    t -> Script_typed_ir.execution_trace tzresult Lwt.t
 
   val execute :
     Alpha_context.t ->
@@ -53,7 +79,7 @@ module type INTERPRETER = sig
     script:Script.t ->
     entrypoint:Entrypoint_repr.t ->
     parameter:Script.expr ->
-    logger:logger ->
+    logger:t ->
     (Script_interpreter.execution_result * Alpha_context.t) tzresult Lwt.t
 
 end
