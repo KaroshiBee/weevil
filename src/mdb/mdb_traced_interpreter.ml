@@ -7,37 +7,12 @@ module LocHashtbl = Mdb_types.LocHashtbl
 module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
 
   type logger = Script_typed_ir.logger
-
-  type log_element =
-    | Log :
-        context
-        * Script.location
-        * ('a * 's)
-        * ('a, 's) Script_typed_ir.stack_ty
-        -> log_element
-
+  type log_element = Cfg.log_element
   type log_record = | New of log_element | Old of log_element
   let make_new l = New l
   let make_old l = Old l
 
   type log_elements = log_record LocHashtbl.t
-
-  let unparse_stack ctxt (stack, stack_ty) =
-    let open Lwt_result_syntax in
-    (* We drop the gas limit as this function is only used for debugging/errors. *)
-    let ctxt = Gas.set_unlimited ctxt in
-    let rec unparse_stack :
-      type a s.
-      (a, s) Script_typed_ir.stack_ty * (a * s) ->
-      (Script.expr * string option * bool) list tzresult Lwt.t = function
-      | Bot_t, (EmptyCell, EmptyCell) -> return_nil
-      | Item_t (ty, rest_ty), (v, rest) ->
-        let* (data, _ctxt) = Script_ir_translator.unparse_data ctxt Cfg.unparsing_mode ty v in
-        let+ rest = unparse_stack (rest_ty, rest) in
-        let data = Environment.Micheline.strip_locations data in
-        (data, None, false) :: rest
-    in
-    unparse_stack (stack_ty, stack)
 
   let trace_logger ?log_elements:log_elements ~in_channel:ic () : Script_typed_ir.logger =
 
@@ -77,10 +52,10 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
         |> List.filter_map_es
           (function
             | (_, Old _ ) -> return None
-            | (_, New (Log (ctxt, loc, stack, stack_ty))) ->
+            | (_, New (Log (ctxt, loc, _, _) as log_element)) ->
               trace
                 Plugin.Plugin_errors.Cannot_serialize_log
-                (let* stack = unparse_stack ctxt (stack, stack_ty) in
+                (let* stack = Cfg.unparse_stack log_element in
                  let stack = List.map (fun (expr, _, _) -> expr) stack in
                  return @@ Some (loc, Gas.level ctxt, stack))
           )
