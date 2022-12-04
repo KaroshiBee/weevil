@@ -8,13 +8,13 @@ open Lwt
 
 exception Stepper_error of string
 
-let read_weevil_recs = function
+let read_weevil_recs ~enc = function
   | ln when 0 < String.length ln && String.get ln 0 != '#' -> (
       (* non-comments *)
       match Js.from_string ln with
       | Ok js -> (
           try
-            let t = Js.destruct Model.Weevil_json.enc js in
+            let t = Js.destruct enc js in
             Lwt.return_some t
           with e ->
             let%lwt () = Logs_lwt.warn (fun m -> m "Cannot js destruct '%s': %s" ln @@ Printexc.to_string e) in
@@ -35,7 +35,7 @@ let read_weevil_recs = function
 
 let step_handler ~recs msg _ic _oc =
   let%lwt () = Logs_lwt.info (fun m -> m "[STEPPER] got msg from subprocess '%s'" msg) in
-  match%lwt read_weevil_recs msg with
+  match%lwt read_weevil_recs ~enc:Model.Weevil_json.enc msg with
   | Some wrec ->
     let () = Tbl.add_new recs wrec.location wrec in
     Logs_lwt.info (fun m -> m "[STEPPER] got weevil log record from subprocess '%s'" msg)
@@ -53,8 +53,12 @@ let rec main_handler ~recs ~stepper_process ic oc =
     match (MichEvent.from_msg_opt msg, stepper_process) with
     | Some (GetRecords), _ ->
       let%lwt _ = Logs_lwt.err (fun m -> m "[MICH] getting current records") in
-      let enc = Data_encoding.list Model.Weevil_json.enc in
-      let records = Tbl.to_list recs in
+      (* we use an option here becaus want to distinguish if list is empty *)
+      let enc = Data_encoding.(option @@ list Model.Weevil_json.enc) in
+      let records =
+        Tbl.to_list recs
+        |> function | [] -> None | _ as ls -> Some ls
+      in
       let msg = Js.(construct enc records |> to_string |> Dapper.Dap.Header.wrap) in
       let%lwt () = Lwt_io.write oc msg in
       (* NOTE keep old ones so we can do back stepping - TODO back stepping *)
