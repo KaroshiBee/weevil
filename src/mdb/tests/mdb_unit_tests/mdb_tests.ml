@@ -55,10 +55,20 @@ let test_get_execution_trace_updates () =
   let () =
     Alcotest.(check bool) "no longer contains locs 2 after" _2_not_in true
   in
+  let _1_3_in = is_in 1 && is_in 3 in
+  let () =
+    Alcotest.(check bool) "still contains locs 1,3 after" _1_3_in true
+  in
 
-  match Tbl.to_list tbl with
-  | [] -> ()
-  | _ -> failwith "should not have any new entries left"
+  let () =
+    match Tbl.to_list tbl with
+    | [] -> ()
+    | _ -> failwith "should not have any new entries left"
+  in
+  let () = Tbl.remove_all tbl in
+  let nothing_in = not (is_in 1 || is_in 2 || is_in 3) in
+  Alcotest.(check bool) "contains nothing after remove all" nothing_in true
+
 
 let () =
   let open Alcotest in

@@ -15,6 +15,9 @@ let make_old l = Old l
 type 'log_element t = 'log_element log_record LocHashtbl.t
 let make () = LocHashtbl.create 500
 
+let remove_all t =
+  LocHashtbl.reset t
+
 let add_new t loc log_element =
   LocHashtbl.add t loc @@ make_new log_element
 
