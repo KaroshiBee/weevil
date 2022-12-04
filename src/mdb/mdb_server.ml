@@ -3,12 +3,10 @@ module Js = Data_encoding.Json
 module Dap = Dapper.Dap
 module MichEvent = Mdb_event
 module Model = Mdb_model
-
+module Tbl = Mdb_log_records
 open Lwt
 
 exception Stepper_error of string
-
-let recs : Model.Weevil_json.t list ref  = ref []
 
 let read_weevil_recs = function
   | ln when 0 < String.length ln && String.get ln 0 != '#' -> (
@@ -35,19 +33,19 @@ let read_weevil_recs = function
     let%lwt () = Logs_lwt.info (fun m -> m "other: %s" ln) in
     Lwt.return_none
 
-let step_handler msg _ic _oc =
+let step_handler ~recs msg _ic _oc =
   let%lwt () = Logs_lwt.info (fun m -> m "[STEPPER] got msg from subprocess '%s'" msg) in
   match%lwt read_weevil_recs msg with
   | Some wrec ->
-    recs := wrec :: !recs;
+    let () = Tbl.add_new recs wrec.location wrec in
     Logs_lwt.info (fun m -> m "[STEPPER] got weevil log record from subprocess '%s'" msg)
   | None -> Lwt.return_unit
 
 and step_err_handler err _ic _oc =
-  let%lwt () = Logs_lwt.err (fun m -> m "step_err_handler: %s" err) in
-	raise @@ Stepper_error err
+  let%lwt () = Logs_lwt.err (fun m -> m "[STEPPER ERR] step_err_handler: %s" err) in
+  Lwt.return_unit
 
-let rec main_handler ~stepper_process ic oc =
+let rec main_handler ~recs ~stepper_process ic oc =
   let%lwt ln = Lwt_io.read_line_opt ic in
   match ln with
   | Some msg -> (
@@ -56,20 +54,24 @@ let rec main_handler ~stepper_process ic oc =
     | Some (GetRecords), _ ->
       let%lwt _ = Logs_lwt.err (fun m -> m "[MICH] getting current records") in
       let enc = Data_encoding.list Model.Weevil_json.enc in
-      let msg = Js.(construct enc !recs |> to_string |> Dapper.Dap.Header.wrap) in
+      let records = Tbl.to_list recs in
+      let msg = Js.(construct enc records |> to_string |> Dapper.Dap.Header.wrap) in
       let%lwt () = Lwt_io.write oc msg in
-      main_handler ~stepper_process ic oc
+      (* NOTE keep old ones so we can do back stepping - TODO back stepping *)
+      let () = Tbl.new_to_old_inplace ~keep_old:true recs in
+      main_handler ~recs ~stepper_process ic oc
 
     | Some (RunScript _), Some process when process#state = Lwt_process.Running ->
       let%lwt _ = Logs_lwt.err (fun m -> m "[MICH] trying to start a new stepper with old one still running, ignore") in
-      main_handler ~stepper_process ic oc
+      main_handler ~recs ~stepper_process ic oc
 
     | Some (RunScript cmd), Some _
     | Some (RunScript cmd), None ->
       let%lwt _ = Logs_lwt.info (fun m -> m "[MICH] starting new stepper with cmd '%s'" cmd) in
-      let () = recs := [] in
+      (* NOTE clear out old log records *)
+      let () = Tbl.remove_all recs in
       let cmd = ("", String.split_on_char ' ' cmd |> Array.of_list) in
-      Lwt_process.with_process_full cmd (stepper_process_start ic oc)
+      Lwt_process.with_process_full cmd (stepper_process_start ~recs ic oc)
 
     | Some (Step 1), Some process ->
       let _ =
@@ -86,42 +88,42 @@ let rec main_handler ~stepper_process ic oc =
               Logs_lwt.warn (fun m -> m "[MICH] Process finished: unix error")
           )
       in
-      main_handler ~stepper_process ic oc
+      main_handler ~recs ~stepper_process ic oc
     | Some (Step n), Some _ ->
       let%lwt _ = Logs_lwt.warn (fun m -> m "[MICH] TODO Step %d" n) in
-      main_handler ~stepper_process ic oc
+      main_handler ~recs ~stepper_process ic oc
 
     | Some Terminate, Some process when process#state = Lwt_process.Running ->
       (* NOTE debug this message because cram tests use Info and we dont want PIDs in the cram test data *)
       let%lwt () = Logs_lwt.debug (fun m -> m "[MICH] Terminating pid '%d'" process#pid) in
       let () = process#terminate in
       let stepper_process = None in
-      main_handler ~stepper_process ic oc
+      main_handler ~recs ~stepper_process ic oc
 
     | Some Terminate, Some _
     | Some Terminate, None ->
       let%lwt () = Logs_lwt.info (fun m -> m "[MICH] already terminated") in
       let stepper_process = None in
-      main_handler ~stepper_process ic oc
+      main_handler ~recs ~stepper_process ic oc
 
     | Some _, None ->
       let%lwt _ = Logs_lwt.warn (fun m -> m "[MICH] LOST PROCESS '%s'" msg) in
-      main_handler ~stepper_process ic oc
+      main_handler ~recs ~stepper_process ic oc
 
     | None, _ ->
       let%lwt _ = Logs_lwt.warn (fun m -> m "[MICH] couldn't decode '%s'" msg) in
-      main_handler ~stepper_process ic oc
+      main_handler ~recs ~stepper_process ic oc
   )
 
   | None -> Logs_lwt.info (fun m -> m "[MICH] connection closed")
 
-and stepper_process_start ic oc process_full =
+and stepper_process_start ~recs ic oc process_full =
   let%lwt _ = Logs_lwt.info (fun m -> m "[MICH] stepper_process_start") in
   let%lwt _ = Logs_lwt.info (fun m -> m "[STEPPER] starting") in
   let stepper_process = Some process_full in
   let st_out = Dap.content_length_message_handler
       ~name:"STEPPER"
-      ~handle_message:step_handler
+      ~handle_message:(step_handler ~recs)
       ~content_length:None
       process_full#stdout
       process_full#stdin
@@ -133,7 +135,7 @@ and stepper_process_start ic oc process_full =
       process_full#stderr
       process_full#stdin
   in
-  let m = main_handler ~stepper_process ic oc in
+  let m = main_handler ~recs ~stepper_process ic oc in
   Lwt.join [st_err; st_out; m]
 
 let on_exn exn =
@@ -141,7 +143,8 @@ let on_exn exn =
 
 let on_connection _flow ic oc =
   let%lwt () = Logs_lwt.info (fun m -> m "[MICH] got connection") in
-  main_handler ~stepper_process:None ic oc
+  let recs : Model.Weevil_json.t Tbl.t = Tbl.make () in
+  main_handler ~recs ~stepper_process:None ic oc
 
 let lwt_svc ?stopper port =
   let open Lwt_result_syntax in
