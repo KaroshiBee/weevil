@@ -267,10 +267,5 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
 
     return {t with code_trace=(Some code_trace)}
 
-  let get_execution_trace_updates ~logger =
-    let open Lwt_syntax in
-    let* res = Interp.get_execution_trace_updates logger in
-    return @@ Environment.wrap_tzresult res
-
 
 end

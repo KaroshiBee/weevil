@@ -6,19 +6,59 @@ module Log_records = Mdb_log_records
 module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
 
   type t = Script_typed_ir.logger
-  type log_records = Cfg.t Log_records.t
 
-  let trace_logger ?(full_trace=false) ?log_records ~in_channel () =
+  let log_element_to_json log_element =
+    let open Lwt_result_syntax in
+    let module List = Environment.List in
+    let* (loc, gas, exprs) =
+      trace
+        Plugin.Plugin_errors.Cannot_serialize_log
+        (let* stack = Cfg.unparse_stack log_element in
+         let stack = List.map (fun (expr, _, _) -> expr) stack in
+         let loc = Cfg.get_loc log_element in
+         let gas = Cfg.get_gas log_element in
+         return (loc, gas, stack))
+    in
+    (* TODO better handling of mich expressions/tickets *)
+    let wrec = Mdb_model.Weevil_record.make loc gas (exprs |> List.map (fun e -> (e, None, false))) in
+    let wrec_js = Mdb_model.Weevil_record.to_weevil_json wrec in
+    let js = Data_encoding.Json.(
+        construct Mdb_model.Weevil_json.enc wrec_js
+        |> to_string
+        |> Dapper.Dap.Header.wrap
+      ) in
+    return js
 
-    (* NOTE storage for the logs,
-       new ones are Hashtbl.add'd because for now we keep everything,
-       maybe later we will remove old ones as we go ? *)
-    let log_records = Option.value log_records ~default:(Log_records.make ()) in
+  let log_element_to_out log_element out_channel =
+    (* unparse the log_element and wait for the data *)
+    let to_out : string option ref = ref None in
+    let () =
+      Lwt.async (fun () ->
+          let open Lwt_syntax in
+          let* js = log_element_to_json log_element in
+          match js with
+          | Ok js ->
+            let () = to_out := Some js in
+            Lwt.return_unit
+          | Error _ -> Lwt.return_unit
+        )
+    in
+    let rec aux () =
+      match !to_out with
+      | Some s ->
+        output_value out_channel s; flush out_channel
+      | None ->
+        Unix.sleepf 0.01;
+        aux ()
+    in
+    aux ()
+
+  let trace_logger ~in_channel ~out_channel () =
 
     let log_interp _ ctxt loc sty stack =
       Logs.info (fun m -> m "log_interp @ location %d" loc);
-      let () = if Log_records.mem log_records loc then Logs.debug (fun m -> m "log_interp @ overwriting location %d with new log record" loc) else () in
-      Log_records.add_new log_records loc @@ Cfg.make_log ctxt loc stack sty
+      let log_element = Cfg.make_log ctxt loc stack sty in
+      log_element_to_out log_element out_channel
     in
     let log_entry _ _ctxt loc _sty _stack =
       Logs.info (fun m -> m "log_entry @ location %d" loc);
@@ -28,43 +68,18 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
     in
     let log_exit _ ctxt loc sty stack =
       Logs.info (fun m -> m "log_exit @ location %d" loc);
-      (* NOTE with looping constructs in mich you will overwrite the same locs again *)
-      let () = if Log_records.mem log_records loc then Logs.debug (fun m -> m "log_exit @ overwriting location %d with new log record" loc) else () in
-      Log_records.add_new log_records loc @@ Cfg.make_log ctxt loc stack sty
+      let log_element = Cfg.make_log ctxt loc stack sty in
+      log_element_to_out log_element out_channel
     in
     let log_control _ =
       Logs.info (fun m -> m "log_control");
     in
     let get_log () =
-      (* NOTE can call this repeatedly
-         but it should only returns new records *)
+      (* NOTE we dont need to use this anymore *)
       let open Lwt_result_syntax in
-      let module List = Environment.List in
-      let* res =
-        Log_records.to_list log_records
-        |> List.map_es
-          (fun log_element ->
-             trace
-               Plugin.Plugin_errors.Cannot_serialize_log
-               (let* stack = Cfg.unparse_stack log_element in
-                let stack = List.map (fun (expr, _, _) -> expr) stack in
-                let loc = Cfg.get_loc log_element in
-                let gas = Cfg.get_gas log_element in
-                return (loc, gas, stack))
-          )
-      in
-      (* update all the New ones to Old, if full_trace then keep old ones as old *)
-      let () = Log_records.new_to_old_inplace ~keep_old:full_trace log_records
-      in
-      return @@ Some res
+      return @@ Some []
     in
     Script_typed_ir.{log_exit; log_entry; log_interp; get_log; log_control}
-
-  let get_execution_trace_updates Script_typed_ir.{get_log; _} =
-    let open Lwt_result_syntax in
-    let* trace = get_log () in
-    let trace = Option.value trace ~default:[] in
-    return trace
 
   let execute ctxt step_constants ~script ~entrypoint ~parameter ~logger =
     let open Script_interpreter in

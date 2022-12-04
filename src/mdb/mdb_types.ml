@@ -30,17 +30,15 @@ end
 module type INTERPRETER = sig
 
   type t
-  type log_records
 
   val trace_logger :
-    ?full_trace:bool ->
-    ?log_records:log_records ->
     in_channel:in_channel ->
+    out_channel:out_channel ->
     unit ->
     t
 
-  val get_execution_trace_updates :
-    t -> Script_typed_ir.execution_trace tzresult Lwt.t
+  (* val get_execution_trace_updates : *)
+  (*   t -> Script_typed_ir.execution_trace tzresult Lwt.t *)
 
   val execute :
     Alpha_context.t ->

@@ -6,50 +6,49 @@ let file_arg = "FILE"
 let protocol_str = "PtKathmankSpLLDALzWw7CGD2j2MtyveTwboEYokqUCP4a1LxMg"
 let base_dir = "/tmp/.weevil"
 
-let logger = Interpreter.trace_logger ~in_channel:stdin ()
-
+let logger = Interpreter.trace_logger ~in_channel:stdin ~out_channel:stdout ()
 
 (* NOTE unit on end is for the logging setup *)
 let process headless script_filename_opt () =
   let open Lwt_result_syntax in
-  let pause = 0.1 in
 
-  (* loop and call logger.get_logs ()
-     it loops for ever but this process is spawned as a child process
-     of the mdb service and will complete when the script execution completes
-     *)
-  let rec get_logging_records : unit -> unit Cmdliner.Term.ret Lwt.t = fun () ->
-    let*! recs = Stepper.get_execution_trace_updates ~logger in
-    let*! _ = match recs with
-    | Ok [] -> return ()
-    | Ok recs ->
-      let*! ret =
-        List.iter_s (fun (loc, gas, exprs) ->
-            (* TODO better handling of mich expressions/tickets *)
-            let wrec = Mdb_model.Weevil_record.make loc gas (exprs |> List.map (fun e -> (e, None, false))) in
-            let wrec_js = Mdb_model.Weevil_record.to_weevil_json wrec in
-            let js = Data_encoding.Json.(
-                construct Mdb_model.Weevil_json.enc wrec_js
-                |> to_string
-                |> Dapper.Dap.Header.wrap
-              ) in
-            Lwt_io.(write stdout js)
-          ) recs
-      in
-      return ret
+  (* let rec get_logging_records : unit -> _ Lwt.t = fun () -> *)
+  (*   let pause = 0.1 in *)
 
-    | Error _ as e ->
-      let enc = result_encoding Data_encoding.unit in
-      let err_msg = Data_encoding.Json.(construct enc e |> to_string) |> Dapper.Dap.Header.wrap in
-      let*! ret = Lwt_io.(write stderr err_msg) in
-      return ret
-    in
+  (*   let*! () = Logs_lwt.info (fun m -> m "get logging records") in *)
+  (*   let*! recs = Stepper.get_execution_trace_updates ~logger in *)
+  (*   let*! _ = match recs with *)
+  (*     | Ok [] -> return () *)
+  (*     | Ok recs -> *)
+  (*       let*! ret = *)
+  (*         List.iter_s (fun (loc, gas, exprs) -> *)
+  (*             (\* TODO better handling of mich expressions/tickets *\) *)
+  (*             let wrec = Mdb_model.Weevil_record.make loc gas (exprs |> List.map (fun e -> (e, None, false))) in *)
+  (*             let wrec_js = Mdb_model.Weevil_record.to_weevil_json wrec in *)
+  (*             let js = Data_encoding.Json.( *)
+  (*                 construct Mdb_model.Weevil_json.enc wrec_js *)
+  (*                 |> to_string *)
+  (*                 |> Dapper.Dap.Header.wrap *)
+  (*               ) in *)
+  (*             Lwt_io.(write stdout js) *)
+  (*           ) recs *)
+  (*       in *)
+  (*       return ret *)
 
-    let*! () = Lwt_unix.sleep pause in
-    get_logging_records ()
-  in
+  (*     | Error _ as e -> *)
+  (*       let enc = result_encoding Data_encoding.unit in *)
+  (*       let err_msg = Data_encoding.Json.(construct enc e |> to_string) |> Dapper.Dap.Header.wrap in *)
+  (*       let*! ret = Lwt_io.(write stderr err_msg) in *)
+  (*       return ret *)
+  (*   in *)
 
-  let stepper : Stepper.t tzresult Lwt.t =
+  (*   let*! () = Logs_lwt.info (fun m -> m "get logging records sleeping") in *)
+  (*   let*! () = Lwt_unix.sleep pause in *)
+  (*   let*! () = Logs_lwt.info (fun m -> m "get logging records recurse") in *)
+  (*   get_logging_records () *)
+  (* in *)
+
+  let stepper : unit -> Stepper.t tzresult Lwt.t = fun () ->
     match script_filename_opt with
     | Some script_filename ->
       let* stepper = Stepper.init ~protocol_str ~base_dir () in
@@ -79,12 +78,10 @@ let process headless script_filename_opt () =
       Lwt.return @@ `Error (not headless, ss)
   in
 
-  let step = post_process stepper in
-  let logging = get_logging_records ()  in
-  (* NOTE the use of Lwt.pick means that log polling
-     should get cancelled when stepping finishes,
-     as logging runs forever and stepping doesnt *)
-  Lwt_main.run @@ Lwt.pick [step; logging]
+  let s () =
+    let step = stepper () in post_process step
+  in
+  Lwt_main.run @@ s ()
 
 
 module Tm = struct

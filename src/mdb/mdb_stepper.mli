@@ -32,8 +32,4 @@ module T : functor (INTERP:Mdb_types.INTERPRETER) -> sig
     t ->
     t tzresult Lwt.t
 
-  val get_execution_trace_updates :
-    logger:INTERP.t ->
-    Script_typed_ir.execution_trace tzresult Lwt.t
-
 end

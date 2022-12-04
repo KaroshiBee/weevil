@@ -39,26 +39,31 @@ let test_get_execution_trace_updates () =
   let is_in = Tbl.mem tbl in
   let all_in = is_in 1 && is_in 2 && is_in 3 in
   let () =
-    Alcotest.(check bool) "contains locs 1,2,3 before" all_in true in
+    Alcotest.(check bool) "contains locs 1,2,3 before" all_in true
+  in
 
-  let logger = TestInterp.trace_logger ~log_records:tbl ~in_channel:stdin () in
-  let res = Lwt_main.run @@ TestInterp.get_execution_trace_updates logger in
-  match res with
-  | Error _ -> failwith "shouldnt be errored"
-  | Ok [(100, _, _); (100, _, _)] ->
-    (* check after - remember the 100 is the fake loc in the TestCfg *)
-    let only_1_3_in = is_in 1 && is_in 3 in
-    let () =
-      Alcotest.(check bool) "contains locs 1,3 after" only_1_3_in true in
+  let () =
+    match Tbl.to_list tbl with
+    | [TestCfg.TestLog 1; TestCfg.TestLog 3;] -> ()
+    | xs ->
+        xs |> List.iter (function TestCfg.TestLog x -> Printf.printf "%d" x);
+        failwith "should return sorted list by loc of only new ones"
+  in
 
-    let two_not_in = is_in 2 in
-    Alcotest.(check bool) "doesnt contain loc 2 after" two_not_in false
-  | Ok other -> let n = List.length other in failwith @@ Printf.sprintf "should only have loc 100 @ keys 1 and 3, got %d-list" n
+  let () = Tbl.new_to_old_inplace ~keep_old:false tbl in
+  let _2_not_in = not @@ is_in 2 in
+  let () =
+    Alcotest.(check bool) "no longer contains locs 2 after" _2_not_in true
+  in
+
+  match Tbl.to_list tbl with
+  | [] -> ()
+  | _ -> failwith "should not have any new entries left"
 
 let () =
   let open Alcotest in
   run "Traced interpreter" [
-      "execution trace", [
+      "log records table", [
           test_case "Only new ones" `Quick test_get_execution_trace_updates;
         ];
     ]
