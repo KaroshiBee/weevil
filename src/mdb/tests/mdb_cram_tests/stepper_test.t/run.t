@@ -3,6 +3,9 @@ multiplies 2 * 250, can run with $ cd ~/tezos && dune exec -- tezos-client --mod
 I send in 10 newlines to check that its ok to send them when it is finished
 
   $ echo "\n \n \n \n \n \n \n \n \n \n" | weevil stepper --headless multiply_2_x_250_equals_500.tz
+  Content-Length: 84
+  
+  { "location": 7, "gas": "92.565 units remaining",  "stack": [ "(Pair Unit Unit)" ] }
   Content-Length: 67
   
   { "location": 7, "gas": "92.555 units remaining", "stack": [ "" ] }
@@ -40,32 +43,26 @@ testing with no filename and not headless
 
 testing with no filename in headless mode
   $ weevil stepper --headless
+  tezos-weevil: 
   Content-Length: 133
   
-  { "error":    [ { "kind": "temporary", "id": "failure",        "msg": "Invalid_argument(\"required argument FILE is missing\")" } ] }tezos-weevil: Stepper error - Error:
-                                  Invalid_argument("required argument FILE is missing")
-                
+  { "error":    [ { "kind": "temporary", "id": "failure",        "msg": "Invalid_argument(\"required argument FILE is missing\")" } ] }
   [124]
 
 testing with bad filename in headless mode
   $ weevil stepper -h notthere.tz
+  tezos-weevil: 
   Content-Length: 161
   
-  { "error":    [ { "kind": "temporary", "id": "failure",        "msg":          "cannot read file (Unix.Unix_error(Unix.ENOENT, \"open\", \"notthere.tz\"))" } ] }tezos-weevil: Stepper error - Error:
-                                  cannot read file (Unix.Unix_error(Unix.ENOENT, "open", "notthere.tz"))
-                
+  { "error":    [ { "kind": "temporary", "id": "failure",        "msg":          "cannot read file (Unix.Unix_error(Unix.ENOENT, \"open\", \"notthere.tz\"))" } ] }
   [124]
 
 testing with bad michelson in headless mode
   $ weevil stepper -h bad_michelson.tz
+  tezos-weevil: 
   Content-Length: 573
   
-  { "error":    [ { "kind": "permanent", "id": "micheline.parse_error.unclosed_token",        "location":          { "start": { "line": 2, "column": 5, "point": 35, "byte": 35 },            "stop": { "line": 2, "column": 6, "point": 36, "byte": 36 } },        "token": { "punctuation": "{" } },      { "kind": "permanent", "id": "micheline.parse_error.unclosed_token",        "location":          { "start": { "line": 1, "column": 0, "point": 0, "byte": 0 },            "stop": { "line": 1, "column": 1, "point": 1, "byte": 1 } },        "token": { "punctuation": "{" } } ] }tezos-weevil: Stepper error - Error:
-                                  At line 2 characters 5 to 6, unclosed curly brace,
-                                  trace:
-                                  At line 1 characters 0 to 1, unclosed curly brace
-                                  At line 2 characters 5 to 6, unclosed curly brace
-                
+  { "error":    [ { "kind": "permanent", "id": "micheline.parse_error.unclosed_token",        "location":          { "start": { "line": 2, "column": 5, "point": 35, "byte": 35 },            "stop": { "line": 2, "column": 6, "point": 36, "byte": 36 } },        "token": { "punctuation": "{" } },      { "kind": "permanent", "id": "micheline.parse_error.unclosed_token",        "location":          { "start": { "line": 1, "column": 0, "point": 0, "byte": 0 },            "stop": { "line": 1, "column": 1, "point": 1, "byte": 1 } },        "token": { "punctuation": "{" } } ] }
   [124]
 
 

@@ -46,7 +46,7 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
     let rec aux () =
       match !to_out with
       | Some s ->
-        output_value out_channel s; flush out_channel
+        Printf.(fprintf out_channel "%s\n" s; flush out_channel)
       | None ->
         Unix.sleepf 0.01;
         aux ()

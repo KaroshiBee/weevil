@@ -63,16 +63,17 @@ let process headless script_filename_opt () =
     let*! stepper_result = res in
     match stepper_result with
     | Ok _ -> (* TODO dont ignore OK output *) Lwt.return @@ `Ok ()
-    | Error errs as e ->
+    | Error _ as e when headless ->
+      let*! () =
+        let enc = result_encoding Data_encoding.unit in
+        let err_msg = Data_encoding.Json.(construct enc e |> to_string) |> Dapper.Dap.Header.wrap in
+        Lwt_io.(write stderr err_msg)
+      in
+      (* if in headless mode then dont show --help if the cli has errors *)
+      Lwt.return @@ `Error (false, "")
+    | Error errs ->
       let ss =
         Format.asprintf "Stepper error - %a" pp_print_trace errs
-      in
-      let*! () =
-        if headless then
-          let enc = result_encoding Data_encoding.unit in
-          let err_msg = Data_encoding.Json.(construct enc e |> to_string) |> Dapper.Dap.Header.wrap in
-          Lwt_io.(write stderr err_msg)
-        else Lwt.return_unit
       in
       (* if in headless mode then dont show --help if the cli has errors *)
       Lwt.return @@ `Error (not headless, ss)
