@@ -17,6 +17,8 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
     code_trace:code_trace option;
   }
 
+  type logger = Interp.t
+
   let code_trace t = t.code_trace
   let chain_id t = t.chain_id
   let alpha_context t = t.alpha_context
@@ -238,7 +240,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
 
     return {chain_id; alpha_context; mock_context; code_trace=None}
 
-  let typecheck ~script_filename t =
+  let typecheck ~script_filename ~storage ~input t =
 
     let open Lwt_result_syntax in
 
@@ -246,26 +248,26 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
     let* source = t.mock_context#read_file script_filename in
     let*! () = Logs_lwt.info (fun m -> m "parsing contract source") in
     let*? script = Mdb_typechecker.of_source source in
-    return script
+    let*! () = Logs_lwt.info (fun m -> m "parsing storage") in
+    let*? storage = Mdb_typechecker.from_string storage in
+    let*! () = Logs_lwt.info (fun m -> m "parsing input") in
+    let*? input = Mdb_typechecker.from_string input in
+    return (script, storage, input)
 
 
-  let step ~logger ~(script:Mdb_typechecker.t) t =
+  let step ~logger ~(script:Mdb_typechecker.t) ~(storage:Mdb_typechecker.t) ~(input:Mdb_typechecker.t) t =
 
     let open Lwt_result_syntax in
-
-    (* TODO input and storage need to passed in too *)
-    let*? mich_unit = Mdb_typechecker.from_string "Unit" in
 
     let*! () = Logs_lwt.info (fun m -> m "running contract code") in
     let* code_trace = trace_code
         ~script:script.expanded
-        ~storage:mich_unit.expanded
-        ~input:mich_unit.expanded
+        ~storage:storage.expanded
+        ~input:input.expanded
         ~logger
         t.alpha_context
     in
 
     return {t with code_trace=(Some code_trace)}
-
 
 end

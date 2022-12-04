@@ -1,0 +1,8 @@
+parameter int ;
+storage int ;
+code { CAR ;
+       LAMBDA int int { PUSH int 1 ; ADD } ;
+       SWAP ;
+       EXEC ;
+       NIL operation ;
+       PAIR }

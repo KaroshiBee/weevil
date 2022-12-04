@@ -1,0 +1,18 @@
+parameter int ;
+storage int ;
+code { CAR ; PUSH int 0 ; SWAP ; PAIR ;
+       LEFT int ;
+       LOOP_LEFT {   DUP ;
+                     CAR ;
+                     DUP ;
+                     PUSH int 1 ;
+                     SWAP ;
+                     SUB ;
+                     DIP { SWAP ; CDR ; ADD };
+                     DUP ;
+                     GT ;
+                     IF
+                            { PAIR ; LEFT int }
+                            { DROP ; RIGHT (pair int int) }  } ;
+       NIL operation ;
+       PAIR }

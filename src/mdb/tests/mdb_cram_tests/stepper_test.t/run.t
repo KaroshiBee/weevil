@@ -31,6 +31,43 @@ I send in 10 newlines to check that its ok to send them when it is finished
   
   { "location": 19, "gas": "92.495 units remaining",  "stack": [ "(Pair {} Unit)" ] }
 
+testing a contract that has a failwith, it should incrementally step up to it and then fail
+  $ echo "\n \n \n \n \n \n \n \n \n \n" | weevil stepper --headless --storage '0' --parameter '(Pair 7 5)' failwith.tz
+  Content-Length: 87
+  
+  { "location": 9, "gas": "91.834 units remaining",  "stack": [ "(Pair (Pair 7 5) 0)" ] }
+  Content-Length: 77
+  
+  { "location": 9, "gas": "91.824 units remaining", "stack": [ "(Pair 7 5)" ] }
+  Content-Length: 94
+  
+  { "location": 10, "gas": "91.814 units remaining",  "stack": [ "(Pair 7 5)", " (Pair 7 5)" ] }
+  Content-Length: 91
+  
+  { "location": 11, "gas": "91.804 units remaining",  "stack": [ "7", " 5", " (Pair 7 5)" ] }
+  Content-Length: 85
+  
+  { "location": 12, "gas": "91.769 units remaining",  "stack": [ "1", " (Pair 7 5)" ] }
+  Content-Length: 88
+  
+  { "location": 13, "gas": "91.759 units remaining",  "stack": [ "True", " (Pair 7 5)" ] }
+  Content-Length: 79
+  
+  { "location": 14, "gas": "91.759 units remaining",  "stack": [ "(Pair 7 5)" ] }
+  Content-Length: 75
+  
+  { "location": 16, "gas": "91.749 units remaining", "stack": [ "7", " 5" ] }
+  Content-Length: 85
+  
+  { "location": 14, "gas": "91.729 units remaining",  "stack": [ "True", " 7", " 5" ] }
+  Content-Length: 97
+  
+  { "location": 17, "gas": "91.719 units remaining",  "stack": [ "\"BOO\"", " True", " 7", " 5" ] }
+  tezos-weevil: 
+  Content-Length: 368
+  
+  { "error":    [ { "kind": "temporary",        "id": "proto.014-PtKathma.michelson_v1.runtime_error",        "contract_handle": "KT1BEqzn5Wx8uJrZNvuS9DVHmLvG9td3fDLi",        "contract_code": "Deprecated" },      { "kind": "temporary",        "id": "proto.014-PtKathma.michelson_v1.script_rejected",        "location": 20, "with": { "string": "BOO" }, "trace": [] } ] }
+  [124]
 
 testing with no filename and not headless
   $ weevil stepper
@@ -85,7 +122,7 @@ show the help
   AARRGGUUMMEENNTTSS
          _F_I_L_E
              The Michelson contract filename that the weevil stepper will
-             execute (required).
+             incrementally execute (required).
   
   OOPPTTIIOONNSS
          ----ccoolloorr=_W_H_E_N (absent=aauuttoo)
@@ -95,8 +132,16 @@ show the help
              Run the tool in headless mode, this means that --help is not shown
              on error and any errors are returned as JSON
   
+         --pp _M_I_C_H_E_L_S_O_N, ----ppaarraammeetteerr=_M_I_C_H_E_L_S_O_N
+             The Michelson input parameter that the weevil stepper will execute
+             with (default 'Unit').
+  
          --qq, ----qquuiieett
              Be quiet. Takes over --vv and ----vveerrbboossiittyy.
+  
+         --ss _M_I_C_H_E_L_S_O_N, ----ssttoorraaggee=_M_I_C_H_E_L_S_O_N
+             The initial Michelson storage that the weevil stepper will execute
+             with (default 'Unit').
   
          --vv, ----vveerrbboossee
              Increase verbosity. Repeatable, but more than twice does not bring

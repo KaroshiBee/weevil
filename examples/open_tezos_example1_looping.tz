@@ -1,0 +1,18 @@
+parameter (pair int int) ;
+storage int ;
+code { CAR ;
+       DUP ;
+       UNPAIR ;
+       COMPARE ;
+       GT ;
+       DIP { UNPAIR } ;
+       LOOP { DIP { DUP } ;
+              DUP ;
+              DIP { SWAP } ;
+              CMPLE ;
+              IF
+                     { PUSH bool False }
+                     { DIP { DUP } ; SUB ; PUSH bool True } ; } ;
+       DIP { DROP } ;
+       NIL operation ;
+       PAIR }

@@ -105,6 +105,10 @@ let%expect_test "Check loading/stepping a contract" =
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] parsing contract source'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] parsing storage'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] parsing input'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] running contract code'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] getting storage and code'
