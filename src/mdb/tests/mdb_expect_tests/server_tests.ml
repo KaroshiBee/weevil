@@ -121,19 +121,17 @@ let%expect_test "Check loading/stepping a contract" =
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] getting step constants'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] getting logger'
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] executing contract'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] log_interp  location 7'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] (Pair Unit Unit)'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] log_entry  location 7'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] got msg 'step''
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] log_exit  location 7'
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] sent weevil record'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] log_entry  location 8'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
@@ -142,8 +140,6 @@ let%expect_test "Check loading/stepping a contract" =
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] log_exit  location 8'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] 25'
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] sent weevil record'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] log_entry  location 11'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
@@ -155,8 +151,6 @@ let%expect_test "Check loading/stepping a contract" =
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] 25'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] sent weevil record'
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] log_entry  location 14'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] got msg 'step''
@@ -165,10 +159,18 @@ let%expect_test "Check loading/stepping a contract" =
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] 50'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] sent weevil record'
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] log_entry  location 15'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] got messsage 'Content-Length: 84'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] got content-length message with length 84
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] got content-length message with length 84 and header_break '
+    '
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] got content-length message with message '{ "location": 7, "gas": "92.565 units remaining",  "stack": [ "(Pair Unit Unit)" ] }'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] got msg from subprocess '{ "location": 7, "gas": "92.565 units remaining",  "stack": [ "(Pair Unit Unit)" ] }'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] got weevil log record from subprocess '{ "location": 7, "gas": "92.565 units remaining",  "stack": [ "(Pair Unit Unit)" ] }'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] got messsage ''
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] got messsage 'Content-Length: 67'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] got content-length message with length 67
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] got content-length message with length 67 and header_break '
@@ -253,6 +255,8 @@ let%expect_test "check for bad filename" =
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] reading contract file'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'tezos-weevil: '
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'Content-Length: 166'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got content-length message with length 166
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got content-length message with length 166 and header_break '
@@ -304,6 +308,8 @@ let%expect_test "check for bad michelson" =
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] reading contract file'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] parsing contract source'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'tezos-weevil: '
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'Content-Length: 982'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got content-length message with length 982
