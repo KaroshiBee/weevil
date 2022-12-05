@@ -21,8 +21,10 @@ module Launch = Dap_launch
 module Initialize = Dap_initialize
 module Configuration = Dap_configuration
 module Threads = Dap_threads
-module Scopes = Dap_scopes
 module Stack_trace = Dap_stack_trace
+module Scopes = Dap_scopes
+module Variables = Dap_variables
+module Next = Dap_next
 
 exception Wrong_encoder = Js_msg.Wrong_encoder
 
