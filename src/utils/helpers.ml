@@ -25,9 +25,9 @@ module StateMock = struct
     client_config=Option.some @@ Data.InitializeRequestArguments.make ~adapterID:"MOCK" ();
     mdb_config=None;
     log_records=Model.Weevil_json.([
-        {location=3; gas="8"; stack=["1";"2";"7"]};
-        {location=2; gas="9"; stack=["1";"2";"3";"4"]};
         {location=1; gas="10"; stack=["1";"2";"3"]};
+        {location=2; gas="9"; stack=["1";"2";"3";"4"]};
+        {location=3; gas="8"; stack=["1";"2";"7"]};
         ]);
   }
 

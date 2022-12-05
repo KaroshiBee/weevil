@@ -54,7 +54,7 @@ let%expect_test "Check sequencing etc for stack trace" =
                       [ { "id": 1, "name": "main",
                           "source":
                             { "name": "example.tz",
-                              "path": "/home/wyn/dev/weevil/example.tz" }, "line": 6,
+                              "path": "/home/wyn/dev/weevil/example.tz" }, "line": 4,
                           "column": 0 } ], "totalFrames": 1 } } |}]
         in
         let%lwt () =
