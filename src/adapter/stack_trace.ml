@@ -6,13 +6,11 @@ module Res = Dap.Response
 module Ev = Dap.Event
 module Model = Mdb.Mdb_model
 
-module T (S : Types.STATE_T) = struct
-
+module Mdb_ = struct
+  (* inspired by effect handlers - need a way to break out of handle message *)
   exception Get_records of Model.Weevil_json.t list
 
-  module On_request = Dap.Stack_trace.On_request (S)
-
-  let _get_recs ic oc =
+  let get_recs ic oc =
     let enc = Data_encoding.(option @@ list Model.Weevil_json.enc) in
 
     let handle_message msg _ic _oc =
@@ -20,7 +18,7 @@ module T (S : Types.STATE_T) = struct
       match%lwt Mdb.Mdb_server.read_weevil_recs ~enc msg with
       | Some (Some wrecs) ->
         let%lwt () = Logs_lwt.info (fun m -> m "[DAP-stacktrace] got %d weevil log records from mdb" @@ List.length wrecs) in
-        raise @@ Get_records (List.rev wrecs)
+        raise @@ Get_records wrecs
       | _ -> Lwt.return_unit
     in
 
@@ -41,6 +39,11 @@ module T (S : Types.STATE_T) = struct
 
     in
     Lwt.return !recs
+end
+
+module T (S : Types.STATE_T) = struct
+
+  module On_request = Dap.Stack_trace.On_request (S)
 
   let stack_trace_handler =
     On_request.make ~handler:(fun ~state _req ->
@@ -49,8 +52,10 @@ module T (S : Types.STATE_T) = struct
           let mich_get_recs = Mdb.Mdb_event.(make ~event:GetRecords ()) in
           let mich_msg = Data_encoding.Json.(construct Mdb.Mdb_event.enc mich_get_recs |> to_string |> Dap.Header.wrap) in
           let%lwt () = Lwt_io.write oc mich_msg in
-          let%lwt recs = _get_recs ic oc in
+          let%lwt recs = Mdb_.get_recs ic oc in
           let () = S.set_new_log_records state recs in
+          (* make sure to get the master set of recs from the state - does stuff like sorting and dedup *)
+          let recs = S.log_records state in
           let resp =
             let command = Dap.Commands.stackTrace in
             let stackFrames =

@@ -6,6 +6,8 @@ module Model = Mdb.Mdb_model
 
 module StateMock = struct
   type t = {
+    mutable ic : Lwt_io.input_channel option;
+    mutable oc : Lwt_io.output_channel option;
     mutable launch_mode : Launch_mode.t option;
     mutable seqr: Data.Seqr.t;
     mutable config : Config.t;
@@ -14,6 +16,8 @@ module StateMock = struct
   }
 
   let make () = {
+    ic=None;
+    oc=None;
     launch_mode = None;
     seqr = Data.Seqr.make ~seq:0 ();
     config=Config.make ~script_filename:"example.tz" ();

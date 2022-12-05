@@ -6,27 +6,7 @@ module Helpers = Utils.Helpers
 module Model = Mdb.Mdb_model
 
 module LaunchStateMock = struct
-  type t = {
-    mutable launch_mode : Dap.Launch_mode.t option;
-    mutable oc: Lwt_io.output_channel option;
-    mutable seqr: D.Seqr.t;
-    mutable config : Dap.Config.t;
-    mutable client_config : D.InitializeRequestArguments.t option;
-    mutable log_records : Model.Weevil_json.t list;
-  }
-
-  let make () = {
-    launch_mode = None;
-    oc=None;
-    seqr=D.Seqr.make ~seq:0 ();
-    config=Dap.Config.make ~script_filename:"example.tz" ();
-    client_config=Option.some @@ D.InitializeRequestArguments.make ~adapterID:"FAKE" ();
-    log_records=Model.Weevil_json.([
-        {location=3; gas="8"; stack=["1";"2";"7"]};
-        {location=2; gas="9"; stack=["1";"2";"3";"4"]};
-        {location=1; gas="10"; stack=["1";"2";"3"]};
-        ]);
-  }
+  include Helpers.StateMock
 
   let set_connect_backend t _ip _port =
     Dap.Result.ok @@ Option.(Lwt_io.stdin, get t.oc)
@@ -36,33 +16,10 @@ module LaunchStateMock = struct
 
   let set_start_backend _t _ip _port _cmd = Dap.Result.ok ()
 
-  let set_new_log_records t recs =
-    t.log_records <- (recs @ t.log_records)
-
-  let backend_ic _t = failwith "MOCK ic"
-
   let backend_oc t = t.oc
-
-  let log_records t = t.log_records
 
   let set_io t oc =
     t.oc <- Some oc
-
-  let launch_mode t = t.launch_mode
-
-  let set_launch_mode t launch_mode = t.launch_mode <- Some launch_mode
-
-  let current_seqr t = t.seqr
-
-  let set_seqr t seqr = t.seqr <- seqr
-
-  let config t = t.config
-
-  let set_config t config = t.config <- config
-
-  let client_config t = t.client_config
-
-  let set_client_config t config = t.client_config <- Some config
 
 end
 
