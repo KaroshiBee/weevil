@@ -17,6 +17,8 @@ module StateMock = struct
 
 end
 
+module Stack_trace = Stack_trace.T (StateMock)
+
 let%expect_test "Check sequencing etc for stack trace" =
   let st = StateMock.make () in
   Lwt_io.with_temp_file ~temp_dir:"/dev/shm" (fun (_, oc) ->

@@ -115,6 +115,12 @@ let scopes_msg ~seq =
 
 let scopes_req ~seq = Request.scopesRequest @@ scopes_msg ~seq
 
+let variables_msg ~seq =
+  let arguments = Data.VariablesArguments.make ~variablesReference:0 () in
+  Request.Message.make ~seq ~command:Commands.variables ~arguments ()
+
+let variables_req ~seq = Request.variablesRequest @@ variables_msg ~seq
+
 let to_msg (type cmd args presence) :
     (cmd, args, presence) Request.Message.t Request.t -> string = function
   | InitializeRequest req ->
