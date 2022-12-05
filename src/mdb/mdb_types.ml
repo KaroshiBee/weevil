@@ -1,6 +1,10 @@
 open Protocol
 open Alpha_context
 
+type mich_config = {
+  script_filename:string; storage:string; parameter:string;
+}
+
 module type INTERPRETER_CFG = sig
   open Environment
   open Environment.Error_monad

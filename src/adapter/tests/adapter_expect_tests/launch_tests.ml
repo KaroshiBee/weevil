@@ -96,9 +96,9 @@ let%expect_test "Check sequencing etc for launch" =
               Printf.printf "%s" s;
               let%lwt () =
                 [%expect {|
-                  Content-Length: 64
+                  Content-Length: 144
                   
-                  { "event": { "cmd": "dune exec -- weevil stepper example.tz" } } |}]
+                  { "event":    { "cmd":        "dune exec -- weevil stepper --headless --storage 'Unit' --parameter 'Unit' data/multiply_2_x_25_equals_50.tz" } } |}]
               in
               Lwt.return_unit
             )

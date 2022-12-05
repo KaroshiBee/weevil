@@ -13,6 +13,7 @@ module T (Dap_state:Dap.STATE_T) = struct
     mutable launch_mode : Dap.Launch_mode.t option;
     mutable config : Dap.Config.t;
     mutable client_config : Dap.Data.InitializeRequestArguments.t option;
+    mutable mdb_config : Mdb.Mdb_types.mich_config option;
     mutable log_records : Model.Weevil_json.t list;
   }
 
@@ -22,8 +23,9 @@ module T (Dap_state:Dap.STATE_T) = struct
     ic = None;
     oc = None;
     launch_mode = None;
-    config = Dap.Config.make ~script_filename:"UNKNOWN.tz" (); (* should throw if not changed to an existing file *)
+    config = Dap.Config.make ();
     client_config = None;
+    mdb_config = None;
     log_records = [];
   }
 
@@ -101,5 +103,9 @@ module T (Dap_state:Dap.STATE_T) = struct
   let client_config t = t.client_config
 
   let set_client_config t config = t.client_config <- Some config
+
+  let mdb_config t = t.mdb_config
+
+  let set_mdb_config t config = t.mdb_config <- Some config
 
 end

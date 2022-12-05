@@ -25,6 +25,9 @@ module type STATE_READONLY_T = sig
   (* the config data that the client requested when initializing the adapter *)
   val client_config : t -> Dap.Data.InitializeRequestArguments.t option
 
+  (* the mdb stuff - script, storage, parameter *)
+  val mdb_config : t -> Mdb.Mdb_types.mich_config option
+
 end
 
 module type STATE_T = sig
@@ -41,6 +44,8 @@ module type STATE_T = sig
   val set_config : t -> Dap.Config.t -> unit
 
   val set_client_config : t -> Dap.Data.InitializeRequestArguments.t -> unit
+
+  val set_mdb_config : t -> Mdb.Mdb_types.mich_config -> unit
 
 end
 

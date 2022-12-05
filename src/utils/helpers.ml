@@ -12,6 +12,7 @@ module StateMock = struct
     mutable seqr: Data.Seqr.t;
     mutable config : Config.t;
     mutable client_config : Data.InitializeRequestArguments.t option;
+    mutable mdb_config : Mdb.Mdb_types.mich_config option;
     mutable log_records : Model.Weevil_json.t list;
   }
 
@@ -20,8 +21,9 @@ module StateMock = struct
     oc=None;
     launch_mode = None;
     seqr = Data.Seqr.make ~seq:0 ();
-    config=Config.make ~script_filename:"example.tz" ();
+    config=Config.make ();
     client_config=Option.some @@ Data.InitializeRequestArguments.make ~adapterID:"MOCK" ();
+    mdb_config=None;
     log_records=Model.Weevil_json.([
         {location=3; gas="8"; stack=["1";"2";"7"]};
         {location=2; gas="9"; stack=["1";"2";"3";"4"]};
@@ -59,6 +61,10 @@ module StateMock = struct
   let client_config t = t.client_config
 
   let set_client_config t config = t.client_config <- Some config
+
+  let mdb_config t = t.mdb_config
+
+  let set_mdb_config t config = t.mdb_config <- Some config
 
 end
 

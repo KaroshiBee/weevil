@@ -2,11 +2,10 @@
 type t
 
 val make :
-    script_filename:string ->
     ?backend_ip:string ->
     ?backend_port:int ->
     ?backend_cmd:string ->
-    ?stepper_cmd:(string -> string) ->
+    ?stepper_cmd:(script_filename:string -> storage:string -> parameter:string -> string) ->
     ?backend_echo:string ->
     unit ->
     t
@@ -21,6 +20,4 @@ val backend_cmd : t -> string
 
 val to_process_command : string -> string * string array
 
-val stepper_cmd : t -> string
-
-val script_filename : t -> string
+val stepper_cmd : script_filename:string -> storage:string -> parameter:string -> t -> string

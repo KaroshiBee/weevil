@@ -39,13 +39,18 @@ module T (S : Types.STATE_T) = struct
 
   (* connects to the mdb backend and runs a script *)
   let launch_handler =
-    On_request.make ~handler:(fun ~state _req ->
+    On_request.make ~handler:(fun ~state req ->
+        let getargs = Req.(Fmap Message.arguments) in
+        let args = Req.(eval @@ map_ (val_ getargs, val_ req)) in
+        let script_filename = D.LaunchRequestArguments.script_filename args in
+        let storage = D.LaunchRequestArguments.storage args in
+        let parameter = D.LaunchRequestArguments.parameter args in
         let config = S.config state in
         let ip = Dap.Config.backend_ip config |> Ipaddr_unix.of_inet_addr in
         let port = Dap.Config.backend_port config in
         _connect_background_svc state ip port
         |> Dap_result.bind ~f:(fun (_ic, oc) ->
-            let stepper_cmd = Dap.Config.stepper_cmd config in
+            let stepper_cmd = Dap.Config.stepper_cmd ~script_filename ~storage ~parameter config in
                let%lwt () =
                  Logs_lwt.info (fun m ->
                      m
@@ -72,6 +77,8 @@ module T (S : Types.STATE_T) = struct
                  Res.default_response_opt command body
                in
                let ret = Res.launchResponse resp in
+               (* only change state if ok connection *)
+               let () = S.set_mdb_config state Mdb.Mdb_types.{script_filename; storage; parameter} in
                let () = S.set_launch_mode state `Launch in
                Dap_result.ok ret))
 

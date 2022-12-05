@@ -12,7 +12,12 @@ module T (S : Types.STATE_T) = struct
   module On_attached = Dap.Attach.Raise_stopped (S)
 
   let attach_handler =
-    On_request.make ~handler:(fun ~state _req ->
+    On_request.make ~handler:(fun ~state req ->
+        let getargs = Req.(Fmap Message.arguments) in
+        let args = Req.(eval @@ map_ (val_ getargs, val_ req)) in
+        let script_filename = D.AttachRequestArguments.script_filename args in
+        let storage = D.AttachRequestArguments.storage args in
+        let parameter = D.AttachRequestArguments.parameter args in
         let config = S.config state in
         let body = D.EmptyObject.make () in
         let command = Dap.Commands.attach in
@@ -21,6 +26,8 @@ module T (S : Types.STATE_T) = struct
         in
         match S.backend_oc state with
         | Some _ ->
+          (* already connected so just update state *)
+          let () = S.set_mdb_config state Mdb.Mdb_types.{script_filename; storage; parameter} in
           let () = S.set_launch_mode state `Attach in
           Dap_result.ok resp
         | None -> (
@@ -30,6 +37,8 @@ module T (S : Types.STATE_T) = struct
             S.set_connect_backend state ip port
             |> Dap_result.or_log_error
             |> Dap_result.map ~f:(fun _ ->
+                (* not errored so update state *)
+                let () = S.set_mdb_config state Mdb.Mdb_types.{script_filename; storage; parameter} in
                 let () = S.set_launch_mode state `Attach in
                 resp)
           ))
