@@ -1,10 +1,55 @@
 module Js = Data_encoding.Json
 
+module Ev_runscript = struct
+  type t = {cmd: string}
+  let enc =
+    let open Data_encoding in
+    (conv
+      (fun {cmd} -> cmd)
+      (fun cmd -> {cmd})
+      (obj1 (req "cmd" string))
+    )
+end
+
+module Ev_terminate = struct
+  type t = unit
+  let enc =
+    let open Data_encoding in
+    (conv
+      (fun () -> ())
+      (fun () -> ())
+      (constant "Terminate")
+    )
+end
+
+module Ev_step = struct
+  type t = {step_size: int}
+  let enc =
+    let open Data_encoding in
+    (conv
+      (fun {step_size} -> step_size)
+      (fun step_size -> {step_size})
+      (obj1 (req "step_size" int31))
+    )
+end
+
+module Ev_getrecords = struct
+  type t = unit
+  let enc =
+    let open Data_encoding in
+    (conv
+      (fun () -> ())
+      (fun () -> ())
+      (constant "GetRecords")
+    )
+end
+
+
 type ev =
-  | RunScript of string
-  | Terminate
-  | Step of int
-  | GetRecords
+  | RunScript of Ev_runscript.t
+  | Terminate of Ev_terminate.t
+  | Step of Ev_step.t
+  | GetRecords of Ev_getrecords.t
 
 type t = {
   event: ev;
@@ -15,22 +60,26 @@ let make ~event () = {event;}
 let enc_ev =
   let open Data_encoding in
   union [
+
     case ~title:"RunScript" (Tag 0)
-      string
-      (function RunScript s -> Some s | _ -> None)
-      (fun s -> RunScript s);
+      Ev_runscript.enc
+      (function RunScript t -> Some t | _ -> None)
+      (fun t -> RunScript t);
+
     case ~title:"Terminate" (Tag 1)
-      (constant "Terminate")
-      (function Terminate -> Some () | _ -> None)
-      (fun _ -> Terminate);
+      Ev_terminate.enc
+      (function Terminate t -> Some t | _ -> None)
+      (fun t -> Terminate t);
+
     case ~title:"Step" (Tag 2)
-      int31
-      (function Step n -> Some n | _ -> None)
-      (fun n -> Step n);
+      Ev_step.enc
+      (function Step t -> Some t | _ -> None)
+      (fun t -> Step t);
+
     case ~title:"GetRecords" (Tag 3)
-      (constant "GetRecords")
-      (function GetRecords -> Some () | _ -> None)
-      (fun _ -> GetRecords);
+      Ev_getrecords.enc
+      (function GetRecords t -> Some t | _ -> None)
+      (fun t -> GetRecords t);
   ]
 
 let enc =

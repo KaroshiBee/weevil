@@ -49,7 +49,7 @@ module T (S : Types.STATE_T) = struct
     On_request.make ~handler:(fun ~state _req ->
         match (S.backend_ic state, S.backend_oc state) with
         | (Some ic, Some oc) ->
-          let mich_get_recs = Mdb.Mdb_event.(make ~event:GetRecords ()) in
+          let mich_get_recs = Mdb.Mdb_event.(make ~event:(GetRecords ()) ()) in
           let mich_msg = Data_encoding.Json.(construct Mdb.Mdb_event.enc mich_get_recs |> to_string |> Dap.Header.wrap) in
           let%lwt () = Lwt_io.write oc mich_msg in
           let%lwt recs = Mdb_.get_recs ic oc in

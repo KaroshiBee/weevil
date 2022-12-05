@@ -14,7 +14,7 @@ module T (S : Types.STATE_READONLY_T) = struct
     On_request.make ~handler:(fun ~state _req ->
         match S.backend_oc state with
         | Some oc ->
-          let mich_step = Mdb.Mdb_event.(make ~event:(Step 1) ()) in
+          let mich_step = Mdb.Mdb_event.(make ~event:(Step {step_size=1}) ()) in
           let mich_msg = Data_encoding.Json.(construct Mdb.Mdb_event.enc mich_step |> to_string |> Dap.Header.wrap) in
           let%lwt () = Lwt_io.write oc mich_msg in
           let resp =

@@ -64,9 +64,9 @@ let%expect_test "Check sequencing etc for next" =
               let s = In_channel.input_all ic in
               Printf.printf "%s" s;
               let%lwt () = [%expect {|
-                Content-Length: 14
+                Content-Length: 31
                 
-                { "event": 1 } |}] in
+                { "event": { "step_size": 1 } } |}] in
               Lwt.return_unit
             )
         in

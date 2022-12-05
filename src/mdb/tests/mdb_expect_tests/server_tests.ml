@@ -26,16 +26,16 @@ end
     Js.(construct MichEvent.enc t |> to_string)
     |> Str.global_replace (Str.regexp "\n") ""
 
-  let runscript fname =
-    let event = MichEvent.(make ~event:(RunScript fname) ()) in
+  let runscript cmd =
+    let event = MichEvent.(make ~event:(RunScript {cmd}) ()) in
     to_string event
 
   let terminate =
-    let event = MichEvent.(make ~event:Terminate ()) in
+    let event = MichEvent.(make ~event:(Terminate ()) ()) in
     to_string event
 
   let step1 =
-    let event = MichEvent.(make ~event:(Step 1) ()) in
+    let event = MichEvent.(make ~event:(Step {step_size=1}) ()) in
     to_string event
 
   let connect port =
@@ -71,27 +71,27 @@ let%expect_test "Check loading/stepping a contract" =
   let%lwt () = [%expect {|
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] starting backend server on port 9002
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got connection
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event":    "dune exec -- weevil stepper --verbosity=info --headless data/multiply_2_x_25_equals_50.tz" }'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event":    { "cmd":        "dune exec -- weevil stepper --verbosity=info --headless data/multiply_2_x_25_equals_50.tz" } }'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] starting new stepper with cmd 'dune exec -- weevil stepper --verbosity=info --headless data/multiply_2_x_25_equals_50.tz'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] stepper_process_start
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] starting
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event": 1 }'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event": { "step_size": 1 } }'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] Got Next request
-    { "event": 1 }
+    { "event": { "step_size": 1 } }
 
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event": 1 }'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event": { "step_size": 1 } }'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] Got Next request
-    { "event": 1 }
+    { "event": { "step_size": 1 } }
 
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event": 1 }'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event": { "step_size": 1 } }'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] Got Next request
-    { "event": 1 }
+    { "event": { "step_size": 1 } }
 
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event": 1 }'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event": { "step_size": 1 } }'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] Got Next request
-    { "event": 1 }
+    { "event": { "step_size": 1 } }
 
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] making rpc config'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
@@ -215,7 +215,7 @@ let%expect_test "Check loading/stepping a contract" =
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] got messsage ''
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event": {} }'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event": "Terminate" }'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] connection closed
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] connection closed |}] in
 
@@ -227,27 +227,27 @@ let%expect_test "check for bad filename" =
   let%lwt () = [%expect {|
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] starting backend server on port 9002
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got connection
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event":    "dune exec -- weevil stepper --verbosity=info --headless data/notthere.tz" }'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event":    { "cmd":        "dune exec -- weevil stepper --verbosity=info --headless data/notthere.tz" } }'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] starting new stepper with cmd 'dune exec -- weevil stepper --verbosity=info --headless data/notthere.tz'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] stepper_process_start
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] starting
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event": 1 }'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event": { "step_size": 1 } }'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] Got Next request
-    { "event": 1 }
+    { "event": { "step_size": 1 } }
 
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event": 1 }'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event": { "step_size": 1 } }'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] Got Next request
-    { "event": 1 }
+    { "event": { "step_size": 1 } }
 
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event": 1 }'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event": { "step_size": 1 } }'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] Got Next request
-    { "event": 1 }
+    { "event": { "step_size": 1 } }
 
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event": 1 }'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event": { "step_size": 1 } }'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] Got Next request
-    { "event": 1 }
+    { "event": { "step_size": 1 } }
 
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] making rpc config'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
@@ -270,7 +270,7 @@ let%expect_test "check for bad filename" =
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] connection closed
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] connection closed
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event": {} }'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event": "Terminate" }'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] already terminated |}] in
   Lwt.return_unit
 
@@ -281,27 +281,27 @@ let%expect_test "check for bad michelson" =
   let%lwt () = [%expect {|
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] starting backend server on port 9002
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got connection
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event":    "dune exec -- weevil stepper --verbosity=info --headless data/bad_michelson.tz" }'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event":    { "cmd":        "dune exec -- weevil stepper --verbosity=info --headless data/bad_michelson.tz" } }'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] starting new stepper with cmd 'dune exec -- weevil stepper --verbosity=info --headless data/bad_michelson.tz'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] stepper_process_start
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] starting
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event": 1 }'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event": { "step_size": 1 } }'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] Got Next request
-    { "event": 1 }
+    { "event": { "step_size": 1 } }
 
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event": 1 }'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event": { "step_size": 1 } }'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] Got Next request
-    { "event": 1 }
+    { "event": { "step_size": 1 } }
 
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event": 1 }'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event": { "step_size": 1 } }'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] Got Next request
-    { "event": 1 }
+    { "event": { "step_size": 1 } }
 
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event": 1 }'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event": { "step_size": 1 } }'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] Got Next request
-    { "event": 1 }
+    { "event": { "step_size": 1 } }
 
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] making rpc config'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
@@ -326,6 +326,6 @@ let%expect_test "check for bad michelson" =
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] connection closed
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] connection closed
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event": {} }'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event": "Terminate" }'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] already terminated |}] in
   Lwt.return_unit

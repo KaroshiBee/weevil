@@ -53,7 +53,7 @@ module T (S : Types.STATE_T) = struct
                        stepper_cmd)
                in
                let runscript =
-                 Mich_event.make ~event:(RunScript stepper_cmd) ()
+                 Mich_event.make ~event:(RunScript {cmd=stepper_cmd}) ()
                in
                (* NOTE remove all \n with wrap *)
                let runscript_s =

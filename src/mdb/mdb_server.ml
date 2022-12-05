@@ -51,7 +51,7 @@ let rec main_handler ~recs ~stepper_process ic oc =
   | Some msg -> (
     let%lwt _ = Logs_lwt.info (fun m -> m "[MICH] got msg '%s'" msg) in
     match (MichEvent.from_msg_opt msg, stepper_process) with
-    | Some (GetRecords), _ ->
+    | Some MichEvent.GetRecords _, _ ->
       let%lwt _ = Logs_lwt.err (fun m -> m "[MICH] getting current records") in
       (* we use an option here becaus want to distinguish if list is empty *)
       let enc = Data_encoding.(option @@ list Model.Weevil_json.enc) in
@@ -65,19 +65,19 @@ let rec main_handler ~recs ~stepper_process ic oc =
       let () = Tbl.new_to_old_inplace ~keep_old:true recs in
       main_handler ~recs ~stepper_process ic oc
 
-    | Some (RunScript _), Some process when process#state = Lwt_process.Running ->
+    | Some (MichEvent.RunScript _), Some process when process#state = Lwt_process.Running ->
       let%lwt _ = Logs_lwt.err (fun m -> m "[MICH] trying to start a new stepper with old one still running, ignore") in
       main_handler ~recs ~stepper_process ic oc
 
-    | Some (RunScript cmd), Some _
-    | Some (RunScript cmd), None ->
+    | Some (MichEvent.RunScript {cmd}), Some _
+    | Some (MichEvent.RunScript {cmd}), None ->
       let%lwt _ = Logs_lwt.info (fun m -> m "[MICH] starting new stepper with cmd '%s'" cmd) in
       (* NOTE clear out old log records *)
       let () = Tbl.remove_all recs in
       let cmd = ("", String.split_on_char ' ' cmd |> Array.of_list) in
       Lwt_process.with_process_full cmd (stepper_process_start ~recs ic oc)
 
-    | Some (Step 1), Some process ->
+    | Some (MichEvent.Step {step_size=1}), Some process ->
       let _ =
         let oc_process = process#stdin in
         try
@@ -93,19 +93,19 @@ let rec main_handler ~recs ~stepper_process ic oc =
           )
       in
       main_handler ~recs ~stepper_process ic oc
-    | Some (Step n), Some _ ->
+    | Some (MichEvent.Step {step_size=n}), Some _ ->
       let%lwt _ = Logs_lwt.warn (fun m -> m "[MICH] TODO Step %d" n) in
       main_handler ~recs ~stepper_process ic oc
 
-    | Some Terminate, Some process when process#state = Lwt_process.Running ->
+    | Some MichEvent.Terminate _, Some process when process#state = Lwt_process.Running ->
       (* NOTE debug this message because cram tests use Info and we dont want PIDs in the cram test data *)
       let%lwt () = Logs_lwt.debug (fun m -> m "[MICH] Terminating pid '%d'" process#pid) in
       let () = process#terminate in
       let stepper_process = None in
       main_handler ~recs ~stepper_process ic oc
 
-    | Some Terminate, Some _
-    | Some Terminate, None ->
+    | Some MichEvent.Terminate _, Some _
+    | Some MichEvent.Terminate _, None ->
       let%lwt () = Logs_lwt.info (fun m -> m "[MICH] already terminated") in
       let stepper_process = None in
       main_handler ~recs ~stepper_process ic oc
