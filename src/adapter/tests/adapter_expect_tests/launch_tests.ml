@@ -25,6 +25,10 @@ end
 
 module Launch = Launch.T (LaunchStateMock)
 
+let script_filename = "data/multiply_2_x_25_equals_50.tz"
+let storage = "Unit"
+let parameter = "Unit"
+
 let%expect_test "Check sequencing etc for launch" =
   let st = LaunchStateMock.make () in
   Lwt_io.with_temp_file ~temp_dir:"/dev/shm" (fun (fname, oc) ->
@@ -32,14 +36,18 @@ let%expect_test "Check sequencing etc for launch" =
       let command = Dap.Commands.launch in
       let req =
         Dap.Request.(
-          Helpers.launch_msg ~seq:20
+          Helpers.launch_msg ~seq:20 ~script_filename ~storage ~parameter
           |> Js.construct (Message.enc command D.LaunchRequestArguments.enc)
           |> Js.to_string)
       in
       Printf.printf "%s" req ;
       let%lwt () =
         [%expect
-          {| { "seq": 20, "type": "request", "command": "launch", "arguments": {} } |}]
+          {|
+            { "seq": 20, "type": "request", "command": "launch",
+              "arguments":
+                { "script_filename": "data/multiply_2_x_25_equals_50.tz",
+                  "storage": "Unit", "parameter": "Unit" } } |}]
       in
 
       match Launch.handlers ~state:st with
@@ -112,14 +120,18 @@ let%expect_test "Check bad input for launch" =
       let command = Dap.Commands.attach in
       let req =
         Dap.Request.(
-          Helpers.attach_msg ~seq:20
+          Helpers.attach_msg ~seq:20 ~script_filename ~storage ~parameter
           |> Js.construct (Message.enc command D.AttachRequestArguments.enc)
           |> Js.to_string)
       in
       Printf.printf "%s" req ;
       let%lwt () =
         [%expect
-          {| { "seq": 20, "type": "request", "command": "attach", "arguments": {} } |}]
+          {|
+            { "seq": 20, "type": "request", "command": "attach",
+              "arguments":
+                { "script_filename": "data/multiply_2_x_25_equals_50.tz",
+                  "storage": "Unit", "parameter": "Unit" } } |}]
       in
 
       match Launch.handlers ~state:st with

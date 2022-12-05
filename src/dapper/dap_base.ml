@@ -101,34 +101,52 @@ end = struct
 
 end
 
-
+(* launching and attaching requests are special - weevil defines what should go into them *)
 module LaunchRequestArguments : sig
   type t
   val module_name : string
   val enc : t Data_encoding.t
-  val make : ?restart:Data_encoding.json -> ?noDebug:bool -> unit -> t
+  val make : ?restart:Data_encoding.json -> ?noDebug:bool -> script_filename:string -> storage:string -> parameter:string -> unit -> t
   val restart : t -> Data_encoding.json option
   val noDebug : t -> bool option
+  val script_filename : t -> string
+  val storage : t -> string
+  val parameter : t -> string
 end = struct
 
   let module_name = "LaunchRequestArguments"
-  type t = {restart: Data_encoding.json option; noDebug: bool option}
+  type t = {
+    restart: Data_encoding.json option;
+    noDebug: bool option;
+    (* Since launching is debugger/runtime specific, the arguments for this request are not part of this specification.
+       Arguments for launch request. Additional attributes are implementation specific.
+    *)
+    script_filename: string;
+    storage: string;
+    parameter: string;
+  }
 
   let enc =
     let open Data_encoding in
     conv
-      (fun {restart; noDebug} -> (restart, noDebug))
-      (fun (restart, noDebug) -> {restart; noDebug})
-      (obj2
+      (fun {restart; noDebug; script_filename; storage; parameter; } -> (restart, noDebug, script_filename, storage, parameter))
+      (fun (restart, noDebug, script_filename, storage, parameter) -> {restart; noDebug; script_filename; storage; parameter;})
+      (obj5
          (opt "__restart" json)
          (opt "noDebug" bool)
+         (req "script_filename" string)
+         (req "storage" string)
+         (req "parameter" string)
       )
 
-  let make ?restart ?noDebug () =
-    {restart; noDebug}
+  let make ?restart ?noDebug ~script_filename ~storage ~parameter () =
+    {restart; noDebug; script_filename; storage; parameter;}
 
   let restart t = t.restart
   let noDebug t = t.noDebug
+  let script_filename t = t.script_filename
+  let storage t = t.storage
+  let parameter t = t.parameter
 
 end
 
@@ -136,26 +154,43 @@ module AttachRequestArguments : sig
   type t
   val module_name : string
   val enc : t Data_encoding.t
-  val make : ?restart:Data_encoding.json -> unit -> t
+  val make : ?restart:Data_encoding.json -> script_filename:string -> storage:string -> parameter:string -> unit -> t
   val restart : t -> Data_encoding.json option
+  val script_filename : t -> string
+  val storage : t -> string
+  val parameter : t -> string
 end = struct
 
   let module_name = "AttachRequestArguments"
-  type t = {restart: Data_encoding.json option}
+  type t = {
+    restart: Data_encoding.json option;
+    (* Since attaching is debugger/runtime specific, the arguments for this request are not part of this specification.
+       Arguments for attach request. Additional attributes are implementation specific.
+    *)
+    script_filename: string;
+    storage: string;
+    parameter: string;
+  }
 
   let enc =
     let open Data_encoding in
     conv
-      (fun {restart} -> restart)
-      (fun restart -> {restart})
-      (obj1
+      (fun {restart; script_filename; storage; parameter; } -> (restart, script_filename, storage, parameter))
+      (fun (restart, script_filename, storage, parameter) -> {restart; script_filename; storage; parameter;})
+      (obj4
          (opt "__restart" json)
+         (req "script_filename" string)
+         (req "storage" string)
+         (req "parameter" string)
       )
 
-  let make ?restart () =
-    {restart}
+  let make ?restart ~script_filename ~storage ~parameter () =
+    {restart; script_filename; storage; parameter;}
 
   let restart t = t.restart
+  let script_filename t = t.script_filename
+  let storage t = t.storage
+  let parameter t = t.parameter
 
 end
 

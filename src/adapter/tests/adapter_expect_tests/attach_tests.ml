@@ -7,12 +7,16 @@ module Helpers = Utils.Helpers
 module StateMock = Helpers.StateMock
 module Attach = Attach.T (StateMock)
 
+let script_filename = "data/multiply_2_x_25_equals_50.tz"
+let storage = "Unit"
+let parameter = "Unit"
+
 let%expect_test "Check sequencing etc for attach" =
   let state = StateMock.make () in
   let command = Dap.Commands.attach in
   let req =
     Dap.Request.(
-      Helpers.attach_msg ~seq:20
+      Helpers.attach_msg ~seq:20 ~script_filename ~storage ~parameter
       |> Js.construct (Message.enc command D.AttachRequestArguments.enc)
       |> Js.to_string
     )
@@ -20,7 +24,11 @@ let%expect_test "Check sequencing etc for attach" =
   Printf.printf "%s" req ;
   let%lwt () =
     [%expect
-      {| { "seq": 20, "type": "request", "command": "attach", "arguments": {} } |}]
+      {|
+        { "seq": 20, "type": "request", "command": "attach",
+          "arguments":
+            { "script_filename": "data/multiply_2_x_25_equals_50.tz",
+              "storage": "Unit", "parameter": "Unit" } } |}]
   in
 
   match Attach.handlers ~state with
@@ -75,7 +83,7 @@ let%expect_test "Check bad input for attach" =
   let command = Dap.Commands.launch in
   let req =
     Dap.Request.(
-      Helpers.launch_msg ~seq:20
+      Helpers.launch_msg ~seq:20 ~script_filename ~storage ~parameter
       |> Js.construct (Message.enc command D.LaunchRequestArguments.enc)
       |> Js.to_string
     )
@@ -83,7 +91,11 @@ let%expect_test "Check bad input for attach" =
   Printf.printf "%s" req ;
   let%lwt () =
     [%expect
-      {| { "seq": 20, "type": "request", "command": "launch", "arguments": {} } |}]
+      {|
+        { "seq": 20, "type": "request", "command": "launch",
+          "arguments":
+            { "script_filename": "data/multiply_2_x_25_equals_50.tz",
+              "storage": "Unit", "parameter": "Unit" } } |}]
   in
 
   match Attach.handlers ~state with

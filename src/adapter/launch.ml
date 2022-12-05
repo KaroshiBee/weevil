@@ -47,7 +47,7 @@ module T (S : Types.STATE_T) = struct
         |> Dap_result.bind ~f:(fun (_ic, oc) ->
             let stepper_cmd = Dap.Config.stepper_cmd config in
                let%lwt () =
-                 Logs_lwt.debug (fun m ->
+                 Logs_lwt.info (fun m ->
                      m
                        "trying to start the debugger with cmd: '%s'"
                        stepper_cmd)

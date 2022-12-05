@@ -17,6 +17,10 @@ end
 
 module Init = Initialize.T(StateMock)
 
+let script_filename = "data/multiply_2_x_25_equals_50.tz"
+let storage = "Unit"
+let parameter = "Unit"
+
 let%expect_test "Check sequencing etc for init" =
   let state = StateMock.make () in
   let command = Dap.Commands.initialize in
@@ -86,7 +90,7 @@ let%expect_test "Check bad input for init" =
   (* unhappy path, f_resp is expecting an init request *)
   let req =
     Dap.Request.(
-      Helpers.attach_msg ~seq:20
+      Helpers.attach_msg ~seq:20 ~script_filename ~storage ~parameter
       |> Js.construct (Message.enc command D.AttachRequestArguments.enc)
       |> Js.to_string
     )
@@ -94,7 +98,11 @@ let%expect_test "Check bad input for init" =
   Printf.printf "%s" req ;
   let%lwt () =
     [%expect
-      {| { "seq": 20, "type": "request", "command": "attach", "arguments": {} } |}]
+      {|
+        { "seq": 20, "type": "request", "command": "attach",
+          "arguments":
+            { "script_filename": "data/multiply_2_x_25_equals_50.tz",
+              "storage": "Unit", "parameter": "Unit" } } |}]
   in
 
   match Init.handlers ~state with

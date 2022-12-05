@@ -52,12 +52,18 @@ let%expect_test "Check sequencing request/response" =
   let enc =
     Req.Message.enc Dap.Commands.launch Dap.Data.LaunchRequestArguments.enc
   in
+
+  let script_filename = "example.tz" in
+  let storage = "Unit" in
+  let parameter = "Unit" in
+
+  let arguments = Dap.Data.LaunchRequestArguments.make  ~script_filename ~storage ~parameter () in
   let req_launch =
     Req.(
       Message.make
         ~seq:101
         ~command:Dap.Commands.launch
-        ~arguments:(Dap.Data.LaunchRequestArguments.make ())
+        ~arguments
         ()
       |> Js.construct enc |> Js.to_string)
   in

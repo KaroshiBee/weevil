@@ -22,7 +22,7 @@ module T (Dap_state:Dap.STATE_T) = struct
     ic = None;
     oc = None;
     launch_mode = None;
-    config = Dap.Config.make ~script_filename:"example.tz" ();
+    config = Dap.Config.make ~script_filename:"UNKNOWN.tz" (); (* should throw if not changed to an existing file *)
     client_config = None;
     log_records = [];
   }

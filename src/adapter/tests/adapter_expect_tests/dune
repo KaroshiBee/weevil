@@ -16,7 +16,7 @@
    ppx_expect
    str
  )
- (inline_tests)
+ (inline_tests (deps (glob_files data/*.tz)))
  (preprocess (pps lwt_ppx ppx_expect))
  (flags
   (:standard

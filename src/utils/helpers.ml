@@ -79,17 +79,17 @@ let initialize_msg ~seq =
 
 let initialize_req ~seq = Request.initializeRequest @@ initialize_msg ~seq
 
-let launch_msg ~seq =
-  let arguments = Data.LaunchRequestArguments.make () in
+let launch_msg ~seq ~script_filename ~storage ~parameter =
+  let arguments = Data.LaunchRequestArguments.make ~script_filename ~storage ~parameter () in
   Request.Message.make ~seq ~command:Commands.launch ~arguments ()
 
-let launch_req ~seq = Request.launchRequest @@ launch_msg ~seq
+let launch_req ~seq ~script_filename ~storage ~parameter = Request.launchRequest @@ launch_msg ~seq ~script_filename ~storage ~parameter
 
-let attach_msg ~seq =
-  let arguments = Data.AttachRequestArguments.make () in
+let attach_msg ~seq ~script_filename ~storage ~parameter =
+  let arguments = Data.AttachRequestArguments.make ~script_filename ~storage ~parameter () in
   Request.Message.make ~seq ~command:Commands.attach ~arguments ()
 
-let attach_req ~seq = Request.attachRequest @@ attach_msg ~seq
+let attach_req ~seq ~script_filename ~storage ~parameter = Request.attachRequest @@ attach_msg ~seq ~script_filename ~storage ~parameter
 
 let configurationDone_msg ~seq =
   let arguments = Data.ConfigurationDoneArguments.make () in
