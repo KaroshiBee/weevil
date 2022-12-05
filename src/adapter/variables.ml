@@ -22,7 +22,7 @@ module T (S : Types.STATE_READONLY_T) = struct
           let gas_name, _gas_var = Defaults.Vals._THE_GAS_LOCAL in
           let stack_name, _stack_var = Defaults.Vals._THE_MICHELSON_STACK_LOCAL in
           let gas_val, stack_val =
-            match List.nth_opt recs 0 with
+            match List.nth_opt (List.rev recs) 0 with
             | None -> "", []
             | Some wrec -> Model.Weevil_json.(wrec.gas, wrec.stack)
           in

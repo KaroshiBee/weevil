@@ -48,10 +48,10 @@ module T (Dap_state:Dap.STATE_T) = struct
 
   let set_start_backend t _ip _port cmd =
     let%lwt () =
-      Logs_lwt.debug (fun m ->
+      Logs_lwt.info (fun m ->
           m "launching backend service with cmd: '%s'" cmd)
     in
-    let pcmd = Dap.Config.(to_process_command cmd) in
+    let pcmd = Dap.Config.to_process_command cmd in
     let p =
       try%lwt
         Dap.Result.ok @@ Lwt_process.open_process_none pcmd
@@ -62,7 +62,7 @@ module T (Dap_state:Dap.STATE_T) = struct
     in
 
     p |> Dap.Result.bind ~f:(fun process ->
-        let%lwt () = Logs_lwt.debug (fun m ->
+        let%lwt () = Logs_lwt.info (fun m ->
             m "backend service has state: '%s'"
             @@
             match process#state with

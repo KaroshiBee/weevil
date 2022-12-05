@@ -32,7 +32,7 @@ module T (S : Types.STATE_T) = struct
 
   let _connect_background_svc st ip port =
     let%lwt () =
-      Logs_lwt.debug (fun m ->
+      Logs_lwt.info (fun m ->
           m "trying to connect to backend service on port %d" port)
     in
     S.set_connect_backend st ip port |> Dap_result.or_log_error

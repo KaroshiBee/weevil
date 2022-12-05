@@ -1,13 +1,16 @@
-let _DEFAULT_LOG_FILE = "weevil_stepper.log"
+let _DEFAULT_STEPPER_LOG_FILE = "weevil_stepper.log"
+let _DEFAULT_MDB_LOG_FILE = "weevil_mdb.log"
 let _DEFAULT_LISTEN_ADDRESS = "loopback"
 let _DEFAULT_ADAPTER_PORT = 9000
 let _DEFAULT_BACKEND_PORT = 9001
 let _DEFAULT_BACKLOG = 10
 
-let _DEFAULT_BACKEND_CMD = "dune exec -- weevil backend"
+let _DEFAULT_BACKEND_CMD =
+  Printf.sprintf "dune exec -- weevil backend -v %d >%s 2>&1" _DEFAULT_BACKEND_PORT _DEFAULT_MDB_LOG_FILE
+
 let _DEFAULT_STEPPER_CMD ~script_filename ~storage ~parameter
-    = Printf.sprintf "dune exec -- weevil stepper --headless --storage '%s' --parameter '%s' %s" storage parameter script_filename
-let _DEFAULT_BACKEND_ECHO = "echo 1"
+  = Printf.sprintf "dune exec -- weevil stepper -v --headless --storage \'%s\' --parameter \'%s\' %s"
+    storage parameter script_filename
 
 let _THE_THREAD_ID = 1
 let _THE_FRAME_ID = 1

@@ -6,7 +6,6 @@ val make :
     ?backend_port:int ->
     ?backend_cmd:string ->
     ?stepper_cmd:(script_filename:string -> storage:string -> parameter:string -> string) ->
-    ?backend_echo:string ->
     unit ->
     t
 
