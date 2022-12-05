@@ -73,6 +73,12 @@ let make_connection c =
   let x = init () >>= fun ctx -> connect ~ctx c in
   x >|= fun (_, ic, oc) -> (ic, oc)
 
+let initialize_msg ~seq =
+  let arguments = Data.InitializeRequestArguments.make ~adapterID:"weevil" ~clientID:"12345" () in
+  Request.Message.make ~seq ~command:Commands.initialize ~arguments ()
+
+let initialize_req ~seq = Request.initializeRequest @@ initialize_msg ~seq
+
 let launch_msg ~seq =
   let arguments = Data.LaunchRequestArguments.make () in
   Request.Message.make ~seq ~command:Commands.launch ~arguments ()
@@ -84,12 +90,6 @@ let attach_msg ~seq =
   Request.Message.make ~seq ~command:Commands.attach ~arguments ()
 
 let attach_req ~seq = Request.attachRequest @@ attach_msg ~seq
-
-let initialize_msg ~seq =
-  let arguments = Data.InitializeRequestArguments.make ~adapterID:"weevil" ~clientID:"12345" () in
-  Request.Message.make ~seq ~command:Commands.initialize ~arguments ()
-
-let initialize_req ~seq = Request.initializeRequest @@ initialize_msg ~seq
 
 let configurationDone_msg ~seq =
   let arguments = Data.ConfigurationDoneArguments.make () in
@@ -151,6 +151,31 @@ let to_msg (type cmd args presence) :
   | AttachRequest req ->
       let enc =
         Request.Message.enc Commands.attach Data.AttachRequestArguments.enc
+      in
+      Json.(construct enc req |> to_string) |> Header.wrap
+  | ThreadsRequest req ->
+      let enc =
+        Request.Message.enc_opt Commands.threads Data.EmptyObject.enc
+      in
+      Json.(construct enc req |> to_string) |> Header.wrap
+  | StackTraceRequest req ->
+      let enc =
+        Request.Message.enc Commands.stackTrace Data.StackTraceArguments.enc
+      in
+      Json.(construct enc req |> to_string) |> Header.wrap
+  | ScopesRequest req ->
+      let enc =
+        Request.Message.enc Commands.scopes Data.ScopesArguments.enc
+      in
+      Json.(construct enc req |> to_string) |> Header.wrap
+  | VariablesRequest req ->
+      let enc =
+        Request.Message.enc Commands.variables Data.VariablesArguments.enc
+      in
+      Json.(construct enc req |> to_string) |> Header.wrap
+  | NextRequest req ->
+      let enc =
+        Request.Message.enc Commands.next Data.NextArguments.enc
       in
       Json.(construct enc req |> to_string) |> Header.wrap
   | _ -> assert false

@@ -2,8 +2,8 @@ include Test_utils.Include
 open Lwt
 module Conduit = Conduit_lwt_unix
 module Js = Data_encoding.Json
-module Svc = Mdb.Mdb_server
-module MichEvent = Svc.MichEvent
+module Mdb_svc = Mdb.Mdb_server
+module MichEvent = Mdb.Mdb_event
 module Helpers = Utils.Helpers
 
 (* use different port than default *)
@@ -67,7 +67,7 @@ let () = Logs.set_level (Some Logs.Info)
 
 let%expect_test "Check loading/stepping a contract" =
   let actions = Msgs.(connect port >>= run ~fname:"data/multiply_2_x_25_equals_50.tz") in
-  let%lwt _ = Svc.lwt_svc ~stopper:actions port in
+  let%lwt _ = Mdb_svc.lwt_svc ~stopper:actions port in
   let%lwt () = [%expect {|
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] starting backend server on port 9002
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got connection
@@ -223,7 +223,7 @@ let%expect_test "Check loading/stepping a contract" =
 
 let%expect_test "check for bad filename" =
   let actions = Msgs.(connect port >>= run ~fname:"data/notthere.tz") in
-  let%lwt _ = Svc.lwt_svc ~stopper:actions port in
+  let%lwt _ = Mdb_svc.lwt_svc ~stopper:actions port in
   let%lwt () = [%expect {|
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] starting backend server on port 9002
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got connection
@@ -277,7 +277,7 @@ let%expect_test "check for bad filename" =
 
 let%expect_test "check for bad michelson" =
   let actions = Msgs.(connect port >>= run ~fname:"data/bad_michelson.tz") in
-  let%lwt _ = Svc.lwt_svc ~stopper:actions port in
+  let%lwt _ = Mdb_svc.lwt_svc ~stopper:actions port in
   let%lwt () = [%expect {|
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] starting backend server on port 9002
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got connection
