@@ -19,36 +19,39 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
          let gas = Cfg.get_gas log_element in
          return (loc, gas, stack))
     in
-    (* TODO better handling of mich expressions/tickets *)
-    let wrec = Mdb_model.Weevil_record.make loc gas (exprs |> List.map (fun e -> (e, None, false))) in
-    let wrec_js = Mdb_model.Weevil_record.to_weevil_json wrec in
-    let js = Data_encoding.Json.(
-        construct Mdb_model.Weevil_json.enc wrec_js
-        |> to_string
-        |> Dapper.Dap.Header.wrap
-      ) in
-    return js
+    return (loc, gas, exprs)
 
   let log_element_to_out log_element out_channel =
     (* unparse the log_element and wait for the data *)
-    let to_out : string option ref = ref None in
+    let to_out : (int * Alpha_context.Gas.t * 'exprs) option ref = ref None in
+    let lck = Lwt_mutex.create () in
     let () =
       Lwt.async (fun () ->
           let open Lwt_syntax in
-          let* js = log_element_to_json log_element in
-          match js with
-          | Ok js ->
-            let () = to_out := Some js in
-            Lwt.return_unit
-          | Error _ -> Lwt.return_unit
+          let* () = Lwt_mutex.lock lck in
+          let* res = log_element_to_json log_element in
+          match res with
+          | Ok t ->
+            let () = to_out := Some t in
+            Lwt.return @@ Lwt_mutex.unlock lck
+          | Error _ ->
+            Lwt.return @@ Lwt_mutex.unlock lck
         )
     in
     let rec aux () =
-      match !to_out with
-      | Some s ->
-        Printf.(fprintf out_channel "%s\n" s; flush out_channel)
-      | None ->
-        Unix.sleepf 0.01;
+      match Lwt_mutex.is_locked lck, !to_out with
+      | false, Some (loc, gas, exprs) ->
+        (* TODO better handling of mich expressions/tickets *)
+        let wrec = Mdb_model.Weevil_record.make loc gas (exprs |> List.map (fun e -> (e, None, false))) in
+        let wrec_js = Mdb_model.Weevil_record.to_weevil_json wrec in
+        let js = Data_encoding.Json.(
+            construct Mdb_model.Weevil_json.enc wrec_js
+            |> to_string
+            |> Dapper.Dap.Header.wrap
+          ) in
+        Printf.(fprintf out_channel "%s\n" js; flush out_channel)
+      | true, _ | _, None ->
+        Unix.sleepf 0.1;
         aux ()
     in
     aux ()
