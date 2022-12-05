@@ -20,7 +20,7 @@ let enc_ev =
       (function RunScript s -> Some s | _ -> None)
       (fun s -> RunScript s);
     case ~title:"Terminate" (Tag 1)
-      empty
+      (constant "Terminate")
       (function Terminate -> Some () | _ -> None)
       (fun _ -> Terminate);
     case ~title:"Step" (Tag 2)
@@ -28,7 +28,7 @@ let enc_ev =
       (function Step n -> Some n | _ -> None)
       (fun n -> Step n);
     case ~title:"GetRecords" (Tag 3)
-      empty
+      (constant "GetRecords")
       (function GetRecords -> Some () | _ -> None)
       (fun _ -> GetRecords);
   ]

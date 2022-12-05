@@ -27,7 +27,7 @@ module Launch = Launch.T (LaunchStateMock)
 
 let%expect_test "Check sequencing etc for launch" =
   let st = LaunchStateMock.make () in
-  Lwt_io.with_temp_file ~temp_dir:"/dev/shm" (fun (_, oc) ->
+  Lwt_io.with_temp_file ~temp_dir:"/dev/shm" (fun (fname, oc) ->
       let () = LaunchStateMock.set_io st oc in
       let command = Dap.Commands.launch in
       let req =
@@ -80,6 +80,21 @@ let%expect_test "Check sequencing etc for launch" =
         in
         Printf.printf "%s" lmode;
         let%lwt () = [%expect {| launch |}] in
+
+        let%lwt () =
+          let%lwt () = Lwt_io.flush oc in
+          In_channel.with_open_text fname (fun ic ->
+              let s = In_channel.input_all ic in
+              Printf.printf "%s" s;
+              let%lwt () =
+                [%expect {|
+                  Content-Length: 53
+                  
+                  { "event": "dune exec -- weevil stepper example.tz" } |}]
+              in
+              Lwt.return_unit
+            )
+        in
         Lwt.return_unit
 
       | _ -> failwith "error: expected three handlers for launch"
@@ -92,7 +107,7 @@ let%expect_test "Check bad input for launch" =
   Printf.printf "%s" lmode;
   let%lwt () = [%expect {| not set |}] in
   (* now show that given an attach command, it errors correctly *)
-  Lwt_io.with_temp_file ~temp_dir:"/dev/shm" (fun (_, oc) ->
+  Lwt_io.with_temp_file ~temp_dir:"/dev/shm" (fun (fname, oc) ->
       let () = LaunchStateMock.set_io st oc in
       let command = Dap.Commands.attach in
       let req =
@@ -126,6 +141,17 @@ let%expect_test "Check bad input for launch" =
         Printf.printf "%s" lmode;
         let%lwt () = [%expect {| not set |}] in
 
+        let%lwt () =
+          let%lwt () = Lwt_io.flush oc in
+          In_channel.with_open_text fname (fun ic ->
+              let s = In_channel.input_all ic in
+              Printf.printf "%s" s;
+              let%lwt () =
+                [%expect {| |}]
+              in
+              Lwt.return_unit
+            )
+        in
         Lwt.return_unit
 
       | _ -> failwith "error: expected three handlers for launch"

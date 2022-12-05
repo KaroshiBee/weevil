@@ -121,6 +121,12 @@ let variables_msg ~seq =
 
 let variables_req ~seq = Request.variablesRequest @@ variables_msg ~seq
 
+let next_msg ~seq =
+  let arguments = Data.NextArguments.make ~threadId:1 () in
+  Request.Message.make ~seq ~command:Commands.next ~arguments ()
+
+let next_req ~seq = Request.nextRequest @@ next_msg ~seq
+
 let to_msg (type cmd args presence) :
     (cmd, args, presence) Request.Message.t Request.t -> string = function
   | InitializeRequest req ->

@@ -21,7 +21,7 @@ module Stack_trace = Stack_trace.T (StateMock)
 
 let%expect_test "Check sequencing etc for stack trace" =
   let st = StateMock.make () in
-  Lwt_io.with_temp_file ~temp_dir:"/dev/shm" (fun (_, oc) ->
+  Lwt_io.with_temp_file ~temp_dir:"/dev/shm" (fun (fname, oc) ->
       let () = StateMock.set_io st (Lwt_io.stdin) oc in
       let command = Dap.Commands.stackTrace in
       let req =
@@ -57,6 +57,21 @@ let%expect_test "Check sequencing etc for stack trace" =
                               "path": "/home/wyn/dev/weevil/example.tz" }, "line": 6,
                           "column": 0 } ], "totalFrames": 1 } } |}]
         in
+        let%lwt () =
+          let%lwt () = Lwt_io.flush oc in
+          In_channel.with_open_text fname (fun ic ->
+              let s = In_channel.input_all ic in
+              Printf.printf "%s" s;
+              let%lwt () =
+                [%expect {|
+                  Content-Length: 25
+                  
+                  { "event": "GetRecords" } |}]
+              in
+              Lwt.return_unit
+            )
+        in
+
         Lwt.return_unit
 
       | _ -> failwith "error: expected one handler for stack trace"
