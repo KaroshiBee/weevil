@@ -37,6 +37,11 @@ module T (S:Types.STATE_T) = struct
   module Configuration_done = Configuration_done.T (S)
   module Launch = Launch.T (S)
   module Attach = Attach.T (S)
+  module Threads = Threads.T (S)
+  module Stack_trace = Stack_trace.T (S)
+  module Scopes = Scopes.T (S)
+  module Variables = Variables.T (S)
+  module Next = Next.T (S)
 
   type t = {handlers : (string, (module HANDLER_T)) Hashtbl.t;}
 
@@ -49,7 +54,11 @@ module T (S:Types.STATE_T) = struct
           "configurationDone", (module Configuration_done : HANDLER_T);
           "launch", (module Launch : HANDLER_T);
           "attach", (module Attach : HANDLER_T);
-          (* "next", (module Next : HANDLER_T with type state = S.t); *)
+          "threads", (module Threads : HANDLER_T);
+          "stack_trace", (module Stack_trace : HANDLER_T);
+          "scopes", (module Scopes : HANDLER_T);
+          "variables", (module Variables : HANDLER_T);
+          "next", (module Next : HANDLER_T);
           (* "restart", (module Restart : HANDLER_T with type state = S.t); *)
           (* "disconnect", (module Disconnect : HANDLER_T with type state = S.t); *)
           (* "terminate", (module Terminate : HANDLER_T with type state = S.t); *)
@@ -84,15 +93,19 @@ module T (S:Types.STATE_T) = struct
     let%lwt output =
       let cmds =
         [
-          "cancel";
+          "cancel"; (* TODO *)
           "initialize";
           "configurationDone";
           "launch";
           "attach";
+          "threads";
+          "stack_trace";
+          "scopes";
+          "variables";
           "next";
-          "restart";
-          "disconnect";
-          "terminate";
+          "restart"; (* TODO *)
+          "disconnect"; (* TODO *)
+          "terminate"; (* TODO *)
         ]
       in
       (* First one that doesnt raise Wrong_encoder is what we want *)
