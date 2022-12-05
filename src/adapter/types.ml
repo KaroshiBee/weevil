@@ -1,4 +1,5 @@
 module Dap = Dapper.Dap
+module Model = Mdb.Mdb_model
 
 (* readonly wrt the adapter level state,
    Dap.STATE_T is always needed and that modifies Dapper state *)
@@ -12,8 +13,10 @@ module type STATE_READONLY_T = sig
   (* the backend comms channels *)
   val backend_ic : t -> Lwt_io.input_channel option
   val backend_oc : t -> Lwt_io.output_channel option
+  (* the backend data that gets sent back up to the adapter *)
+  val log_records : t -> Model.Weevil_json.t list
 
-  (* neede to retain which launch type was requested *)
+  (* need to retain which launch type was requested *)
   val launch_mode : t -> Dap.Launch_mode.t option
 
   (* the adapter internal config data *)
@@ -30,6 +33,8 @@ module type STATE_T = sig
   val set_start_backend : t -> Ipaddr.t -> int -> string -> unit Dap.Result.t
 
   val set_connect_backend : t -> Ipaddr.t -> int -> (Lwt_io.input_channel * Lwt_io.output_channel) Dap.Result.t
+
+  val set_new_log_records : t -> Model.Weevil_json.t list -> unit
 
   val set_launch_mode : t -> Dap.Launch_mode.t -> unit
 

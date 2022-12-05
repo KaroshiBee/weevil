@@ -3,6 +3,7 @@
  (libraries
      dapper
      defaults
+     mdb
      lwt
      lwt.unix
      conduit-lwt-unix

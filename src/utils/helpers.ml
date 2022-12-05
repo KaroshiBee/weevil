@@ -2,6 +2,7 @@ open Dapper.Dap
 open Conduit_lwt_unix
 open Lwt
 open Data_encoding
+module Model = Mdb.Mdb_model
 
 module StateMock = struct
   type t = {
@@ -9,6 +10,7 @@ module StateMock = struct
     mutable seqr: Data.Seqr.t;
     mutable config : Config.t;
     mutable client_config : Data.InitializeRequestArguments.t option;
+    mutable log_records : Model.Weevil_json.t list;
   }
 
   let make () = {
@@ -16,6 +18,11 @@ module StateMock = struct
     seqr = Data.Seqr.make ~seq:0 ();
     config=Config.make ~script_filename:"example.tz" ();
     client_config=Option.some @@ Data.InitializeRequestArguments.make ~adapterID:"MOCK" ();
+    log_records=Model.Weevil_json.([
+        {location=3; gas="8"; stack=["1";"2";"7"]};
+        {location=2; gas="9"; stack=["1";"2";"3";"4"]};
+        {location=1; gas="10"; stack=["1";"2";"3"]};
+        ]);
   }
 
   let set_connect_backend _ip _port = failwith "MOCK connect"
@@ -27,6 +34,11 @@ module StateMock = struct
   let backend_ic _t = failwith "MOCK ic"
 
   let backend_oc _t = Some Lwt_io.stdout
+
+  let set_new_log_records t recs =
+    t.log_records <- (recs @ t.log_records)
+
+  let log_records t = t.log_records
 
   let launch_mode t = t.launch_mode
 

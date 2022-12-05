@@ -1,6 +1,8 @@
 open Conduit_lwt_unix
 module Dap = Dapper.Dap
 module Helpers = Utils.Helpers
+module Model = Mdb.Mdb_model
+
 
 module T (Dap_state:Dap.STATE_T) = struct
   type t = {
@@ -11,6 +13,7 @@ module T (Dap_state:Dap.STATE_T) = struct
     mutable launch_mode : Dap.Launch_mode.t option;
     mutable config : Dap.Config.t;
     mutable client_config : Dap.Data.InitializeRequestArguments.t option;
+    mutable log_records : Model.Weevil_json.t list;
   }
 
   let make () = {
@@ -21,6 +24,7 @@ module T (Dap_state:Dap.STATE_T) = struct
     launch_mode = None;
     config = Dap.Config.make ~script_filename:"example.tz" ();
     client_config = None;
+    log_records = [];
   }
 
   let backend_svc t = t.process
@@ -28,6 +32,11 @@ module T (Dap_state:Dap.STATE_T) = struct
   let backend_ic t = t.ic
 
   let backend_oc t = t.oc
+
+  let set_new_log_records t recs =
+    t.log_records <- (recs @ t.log_records)
+
+  let log_records t = t.log_records
 
   let _set_io t ic oc =
     t.ic <- Some ic ;

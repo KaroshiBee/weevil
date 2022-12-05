@@ -6,7 +6,7 @@ module Res = Dap.Response
 module Ev = Dap.Event
 module Model = Mdb.Mdb_model
 
-module T (S : Types.STATE_READONLY_T) = struct
+module T (S : Types.STATE_T) = struct
 
   exception Get_records of Model.Weevil_json.t list
 
@@ -44,12 +44,13 @@ module T (S : Types.STATE_READONLY_T) = struct
 
   let stack_trace_handler =
     On_request.make ~handler:(fun ~state _req ->
-        let mich_get_recs = Mdb.Mdb_event.(make ~event:GetRecords ()) in
-        let mich_msg = Data_encoding.Json.(construct Mdb.Mdb_event.enc mich_get_recs |> to_string |> Dap.Header.wrap) in
         match (S.backend_ic state, S.backend_oc state) with
         | (Some ic, Some oc) ->
+          let mich_get_recs = Mdb.Mdb_event.(make ~event:GetRecords ()) in
+          let mich_msg = Data_encoding.Json.(construct Mdb.Mdb_event.enc mich_get_recs |> to_string |> Dap.Header.wrap) in
           let%lwt () = Lwt_io.write oc mich_msg in
           let%lwt recs = _get_recs ic oc in
+          let () = S.set_new_log_records state recs in
           let resp =
             let command = Dap.Commands.stackTrace in
             let stackFrames =

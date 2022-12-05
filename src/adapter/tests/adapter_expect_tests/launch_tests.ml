@@ -3,6 +3,7 @@ module Dap = Dapper.Dap
 module D = Dap.Data
 module Js = Data_encoding.Json
 module Helpers = Utils.Helpers
+module Model = Mdb.Mdb_model
 
 module LaunchStateMock = struct
   type t = {
@@ -11,6 +12,7 @@ module LaunchStateMock = struct
     mutable seqr: D.Seqr.t;
     mutable config : Dap.Config.t;
     mutable client_config : D.InitializeRequestArguments.t option;
+    mutable log_records : Model.Weevil_json.t list;
   }
 
   let make () = {
@@ -19,6 +21,11 @@ module LaunchStateMock = struct
     seqr=D.Seqr.make ~seq:0 ();
     config=Dap.Config.make ~script_filename:"example.tz" ();
     client_config=Option.some @@ D.InitializeRequestArguments.make ~adapterID:"FAKE" ();
+    log_records=Model.Weevil_json.([
+        {location=3; gas="8"; stack=["1";"2";"7"]};
+        {location=2; gas="9"; stack=["1";"2";"3";"4"]};
+        {location=1; gas="10"; stack=["1";"2";"3"]};
+        ]);
   }
 
   let set_connect_backend t _ip _port =
@@ -29,9 +36,14 @@ module LaunchStateMock = struct
 
   let set_start_backend _t _ip _port _cmd = Dap.Result.ok ()
 
+  let set_new_log_records t recs =
+    t.log_records <- (recs @ t.log_records)
+
   let backend_ic _t = failwith "MOCK ic"
 
   let backend_oc t = t.oc
+
+  let log_records t = t.log_records
 
   let set_io t oc =
     t.oc <- Some oc
