@@ -48,29 +48,43 @@
    and so compiler errors should abound if one uses the wrong ctor function.
 
 *)
+module Gen = struct
 
-let gen_utf8_str =
-  QCheck.Gen.string_printable
-let gen_utf8_str_opt =
-  QCheck.Gen.option gen_utf8_str
-let gen_utf8_str_list =
-  QCheck.Gen.list gen_utf8_str
-let gen_utf8_str_list_opt =
-  QCheck.Gen.(option @@ list gen_utf8_str)
+  let gen_utf8_str =
+    QCheck.Gen.string_printable
+  let gen_utf8_str_opt =
+    QCheck.Gen.option gen_utf8_str
+  let gen_utf8_str_list =
+    QCheck.Gen.list gen_utf8_str
+  let gen_utf8_str_list_opt =
+    QCheck.Gen.(option @@ list gen_utf8_str)
 
-let gen_int31 =
-  let mn, mx = Int32.(min_int |> to_int, max_int |> to_int) in
-  let mn, mx = 1 + mn/2, -1 + mx/2 in
-  fun st -> QCheck.Gen.int_range mn mx st
-let gen_int31_opt =
-  QCheck.Gen.option gen_int31
-let gen_int31_list_opt =
-  QCheck.Gen.(option @@ list gen_int31)
+  let gen_int31 =
+    let mn, mx = Int32.(min_int |> to_int, max_int |> to_int) in
+    let mn, mx = 1 + mn/2, -1 + mx/2 in
+    fun st -> QCheck.Gen.int_range mn mx st
+  let gen_int31_opt =
+    QCheck.Gen.option gen_int31
+  let gen_int31_list_opt =
+    QCheck.Gen.(option @@ list gen_int31)
 
-(* TODO proper gen for json *)
-let gen_json = QCheck.Gen.(map (fun x -> `String x) gen_utf8_str)
-let gen_json_opt = QCheck.Gen.option gen_json
+  (* TODO proper gen for json *)
+  let gen_json = QCheck.Gen.(map (fun x -> `String x) gen_utf8_str)
+  let gen_json_opt = QCheck.Gen.option gen_json
 
+  let convert_ocaml_type_str = function
+    | "string" as s -> Printf.sprintf "(%s [@gen Gen.gen_utf8_str])" s
+    | "string option" as s -> Printf.sprintf "(%s [@gen Gen.gen_utf8_str_opt])" s
+    | "string list" as s -> Printf.sprintf "(%s [@gen Gen.gen_utf8_str_list])" s
+    | "string list option" as s -> Printf.sprintf "(%s [@gen Gen.gen_utf8_str_list_opt])" s
+    | "int" as s -> Printf.sprintf "(%s [@gen Gen.gen_int31])" s
+    | "int option" as s -> Printf.sprintf "(%s [@gen Gen.gen_int31_opt])" s
+    | "int list option" as s -> Printf.sprintf "(%s [@gen Gen.gen_int31_list_opt])" s
+    | "Data_encoding.json" as s -> Printf.sprintf "(%s [@gen Gen.gen_json])" s
+    | "Data_encoding.json option" as s -> Printf.sprintf "(%s [@gen Gen.gen_json_opt])" s
+    | _ as s-> s
+
+end
 
 (* some helper modules *)
 module EmptyObject : sig
@@ -142,7 +156,7 @@ end = struct
 
   let module_name = "LaunchRequestArguments"
   type t = {
-    restart: (Data_encoding.json option  [@gen gen_json_opt]);
+    restart: (Data_encoding.json option  [@gen Gen.gen_json_opt]);
     noDebug: bool option;
     (* Since launching is debugger/runtime specific, the arguments for this request are not part of this specification.
        Arguments for launch request. Additional attributes are implementation specific.
@@ -191,7 +205,7 @@ end = struct
 
   let module_name = "AttachRequestArguments"
   type t = {
-    restart: (Data_encoding.json option  [@gen gen_json_opt]);
+    restart: (Data_encoding.json option  [@gen Gen.gen_json_opt]);
     (* Since attaching is debugger/runtime specific, the arguments for this request are not part of this specification.
        Arguments for attach request. Additional attributes are implementation specific.
     *)

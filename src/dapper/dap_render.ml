@@ -43,7 +43,7 @@ module RenderEnum : (RenderT with type spec := Sp.Enum_spec.t) = struct
     let t_str =
       let lns = t.enums |> List.map (fun (e:Sp.Enum_spec.enum_val) -> e.safe_name) |> String.concat " | " in
       let lns = if t.suggested then lns ^ " | Other of string" else lns in
-      Printf.sprintf "type t = %s " lns
+      Printf.sprintf "type t = %s [@@deriving qcheck]" lns
     in
 
     let enc_t_s =
@@ -206,26 +206,27 @@ module RenderObjectField = struct
     | Sp.Field_spec.{ safe_name; required; seq; _ } ->
       sig_typ_str ~required ~seq safe_name "t"
 
-  let typ_str ~required ~seq type_ =
+  let typ_str ~with_qcheck_gen ~required ~seq type_ =
     let s = Printf.sprintf (if seq then "%s list" else "%s") type_ in
-    Printf.sprintf (if required then "%s" else "%s option") s
+    let s = Printf.sprintf (if required then "%s" else "%s option") s in
+    if with_qcheck_gen then Dap_base.Gen.convert_ocaml_type_str s else s
 
   let req_enc_str ~required = if required then "req" else "opt"
   let seq_enc_str ~seq name = if seq then Printf.sprintf "(list %s)" name else name
 
   let render_accessor_sig = function
     | Sp.Field_spec.{ safe_name; type_; required; cyclic; seq; _ } when not cyclic ->
-        Printf.sprintf "val %s : t -> %s" safe_name @@ typ_str ~required ~seq type_
+        Printf.sprintf "val %s : t -> %s" safe_name @@ typ_str ~with_qcheck_gen:false ~required ~seq type_
     | Sp.Field_spec.{ safe_name; required; seq; _ } ->
-        Printf.sprintf "val %s : t -> %s" safe_name @@ typ_str ~required ~seq "t"
+        Printf.sprintf "val %s : t -> %s" safe_name @@ typ_str ~with_qcheck_gen:false ~required ~seq "t"
 
   let render_t = function
     (* for the type t decl
        NOTE if it is cyclic field then hardcode type name to 't' *)
     | Sp.Field_spec.{ safe_name; type_; required; cyclic; seq; _ } when not cyclic ->
-      Printf.sprintf "%s: %s;" safe_name @@ typ_str ~required ~seq type_
+      Printf.sprintf "%s: %s;" safe_name @@ typ_str ~with_qcheck_gen:true ~required ~seq type_
     | Sp.Field_spec.{ safe_name; required; seq; _ } ->
-      Printf.sprintf "%s: %s;" safe_name @@ typ_str ~required ~seq "t"
+      Printf.sprintf "%s: %s;" safe_name @@ typ_str ~with_qcheck_gen:true ~required ~seq "t"
 
   let render_enc = function
     (* for the encoding function
@@ -266,13 +267,14 @@ module RenderObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
       Printf.sprintf
         "type t \n \
          val enc : t Data_encoding.t \n \
+         val gen : t QCheck.Gen.t \n \
          val make : %s -> unit -> t \n \
          %s"
         make_sig accessors_sig
     in
     let t_str =
       let lns = t.fields |> List.map RenderObjectField.render_t |> String.concat "\n" in
-      Printf.sprintf "type t = { %s }" lns
+      Printf.sprintf "type t = { %s } [@@deriving qcheck]" lns
     in
     let enc_obj_str =
       let lns = t.fields |> List.map RenderObjectField.render_enc |> String.concat "\n" in
@@ -391,7 +393,7 @@ module RenderLargeObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
       | [] -> ""
     in
     let t_str =
-      Printf.sprintf "type t = %s" @@ aux_brkts ~sep:"*" (modstrs |> List.map (fun (nm, _, _) -> nm^".t"))
+      Printf.sprintf "type t = %s [@@deriving qcheck]" @@ aux_brkts ~sep:"*" (modstrs |> List.map (fun (nm, _, _) -> nm^".t"))
     in
     let enc_str =
       let rec aux = function
@@ -413,6 +415,7 @@ module RenderLargeObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
       Printf.sprintf
         "type t \n \
          val enc : t Data_encoding.t \n \
+         val gen : t QCheck.Gen.t \n \
          val make : %s -> unit -> t \n \
          %s"
         make_sig accessors_sig
@@ -461,7 +464,7 @@ module RenderEmptyObject : (RenderT with type spec := unit) = struct
 
   let render _t ~name =
     let t_str =
-      "type t = unit"
+      "type t = unit [@@deriving qcheck]"
     in
 
     let enc_str =
@@ -475,6 +478,7 @@ module RenderEmptyObject : (RenderT with type spec := unit) = struct
       "module %s : sig \n \
        type t \n \
        val enc : t Data_encoding.t \n \
+       val gen : t QCheck.Gen.t \n \
        val make : unit -> t \n \
        end = struct \n \
        %s\n\n \
