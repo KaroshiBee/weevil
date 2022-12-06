@@ -49,18 +49,41 @@
 
 *)
 
+let gen_utf8_str =
+  QCheck.Gen.string_printable
+let gen_utf8_str_opt =
+  QCheck.Gen.option gen_utf8_str
+let gen_utf8_str_list =
+  QCheck.Gen.list gen_utf8_str
+let gen_utf8_str_list_opt =
+  QCheck.Gen.(option @@ list gen_utf8_str)
+
+let gen_int31 =
+  let mn, mx = Int32.(min_int |> to_int, max_int |> to_int) in
+  let mn, mx = 1 + mn/2, -1 + mx/2 in
+  fun st -> QCheck.Gen.int_range mn mx st
+let gen_int31_opt =
+  QCheck.Gen.option gen_int31
+let gen_int31_list_opt =
+  QCheck.Gen.(option @@ list gen_int31)
+
+(* TODO proper gen for json *)
+let gen_json = QCheck.Gen.(map (fun x -> `String x) gen_utf8_str)
+let gen_json_opt = QCheck.Gen.option gen_json
+
 
 (* some helper modules *)
 module EmptyObject : sig
   type t
   val module_name : string
   val enc : t Data_encoding.t
+  val gen : t QCheck.Gen.t
   val make : unit -> t
 end = struct
 
   let module_name = "EmptyObject"
 
-  type t = unit
+  type t = unit [@@deriving qcheck]
 
   let enc = Data_encoding.empty
 
@@ -72,6 +95,7 @@ module IntString : sig
   type t
   val module_name : string
   val enc : t Data_encoding.t
+  val gen : t QCheck.Gen.t
   val of_int : int -> t
   val of_string : string -> t
 end = struct
@@ -81,6 +105,7 @@ end = struct
   type t =
     | I of int
     | S of string
+  [@@deriving qcheck]
 
 
   let enc =
@@ -106,6 +131,7 @@ module LaunchRequestArguments : sig
   type t
   val module_name : string
   val enc : t Data_encoding.t
+  val gen : t QCheck.Gen.t
   val make : ?restart:Data_encoding.json -> ?noDebug:bool -> script_filename:string -> storage:string -> parameter:string -> unit -> t
   val restart : t -> Data_encoding.json option
   val noDebug : t -> bool option
@@ -116,7 +142,7 @@ end = struct
 
   let module_name = "LaunchRequestArguments"
   type t = {
-    restart: Data_encoding.json option;
+    restart: (Data_encoding.json option  [@gen gen_json_opt]);
     noDebug: bool option;
     (* Since launching is debugger/runtime specific, the arguments for this request are not part of this specification.
        Arguments for launch request. Additional attributes are implementation specific.
@@ -125,6 +151,7 @@ end = struct
     storage: string;
     parameter: string;
   }
+  [@@deriving qcheck]
 
   let enc =
     let open Data_encoding in
@@ -154,6 +181,7 @@ module AttachRequestArguments : sig
   type t
   val module_name : string
   val enc : t Data_encoding.t
+  val gen : t QCheck.Gen.t
   val make : ?restart:Data_encoding.json -> script_filename:string -> storage:string -> parameter:string -> unit -> t
   val restart : t -> Data_encoding.json option
   val script_filename : t -> string
@@ -163,7 +191,7 @@ end = struct
 
   let module_name = "AttachRequestArguments"
   type t = {
-    restart: Data_encoding.json option;
+    restart: (Data_encoding.json option  [@gen gen_json_opt]);
     (* Since attaching is debugger/runtime specific, the arguments for this request are not part of this specification.
        Arguments for attach request. Additional attributes are implementation specific.
     *)
@@ -171,6 +199,7 @@ end = struct
     storage: string;
     parameter: string;
   }
+  [@@deriving qcheck]
 
   let enc =
     let open Data_encoding in
@@ -198,6 +227,7 @@ module RestartArguments : sig
   type t
   val module_name : string
   val enc : t Data_encoding.t
+  val gen : t QCheck.Gen.t
   val of_launch_args : LaunchRequestArguments.t -> t
   val of_attach_args : AttachRequestArguments.t -> t
 end = struct
@@ -207,6 +237,7 @@ end = struct
   type t =
     | LaunchRequestArgs of LaunchRequestArguments.t
     | AttachRequestArgs of AttachRequestArguments.t
+  [@@deriving qcheck]
 
   let enc =
     let open Data_encoding in
@@ -230,6 +261,7 @@ end
    the whole protocol is based on requests, responses and events *)
 module ProtocolMessage_type = struct
   type t = Request | Response | Event
+  [@@deriving qcheck]
 
   let enc =
     let open Data_encoding in
