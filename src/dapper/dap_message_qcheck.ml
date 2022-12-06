@@ -196,6 +196,8 @@ module Data = struct
 
     val gen : t QCheck.Gen.t
 
+    val arb : t QCheck.arbitrary
+
     val make :
       reason:StoppedEvent_body_reason.t ->
       ?description:string ->
@@ -608,60 +610,58 @@ module Data = struct
       checksums : Checksum.t list option;
     }
 
-    let rec gen_t_sized : int -> t QCheck.Gen.t =
-     fun n ->
-      let basecase : t list option QCheck.Gen.t =
-        QCheck.Gen.oneofl [None; Some []]
-      in
-      let _gen_t : t list option QCheck.Gen.t -> t QCheck.Gen.t =
-       fun g ->
-        let gg =
-          QCheck.Gen.tup8
-            Gen.gen_utf8_str_opt
-            Gen.gen_utf8_str_opt
-            Gen.gen_int31_opt
-            QCheck.Gen.(option Source_presentationHint.gen)
-            Gen.gen_utf8_str_opt
-            g
-            Gen.gen_json_opt
-            QCheck.Gen.(option @@ list Checksum.gen)
+    let gen = QCheck.Gen.(sized @@ fix (fun self n ->
+        let basecase =
+          oneofl [None; Some []]
         in
-        QCheck.Gen.map
-          (fun ( name,
-                 path,
-                 sourceReference,
-                 presentationHint,
-                 origin,
-                 sources,
-                 adapterData,
-                 checksums ) ->
-            {
-              name;
-              path;
-              sourceReference;
-              presentationHint;
-              origin;
-              sources;
-              adapterData;
-              checksums;
-            })
-          gg
-      in
-      match n with
-      | 0 -> _gen_t basecase
-      | n ->
-          QCheck.Gen.frequency
+        let _gen_t =
+          fun g ->
+            let gg =
+              tup8
+                Gen.gen_utf8_str_opt
+                Gen.gen_utf8_str_opt
+                Gen.gen_int31_opt
+                (option Source_presentationHint.gen)
+                Gen.gen_utf8_str_opt
+                g
+                Gen.gen_json_opt
+                (option @@ list Checksum.gen)
+            in
+            map
+              (fun ( name,
+                     path,
+                     sourceReference,
+                     presentationHint,
+                     origin,
+                     sources,
+                     adapterData,
+                     checksums ) ->
+                {
+                  name;
+                  path;
+                  sourceReference;
+                  presentationHint;
+                  origin;
+                  sources;
+                  adapterData;
+                  checksums;
+                })
+              gg
+        in
+        match n with
+        | 0 -> _gen_t basecase
+        | n ->
+          frequency
             [
               (1, _gen_t basecase);
               ( 1,
                 let g =
-                  QCheck.Gen.map (fun {sources; _} -> sources)
-                  @@ gen_t_sized (n - 1)
+                  map (fun {sources; _} -> sources)
+                  @@ self (n - 1)
                 in
                 _gen_t g );
             ]
-
-    let gen = QCheck.Gen.sized @@ gen_t_sized
+      ))
 
     let enc =
       let open Data_encoding in
@@ -7421,8 +7421,8 @@ module Data = struct
       innerException : t list option;
     }
 
-    let rec gen_t_sized : int -> t QCheck.Gen.t =
-     fun n ->
+    let gen = QCheck.Gen.sized @@ QCheck.Gen.fix (fun self n ->
+
       let basecase : t list option QCheck.Gen.t =
         QCheck.Gen.oneofl [None; Some []]
       in
@@ -7463,12 +7463,11 @@ module Data = struct
               ( 1,
                 let g =
                   QCheck.Gen.map (fun {innerException; _} -> innerException)
-                  @@ gen_t_sized (n - 1)
+                  @@ self (n - 1)
                 in
                 _gen_t g );
             ]
-
-    let gen = QCheck.Gen.sized @@ gen_t_sized
+      )
 
     let enc =
       let open Data_encoding in
@@ -9237,6 +9236,13 @@ module Event = struct
   let initializedEvent ev = InitializedEvent ev
 
   let stoppedEvent ev = StoppedEvent ev
+  let gen_stoppedevent = QCheck.Gen.(
+      (
+        map (fun (seq, body) -> stoppedEvent @@ EventMessage.make ~seq ~event:Dap_events.stopped ~body ()) @@
+        tup2 Gen.gen_int31 StoppedEvent_body.gen,
+        EventMessage.enc Dap_events.stopped StoppedEvent_body.enc
+      )
+    )
 
   let continuedEvent ev = ContinuedEvent ev
 

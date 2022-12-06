@@ -268,6 +268,7 @@ module RenderObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
         "type t \n \
          val enc : t Data_encoding.t \n \
          val gen : t QCheck.Gen.t \n \
+         val arb : t QCheck.arbitrary \n \
          val make : %s -> unit -> t \n \
          %s"
         make_sig accessors_sig
@@ -416,6 +417,7 @@ module RenderLargeObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
         "type t \n \
          val enc : t Data_encoding.t \n \
          val gen : t QCheck.Gen.t \n \
+         val arb : t QCheck.array \n \
          val make : %s -> unit -> t \n \
          %s"
         make_sig accessors_sig
@@ -479,6 +481,7 @@ module RenderEmptyObject : (RenderT with type spec := unit) = struct
        type t \n \
        val enc : t Data_encoding.t \n \
        val gen : t QCheck.Gen.t \n \
+       val arb : t QCheck.arbitrary \n \
        val make : unit -> t \n \
        end = struct \n \
        %s\n\n \
