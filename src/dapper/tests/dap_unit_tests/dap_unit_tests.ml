@@ -2,7 +2,8 @@ open Alcotest
 
 let () =
   run "Dap_event" [
-    "js destruct/construct the same", Dap_event_tests.EventTests.suite
+    "equality checks", Dap_event_tests.EventTests.suite_basic_equality_checks;
+    "js destruct/construct the same", Dap_event_tests.EventTests.suite_js_roundtrip;
     ];
 
   run "Dap_header" [

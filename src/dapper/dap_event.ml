@@ -12,9 +12,13 @@ type _ expr =
   | Map : ('msg -> 'b) expr * 'msg expr -> 'b expr
   | Equal : ('msg1 -> 'msg2 -> bool) expr * 'msg1 expr * 'msg2 expr -> bool expr
 
+(* stuff that is used in handlers *)
 let fmap_ f = Fmap f
 let val_ x = Val x
 let map_ (f, x) = Map (f, x)
+
+(* currently only used for tests *)
+let eq_ f = Eq f
 let equal_ (f, x, y) = Equal (f, x, y)
 
 let rec eval : type msg. msg expr -> msg = function

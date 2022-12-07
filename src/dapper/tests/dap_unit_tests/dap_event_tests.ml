@@ -7,8 +7,7 @@ module EventTests = struct
     let ev1 = val_ ev1 in
     let ev2 = val_ ev2 in
     let f = Message.equal ~equal_body in
-    let eq = eval @@ equal_ (val_ @@ Eq f, ev1, ev2) in
-    eq
+    eval @@ equal_ (val_ @@ eq_ f, ev1, ev2)
 
   let test_init_event =
     let ctor, gen, enc = gen_initializedevent in
@@ -35,8 +34,40 @@ module EventTests = struct
         equal ~equal_body:D.StoppedEvent_body.equal ev1 ev2
       )
 
-  let suite =
+  let test_different_events_same_bodies_never_equal =
+    let ctor1, gen1, _enc1 = gen_initializedevent in
+    let ctor2, gen2, _enc2 = gen_stoppedevent in
+    let arb1 = QCheck.make gen1 in
+    let arb2 = QCheck.make gen2 in
+    QCheck.Test.make ~count:1000 ~name:"different events, bodies set to equal"
+      (QCheck.pair arb1 arb2)
+      (fun (ev1, ev2) ->
+        let ev1' = ctor1 ev1 in
+        let ev2' = ctor2 ev2 in
+        let equal_body = fun _ _ -> true in
+        not @@ equal ~equal_body ev1' ev2'
+      )
+
+  let test_different_events_different_bodies_never_equal =
+    let ctor1, gen1, _enc1 = gen_initializedevent in
+    let ctor2, gen2, _enc2 = gen_stoppedevent in
+    let arb1 = QCheck.make gen1 in
+    let arb2 = QCheck.make gen2 in
+    QCheck.Test.make ~count:1000 ~name:"different events, bodies set to not equal"
+      (QCheck.pair arb1 arb2)
+      (fun (ev1, ev2) ->
+        let ev1' = ctor1 ev1 in
+        let ev2' = ctor2 ev2 in
+        let equal_body = fun _ _ -> false in
+        not @@ equal ~equal_body ev1' ev2'
+      )
+
+  let suite_js_roundtrip =
     List.map QCheck_alcotest.to_alcotest
       [ test_init_event; test_stopped_event; ]
+
+  let suite_basic_equality_checks =
+    List.map QCheck_alcotest.to_alcotest
+      [ test_different_events_same_bodies_never_equal; test_different_events_different_bodies_never_equal; ]
 
 end
