@@ -131,8 +131,8 @@ end = struct
   let module_name = "IntString"
 
   type t =
-    | I of int
-    | S of string
+    | I of int [@gen Gen.gen_int31]
+    | S of string [@gen Gen.gen_utf8_str]
   [@@deriving qcheck, eq]
 
 
@@ -177,9 +177,9 @@ end = struct
     (* Since launching is debugger/runtime specific, the arguments for this request are not part of this specification.
        Arguments for launch request. Additional attributes are implementation specific.
     *)
-    script_filename: string;
-    storage: string;
-    parameter: string;
+    script_filename: (string [@gen Gen.gen_utf8_str]);
+    storage: (string [@gen Gen.gen_utf8_str]);
+    parameter: (string [@gen Gen.gen_utf8_str]);
   }
   [@@deriving qcheck, eq]
 
@@ -227,9 +227,9 @@ end = struct
     (* Since attaching is debugger/runtime specific, the arguments for this request are not part of this specification.
        Arguments for attach request. Additional attributes are implementation specific.
     *)
-    script_filename: string;
-    storage: string;
-    parameter: string;
+    script_filename: (string [@gen Gen.gen_utf8_str]);
+    storage: (string [@gen Gen.gen_utf8_str]);
+    parameter: (string [@gen Gen.gen_utf8_str]);
   }
   [@@deriving qcheck, eq]
 
