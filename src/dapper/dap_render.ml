@@ -7,7 +7,11 @@ module Render_output = struct
   type msg = {
         modstr: string;
         tystr: string;
-        ctor: string
+        ctor: string;
+        ctorstr: string;
+        genstr: string;
+        encstr: string;
+
       }
   type mlmli = {ml: string; mli:string;}
 
@@ -16,8 +20,8 @@ module Render_output = struct
     | `MlMli of mlmli
   ]
 
-  let make_msg ?(tystr="") ?(ctor="") modstr =
-    `Message {modstr; tystr; ctor}
+  let make_msg ?(tystr="") ?(ctor="") ?(ctorstr="") ?(genstr="") ?(encstr="") modstr =
+    `Message {modstr; tystr; ctor; ctorstr; genstr; encstr}
 
   let make_mlmli ml mli =
     `MlMli {ml; mli}
@@ -612,6 +616,24 @@ module RenderRequest : (RenderT with type spec := Sp.Obj_spec.t) = struct
               "| %s : %s RequestMessage.t -> %s RequestMessage.t t"
               name ty_params ty_params
           )
+          ~ctorstr:(String.uncapitalize_ascii name)
+          ~genstr:(
+            Printf.sprintf
+              "QCheck.Gen.( \
+               map (fun (seq, arguments) -> RequestMessage.make ~seq ~command:%s.%s ~arguments ()) \
+               @@ tup2 Gen.gen_int31 %s.gen \
+               )"
+              CommandHelper.module_name
+              command
+              args.module_name
+          )
+          ~encstr:(
+            Printf.sprintf
+              "RequestMessage.enc %s.%s %s.enc"
+              CommandHelper.module_name
+              command
+              args.module_name
+          )
           ""
 
     | Some args ->
@@ -631,6 +653,24 @@ module RenderRequest : (RenderT with type spec := Sp.Obj_spec.t) = struct
               "| %s : %s RequestMessage.t -> %s RequestMessage.t t"
               name ty_params ty_params
           )
+          ~ctorstr:(String.uncapitalize_ascii name)
+          ~genstr:(
+            Printf.sprintf
+              "QCheck.Gen.( \
+               map (fun (seq, arguments) -> RequestMessage.make_opt ~seq ~command:%s.%s ~arguments ()) \
+               @@ tup2 Gen.gen_int31 %s.gen \
+               )"
+              CommandHelper.module_name
+              command
+              args.module_name
+          )
+          ~encstr:(
+            Printf.sprintf
+              "RequestMessage.enc_opt %s.%s %s.enc"
+              CommandHelper.module_name
+              command
+              args.module_name
+          )
           ""
     | None ->
         let ty_params = Printf.sprintf "(%s.%s, %s.t option, Presence.opt)"
@@ -648,6 +688,24 @@ module RenderRequest : (RenderT with type spec := Sp.Obj_spec.t) = struct
             Printf.sprintf
               "| %s : %s RequestMessage.t -> %s RequestMessage.t t"
               name ty_params ty_params
+          )
+          ~ctorstr:(String.uncapitalize_ascii name)
+          ~genstr:(
+            Printf.sprintf
+              "QCheck.Gen.( \
+               map (fun (seq, arguments) -> RequestMessage.make_opt ~seq ~command:%s.%s ~arguments ()) \
+               @@ tup2 Gen.gen_int31 %s.gen \
+               )"
+              CommandHelper.module_name
+              command
+              Dap_base.EmptyObject.module_name
+          )
+          ~encstr:(
+            Printf.sprintf
+              "RequestMessage.enc_opt %s.%s %s.enc"
+              CommandHelper.module_name
+              command
+              Dap_base.EmptyObject.module_name
           )
           ""
 end
@@ -678,6 +736,24 @@ module RenderResponse : (RenderT with type spec := Sp.Obj_spec.t) = struct
               "| %s : %s ResponseMessage.t -> %s ResponseMessage.t t"
               name ty_params ty_params
           )
+          ~ctorstr:(String.uncapitalize_ascii name)
+          ~genstr:(
+            Printf.sprintf
+              "QCheck.Gen.( \
+               map (fun (seq, body) -> ResponseMessage.make ~seq ~command:%s.%s ~body ()) \
+               @@ tup2 Gen.gen_int31 %s.gen \
+               )"
+              CommandHelper.module_name
+              command
+              body.module_name
+          )
+          ~encstr:(
+            Printf.sprintf
+              "ResponseMessage.enc %s.%s %s.enc"
+              CommandHelper.module_name
+              command
+              body.module_name
+          )
           ""
     | Some body ->
         let ty_params = Printf.sprintf "(%s.%s, %s.t option, Presence.opt)"
@@ -696,6 +772,24 @@ module RenderResponse : (RenderT with type spec := Sp.Obj_spec.t) = struct
               "| %s : %s ResponseMessage.t -> %s ResponseMessage.t t"
               name ty_params ty_params
           )
+          ~ctorstr:(String.uncapitalize_ascii name)
+          ~genstr:(
+            Printf.sprintf
+              "QCheck.Gen.( \
+               map (fun (seq, body) -> ResponseMessage.make_opt ~seq ~command:%s.%s ~body ()) \
+               @@ tup2 Gen.gen_int31 %s.gen \
+               )"
+              CommandHelper.module_name
+              command
+              body.module_name
+          )
+          ~encstr:(
+            Printf.sprintf
+              "ResponseMessage.enc_opt %s.%s %s.enc"
+              CommandHelper.module_name
+              command
+              body.module_name
+          )
           ""
     | None ->
         let ty_params = Printf.sprintf "(%s.%s, %s.t option, Presence.opt)"
@@ -713,6 +807,24 @@ module RenderResponse : (RenderT with type spec := Sp.Obj_spec.t) = struct
             Printf.sprintf
               "| %s : %s ResponseMessage.t -> %s ResponseMessage.t t"
               name ty_params ty_params
+          )
+          ~ctorstr:(String.uncapitalize_ascii name)
+          ~genstr:(
+            Printf.sprintf
+              "QCheck.Gen.( \
+               map (fun (seq, body) -> ResponseMessage.make_opt ~seq ~command:%s.%s ~body ()) \
+               @@ tup2 Gen.gen_int31 %s.gen \
+               )"
+              CommandHelper.module_name
+              command
+              Dap_base.EmptyObject.module_name
+          )
+          ~encstr:(
+            Printf.sprintf
+              "ResponseMessage.enc_opt %s.%s %s.enc"
+              CommandHelper.module_name
+              command
+              Dap_base.EmptyObject.module_name
           )
           ""
 end
@@ -743,6 +855,24 @@ module RenderEvent : (RenderT with type spec := Sp.Obj_spec.t) = struct
               "| %s : %s EventMessage.t -> %s EventMessage.t t"
               name ty_params ty_params
           )
+          ~ctorstr:(String.uncapitalize_ascii name)
+          ~genstr:(
+            Printf.sprintf
+              "QCheck.Gen.( \
+               map (fun (seq, body) -> EventMessage.make ~seq ~event:%s.%s ~body ()) \
+               @@ tup2 Gen.gen_int31 %s.gen \
+               )"
+              EventHelper.module_name
+              event
+              body.module_name
+          )
+          ~encstr:(
+            Printf.sprintf
+              "EventMessage.enc %s.%s %s.enc"
+              EventHelper.module_name
+              event
+              body.module_name
+          )
           ""
 
     | Some body ->
@@ -762,6 +892,24 @@ module RenderEvent : (RenderT with type spec := Sp.Obj_spec.t) = struct
               "| %s : %s EventMessage.t -> %s EventMessage.t t"
               name ty_params ty_params
           )
+          ~ctorstr:(String.uncapitalize_ascii name)
+          ~genstr:(
+            Printf.sprintf
+              "QCheck.Gen.( \
+               map (fun (seq, body) -> EventMessage.make_opt ~seq ~event:%s.%s ~body ()) \
+               @@ tup2 Gen.gen_int31 %s.gen \
+               )"
+              EventHelper.module_name
+              event
+              body.module_name
+          )
+          ~encstr:(
+            Printf.sprintf
+              "EventMessage.enc_opt %s.%s %s.enc"
+              EventHelper.module_name
+              event
+              body.module_name
+          )
           ""
     | None ->
         let ty_params = Printf.sprintf "(%s.%s, %s.t option, Presence.opt)"
@@ -780,6 +928,24 @@ module RenderEvent : (RenderT with type spec := Sp.Obj_spec.t) = struct
               "| %s : %s EventMessage.t -> %s EventMessage.t t"
               name ty_params ty_params
           )
+          ~ctorstr:(String.uncapitalize_ascii name)
+          ~genstr:(
+            Printf.sprintf
+              "QCheck.Gen.( \
+               map (fun (seq, body) -> EventMessage.make_opt ~seq ~event:%s.%s ~body ()) \
+               @@ tup2 Gen.gen_int31 %s.gen \
+               )"
+              EventHelper.module_name
+              event
+              Dap_base.EmptyObject.module_name
+          )
+          ~encstr:(
+            Printf.sprintf
+              "EventMessage.enc_opt %s.%s %s.enc"
+              EventHelper.module_name
+              event
+              Dap_base.EmptyObject.module_name
+          )
           ""
 end
 
@@ -793,23 +959,26 @@ let render (dfs:Dfs.t) = let open Render_output in function
     let modstrs = ref [] in
     let reqstrs = ref [] in
     let reqctors = ref [] in
+    let reqgens = ref [] in
     let respstrs = ref [] in
     let respctors = ref [] in
+    let respgens = ref [] in
     let eventstrs = ref [] in
     let eventctors = ref [] in
+    let eventgens = ref [] in
     let _ =
       Dfs.ordering dfs
       |> List.iter (fun name ->
           match (Hashtbl.find_opt dfs.finished name) with
           | Some (Sp.Request o) ->
-            let {modstr; tystr; ctor} = match RenderRequest.(of_spec o |> render ~name ~internal_with_sig:true) with `Message msg -> msg | _ -> assert false in
-            modstrs := modstr :: !modstrs; reqstrs := tystr :: !reqstrs; reqctors := ctor :: !reqctors
+            let {modstr; tystr; ctor; ctorstr; genstr; encstr} = match RenderRequest.(of_spec o |> render ~name ~internal_with_sig:true) with `Message msg -> msg | _ -> assert false in
+            modstrs := modstr :: !modstrs; reqstrs := tystr :: !reqstrs; reqctors := ctor :: !reqctors; reqgens := (ctorstr, genstr, encstr) :: !reqgens
           | Some (Sp.Response o) ->
-            let {modstr; tystr; ctor} = match RenderResponse.(of_spec o |> render ~name ~internal_with_sig:true) with `Message msg -> msg | _ -> assert false in
-            modstrs := modstr :: !modstrs; respstrs := tystr :: !respstrs; respctors := ctor :: !respctors
+            let {modstr; tystr; ctor; ctorstr; genstr; encstr} = match RenderResponse.(of_spec o |> render ~name ~internal_with_sig:true) with `Message msg -> msg | _ -> assert false in
+            modstrs := modstr :: !modstrs; respstrs := tystr :: !respstrs; respctors := ctor :: !respctors; respgens := (ctorstr, genstr, encstr) :: !respgens
           | Some (Sp.Event o) ->
-            let {modstr; tystr; ctor} = match RenderEvent.(of_spec o |> render ~name ~internal_with_sig:true) with `Message msg -> msg | _ -> assert false in
-            modstrs := modstr :: !modstrs; eventstrs := tystr :: !eventstrs; eventctors := ctor :: !eventctors
+            let {modstr; tystr; ctor; ctorstr; genstr; encstr} = match RenderEvent.(of_spec o |> render ~name ~internal_with_sig:true) with `Message msg -> msg | _ -> assert false in
+            modstrs := modstr :: !modstrs; eventstrs := tystr :: !eventstrs; eventctors := ctor :: !eventctors; eventgens := (ctorstr, genstr, encstr) :: !eventgens
           | Some (Sp.Object o) when Sp.Obj_spec.is_big o ->
             let {modstr; _} = match RenderLargeObject.(of_spec o |> render ~name ~internal_with_sig:true) with `Message msg -> msg | _ -> assert false in
             modstrs := modstr :: !modstrs
@@ -829,10 +998,28 @@ let render (dfs:Dfs.t) = let open Render_output in function
     let smods = String.concat "\n\n" (!modstrs |> List.rev) in
     let sreqs = String.concat "\n" (!reqstrs |> List.rev) in
     let sreqctors = String.concat "\n" (!reqctors |> List.rev) in
+    let sreqgens = String.concat "\n" (
+        !reqgens
+        |> List.rev
+        |> List.map (fun (ctor, gen, enc) -> Printf.sprintf "let gen_%s = (%s, %s, %s)" ctor ctor gen enc)
+      )
+    in
     let sresps = String.concat "\n" (!respstrs |> List.rev) in
     let srespctors = String.concat "\n" (!respctors |> List.rev) in
+    let srespgens = String.concat "\n" (
+        !respgens
+        |> List.rev
+        |> List.map (fun (ctor, gen, enc) -> Printf.sprintf "let gen_%s = (%s, %s, %s)" ctor ctor gen enc)
+      )
+    in
     let sevents = String.concat "\n" (!eventstrs |> List.rev) in
     let seventctors = String.concat "\n" (!eventctors |> List.rev) in
+    let seventgens = String.concat "\n" (
+        !eventgens
+        |> List.rev
+        |> List.map (fun (ctor, gen, enc) -> Printf.sprintf "let gen_%s = (%s, %s, %s)" ctor ctor gen enc)
+      )
+    in
     Printf.sprintf
       "(* NOTE this file was autogenerated - do not modify by hand *)\n\n \
        module RequestMessage = Dap_request_message\n \
@@ -845,25 +1032,31 @@ let render (dfs:Dfs.t) = let open Render_output in function
        module Request  = struct \n\n \
        open Data \n\n \
        type _ t = \n
+       | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t \n
        | Fmap : ('a -> 'b) -> ('a -> 'b) t \n
        (* request GADT items *) %s\n\n \
        (* request constructors *) %s\n\n \
+       (* request qcheck *) %s\n\n \
        end \n\n \
        module Response = struct \n\n \
        open Data \n\n \
        type _ t = \n
+       | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t \n
        | Fmap : ('a -> 'b) -> ('a -> 'b) t \n
        (* response GADT items *) %s\n\n \
        (* response constructors *) %s\n\n \
+       (* response qcheck *) %s\n\n \
        end \n\n \
        module Event = struct \n\n \
        open Data \n\n \
        type _ t = \n
+       | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t \n
        | Fmap : ('a -> 'b) -> ('a -> 'b) t \n
        (* event GADT items *) %s\n\n
        (* event constructors *) %s\n\n \
+       (* event qcheck *) %s\n\n \
        end"
-      smods sreqs sreqctors sresps srespctors sevents seventctors
+      smods sreqs sreqctors sreqgens sresps srespctors srespgens sevents seventctors seventgens
   | Commands ML ->
     let {ml; _} = match RenderEnumWithPhantoms.(of_spec dfs.command_enum |> render ~name:CommandHelper.module_name ~internal_with_sig:false) with `MlMli mlmli -> mlmli | _ -> assert false in
     ml

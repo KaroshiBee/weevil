@@ -10,7 +10,7 @@ module EventTests = struct
     eval @@ equal_ (val_ @@ eq_ f, ev1, ev2)
 
   let test_init_event =
-    let ctor, gen, enc = gen_initializedevent in
+    let ctor, gen, enc = gen_initializedEvent in
     let arb = QCheck.make gen in
     QCheck.Test.make ~count:1000 ~name:"initialized event" arb (fun ev ->
         let ev1 = ctor ev in
@@ -25,7 +25,7 @@ module EventTests = struct
       )
 
   let test_stopped_event =
-    let ctor, gen, enc = gen_stoppedevent in
+    let ctor, gen, enc = gen_stoppedEvent in
     let arb = QCheck.make gen in
     QCheck.Test.make ~count:1000 ~name:"stopped event" arb (fun ev ->
         let ev1 = ctor ev in
@@ -35,8 +35,8 @@ module EventTests = struct
       )
 
   let test_different_events_same_bodies_never_equal =
-    let ctor1, gen1, _enc1 = gen_initializedevent in
-    let ctor2, gen2, _enc2 = gen_stoppedevent in
+    let ctor1, gen1, _enc1 = gen_initializedEvent in
+    let ctor2, gen2, _enc2 = gen_stoppedEvent in
     let arb1 = QCheck.make gen1 in
     let arb2 = QCheck.make gen2 in
     QCheck.Test.make ~count:1000 ~name:"different events, bodies set to equal"
@@ -49,8 +49,8 @@ module EventTests = struct
       )
 
   let test_different_events_different_bodies_never_equal =
-    let ctor1, gen1, _enc1 = gen_initializedevent in
-    let ctor2, gen2, _enc2 = gen_stoppedevent in
+    let ctor1, gen1, _enc1 = gen_initializedEvent in
+    let ctor2, gen2, _enc2 = gen_stoppedEvent in
     let arb1 = QCheck.make gen1 in
     let arb2 = QCheck.make gen2 in
     QCheck.Test.make ~count:1000 ~name:"different events, bodies set to not equal"

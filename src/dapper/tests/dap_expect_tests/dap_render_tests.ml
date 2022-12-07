@@ -253,11 +253,15 @@ let%expect_test "Check ErrorResponse example" =
 
      type _ t =
 
+           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
+
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* request GADT items *)
 
      (* request constructors *)
+
+     (* request qcheck *)
 
      end
 
@@ -267,11 +271,15 @@ let%expect_test "Check ErrorResponse example" =
 
      type _ t =
 
+           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
+
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* response GADT items *) | ErrorResponse : (Dap_commands.error, ErrorResponse_body.t, Presence.req) ResponseMessage.t -> (Dap_commands.error, ErrorResponse_body.t, Presence.req) ResponseMessage.t t
 
      (* response constructors *) let errorResponse resp = ErrorResponse resp
+
+     (* response qcheck *) let gen_errorResponse = (errorResponse, QCheck.Gen.( map (fun (seq, body) -> ResponseMessage.make ~seq ~command:Dap_commands.error ~body ()) @@ tup2 Gen.gen_int31 ErrorResponse_body.gen ), ResponseMessage.enc Dap_commands.error ErrorResponse_body.enc)
 
      end
 
@@ -281,12 +289,16 @@ let%expect_test "Check ErrorResponse example" =
 
      type _ t =
 
+           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
+
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* event GADT items *)
 
 
            (* event constructors *)
+
+     (* event qcheck *)
 
      end |}]
 
@@ -352,11 +364,15 @@ let%expect_test "Check CancelRequest example" =
 
      type _ t =
 
+           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
+
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* request GADT items *) | CancelRequest : (Dap_commands.cancel, CancelArguments.t option, Presence.opt) RequestMessage.t -> (Dap_commands.cancel, CancelArguments.t option, Presence.opt) RequestMessage.t t
 
      (* request constructors *) let cancelRequest req = CancelRequest req
+
+     (* request qcheck *) let gen_cancelRequest = (cancelRequest, QCheck.Gen.( map (fun (seq, arguments) -> RequestMessage.make_opt ~seq ~command:Dap_commands.cancel ~arguments ()) @@ tup2 Gen.gen_int31 CancelArguments.gen ), RequestMessage.enc_opt Dap_commands.cancel CancelArguments.enc)
 
      end
 
@@ -366,11 +382,15 @@ let%expect_test "Check CancelRequest example" =
 
      type _ t =
 
+           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
+
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* response GADT items *)
 
      (* response constructors *)
+
+     (* response qcheck *)
 
      end
 
@@ -380,12 +400,16 @@ let%expect_test "Check CancelRequest example" =
 
      type _ t =
 
+           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
+
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* event GADT items *)
 
 
            (* event constructors *)
+
+     (* event qcheck *)
 
      end |}]
 
@@ -485,11 +509,15 @@ let%expect_test "Check StoppedEvent example" =
 
      type _ t =
 
+           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
+
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* request GADT items *)
 
      (* request constructors *)
+
+     (* request qcheck *)
 
      end
 
@@ -499,11 +527,15 @@ let%expect_test "Check StoppedEvent example" =
 
      type _ t =
 
+           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
+
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* response GADT items *)
 
      (* response constructors *)
+
+     (* response qcheck *)
 
      end
 
@@ -513,12 +545,16 @@ let%expect_test "Check StoppedEvent example" =
 
      type _ t =
 
+           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
+
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* event GADT items *) | StoppedEvent : (Dap_events.stopped, StoppedEvent_body.t, Presence.req) EventMessage.t -> (Dap_events.stopped, StoppedEvent_body.t, Presence.req) EventMessage.t t
 
 
            (* event constructors *) let stoppedEvent ev = StoppedEvent ev
+
+     (* event qcheck *) let gen_stoppedEvent = (stoppedEvent, QCheck.Gen.( map (fun (seq, body) -> EventMessage.make ~seq ~event:Dap_events.stopped ~body ()) @@ tup2 Gen.gen_int31 StoppedEvent_body.gen ), EventMessage.enc Dap_events.stopped StoppedEvent_body.enc)
 
      end |}]
 
@@ -624,11 +660,15 @@ let%expect_test "Check cyclic example" =
 
      type _ t =
 
+           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
+
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* request GADT items *)
 
      (* request constructors *)
+
+     (* request qcheck *)
 
      end
 
@@ -638,11 +678,15 @@ let%expect_test "Check cyclic example" =
 
      type _ t =
 
+           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
+
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* response GADT items *)
 
      (* response constructors *)
+
+     (* response qcheck *)
 
      end
 
@@ -652,12 +696,16 @@ let%expect_test "Check cyclic example" =
 
      type _ t =
 
+           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
+
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* event GADT items *)
 
 
            (* event constructors *)
+
+     (* event qcheck *)
 
      end |}]
 
@@ -974,11 +1022,15 @@ let%expect_test "Check large example" =
 
      type _ t =
 
+           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
+
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* request GADT items *)
 
      (* request constructors *)
+
+     (* request qcheck *)
 
      end
 
@@ -988,11 +1040,15 @@ let%expect_test "Check large example" =
 
      type _ t =
 
+           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
+
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* response GADT items *)
 
      (* response constructors *)
+
+     (* response qcheck *)
 
      end
 
@@ -1002,12 +1058,16 @@ let%expect_test "Check large example" =
 
      type _ t =
 
+           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
+
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* event GADT items *)
 
 
            (* event constructors *)
+
+     (* event qcheck *)
 
      end |}]
 
@@ -1071,11 +1131,15 @@ let%expect_test "Check anyOf example" =
 
      type _ t =
 
+           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
+
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* request GADT items *)
 
      (* request constructors *)
+
+     (* request qcheck *)
 
      end
 
@@ -1085,11 +1149,15 @@ let%expect_test "Check anyOf example" =
 
      type _ t =
 
+           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
+
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* response GADT items *)
 
      (* response constructors *)
+
+     (* response qcheck *)
 
      end
 
@@ -1099,12 +1167,16 @@ let%expect_test "Check anyOf example" =
 
      type _ t =
 
+           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
+
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* event GADT items *)
 
 
            (* event constructors *)
+
+     (* event qcheck *)
 
      end |}]
 
@@ -1134,11 +1206,15 @@ let%expect_test "Check oneOf example" =
 
      type _ t =
 
+           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
+
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* request GADT items *) | RestartRequest : (Dap_commands.restart, RestartArguments.t option, Presence.opt) RequestMessage.t -> (Dap_commands.restart, RestartArguments.t option, Presence.opt) RequestMessage.t t
 
      (* request constructors *) let restartRequest req = RestartRequest req
+
+     (* request qcheck *) let gen_restartRequest = (restartRequest, QCheck.Gen.( map (fun (seq, arguments) -> RequestMessage.make_opt ~seq ~command:Dap_commands.restart ~arguments ()) @@ tup2 Gen.gen_int31 RestartArguments.gen ), RequestMessage.enc_opt Dap_commands.restart RestartArguments.enc)
 
      end
 
@@ -1148,11 +1224,15 @@ let%expect_test "Check oneOf example" =
 
      type _ t =
 
+           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
+
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* response GADT items *)
 
      (* response constructors *)
+
+     (* response qcheck *)
 
      end
 
@@ -1162,12 +1242,16 @@ let%expect_test "Check oneOf example" =
 
      type _ t =
 
+           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
+
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* event GADT items *)
 
 
            (* event constructors *)
+
+     (* event qcheck *)
 
      end |}]
 
@@ -1231,11 +1315,15 @@ let%expect_test "Check nullable example" =
 
      type _ t =
 
+           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
+
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* request GADT items *)
 
      (* request constructors *)
+
+     (* request qcheck *)
 
      end
 
@@ -1245,11 +1333,15 @@ let%expect_test "Check nullable example" =
 
      type _ t =
 
+           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
+
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* response GADT items *)
 
      (* response constructors *)
+
+     (* response qcheck *)
 
      end
 
@@ -1259,12 +1351,16 @@ let%expect_test "Check nullable example" =
 
      type _ t =
 
+           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
+
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* event GADT items *)
 
 
            (* event constructors *)
+
+     (* event qcheck *)
 
      end |}]
 
@@ -1383,11 +1479,15 @@ let%expect_test "Check valueFormat example" =
 
      type _ t =
 
+           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
+
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* request GADT items *)
 
      (* request constructors *)
+
+     (* request qcheck *)
 
      end
 
@@ -1397,11 +1497,15 @@ let%expect_test "Check valueFormat example" =
 
      type _ t =
 
+           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
+
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* response GADT items *)
 
      (* response constructors *)
+
+     (* response qcheck *)
 
      end
 
@@ -1411,12 +1515,16 @@ let%expect_test "Check valueFormat example" =
 
      type _ t =
 
+           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
+
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* event GADT items *)
 
 
            (* event constructors *)
+
+     (* event qcheck *)
 
      end |}]
 
@@ -1463,11 +1571,15 @@ let%expect_test "Check empty example" =
 
      type _ t =
 
+           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
+
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* request GADT items *) | ConfigurationDoneRequest : (Dap_commands.configurationDone, ConfigurationDoneArguments.t option, Presence.opt) RequestMessage.t -> (Dap_commands.configurationDone, ConfigurationDoneArguments.t option, Presence.opt) RequestMessage.t t
 
      (* request constructors *) let configurationDoneRequest req = ConfigurationDoneRequest req
+
+     (* request qcheck *) let gen_configurationDoneRequest = (configurationDoneRequest, QCheck.Gen.( map (fun (seq, arguments) -> RequestMessage.make_opt ~seq ~command:Dap_commands.configurationDone ~arguments ()) @@ tup2 Gen.gen_int31 ConfigurationDoneArguments.gen ), RequestMessage.enc_opt Dap_commands.configurationDone ConfigurationDoneArguments.enc)
 
      end
 
@@ -1477,11 +1589,15 @@ let%expect_test "Check empty example" =
 
      type _ t =
 
+           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
+
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* response GADT items *)
 
      (* response constructors *)
+
+     (* response qcheck *)
 
      end
 
@@ -1491,12 +1607,16 @@ let%expect_test "Check empty example" =
 
      type _ t =
 
+           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
+
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* event GADT items *)
 
 
            (* event constructors *)
+
+     (* event qcheck *)
 
      end |}]
 
@@ -1527,11 +1647,15 @@ let%expect_test "Check LaunchResponse empty body  example" =
 
      type _ t =
 
+           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
+
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* request GADT items *)
 
      (* request constructors *)
+
+     (* request qcheck *)
 
      end
 
@@ -1541,11 +1665,15 @@ let%expect_test "Check LaunchResponse empty body  example" =
 
      type _ t =
 
+           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
+
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* response GADT items *) | LaunchResponse : (Dap_commands.launch, EmptyObject.t option, Presence.opt) ResponseMessage.t -> (Dap_commands.launch, EmptyObject.t option, Presence.opt) ResponseMessage.t t
 
      (* response constructors *) let launchResponse resp = LaunchResponse resp
+
+     (* response qcheck *) let gen_launchResponse = (launchResponse, QCheck.Gen.( map (fun (seq, body) -> ResponseMessage.make_opt ~seq ~command:Dap_commands.launch ~body ()) @@ tup2 Gen.gen_int31 EmptyObject.gen ), ResponseMessage.enc_opt Dap_commands.launch EmptyObject.enc)
 
      end
 
@@ -1555,11 +1683,15 @@ let%expect_test "Check LaunchResponse empty body  example" =
 
      type _ t =
 
+           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
+
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* event GADT items *)
 
 
            (* event constructors *)
+
+     (* event qcheck *)
 
      end |}]
