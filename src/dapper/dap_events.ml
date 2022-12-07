@@ -3,7 +3,7 @@
 
 type 'a t = v
 
-let equal x y = equal_v x y
+let equal = equal_v
 
 type memory
 type invalidated
