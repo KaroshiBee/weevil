@@ -11,6 +11,8 @@ module Data = struct
   module Message : sig
     type t
 
+    val equal : t -> t -> bool
+
     val enc : t Data_encoding.t
 
     val gen : t QCheck.Gen.t
@@ -40,16 +42,18 @@ module Data = struct
 
     val urlLabel : t -> string option
   end = struct
+    let equal_json = Option.equal (fun x y -> Data_encoding.Json.(String.equal (to_string x) (to_string y)))
+
     type t = {
       id : (int[@gen Gen.gen_int31]);
       format : (string[@gen Gen.gen_utf8_str]);
-      variables : (Data_encoding.json option[@gen Gen.gen_json_opt]);
+      variables : (Data_encoding.json option[@gen Gen.gen_json_opt][@equal equal_json]);
       sendTelemetry : bool option;
       showUser : bool option;
       url : (string option[@gen Gen.gen_utf8_str_opt]);
       urlLabel : (string option[@gen Gen.gen_utf8_str_opt]);
     }
-    [@@deriving qcheck]
+    [@@deriving qcheck, eq]
 
     let enc =
       let open Data_encoding in
