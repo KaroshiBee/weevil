@@ -148,6 +148,8 @@ let%expect_test "Check ErrorResponse example" =
      (* supporting data modules *) module Message : sig
     type t
      val enc : t Data_encoding.t
+     val gen : t QCheck.Gen.t
+     val arb : t QCheck.arbitrary
      val make : id:int -> format:string -> ?variables:Data_encoding.json -> ?sendTelemetry:bool -> ?showUser:bool -> ?url:string -> ?urlLabel:string -> ?lines:int list -> unit -> t
      val id : t -> int
     val format : t -> string
@@ -158,14 +160,14 @@ let%expect_test "Check ErrorResponse example" =
     val urlLabel : t -> string option
     val lines : t -> int list option
     end = struct
-     type t = { id: int;
-    format: string;
-    variables: Data_encoding.json option;
+     type t = { id: (int [@gen Gen.gen_int31]);
+    format: (string [@gen Gen.gen_utf8_str]);
+    variables: (Data_encoding.json option [@gen Gen.gen_json_opt]);
     sendTelemetry: bool option;
     showUser: bool option;
-    url: string option;
-    urlLabel: string option;
-    lines: int list option; }
+    url: (string option [@gen Gen.gen_utf8_str_opt]);
+    urlLabel: (string option [@gen Gen.gen_utf8_str_opt]);
+    lines: (int list option [@gen Gen.gen_int31_list_opt]); } [@@deriving qcheck]
 
      let enc =
      let open Data_encoding in
@@ -202,10 +204,12 @@ let%expect_test "Check ErrorResponse example" =
     module ErrorResponse_body : sig
     type t
      val enc : t Data_encoding.t
+     val gen : t QCheck.Gen.t
+     val arb : t QCheck.arbitrary
      val make : ?error:Message.t -> unit -> t
      val error : t -> Message.t option
     end = struct
-     type t = { error: Message.t option; }
+     type t = { error: Message.t option; } [@@deriving qcheck]
 
      let enc =
      let open Data_encoding in
@@ -292,12 +296,14 @@ let%expect_test "Check CancelRequest example" =
      (* supporting data modules *) module CancelArguments : sig
     type t
      val enc : t Data_encoding.t
+     val gen : t QCheck.Gen.t
+     val arb : t QCheck.arbitrary
      val make : ?requestId:int -> ?progressId:string -> unit -> t
      val requestId : t -> int option
     val progressId : t -> string option
     end = struct
-     type t = { requestId: int option;
-    progressId: string option; }
+     type t = { requestId: (int option [@gen Gen.gen_int31_opt]);
+    progressId: (string option [@gen Gen.gen_utf8_str_opt]); } [@@deriving qcheck]
 
      let enc =
      let open Data_encoding in
@@ -385,7 +391,7 @@ let%expect_test "Check StoppedEvent example" =
 
      (* supporting data modules *) (* dont bother with a sig for enums, the inferred one is fine *)
      module StoppedEvent_body_reason = struct
-     type t = Step | Breakpoint | Exception | Pause | Entry | Goto | Function_breakpoint | Data_breakpoint | Instruction_breakpoint | Other of string
+     type t = Step | Breakpoint | Exception | Pause | Entry | Goto | Function_breakpoint | Data_breakpoint | Instruction_breakpoint | Other of string [@@deriving qcheck]
 
      let enc =
      let open Data_encoding in
@@ -400,6 +406,8 @@ let%expect_test "Check StoppedEvent example" =
     module StoppedEvent_body : sig
     type t
      val enc : t Data_encoding.t
+     val gen : t QCheck.Gen.t
+     val arb : t QCheck.arbitrary
      val make : reason:StoppedEvent_body_reason.t -> ?description:string -> ?threadId:int -> ?preserveFocusHint:bool -> ?text:string -> ?allThreadsStopped:bool -> ?hitBreakpointIds:int list -> unit -> t
      val reason : t -> StoppedEvent_body_reason.t
     val description : t -> string option
@@ -410,12 +418,12 @@ let%expect_test "Check StoppedEvent example" =
     val hitBreakpointIds : t -> int list option
     end = struct
      type t = { reason: StoppedEvent_body_reason.t;
-    description: string option;
-    threadId: int option;
+    description: (string option [@gen Gen.gen_utf8_str_opt]);
+    threadId: (int option [@gen Gen.gen_int31_opt]);
     preserveFocusHint: bool option;
-    text: string option;
+    text: (string option [@gen Gen.gen_utf8_str_opt]);
     allThreadsStopped: bool option;
-    hitBreakpointIds: int list option; }
+    hitBreakpointIds: (int list option [@gen Gen.gen_int31_list_opt]); } [@@deriving qcheck]
 
      let enc =
      let open Data_encoding in
@@ -514,6 +522,8 @@ let%expect_test "Check cyclic example" =
      (* supporting data modules *) module ExceptionDetails : sig
     type t
      val enc : t Data_encoding.t
+     val gen : t QCheck.Gen.t
+     val arb : t QCheck.arbitrary
      val make : ?message:string -> ?typeName:string -> ?fullTypeName:string -> ?evaluateName:string -> ?stackTrace:string -> ?innerException:t list -> unit -> t
      val message : t -> string option
     val typeName : t -> string option
@@ -522,12 +532,12 @@ let%expect_test "Check cyclic example" =
     val stackTrace : t -> string option
     val innerException : t -> t list option
     end = struct
-     type t = { message: string option;
-    typeName: string option;
-    fullTypeName: string option;
-    evaluateName: string option;
-    stackTrace: string option;
-    innerException: t list option; }
+     type t = { message: (string option [@gen Gen.gen_utf8_str_opt]);
+    typeName: (string option [@gen Gen.gen_utf8_str_opt]);
+    fullTypeName: (string option [@gen Gen.gen_utf8_str_opt]);
+    evaluateName: (string option [@gen Gen.gen_utf8_str_opt]);
+    stackTrace: (string option [@gen Gen.gen_utf8_str_opt]);
+    innerException: t list option; } [@@deriving qcheck]
 
      let enc =
      let open Data_encoding in
@@ -622,6 +632,8 @@ let%expect_test "Check large example" =
      (* supporting data modules *) module Capabilities : sig
     type t
      val enc : t Data_encoding.t
+     val gen : t QCheck.Gen.t
+     val arb : t QCheck.array
      val make : ?supportsConfigurationDoneRequest:bool -> ?supportsFunctionBreakpoints:bool -> ?supportsConditionalBreakpoints:bool -> ?supportsHitConditionalBreakpoints:bool -> ?supportsEvaluateForHovers:bool -> ?supportsStepBack:bool -> ?supportsSetVariable:bool -> ?supportsRestartFrame:bool -> ?supportsGotoTargetsRequest:bool -> ?supportsStepInTargetsRequest:bool -> ?supportsCompletionsRequest:bool -> ?completionTriggerCharacters:string list -> ?supportsModulesRequest:bool -> ?supportsRestartRequest:bool -> ?supportsExceptionOptions:bool -> ?supportsValueFormattingOptions:bool -> ?supportsExceptionInfoRequest:bool -> ?supportTerminateDebuggee:bool -> ?supportSuspendDebuggee:bool -> ?supportsDelayedStackTraceLoading:bool -> ?supportsLoadedSourcesRequest:bool -> ?supportsLogPoints:bool -> ?supportsTerminateThreadsRequest:bool -> ?supportsSetExpression:bool -> ?supportsTerminateRequest:bool -> ?supportsDataBreakpoints:bool -> ?supportsReadMemoryRequest:bool -> ?supportsWriteMemoryRequest:bool -> ?supportsDisassembleRequest:bool -> ?supportsCancelRequest:bool -> ?supportsBreakpointLocationsRequest:bool -> ?supportsClipboardContext:bool -> ?supportsSteppingGranularity:bool -> ?supportsInstructionBreakpoints:bool -> ?supportsExceptionFilterOptions:bool -> ?supportsSingleThreadExecutionRequests:bool -> unit -> t
      val supportsConfigurationDoneRequest : t -> bool option
     val supportsFunctionBreakpoints : t -> bool option
@@ -663,6 +675,8 @@ let%expect_test "Check large example" =
      module Capabilities_0 : sig
     type t
      val enc : t Data_encoding.t
+     val gen : t QCheck.Gen.t
+     val arb : t QCheck.arbitrary
      val make : ?supportsConfigurationDoneRequest:bool -> ?supportsFunctionBreakpoints:bool -> ?supportsConditionalBreakpoints:bool -> ?supportsHitConditionalBreakpoints:bool -> ?supportsEvaluateForHovers:bool -> ?supportsStepBack:bool -> ?supportsSetVariable:bool -> ?supportsRestartFrame:bool -> ?supportsGotoTargetsRequest:bool -> ?supportsStepInTargetsRequest:bool -> unit -> t
      val supportsConfigurationDoneRequest : t -> bool option
     val supportsFunctionBreakpoints : t -> bool option
@@ -684,7 +698,7 @@ let%expect_test "Check large example" =
     supportsSetVariable: bool option;
     supportsRestartFrame: bool option;
     supportsGotoTargetsRequest: bool option;
-    supportsStepInTargetsRequest: bool option; }
+    supportsStepInTargetsRequest: bool option; } [@@deriving qcheck]
 
      let enc =
      let open Data_encoding in
@@ -725,6 +739,8 @@ let%expect_test "Check large example" =
     module Capabilities_10 : sig
     type t
      val enc : t Data_encoding.t
+     val gen : t QCheck.Gen.t
+     val arb : t QCheck.arbitrary
      val make : ?supportsCompletionsRequest:bool -> ?completionTriggerCharacters:string list -> ?supportsModulesRequest:bool -> ?supportsRestartRequest:bool -> ?supportsExceptionOptions:bool -> ?supportsValueFormattingOptions:bool -> ?supportsExceptionInfoRequest:bool -> ?supportTerminateDebuggee:bool -> ?supportSuspendDebuggee:bool -> ?supportsDelayedStackTraceLoading:bool -> unit -> t
      val supportsCompletionsRequest : t -> bool option
     val completionTriggerCharacters : t -> string list option
@@ -738,7 +754,7 @@ let%expect_test "Check large example" =
     val supportsDelayedStackTraceLoading : t -> bool option
     end = struct
      type t = { supportsCompletionsRequest: bool option;
-    completionTriggerCharacters: string list option;
+    completionTriggerCharacters: (string list option [@gen Gen.gen_utf8_str_list_opt]);
     supportsModulesRequest: bool option;
     supportsRestartRequest: bool option;
     supportsExceptionOptions: bool option;
@@ -746,7 +762,7 @@ let%expect_test "Check large example" =
     supportsExceptionInfoRequest: bool option;
     supportTerminateDebuggee: bool option;
     supportSuspendDebuggee: bool option;
-    supportsDelayedStackTraceLoading: bool option; }
+    supportsDelayedStackTraceLoading: bool option; } [@@deriving qcheck]
 
      let enc =
      let open Data_encoding in
@@ -787,6 +803,8 @@ let%expect_test "Check large example" =
     module Capabilities_20 : sig
     type t
      val enc : t Data_encoding.t
+     val gen : t QCheck.Gen.t
+     val arb : t QCheck.arbitrary
      val make : ?supportsLoadedSourcesRequest:bool -> ?supportsLogPoints:bool -> ?supportsTerminateThreadsRequest:bool -> ?supportsSetExpression:bool -> ?supportsTerminateRequest:bool -> ?supportsDataBreakpoints:bool -> ?supportsReadMemoryRequest:bool -> ?supportsWriteMemoryRequest:bool -> ?supportsDisassembleRequest:bool -> ?supportsCancelRequest:bool -> unit -> t
      val supportsLoadedSourcesRequest : t -> bool option
     val supportsLogPoints : t -> bool option
@@ -808,7 +826,7 @@ let%expect_test "Check large example" =
     supportsReadMemoryRequest: bool option;
     supportsWriteMemoryRequest: bool option;
     supportsDisassembleRequest: bool option;
-    supportsCancelRequest: bool option; }
+    supportsCancelRequest: bool option; } [@@deriving qcheck]
 
      let enc =
      let open Data_encoding in
@@ -849,6 +867,8 @@ let%expect_test "Check large example" =
     module Capabilities_30 : sig
     type t
      val enc : t Data_encoding.t
+     val gen : t QCheck.Gen.t
+     val arb : t QCheck.arbitrary
      val make : ?supportsBreakpointLocationsRequest:bool -> ?supportsClipboardContext:bool -> ?supportsSteppingGranularity:bool -> ?supportsInstructionBreakpoints:bool -> ?supportsExceptionFilterOptions:bool -> ?supportsSingleThreadExecutionRequests:bool -> unit -> t
      val supportsBreakpointLocationsRequest : t -> bool option
     val supportsClipboardContext : t -> bool option
@@ -862,7 +882,7 @@ let%expect_test "Check large example" =
     supportsSteppingGranularity: bool option;
     supportsInstructionBreakpoints: bool option;
     supportsExceptionFilterOptions: bool option;
-    supportsSingleThreadExecutionRequests: bool option; }
+    supportsSingleThreadExecutionRequests: bool option; } [@@deriving qcheck]
 
      let enc =
      let open Data_encoding in
@@ -892,7 +912,7 @@ let%expect_test "Check large example" =
      end
 
 
-     type t = (Capabilities_0.t * (Capabilities_10.t * (Capabilities_20.t * Capabilities_30.t)))
+     type t = (Capabilities_0.t * (Capabilities_10.t * (Capabilities_20.t * Capabilities_30.t))) [@@deriving qcheck]
 
      let enc =
      let open Data_encoding in
@@ -1014,12 +1034,14 @@ let%expect_test "Check anyOf example" =
      (* supporting data modules *) module SomeExample : sig
     type t
      val enc : t Data_encoding.t
+     val gen : t QCheck.Gen.t
+     val arb : t QCheck.arbitrary
      val make : ?moduleId:IntString.t -> ?adapterData:Data_encoding.json -> unit -> t
      val moduleId : t -> IntString.t option
     val adapterData : t -> Data_encoding.json option
     end = struct
      type t = { moduleId: IntString.t option;
-    adapterData: Data_encoding.json option; }
+    adapterData: (Data_encoding.json option [@gen Gen.gen_json_opt]); } [@@deriving qcheck]
 
      let enc =
      let open Data_encoding in
@@ -1169,12 +1191,14 @@ let%expect_test "Check nullable example" =
      (* supporting data modules *) module ExceptionDetails : sig
     type t
      val enc : t Data_encoding.t
+     val gen : t QCheck.Gen.t
+     val arb : t QCheck.arbitrary
      val make : ?message:string -> typeName:string option -> unit -> t
      val message : t -> string option
     val typeName : t -> string option
     end = struct
-     type t = { message: string option;
-    typeName: string option; }
+     type t = { message: (string option [@gen Gen.gen_utf8_str_opt]);
+    typeName: (string option [@gen Gen.gen_utf8_str_opt]); } [@@deriving qcheck]
 
      let enc =
      let open Data_encoding in
@@ -1261,10 +1285,12 @@ let%expect_test "Check valueFormat example" =
      (* supporting data modules *) module ValueFormat : sig
     type t
      val enc : t Data_encoding.t
+     val gen : t QCheck.Gen.t
+     val arb : t QCheck.arbitrary
      val make : ?hex:bool -> unit -> t
      val hex : t -> bool option
     end = struct
-     type t = { hex: bool option; }
+     type t = { hex: bool option; } [@@deriving qcheck]
 
      let enc =
      let open Data_encoding in
@@ -1287,6 +1313,8 @@ let%expect_test "Check valueFormat example" =
     module StackFrameFormat : sig
     type t
      val enc : t Data_encoding.t
+     val gen : t QCheck.Gen.t
+     val arb : t QCheck.arbitrary
      val make : ?hex:bool -> ?parameters:bool -> ?parameterTypes:bool -> ?parameterNames:bool -> ?parameterValues:bool -> ?line:bool -> ?module_:bool -> ?includeAll:bool -> unit -> t
      val hex : t -> bool option
     val parameters : t -> bool option
@@ -1304,7 +1332,7 @@ let%expect_test "Check valueFormat example" =
     parameterValues: bool option;
     line: bool option;
     module_: bool option;
-    includeAll: bool option; }
+    includeAll: bool option; } [@@deriving qcheck]
 
      let enc =
      let open Data_encoding in
@@ -1402,9 +1430,11 @@ let%expect_test "Check empty example" =
      (* supporting data modules *) module ConfigurationDoneArguments : sig
      type t
      val enc : t Data_encoding.t
+     val gen : t QCheck.Gen.t
+     val arb : t QCheck.arbitrary
      val make : unit -> t
      end = struct
-     type t = unit
+     type t = unit [@@deriving qcheck]
 
      let enc = Data_encoding.empty
 
