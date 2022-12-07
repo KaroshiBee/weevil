@@ -29,7 +29,7 @@ module type RenderT = sig
   type spec
   type t
   val of_spec : spec -> t
-  val render : t -> name:string -> Render_output.t
+  val render : t -> name:string -> internal_with_sig:bool -> Render_output.t
 
 end
 
@@ -39,7 +39,7 @@ module RenderEnum : (RenderT with type spec := Sp.Enum_spec.t) = struct
 
   let of_spec spec = spec
 
-  let render (t:t) ~name =
+  let render (t:t) ~name ~internal_with_sig:_ =
     let t_str =
       let lns = t.enums |> List.map (fun (e:Sp.Enum_spec.enum_val) -> e.safe_name) |> String.concat " | " in
       let lns = if t.suggested then lns ^ " | Other of string" else lns in
@@ -191,7 +191,7 @@ let enc ~value =
     [types_str; eq_str; ctors_str; funcs_str; enc_str; ] |> String.concat "\n\n"
 
 
-  let render (t:t) ~name =
+  let render (t:t) ~name ~internal_with_sig:_ =
     let ml = render_ml t ~name in
     let mli = render_mli t in
     Render_output.make_mlmli ml mli
@@ -213,27 +213,38 @@ module RenderObjectField = struct
     | Sp.Field_spec.{ safe_name; required; seq; _ } ->
       sig_typ_str ~required ~seq safe_name "t"
 
-  let typ_str ~with_qcheck_gen ~required ~seq type_ =
+  let typ_str ~with_qcheck_annot ~with_eq_annot ~required ~seq type_ =
+    (* TODO might be list option rather than option list *)
     let s = Printf.sprintf (if seq then "%s list" else "%s") type_ in
     let s = Printf.sprintf (if required then "%s" else "%s option") s in
-    if with_qcheck_gen then Dap_base.Gen.convert_ocaml_type_str s else s
+    let qcheck_annot =
+      if with_qcheck_annot then
+        Dap_base.Gen.convert_ocaml_type_str ~as_annot:true s |> Option.value ~default:""
+      else ""
+    in
+    let eq_annot =
+      if with_eq_annot then
+        Dap_base.Eq.convert_ocaml_type_str ~as_annot:true s |> Option.value ~default:""
+      else ""
+    in
+    Printf.sprintf "(%s %s %s)" s qcheck_annot eq_annot
 
   let req_enc_str ~required = if required then "req" else "opt"
   let seq_enc_str ~seq name = if seq then Printf.sprintf "(list %s)" name else name
 
   let render_accessor_sig = function
     | Sp.Field_spec.{ safe_name; type_; required; cyclic; seq; _ } when not cyclic ->
-        Printf.sprintf "val %s : t -> %s" safe_name @@ typ_str ~with_qcheck_gen:false ~required ~seq type_
+        Printf.sprintf "val %s : t -> %s" safe_name @@ typ_str ~with_qcheck_annot:false ~with_eq_annot:false ~required ~seq type_
     | Sp.Field_spec.{ safe_name; required; seq; _ } ->
-        Printf.sprintf "val %s : t -> %s" safe_name @@ typ_str ~with_qcheck_gen:false ~required ~seq "t"
+        Printf.sprintf "val %s : t -> %s" safe_name @@ typ_str ~with_qcheck_annot:false ~with_eq_annot:false ~required ~seq "t"
 
   let render_t = function
     (* for the type t decl
        NOTE if it is cyclic field then hardcode type name to 't' *)
     | Sp.Field_spec.{ safe_name; type_; required; cyclic; seq; _ } when not cyclic ->
-      Printf.sprintf "%s: %s;" safe_name @@ typ_str ~with_qcheck_gen:true ~required ~seq type_
+      Printf.sprintf "%s: %s;" safe_name @@ typ_str ~with_qcheck_annot:true ~with_eq_annot:true ~required ~seq type_
     | Sp.Field_spec.{ safe_name; required; seq; _ } ->
-      Printf.sprintf "%s: %s;" safe_name @@ typ_str ~with_qcheck_gen:true ~required ~seq "t"
+      Printf.sprintf "%s: %s;" safe_name @@ typ_str ~with_qcheck_annot:false ~with_eq_annot:true ~required ~seq "t"
 
   let render_enc = function
     (* for the encoding function
@@ -267,12 +278,13 @@ module RenderObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
       spec
     | _ -> failwith "Use RenderLargeObject"
 
-  let render (t:t) ~name =
+  let render (t:t) ~name ~internal_with_sig =
     let sig_str =
       let make_sig = t.fields |> List.map RenderObjectField.render_sig |> String.concat " -> " in
       let accessors_sig = t.fields |> List.map RenderObjectField.render_accessor_sig |> String.concat "\n" in
       Printf.sprintf
         "type t \n \
+         val equal : t -> t -> bool \n \
          val enc : t Data_encoding.t \n \
          val gen : t QCheck.Gen.t \n \
          val arb : t QCheck.arbitrary \n \
@@ -282,7 +294,70 @@ module RenderObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
     in
     let t_str =
       let lns = t.fields |> List.map RenderObjectField.render_t |> String.concat "\n" in
-      Printf.sprintf "type t = { %s } [@@deriving qcheck]" lns
+      (* cyclic qcheck needs special gen/arb function so dont derive ppx qcheck - assumes only one cyclic param *)
+      Printf.sprintf "type t = { %s }" lns ^ " " ^ if t.is_cyclic then "[@@deriving eq]" else "[@@deriving qcheck, eq]"
+    in
+
+    let gen_arb_str =
+      if not t.is_cyclic then "" else
+        let safe_names =
+          t.fields
+          |> List.map (fun Sp.Field_spec.{safe_name; _} -> safe_name)
+        in
+        let newlined_gennames =
+          t.fields
+          |> List.map (fun Sp.Field_spec.{type_; required; seq; cyclic; _} ->
+              if cyclic then "t" else (* this 't' is the name of the arg passed to the fix func below *)
+                let s = Printf.sprintf (if seq then "%s list" else "%s") type_ in
+                let s = Printf.sprintf (if required then "%s" else "%s option") s in
+                let s = Dap_base.Gen.convert_ocaml_type_str ~as_annot:false s in
+                let s = Option.value s ~default:(
+                    match (seq, required) with
+                    | true, true -> "(list " ^ type_ ^ ")"
+                    | true, false -> "(option @@ list " ^ type_ ^ ")"
+                    | false, true -> type_
+                    | false, false -> "(option " ^ type_ ^ ")"
+                  ) in
+                let s = Str.global_replace (Str.regexp_string ".t") ".gen" s in
+                s
+            )
+          |> String.concat "\n"
+        in
+        let comma_safenames =
+          safe_names |> String.concat ", "
+        in
+        let colon_safenames =
+          safe_names |> String.concat "; "
+        in
+
+        let cyclic_safename =
+          t.fields
+          |> List.filter_map (fun Sp.Field_spec.{safe_name; cyclic; _} -> if cyclic then Some safe_name else None)
+          |> (fun ls -> List.nth_opt ls 0)
+          |> Option.get
+        in
+        Printf.sprintf
+          "let gen = QCheck.Gen.(sized @@ fix (fun self n -> \n \
+           let basecase = oneofl [None; Some []] in \n \
+           let _gen_t =
+            fun t ->
+              let gg =
+                tup%d
+                  %s
+              in
+              map (fun ( %s ) -> { %s }) gg
+          in
+          match n with
+          | 0 -> _gen_t basecase
+          | n ->
+            frequency
+              [
+                (1, _gen_t basecase);
+                (1, let t = map (fun {%s; _} -> %s) @@ self (n - 1) in _gen_t t);
+              ]
+        )) \n \
+           let arb = QCheck.make gen \n "
+          (List.length t.fields) newlined_gennames comma_safenames colon_safenames cyclic_safename cyclic_safename
     in
     let enc_obj_str =
       let lns = t.fields |> List.map RenderObjectField.render_enc |> String.concat "\n" in
@@ -327,14 +402,22 @@ module RenderObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
     let accessors_str =
       t.fields |> List.map RenderObjectField.render_accessor |> String.concat "\n" in
 
-    Render_output.make_msg @@
-    Printf.sprintf
-        "module %s : sig \n%s\nend = struct \n \
+    Render_output.make_msg @@ (
+      let mod_str =
+        if internal_with_sig then
+          Printf.sprintf "module %s : sig \n%s\nend" name sig_str
+        else
+          Printf.sprintf "module %s" name
+      in
+      Printf.sprintf
+      "%s = struct \n \
          %s\n\n \
          %s\n\n \
          %s\n\n \
          %s\n\n \
-         end\n" name sig_str t_str enc_str make_str accessors_str
+         %s\n\n \
+         end\n" mod_str t_str gen_arb_str enc_str make_str accessors_str
+  )
 
 end
 
@@ -358,7 +441,7 @@ module RenderLargeObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
       )
     | _ -> failwith "Use RenderObject"
 
-  let render {spec; ngroups; nleftover} ~name =
+  let render {spec; ngroups; nleftover} ~name ~internal_with_sig:_ =
     let fields_arr = Array.of_list spec.fields in
     let n = Array.length fields_arr in
     assert (nleftover + (ngroups * 10) = n);
@@ -372,7 +455,8 @@ module RenderLargeObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
             let dirty_name = Printf.sprintf "%s_%d" spec.safe_name i in
             let spec = Sp.Obj_spec.of_path ~dirty_name ~path:[] ~fields () in
             let name = Printf.sprintf "%s_%d" name i in
-            let modstr = match RenderObject.(of_spec spec |> render ~name) with
+            (* these internal defn dont need sigs *)
+            let modstr = match RenderObject.(of_spec spec |> render ~name ~internal_with_sig:false) with
               | `Message msg -> Render_output.(msg.modstr)
               | _ -> assert false
             in
@@ -385,7 +469,8 @@ module RenderLargeObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
       let dirty_name = Printf.sprintf "%s_%d" spec.safe_name i in
       let spec = Sp.Obj_spec.of_path ~dirty_name ~path:[] ~fields () in
       let name = Printf.sprintf "%s_%d" name i in
-      let modstr = match RenderObject.(of_spec spec |> render ~name) with
+      (* these internal defn dont need sigs *)
+      let modstr = match RenderObject.(of_spec spec |> render ~name ~internal_with_sig:false ) with
         | `Message msg -> Render_output.(msg.modstr)
         | _ -> assert false
       in
@@ -401,7 +486,7 @@ module RenderLargeObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
       | [] -> ""
     in
     let t_str =
-      Printf.sprintf "type t = %s [@@deriving qcheck]" @@ aux_brkts ~sep:"*" (modstrs |> List.map (fun (nm, _, _) -> nm^".t"))
+      Printf.sprintf "type t = %s [@@deriving qcheck, eq]" @@ aux_brkts ~sep:"*" (modstrs |> List.map (fun (nm, _, _) -> nm^".t"))
     in
     let enc_str =
       let rec aux = function
@@ -422,9 +507,10 @@ module RenderLargeObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
       let accessors_sig = spec.fields |> List.map RenderObjectField.render_accessor_sig |> String.concat "\n" in
       Printf.sprintf
         "type t \n \
+         val equal : t -> t -> bool \n \
          val enc : t Data_encoding.t \n \
          val gen : t QCheck.Gen.t \n \
-         val arb : t QCheck.array \n \
+         val arb : t QCheck.arbitrary \n \
          val make : %s -> unit -> t \n \
          %s"
         make_sig accessors_sig
@@ -471,9 +557,9 @@ module RenderEmptyObject : (RenderT with type spec := unit) = struct
 
   let of_spec () = ()
 
-  let render _t ~name =
+  let render _t ~name ~internal_with_sig:_ =
     let t_str =
-      "type t = unit [@@deriving qcheck]"
+      "type t = unit [@@deriving qcheck, eq]"
     in
 
     let enc_str =
@@ -486,6 +572,7 @@ module RenderEmptyObject : (RenderT with type spec := unit) = struct
     Printf.sprintf
       "module %s : sig \n \
        type t \n \
+       val equal : t -> t -> bool \n \
        val enc : t Data_encoding.t \n \
        val gen : t QCheck.Gen.t \n \
        val arb : t QCheck.arbitrary \n \
@@ -505,7 +592,7 @@ module RenderRequest : (RenderT with type spec := Sp.Obj_spec.t) = struct
 
   let of_spec spec = spec
 
-  let render (t:t) ~name =
+  let render (t:t) ~name ~internal_with_sig:_ =
     let command = CommandHelper.enum_str name ~on:"Request" in
     match t.fields |> List.find_opt (fun Sp.Field_spec.{safe_name; _} -> safe_name = "arguments") with
     | Some args when args.required ->
@@ -571,7 +658,7 @@ module RenderResponse : (RenderT with type spec := Sp.Obj_spec.t) = struct
 
   let of_spec spec = spec
 
-  let render (t:t) ~name =
+  let render (t:t) ~name ~internal_with_sig:_ =
     let command = CommandHelper.enum_str name ~on:"Response" in
     match t.fields |> List.find_opt (fun Sp.Field_spec.{safe_name; _} -> safe_name = "body") with
     | Some body when body.required ->
@@ -636,7 +723,7 @@ module RenderEvent : (RenderT with type spec := Sp.Obj_spec.t) = struct
 
   let of_spec spec = spec
 
-  let render (t:t) ~name =
+  let render (t:t) ~name ~internal_with_sig:_ =
     let event = EventHelper.enum_str name in
     match t.fields |> List.find_opt (fun Sp.Field_spec.{safe_name; _} -> safe_name = "body") with
     | Some body when body.required ->
@@ -715,25 +802,25 @@ let render (dfs:Dfs.t) = let open Render_output in function
       |> List.iter (fun name ->
           match (Hashtbl.find_opt dfs.finished name) with
           | Some (Sp.Request o) ->
-            let {modstr; tystr; ctor} = match RenderRequest.(of_spec o |> render ~name) with `Message msg -> msg | _ -> assert false in
+            let {modstr; tystr; ctor} = match RenderRequest.(of_spec o |> render ~name ~internal_with_sig:true) with `Message msg -> msg | _ -> assert false in
             modstrs := modstr :: !modstrs; reqstrs := tystr :: !reqstrs; reqctors := ctor :: !reqctors
           | Some (Sp.Response o) ->
-            let {modstr; tystr; ctor} = match RenderResponse.(of_spec o |> render ~name) with `Message msg -> msg | _ -> assert false in
+            let {modstr; tystr; ctor} = match RenderResponse.(of_spec o |> render ~name ~internal_with_sig:true) with `Message msg -> msg | _ -> assert false in
             modstrs := modstr :: !modstrs; respstrs := tystr :: !respstrs; respctors := ctor :: !respctors
           | Some (Sp.Event o) ->
-            let {modstr; tystr; ctor} = match RenderEvent.(of_spec o |> render ~name) with `Message msg -> msg | _ -> assert false in
+            let {modstr; tystr; ctor} = match RenderEvent.(of_spec o |> render ~name ~internal_with_sig:true) with `Message msg -> msg | _ -> assert false in
             modstrs := modstr :: !modstrs; eventstrs := tystr :: !eventstrs; eventctors := ctor :: !eventctors
           | Some (Sp.Object o) when Sp.Obj_spec.is_big o ->
-            let {modstr; _} = match RenderLargeObject.(of_spec o |> render ~name) with `Message msg -> msg | _ -> assert false in
+            let {modstr; _} = match RenderLargeObject.(of_spec o |> render ~name ~internal_with_sig:true) with `Message msg -> msg | _ -> assert false in
             modstrs := modstr :: !modstrs
           | Some (Sp.Object o) when Sp.Obj_spec.is_empty o ->
-            let {modstr; _} = match RenderEmptyObject.(of_spec () |> render ~name) with `Message msg -> msg | _ -> assert false in
+            let {modstr; _} = match RenderEmptyObject.(of_spec () |> render ~name ~internal_with_sig:true) with `Message msg -> msg | _ -> assert false in
             modstrs := modstr :: !modstrs
           | Some (Sp.Object o) ->
-            let {modstr; _} = match RenderObject.(of_spec o |> render ~name) with `Message msg -> msg | _ -> assert false in
+            let {modstr; _} = match RenderObject.(of_spec o |> render ~name ~internal_with_sig:true) with `Message msg -> msg | _ -> assert false in
             modstrs := modstr :: !modstrs
           | Some (Sp.Enum e) ->
-            let {modstr; _} = match RenderEnum.(of_spec e |> render ~name) with `Message msg -> msg | _ -> assert false in
+            let {modstr; _} = match RenderEnum.(of_spec e |> render ~name ~internal_with_sig:true) with `Message msg -> msg | _ -> assert false in
             modstrs := modstr :: !modstrs
           | Some _ -> assert false
           | None -> Logs.warn (fun m -> m "couldn't find '%s', ignoring" name)
@@ -778,14 +865,14 @@ let render (dfs:Dfs.t) = let open Render_output in function
        end"
       smods sreqs sreqctors sresps srespctors sevents seventctors
   | Commands ML ->
-    let {ml; _} = match RenderEnumWithPhantoms.(of_spec dfs.command_enum |> render ~name:CommandHelper.module_name) with `MlMli mlmli -> mlmli | _ -> assert false in
+    let {ml; _} = match RenderEnumWithPhantoms.(of_spec dfs.command_enum |> render ~name:CommandHelper.module_name ~internal_with_sig:false) with `MlMli mlmli -> mlmli | _ -> assert false in
     ml
   | Commands MLI ->
-    let {mli; _} = match RenderEnumWithPhantoms.(of_spec dfs.command_enum |> render ~name:CommandHelper.module_name) with `MlMli mlmli -> mlmli | _ -> assert false in
+    let {mli; _} = match RenderEnumWithPhantoms.(of_spec dfs.command_enum |> render ~name:CommandHelper.module_name ~internal_with_sig:false) with `MlMli mlmli -> mlmli | _ -> assert false in
     mli
   | Events ML ->
-    let {ml; _} = match RenderEnumWithPhantoms.(of_spec dfs.event_enum |> render ~name:EventHelper.module_name) with `MlMli mlmli -> mlmli | _ -> assert false in
+    let {ml; _} = match RenderEnumWithPhantoms.(of_spec dfs.event_enum |> render ~name:EventHelper.module_name ~internal_with_sig:false) with `MlMli mlmli -> mlmli | _ -> assert false in
     ml
   | Events MLI ->
-    let {mli; _} = match RenderEnumWithPhantoms.(of_spec dfs.event_enum |> render ~name:EventHelper.module_name) with `MlMli mlmli -> mlmli | _ -> assert false in
+    let {mli; _} = match RenderEnumWithPhantoms.(of_spec dfs.event_enum |> render ~name:EventHelper.module_name ~internal_with_sig:false) with `MlMli mlmli -> mlmli | _ -> assert false in
     mli

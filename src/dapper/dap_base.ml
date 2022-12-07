@@ -72,19 +72,29 @@ module Gen = struct
   let gen_json = QCheck.Gen.(map (fun x -> `String x) gen_utf8_str)
   let gen_json_opt = QCheck.Gen.option gen_json
 
-  let convert_ocaml_type_str = function
-    | "string" as s -> Printf.sprintf "(%s [@gen Gen.gen_utf8_str])" s
-    | "string option" as s -> Printf.sprintf "(%s [@gen Gen.gen_utf8_str_opt])" s
-    | "string list" as s -> Printf.sprintf "(%s [@gen Gen.gen_utf8_str_list])" s
-    | "string list option" as s -> Printf.sprintf "(%s [@gen Gen.gen_utf8_str_list_opt])" s
-    | "int" as s -> Printf.sprintf "(%s [@gen Gen.gen_int31])" s
-    | "int option" as s -> Printf.sprintf "(%s [@gen Gen.gen_int31_opt])" s
-    | "int list option" as s -> Printf.sprintf "(%s [@gen Gen.gen_int31_list_opt])" s
-    | "Data_encoding.json" as s -> Printf.sprintf "(%s [@gen Gen.gen_json])" s
-    | "Data_encoding.json option" as s -> Printf.sprintf "(%s [@gen Gen.gen_json_opt])" s
-    | _ as s-> s
+  let convert_ocaml_type_str ~as_annot = function
+    | "string" -> Some (if as_annot then "[@gen Gen.gen_utf8_str]" else "Gen.gen_utf8_str")
+    | "string option" -> Some (if as_annot then "[@gen Gen.gen_utf8_str_opt]" else "Gen.gen_utf8_str_opt")
+    | "string list" -> Some (if as_annot then "[@gen Gen.gen_utf8_str_list]" else "Gen.gen_utf8_str_list")
+    | "string list option" -> Some (if as_annot then "[@gen Gen.gen_utf8_str_list_opt]" else "Gen.gen_utf8_str_list_opt")
+    | "int" -> Some (if as_annot then "[@gen Gen.gen_int31]" else "Gen.gen_int31")
+    | "int option" -> Some (if as_annot then "[@gen Gen.gen_int31_opt]" else "Gen.gen_int31_opt")
+    | "int list option" -> Some (if as_annot then "[@gen Gen.gen_int31_list_opt]" else "Gen.gen_int31_list_opt")
+    | "Data_encoding.json" -> Some (if as_annot then "[@gen Gen.gen_json]" else "Gen.gen_json")
+    | "Data_encoding.json option" -> Some (if as_annot then "[@gen Gen.gen_json_opt]" else "Gen.gen_json_opt")
+    | _ -> None
 
 end
+module Eq = struct
+  let equal_json = fun x y -> Data_encoding.Json.(String.equal (to_string x) (to_string y))
+  let equal_json_opt = Option.equal equal_json
+
+  let convert_ocaml_type_str ~as_annot = function
+    | "Data_encoding.json" -> Some (if as_annot then "[@equal Eq.equal_json]" else "Eq.equal_json")
+    | "Data_encoding.json option" -> Some (if as_annot then "[@equal Eq.equal_json_opt]" else "Eq.equal_json_opt")
+    | _ -> None
+end
+
 
 (* some helper modules *)
 module EmptyObject : sig
@@ -109,6 +119,7 @@ end
 
 module IntString : sig
   type t
+  val equal : t -> t -> bool
   val module_name : string
   val enc : t Data_encoding.t
   val gen : t QCheck.Gen.t
@@ -122,7 +133,7 @@ end = struct
   type t =
     | I of int
     | S of string
-  [@@deriving qcheck]
+  [@@deriving qcheck, eq]
 
 
   let enc =
@@ -146,6 +157,7 @@ end
 (* launching and attaching requests are special - weevil defines what should go into them *)
 module LaunchRequestArguments : sig
   type t
+  val equal : t -> t -> bool
   val module_name : string
   val enc : t Data_encoding.t
   val gen : t QCheck.Gen.t
@@ -160,7 +172,7 @@ end = struct
 
   let module_name = "LaunchRequestArguments"
   type t = {
-    restart: (Data_encoding.json option  [@gen Gen.gen_json_opt]);
+    restart: (Data_encoding.json option  [@gen Gen.gen_json_opt][@equal Eq.equal_json_opt]);
     noDebug: bool option;
     (* Since launching is debugger/runtime specific, the arguments for this request are not part of this specification.
        Arguments for launch request. Additional attributes are implementation specific.
@@ -169,7 +181,7 @@ end = struct
     storage: string;
     parameter: string;
   }
-  [@@deriving qcheck]
+  [@@deriving qcheck, eq]
 
   let enc =
     let open Data_encoding in
@@ -197,6 +209,7 @@ end
 
 module AttachRequestArguments : sig
   type t
+  val equal : t -> t -> bool
   val module_name : string
   val enc : t Data_encoding.t
   val gen : t QCheck.Gen.t
@@ -210,7 +223,7 @@ end = struct
 
   let module_name = "AttachRequestArguments"
   type t = {
-    restart: (Data_encoding.json option  [@gen Gen.gen_json_opt]);
+    restart: (Data_encoding.json option  [@gen Gen.gen_json_opt][@equal Eq.equal_json_opt]);
     (* Since attaching is debugger/runtime specific, the arguments for this request are not part of this specification.
        Arguments for attach request. Additional attributes are implementation specific.
     *)
@@ -218,7 +231,7 @@ end = struct
     storage: string;
     parameter: string;
   }
-  [@@deriving qcheck]
+  [@@deriving qcheck, eq]
 
   let enc =
     let open Data_encoding in
@@ -244,6 +257,7 @@ end
 
 module RestartArguments : sig
   type t
+  val equal : t -> t -> bool
   val module_name : string
   val enc : t Data_encoding.t
   val gen : t QCheck.Gen.t
@@ -257,7 +271,7 @@ end = struct
   type t =
     | LaunchRequestArgs of LaunchRequestArguments.t
     | AttachRequestArgs of AttachRequestArguments.t
-  [@@deriving qcheck]
+  [@@deriving qcheck, eq]
 
   let enc =
     let open Data_encoding in
