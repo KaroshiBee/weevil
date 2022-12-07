@@ -1,6 +1,10 @@
 open Alcotest
 
 let () =
+  run "Dap_event" [
+    "js destruct/construct the same", Dap_event_tests.EventTests.suite
+    ];
+
   run "Dap_header" [
     "content length", [
       test_case "extracts correct number - simple" `Quick Dap_header_tests.HeaderTests.test_content_length_simple;

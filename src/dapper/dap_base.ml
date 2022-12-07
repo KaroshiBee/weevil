@@ -89,15 +89,17 @@ end
 (* some helper modules *)
 module EmptyObject : sig
   type t
+  val equal : t -> t -> bool
   val module_name : string
   val enc : t Data_encoding.t
   val gen : t QCheck.Gen.t
+  val arb : t QCheck.arbitrary
   val make : unit -> t
 end = struct
 
   let module_name = "EmptyObject"
 
-  type t = unit [@@deriving qcheck]
+  type t = unit [@@deriving qcheck, eq]
 
   let enc = Data_encoding.empty
 
@@ -110,6 +112,7 @@ module IntString : sig
   val module_name : string
   val enc : t Data_encoding.t
   val gen : t QCheck.Gen.t
+  val arb : t QCheck.arbitrary
   val of_int : int -> t
   val of_string : string -> t
 end = struct
@@ -146,6 +149,7 @@ module LaunchRequestArguments : sig
   val module_name : string
   val enc : t Data_encoding.t
   val gen : t QCheck.Gen.t
+  val arb : t QCheck.arbitrary
   val make : ?restart:Data_encoding.json -> ?noDebug:bool -> script_filename:string -> storage:string -> parameter:string -> unit -> t
   val restart : t -> Data_encoding.json option
   val noDebug : t -> bool option
@@ -196,6 +200,7 @@ module AttachRequestArguments : sig
   val module_name : string
   val enc : t Data_encoding.t
   val gen : t QCheck.Gen.t
+  val arb : t QCheck.arbitrary
   val make : ?restart:Data_encoding.json -> script_filename:string -> storage:string -> parameter:string -> unit -> t
   val restart : t -> Data_encoding.json option
   val script_filename : t -> string
@@ -242,6 +247,7 @@ module RestartArguments : sig
   val module_name : string
   val enc : t Data_encoding.t
   val gen : t QCheck.Gen.t
+  val arb : t QCheck.arbitrary
   val of_launch_args : LaunchRequestArguments.t -> t
   val of_attach_args : AttachRequestArguments.t -> t
 end = struct
@@ -275,7 +281,7 @@ end
    the whole protocol is based on requests, responses and events *)
 module ProtocolMessage_type = struct
   type t = Request | Response | Event
-  [@@deriving qcheck]
+  [@@deriving qcheck, eq]
 
   let enc =
     let open Data_encoding in

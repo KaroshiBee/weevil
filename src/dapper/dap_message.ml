@@ -13,6 +13,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       id:int ->
       format:string ->
@@ -39,14 +41,15 @@ module Data = struct
     val urlLabel : t -> string option
   end = struct
     type t = {
-      id : int;
-      format : string;
-      variables : Data_encoding.json option;
+      id : (int[@gen Gen.gen_int31]);
+      format : (string[@gen Gen.gen_utf8_str]);
+      variables : (Data_encoding.json option[@gen Gen.gen_json_opt]);
       sendTelemetry : bool option;
       showUser : bool option;
-      url : string option;
-      urlLabel : string option;
+      url : (string option[@gen Gen.gen_utf8_str_opt]);
+      urlLabel : (string option[@gen Gen.gen_utf8_str_opt]);
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -88,11 +91,13 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : ?error:Message.t -> unit -> t
 
     val error : t -> Message.t option
   end = struct
-    type t = {error : Message.t option}
+    type t = {error : Message.t option} [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -112,13 +117,19 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : ?requestId:int -> ?progressId:string -> unit -> t
 
     val requestId : t -> int option
 
     val progressId : t -> string option
   end = struct
-    type t = {requestId : int option; progressId : string option}
+    type t = {
+      requestId : (int option[@gen Gen.gen_int31_opt]);
+      progressId : (string option[@gen Gen.gen_utf8_str_opt]);
+    }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -148,6 +159,7 @@ module Data = struct
       | Data_breakpoint
       | Instruction_breakpoint
       | Other of string
+    [@@deriving qcheck, eq]
 
     let enc =
       let open Data_encoding in
@@ -180,7 +192,13 @@ module Data = struct
   module StoppedEvent_body : sig
     type t
 
+    val equal : t -> t -> bool
+
     val enc : t Data_encoding.t
+
+    val gen : t QCheck.Gen.t
+
+    val arb : t QCheck.arbitrary
 
     val make :
       reason:StoppedEvent_body_reason.t ->
@@ -209,13 +227,14 @@ module Data = struct
   end = struct
     type t = {
       reason : StoppedEvent_body_reason.t;
-      description : string option;
-      threadId : int option;
+      description : (string option[@gen Gen.gen_utf8_str_opt]);
+      threadId : (int option[@gen Gen.gen_int31_opt]);
       preserveFocusHint : bool option;
-      text : string option;
+      text : (string option[@gen Gen.gen_utf8_str_opt]);
       allThreadsStopped : bool option;
-      hitBreakpointIds : int list option;
+      hitBreakpointIds : (int list option[@gen Gen.gen_int31_list_opt]);
     }
+    [@@deriving qcheck, eq]
 
     let enc =
       let open Data_encoding in
@@ -294,13 +313,19 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : threadId:int -> ?allThreadsContinued:bool -> unit -> t
 
     val threadId : t -> int
 
     val allThreadsContinued : t -> bool option
   end = struct
-    type t = {threadId : int; allThreadsContinued : bool option}
+    type t = {
+      threadId : (int[@gen Gen.gen_int31]);
+      allThreadsContinued : bool option;
+    }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -322,11 +347,13 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : exitCode:int -> unit -> t
 
     val exitCode : t -> int
   end = struct
-    type t = {exitCode : int}
+    type t = {exitCode : (int[@gen Gen.gen_int31])} [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -346,11 +373,14 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : ?restart:Data_encoding.json -> unit -> t
 
     val restart : t -> Data_encoding.json option
   end = struct
-    type t = {restart : Data_encoding.json option}
+    type t = {restart : (Data_encoding.json option[@gen Gen.gen_json_opt])}
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -367,7 +397,7 @@ module Data = struct
 
   (* dont bother with a sig for enums, the inferred one is fine *)
   module ThreadEvent_body_reason = struct
-    type t = Started | Exited | Other of string
+    type t = Started | Exited | Other of string [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -385,13 +415,19 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : reason:ThreadEvent_body_reason.t -> threadId:int -> unit -> t
 
     val reason : t -> ThreadEvent_body_reason.t
 
     val threadId : t -> int
   end = struct
-    type t = {reason : ThreadEvent_body_reason.t; threadId : int}
+    type t = {
+      reason : ThreadEvent_body_reason.t;
+      threadId : (int[@gen Gen.gen_int31]);
+    }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -417,6 +453,7 @@ module Data = struct
       | Stderr
       | Telemetry
       | Other of string
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -440,7 +477,7 @@ module Data = struct
 
   (* dont bother with a sig for enums, the inferred one is fine *)
   module OutputEvent_body_group = struct
-    type t = Start | StartCollapsed | End
+    type t = Start | StartCollapsed | End [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -457,7 +494,7 @@ module Data = struct
 
   (* dont bother with a sig for enums, the inferred one is fine *)
   module Source_presentationHint = struct
-    type t = Normal | Emphasize | Deemphasize
+    type t = Normal | Emphasize | Deemphasize [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -476,7 +513,7 @@ module Data = struct
 
   (* dont bother with a sig for enums, the inferred one is fine *)
   module ChecksumAlgorithm = struct
-    type t = MD5 | SHA1 | SHA256 | Timestamp
+    type t = MD5 | SHA1 | SHA256 | Timestamp [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -500,13 +537,19 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : algorithm:ChecksumAlgorithm.t -> checksum:string -> unit -> t
 
     val algorithm : t -> ChecksumAlgorithm.t
 
     val checksum : t -> string
   end = struct
-    type t = {algorithm : ChecksumAlgorithm.t; checksum : string}
+    type t = {
+      algorithm : ChecksumAlgorithm.t;
+      checksum : (string[@gen Gen.gen_utf8_str]);
+    }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -527,6 +570,8 @@ module Data = struct
     type t
 
     val enc : t Data_encoding.t
+
+    val gen : t QCheck.Gen.t
 
     val make :
       ?name:string ->
@@ -557,15 +602,68 @@ module Data = struct
     val checksums : t -> Checksum.t list option
   end = struct
     type t = {
-      name : string option;
-      path : string option;
-      sourceReference : int option;
+      name : (string option[@gen Gen.gen_utf8_str_opt]);
+      path : (string option[@gen Gen.gen_utf8_str_opt]);
+      sourceReference : (int option[@gen Gen.gen_int31_opt]);
       presentationHint : Source_presentationHint.t option;
-      origin : string option;
+      origin : (string option[@gen Gen.gen_utf8_str_opt]);
       sources : t list option;
-      adapterData : Data_encoding.json option;
+      adapterData : (Data_encoding.json option[@gen Gen.gen_json_opt]);
       checksums : Checksum.t list option;
     }
+
+    let gen = QCheck.Gen.(sized @@ fix (fun self n ->
+        let basecase =
+          oneofl [None; Some []]
+        in
+        let _gen_t =
+          fun g ->
+            let gg =
+              tup8
+                Gen.gen_utf8_str_opt
+                Gen.gen_utf8_str_opt
+                Gen.gen_int31_opt
+                (option Source_presentationHint.gen)
+                Gen.gen_utf8_str_opt
+                g
+                Gen.gen_json_opt
+                (option @@ list Checksum.gen)
+            in
+            map
+              (fun ( name,
+                     path,
+                     sourceReference,
+                     presentationHint,
+                     origin,
+                     sources,
+                     adapterData,
+                     checksums ) ->
+                {
+                  name;
+                  path;
+                  sourceReference;
+                  presentationHint;
+                  origin;
+                  sources;
+                  adapterData;
+                  checksums;
+                })
+              gg
+        in
+        match n with
+        | 0 -> _gen_t basecase
+        | n ->
+          frequency
+            [
+              (1, _gen_t basecase);
+              ( 1,
+                let g =
+                  map (fun {sources; _} -> sources)
+                  @@ self (n - 1)
+                in
+                _gen_t g );
+            ]
+      ))
 
     let enc =
       let open Data_encoding in
@@ -652,6 +750,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       ?category:OutputEvent_body_category.t ->
       output:string ->
@@ -682,14 +782,15 @@ module Data = struct
   end = struct
     type t = {
       category : OutputEvent_body_category.t option;
-      output : string;
+      output : (string[@gen Gen.gen_utf8_str]);
       group : OutputEvent_body_group.t option;
-      variablesReference : int option;
+      variablesReference : (int option[@gen Gen.gen_int31_opt]);
       source : Source.t option;
-      line : int option;
-      column : int option;
-      data : Data_encoding.json option;
+      line : (int option[@gen Gen.gen_int31_opt]);
+      column : (int option[@gen Gen.gen_int31_opt]);
+      data : (Data_encoding.json option[@gen Gen.gen_json_opt]);
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -764,7 +865,7 @@ module Data = struct
 
   (* dont bother with a sig for enums, the inferred one is fine *)
   module BreakpointEvent_body_reason = struct
-    type t = Changed | New | Removed | Other of string
+    type t = Changed | New | Removed | Other of string [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -786,6 +887,8 @@ module Data = struct
     type t
 
     val enc : t Data_encoding.t
+
+    val gen : t QCheck.Gen.t
 
     val make :
       ?id:int ->
@@ -822,17 +925,18 @@ module Data = struct
     val offset : t -> int option
   end = struct
     type t = {
-      id : int option;
+      id : (int option[@gen Gen.gen_int31_opt]);
       verified : bool;
-      message : string option;
+      message : (string option[@gen Gen.gen_utf8_str_opt]);
       source : Source.t option;
-      line : int option;
-      column : int option;
-      endLine : int option;
-      endColumn : int option;
-      instructionReference : string option;
-      offset : int option;
+      line : (int option[@gen Gen.gen_int31_opt]);
+      column : (int option[@gen Gen.gen_int31_opt]);
+      endLine : (int option[@gen Gen.gen_int31_opt]);
+      endColumn : (int option[@gen Gen.gen_int31_opt]);
+      instructionReference : (string option[@gen Gen.gen_utf8_str_opt]);
+      offset : (int option[@gen Gen.gen_int31_opt]);
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -935,6 +1039,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       reason:BreakpointEvent_body_reason.t ->
       breakpoint:Breakpoint.t ->
@@ -946,6 +1052,7 @@ module Data = struct
     val breakpoint : t -> Breakpoint.t
   end = struct
     type t = {reason : BreakpointEvent_body_reason.t; breakpoint : Breakpoint.t}
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -966,7 +1073,7 @@ module Data = struct
 
   (* dont bother with a sig for enums, the inferred one is fine *)
   module ModuleEvent_body_reason = struct
-    type t = New | Changed | Removed
+    type t = New | Changed | Removed [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -984,6 +1091,8 @@ module Data = struct
     type t
 
     val enc : t Data_encoding.t
+
+    val gen : t QCheck.Gen.t
 
     val make :
       id:IntString.t ->
@@ -1021,16 +1130,17 @@ module Data = struct
   end = struct
     type t = {
       id : IntString.t;
-      name : string;
-      path : string option;
+      name : (string[@gen Gen.gen_utf8_str]);
+      path : (string option[@gen Gen.gen_utf8_str_opt]);
       isOptimized : bool option;
       isUserCode : bool option;
-      version : string option;
-      symbolStatus : string option;
-      symbolFilePath : string option;
-      dateTimeStamp : string option;
-      addressRange : string option;
+      version : (string option[@gen Gen.gen_utf8_str_opt]);
+      symbolStatus : (string option[@gen Gen.gen_utf8_str_opt]);
+      symbolFilePath : (string option[@gen Gen.gen_utf8_str_opt]);
+      dateTimeStamp : (string option[@gen Gen.gen_utf8_str_opt]);
+      addressRange : (string option[@gen Gen.gen_utf8_str_opt]);
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -1133,6 +1243,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       reason:ModuleEvent_body_reason.t -> module_:Module_.t -> unit -> t
 
@@ -1141,6 +1253,7 @@ module Data = struct
     val module_ : t -> Module_.t
   end = struct
     type t = {reason : ModuleEvent_body_reason.t; module_ : Module_.t}
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -1161,7 +1274,7 @@ module Data = struct
 
   (* dont bother with a sig for enums, the inferred one is fine *)
   module LoadedSourceEvent_body_reason = struct
-    type t = New | Changed | Removed
+    type t = New | Changed | Removed [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -1180,6 +1293,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       reason:LoadedSourceEvent_body_reason.t -> source:Source.t -> unit -> t
 
@@ -1188,6 +1303,7 @@ module Data = struct
     val source : t -> Source.t
   end = struct
     type t = {reason : LoadedSourceEvent_body_reason.t; source : Source.t}
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -1208,7 +1324,7 @@ module Data = struct
 
   (* dont bother with a sig for enums, the inferred one is fine *)
   module ProcessEvent_body_startMethod = struct
-    type t = Launch | Attach | AttachForSuspendedLaunch
+    type t = Launch | Attach | AttachForSuspendedLaunch [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -1230,6 +1346,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       name:string ->
       ?systemProcessId:int ->
@@ -1250,12 +1368,13 @@ module Data = struct
     val pointerSize : t -> int option
   end = struct
     type t = {
-      name : string;
-      systemProcessId : int option;
+      name : (string[@gen Gen.gen_utf8_str]);
+      systemProcessId : (int option[@gen Gen.gen_int31_opt]);
       isLocalProcess : bool option;
       startMethod : ProcessEvent_body_startMethod.t option;
-      pointerSize : int option;
+      pointerSize : (int option[@gen Gen.gen_int31_opt]);
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -1292,6 +1411,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       filter:string ->
       label:string ->
@@ -1315,13 +1436,14 @@ module Data = struct
     val conditionDescription : t -> string option
   end = struct
     type t = {
-      filter : string;
-      label : string;
-      description : string option;
+      filter : (string[@gen Gen.gen_utf8_str]);
+      label : (string[@gen Gen.gen_utf8_str]);
+      description : (string option[@gen Gen.gen_utf8_str_opt]);
       default : bool option;
       supportsCondition : bool option;
-      conditionDescription : string option;
+      conditionDescription : (string option[@gen Gen.gen_utf8_str_opt]);
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -1389,7 +1511,7 @@ module Data = struct
 
   (* dont bother with a sig for enums, the inferred one is fine *)
   module ColumnDescriptor_type_ = struct
-    type t = String | Number | Boolean | UnixTimestampUTC
+    type t = String | Number | Boolean | UnixTimestampUTC [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -1413,6 +1535,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       attributeName:string ->
       label:string ->
@@ -1433,12 +1557,13 @@ module Data = struct
     val width : t -> int option
   end = struct
     type t = {
-      attributeName : string;
-      label : string;
-      format : string option;
+      attributeName : (string[@gen Gen.gen_utf8_str]);
+      label : (string[@gen Gen.gen_utf8_str]);
+      format : (string option[@gen Gen.gen_utf8_str_opt]);
       type_ : ColumnDescriptor_type_.t option;
-      width : int option;
+      width : (int option[@gen Gen.gen_int31_opt]);
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -1473,6 +1598,8 @@ module Data = struct
     type t
 
     val enc : t Data_encoding.t
+
+    val gen : t QCheck.Gen.t
 
     val make :
       ?supportsConfigurationDoneRequest:bool ->
@@ -1601,6 +1728,8 @@ module Data = struct
 
       val enc : t Data_encoding.t
 
+      val gen : t QCheck.Gen.t
+
       val make :
         ?supportsConfigurationDoneRequest:bool ->
         ?supportsFunctionBreakpoints:bool ->
@@ -1648,6 +1777,7 @@ module Data = struct
         supportsRestartFrame : bool option;
         supportsGotoTargetsRequest : bool option;
       }
+      [@@deriving qcheck]
 
       let enc =
         let open Data_encoding in
@@ -1757,6 +1887,8 @@ module Data = struct
 
       val enc : t Data_encoding.t
 
+      val gen : t QCheck.Gen.t
+
       val make :
         ?supportsStepInTargetsRequest:bool ->
         ?supportsCompletionsRequest:bool ->
@@ -1794,7 +1926,8 @@ module Data = struct
       type t = {
         supportsStepInTargetsRequest : bool option;
         supportsCompletionsRequest : bool option;
-        completionTriggerCharacters : string list option;
+        completionTriggerCharacters :
+          (string list option[@gen Gen.gen_utf8_str_list_opt]);
         supportsModulesRequest : bool option;
         additionalModuleColumns : ColumnDescriptor.t list option;
         supportedChecksumAlgorithms : ChecksumAlgorithm.t list option;
@@ -1803,6 +1936,7 @@ module Data = struct
         supportsValueFormattingOptions : bool option;
         supportsExceptionInfoRequest : bool option;
       }
+      [@@deriving qcheck]
 
       let enc =
         let open Data_encoding in
@@ -1908,6 +2042,8 @@ module Data = struct
 
       val enc : t Data_encoding.t
 
+      val gen : t QCheck.Gen.t
+
       val make :
         ?supportTerminateDebuggee:bool ->
         ?supportSuspendDebuggee:bool ->
@@ -1954,6 +2090,7 @@ module Data = struct
         supportsDataBreakpoints : bool option;
         supportsReadMemoryRequest : bool option;
       }
+      [@@deriving qcheck]
 
       let enc =
         let open Data_encoding in
@@ -2060,6 +2197,8 @@ module Data = struct
 
       val enc : t Data_encoding.t
 
+      val gen : t QCheck.Gen.t
+
       val make :
         ?supportsWriteMemoryRequest:bool ->
         ?supportsDisassembleRequest:bool ->
@@ -2102,6 +2241,7 @@ module Data = struct
         supportsExceptionFilterOptions : bool option;
         supportsSingleThreadExecutionRequests : bool option;
       }
+      [@@deriving qcheck]
 
       let enc =
         let open Data_encoding in
@@ -2199,6 +2339,7 @@ module Data = struct
     type t =
       Capabilities_0.t
       * (Capabilities_10.t * (Capabilities_20.t * Capabilities_30.t))
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -2409,11 +2550,13 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : capabilities:Capabilities.t -> unit -> t
 
     val capabilities : t -> Capabilities.t
   end = struct
-    type t = {capabilities : Capabilities.t}
+    type t = {capabilities : Capabilities.t} [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -2432,6 +2575,8 @@ module Data = struct
     type t
 
     val enc : t Data_encoding.t
+
+    val gen : t QCheck.Gen.t
 
     val make :
       progressId:string ->
@@ -2456,13 +2601,14 @@ module Data = struct
     val percentage : t -> int option
   end = struct
     type t = {
-      progressId : string;
-      title : string;
-      requestId : int option;
+      progressId : (string[@gen Gen.gen_utf8_str]);
+      title : (string[@gen Gen.gen_utf8_str]);
+      requestId : (int option[@gen Gen.gen_int31_opt]);
       cancellable : bool option;
-      message : string option;
-      percentage : int option;
+      message : (string option[@gen Gen.gen_utf8_str_opt]);
+      percentage : (int option[@gen Gen.gen_int31_opt]);
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -2502,6 +2648,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       progressId:string -> ?message:string -> ?percentage:int -> unit -> t
 
@@ -2512,10 +2660,11 @@ module Data = struct
     val percentage : t -> int option
   end = struct
     type t = {
-      progressId : string;
-      message : string option;
-      percentage : int option;
+      progressId : (string[@gen Gen.gen_utf8_str]);
+      message : (string option[@gen Gen.gen_utf8_str_opt]);
+      percentage : (int option[@gen Gen.gen_int31_opt]);
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -2545,13 +2694,19 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : progressId:string -> ?message:string -> unit -> t
 
     val progressId : t -> string
 
     val message : t -> string option
   end = struct
-    type t = {progressId : string; message : string option}
+    type t = {
+      progressId : (string[@gen Gen.gen_utf8_str]);
+      message : (string option[@gen Gen.gen_utf8_str_opt]);
+    }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -2571,6 +2726,7 @@ module Data = struct
   (* dont bother with a sig for enums, the inferred one is fine *)
   module InvalidatedAreas = struct
     type t = All | Stacks | Threads | Variables | Other of string
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -2595,6 +2751,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       ?areas:InvalidatedAreas.t list ->
       ?threadId:int ->
@@ -2610,9 +2768,10 @@ module Data = struct
   end = struct
     type t = {
       areas : InvalidatedAreas.t list option;
-      threadId : int option;
-      stackFrameId : int option;
+      threadId : (int option[@gen Gen.gen_int31_opt]);
+      stackFrameId : (int option[@gen Gen.gen_int31_opt]);
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -2639,6 +2798,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : memoryReference:string -> offset:int -> count:int -> unit -> t
 
     val memoryReference : t -> string
@@ -2647,7 +2808,12 @@ module Data = struct
 
     val count : t -> int
   end = struct
-    type t = {memoryReference : string; offset : int; count : int}
+    type t = {
+      memoryReference : (string[@gen Gen.gen_utf8_str]);
+      offset : (int[@gen Gen.gen_int31]);
+      count : (int[@gen Gen.gen_int31]);
+    }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -2674,7 +2840,7 @@ module Data = struct
 
   (* dont bother with a sig for enums, the inferred one is fine *)
   module RunInTerminalRequestArguments_kind = struct
-    type t = Integrated | External
+    type t = Integrated | External [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -2691,6 +2857,8 @@ module Data = struct
     type t
 
     val enc : t Data_encoding.t
+
+    val gen : t QCheck.Gen.t
 
     val make :
       ?kind:RunInTerminalRequestArguments_kind.t ->
@@ -2713,11 +2881,12 @@ module Data = struct
   end = struct
     type t = {
       kind : RunInTerminalRequestArguments_kind.t option;
-      title : string option;
-      cwd : string;
-      args : string list;
-      env : Data_encoding.json option;
+      title : (string option[@gen Gen.gen_utf8_str_opt]);
+      cwd : (string[@gen Gen.gen_utf8_str]);
+      args : (string list[@gen Gen.gen_utf8_str_list]);
+      env : (Data_encoding.json option[@gen Gen.gen_json_opt]);
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -2750,13 +2919,19 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : ?processId:int -> ?shellProcessId:int -> unit -> t
 
     val processId : t -> int option
 
     val shellProcessId : t -> int option
   end = struct
-    type t = {processId : int option; shellProcessId : int option}
+    type t = {
+      processId : (int option[@gen Gen.gen_int31_opt]);
+      shellProcessId : (int option[@gen Gen.gen_int31_opt]);
+    }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -2775,7 +2950,7 @@ module Data = struct
 
   (* dont bother with a sig for enums, the inferred one is fine *)
   module InitializeRequestArguments_pathFormat = struct
-    type t = Path | Uri | Other of string
+    type t = Path | Uri | Other of string [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -2790,6 +2965,8 @@ module Data = struct
     type t
 
     val enc : t Data_encoding.t
+
+    val gen : t QCheck.Gen.t
 
     val make :
       ?clientID:string ->
@@ -2842,6 +3019,8 @@ module Data = struct
 
       val enc : t Data_encoding.t
 
+      val gen : t QCheck.Gen.t
+
       val make :
         ?clientID:string ->
         ?clientName:string ->
@@ -2877,10 +3056,10 @@ module Data = struct
       val supportsRunInTerminalRequest : t -> bool option
     end = struct
       type t = {
-        clientID : string option;
-        clientName : string option;
-        adapterID : string;
-        locale : string option;
+        clientID : (string option[@gen Gen.gen_utf8_str_opt]);
+        clientName : (string option[@gen Gen.gen_utf8_str_opt]);
+        adapterID : (string[@gen Gen.gen_utf8_str]);
+        locale : (string option[@gen Gen.gen_utf8_str_opt]);
         linesStartAt1 : bool option;
         columnsStartAt1 : bool option;
         pathFormat : InitializeRequestArguments_pathFormat.t option;
@@ -2888,6 +3067,7 @@ module Data = struct
         supportsVariablePaging : bool option;
         supportsRunInTerminalRequest : bool option;
       }
+      [@@deriving qcheck]
 
       let enc =
         let open Data_encoding in
@@ -2991,6 +3171,8 @@ module Data = struct
 
       val enc : t Data_encoding.t
 
+      val gen : t QCheck.Gen.t
+
       val make :
         ?supportsMemoryReferences:bool ->
         ?supportsProgressReporting:bool ->
@@ -3013,6 +3195,7 @@ module Data = struct
         supportsInvalidatedEvent : bool option;
         supportsMemoryEvent : bool option;
       }
+      [@@deriving qcheck]
 
       let enc =
         let open Data_encoding in
@@ -3063,6 +3246,7 @@ module Data = struct
     end
 
     type t = InitializeRequestArguments_0.t * InitializeRequestArguments_10.t
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -3144,9 +3328,11 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : unit -> t
   end = struct
-    type t = unit
+    type t = unit [@@deriving qcheck]
 
     let enc = Data_encoding.empty
 
@@ -3157,6 +3343,8 @@ module Data = struct
     type t
 
     val enc : t Data_encoding.t
+
+    val gen : t QCheck.Gen.t
 
     val make :
       ?restart:bool ->
@@ -3176,6 +3364,7 @@ module Data = struct
       terminateDebuggee : bool option;
       suspendDebuggee : bool option;
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -3205,11 +3394,13 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : ?restart:bool -> unit -> t
 
     val restart : t -> bool option
   end = struct
-    type t = {restart : bool option}
+    type t = {restart : bool option} [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -3228,6 +3419,8 @@ module Data = struct
     type t
 
     val enc : t Data_encoding.t
+
+    val gen : t QCheck.Gen.t
 
     val make :
       source:Source.t ->
@@ -3250,11 +3443,12 @@ module Data = struct
   end = struct
     type t = {
       source : Source.t;
-      line : int;
-      column : int option;
-      endLine : int option;
-      endColumn : int option;
+      line : (int[@gen Gen.gen_int31]);
+      column : (int option[@gen Gen.gen_int31_opt]);
+      endLine : (int option[@gen Gen.gen_int31_opt]);
+      endColumn : (int option[@gen Gen.gen_int31_opt]);
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -3290,6 +3484,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       line:int -> ?column:int -> ?endLine:int -> ?endColumn:int -> unit -> t
 
@@ -3302,11 +3498,12 @@ module Data = struct
     val endColumn : t -> int option
   end = struct
     type t = {
-      line : int;
-      column : int option;
-      endLine : int option;
-      endColumn : int option;
+      line : (int[@gen Gen.gen_int31]);
+      column : (int option[@gen Gen.gen_int31_opt]);
+      endLine : (int option[@gen Gen.gen_int31_opt]);
+      endColumn : (int option[@gen Gen.gen_int31_opt]);
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -3339,11 +3536,13 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : breakpoints:BreakpointLocation.t list -> unit -> t
 
     val breakpoints : t -> BreakpointLocation.t list
   end = struct
-    type t = {breakpoints : BreakpointLocation.t list}
+    type t = {breakpoints : BreakpointLocation.t list} [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -3362,6 +3561,8 @@ module Data = struct
     type t
 
     val enc : t Data_encoding.t
+
+    val gen : t QCheck.Gen.t
 
     val make :
       line:int ->
@@ -3383,12 +3584,13 @@ module Data = struct
     val logMessage : t -> string option
   end = struct
     type t = {
-      line : int;
-      column : int option;
-      condition : string option;
-      hitCondition : string option;
-      logMessage : string option;
+      line : (int[@gen Gen.gen_int31]);
+      column : (int option[@gen Gen.gen_int31_opt]);
+      condition : (string option[@gen Gen.gen_utf8_str_opt]);
+      hitCondition : (string option[@gen Gen.gen_utf8_str_opt]);
+      logMessage : (string option[@gen Gen.gen_utf8_str_opt]);
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -3424,6 +3626,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       source:Source.t ->
       ?breakpoints:SourceBreakpoint.t list ->
@@ -3443,9 +3647,10 @@ module Data = struct
     type t = {
       source : Source.t;
       breakpoints : SourceBreakpoint.t list option;
-      lines : int list option;
+      lines : (int list option[@gen Gen.gen_int31_list_opt]);
       sourceModified : bool option;
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -3478,11 +3683,13 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : breakpoints:Breakpoint.t list -> unit -> t
 
     val breakpoints : t -> Breakpoint.t list
   end = struct
-    type t = {breakpoints : Breakpoint.t list}
+    type t = {breakpoints : Breakpoint.t list} [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -3502,6 +3709,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       name:string -> ?condition:string -> ?hitCondition:string -> unit -> t
 
@@ -3512,10 +3721,11 @@ module Data = struct
     val hitCondition : t -> string option
   end = struct
     type t = {
-      name : string;
-      condition : string option;
-      hitCondition : string option;
+      name : (string[@gen Gen.gen_utf8_str]);
+      condition : (string option[@gen Gen.gen_utf8_str_opt]);
+      hitCondition : (string option[@gen Gen.gen_utf8_str_opt]);
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -3542,11 +3752,13 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : breakpoints:FunctionBreakpoint.t list -> unit -> t
 
     val breakpoints : t -> FunctionBreakpoint.t list
   end = struct
-    type t = {breakpoints : FunctionBreakpoint.t list}
+    type t = {breakpoints : FunctionBreakpoint.t list} [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -3566,11 +3778,13 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : breakpoints:Breakpoint.t list -> unit -> t
 
     val breakpoints : t -> Breakpoint.t list
   end = struct
-    type t = {breakpoints : Breakpoint.t list}
+    type t = {breakpoints : Breakpoint.t list} [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -3590,13 +3804,19 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : filterId:string -> ?condition:string -> unit -> t
 
     val filterId : t -> string
 
     val condition : t -> string option
   end = struct
-    type t = {filterId : string; condition : string option}
+    type t = {
+      filterId : (string[@gen Gen.gen_utf8_str]);
+      condition : (string option[@gen Gen.gen_utf8_str_opt]);
+    }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -3618,13 +3838,19 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : ?negate:bool -> names:string list -> unit -> t
 
     val negate : t -> bool option
 
     val names : t -> string list
   end = struct
-    type t = {negate : bool option; names : string list}
+    type t = {
+      negate : bool option;
+      names : (string list[@gen Gen.gen_utf8_str_list]);
+    }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -3643,7 +3869,7 @@ module Data = struct
 
   (* dont bother with a sig for enums, the inferred one is fine *)
   module ExceptionBreakMode = struct
-    type t = Never | Always | Unhandled | UserUnhandled
+    type t = Never | Always | Unhandled | UserUnhandled [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -3667,6 +3893,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       ?path:ExceptionPathSegment.t list ->
       breakMode:ExceptionBreakMode.t ->
@@ -3681,6 +3909,7 @@ module Data = struct
       path : ExceptionPathSegment.t list option;
       breakMode : ExceptionBreakMode.t;
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -3704,6 +3933,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       filters:string list ->
       ?filterOptions:ExceptionFilterOptions.t list ->
@@ -3718,10 +3949,11 @@ module Data = struct
     val exceptionOptions : t -> ExceptionOptions.t list option
   end = struct
     type t = {
-      filters : string list;
+      filters : (string list[@gen Gen.gen_utf8_str_list]);
       filterOptions : ExceptionFilterOptions.t list option;
       exceptionOptions : ExceptionOptions.t list option;
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -3751,11 +3983,13 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : ?breakpoints:Breakpoint.t list -> unit -> t
 
     val breakpoints : t -> Breakpoint.t list option
   end = struct
-    type t = {breakpoints : Breakpoint.t list option}
+    type t = {breakpoints : Breakpoint.t list option} [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -3775,13 +4009,19 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : ?variablesReference:int -> name:string -> unit -> t
 
     val variablesReference : t -> int option
 
     val name : t -> string
   end = struct
-    type t = {variablesReference : int option; name : string}
+    type t = {
+      variablesReference : (int option[@gen Gen.gen_int31_opt]);
+      name : (string[@gen Gen.gen_utf8_str]);
+    }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -3800,7 +4040,7 @@ module Data = struct
 
   (* dont bother with a sig for enums, the inferred one is fine *)
   module DataBreakpointAccessType = struct
-    type t = Read | Write | ReadWrite
+    type t = Read | Write | ReadWrite [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -3820,6 +4060,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       dataId:string option ->
       description:string ->
@@ -3837,11 +4079,12 @@ module Data = struct
     val canPersist : t -> bool option
   end = struct
     type t = {
-      dataId : string option;
-      description : string;
+      dataId : (string option[@gen Gen.gen_utf8_str_opt]);
+      description : (string[@gen Gen.gen_utf8_str]);
       accessTypes : DataBreakpointAccessType.t list option;
       canPersist : bool option;
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -3874,6 +4117,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       dataId:string ->
       ?accessType:DataBreakpointAccessType.t ->
@@ -3891,11 +4136,12 @@ module Data = struct
     val hitCondition : t -> string option
   end = struct
     type t = {
-      dataId : string;
+      dataId : (string[@gen Gen.gen_utf8_str]);
       accessType : DataBreakpointAccessType.t option;
-      condition : string option;
-      hitCondition : string option;
+      condition : (string option[@gen Gen.gen_utf8_str_opt]);
+      hitCondition : (string option[@gen Gen.gen_utf8_str_opt]);
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -3928,11 +4174,13 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : breakpoints:DataBreakpoint.t list -> unit -> t
 
     val breakpoints : t -> DataBreakpoint.t list
   end = struct
-    type t = {breakpoints : DataBreakpoint.t list}
+    type t = {breakpoints : DataBreakpoint.t list} [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -3952,11 +4200,13 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : breakpoints:Breakpoint.t list -> unit -> t
 
     val breakpoints : t -> Breakpoint.t list
   end = struct
-    type t = {breakpoints : Breakpoint.t list}
+    type t = {breakpoints : Breakpoint.t list} [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -3976,6 +4226,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       instructionReference:string ->
       ?offset:int ->
@@ -3993,11 +4245,12 @@ module Data = struct
     val hitCondition : t -> string option
   end = struct
     type t = {
-      instructionReference : string;
-      offset : int option;
-      condition : string option;
-      hitCondition : string option;
+      instructionReference : (string[@gen Gen.gen_utf8_str]);
+      offset : (int option[@gen Gen.gen_int31_opt]);
+      condition : (string option[@gen Gen.gen_utf8_str_opt]);
+      hitCondition : (string option[@gen Gen.gen_utf8_str_opt]);
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -4030,11 +4283,13 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : breakpoints:InstructionBreakpoint.t list -> unit -> t
 
     val breakpoints : t -> InstructionBreakpoint.t list
   end = struct
-    type t = {breakpoints : InstructionBreakpoint.t list}
+    type t = {breakpoints : InstructionBreakpoint.t list} [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -4054,11 +4309,13 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : breakpoints:Breakpoint.t list -> unit -> t
 
     val breakpoints : t -> Breakpoint.t list
   end = struct
-    type t = {breakpoints : Breakpoint.t list}
+    type t = {breakpoints : Breakpoint.t list} [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -4078,13 +4335,16 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : threadId:int -> ?singleThread:bool -> unit -> t
 
     val threadId : t -> int
 
     val singleThread : t -> bool option
   end = struct
-    type t = {threadId : int; singleThread : bool option}
+    type t = {threadId : (int[@gen Gen.gen_int31]); singleThread : bool option}
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -4106,11 +4366,13 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : ?allThreadsContinued:bool -> unit -> t
 
     val allThreadsContinued : t -> bool option
   end = struct
-    type t = {allThreadsContinued : bool option}
+    type t = {allThreadsContinued : bool option} [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -4127,7 +4389,7 @@ module Data = struct
 
   (* dont bother with a sig for enums, the inferred one is fine *)
   module SteppingGranularity = struct
-    type t = Statement | Line | Instruction
+    type t = Statement | Line | Instruction [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -4149,6 +4411,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       threadId:int ->
       ?singleThread:bool ->
@@ -4163,10 +4427,11 @@ module Data = struct
     val granularity : t -> SteppingGranularity.t option
   end = struct
     type t = {
-      threadId : int;
+      threadId : (int[@gen Gen.gen_int31]);
       singleThread : bool option;
       granularity : SteppingGranularity.t option;
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -4196,6 +4461,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       threadId:int ->
       ?singleThread:bool ->
@@ -4213,11 +4480,12 @@ module Data = struct
     val granularity : t -> SteppingGranularity.t option
   end = struct
     type t = {
-      threadId : int;
+      threadId : (int[@gen Gen.gen_int31]);
       singleThread : bool option;
-      targetId : int option;
+      targetId : (int option[@gen Gen.gen_int31_opt]);
       granularity : SteppingGranularity.t option;
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -4250,6 +4518,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       threadId:int ->
       ?singleThread:bool ->
@@ -4264,10 +4534,11 @@ module Data = struct
     val granularity : t -> SteppingGranularity.t option
   end = struct
     type t = {
-      threadId : int;
+      threadId : (int[@gen Gen.gen_int31]);
       singleThread : bool option;
       granularity : SteppingGranularity.t option;
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -4297,6 +4568,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       threadId:int ->
       ?singleThread:bool ->
@@ -4311,10 +4584,11 @@ module Data = struct
     val granularity : t -> SteppingGranularity.t option
   end = struct
     type t = {
-      threadId : int;
+      threadId : (int[@gen Gen.gen_int31]);
       singleThread : bool option;
       granularity : SteppingGranularity.t option;
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -4344,13 +4618,16 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : threadId:int -> ?singleThread:bool -> unit -> t
 
     val threadId : t -> int
 
     val singleThread : t -> bool option
   end = struct
-    type t = {threadId : int; singleThread : bool option}
+    type t = {threadId : (int[@gen Gen.gen_int31]); singleThread : bool option}
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -4372,11 +4649,13 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : frameId:int -> unit -> t
 
     val frameId : t -> int
   end = struct
-    type t = {frameId : int}
+    type t = {frameId : (int[@gen Gen.gen_int31])} [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -4396,13 +4675,19 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : threadId:int -> targetId:int -> unit -> t
 
     val threadId : t -> int
 
     val targetId : t -> int
   end = struct
-    type t = {threadId : int; targetId : int}
+    type t = {
+      threadId : (int[@gen Gen.gen_int31]);
+      targetId : (int[@gen Gen.gen_int31]);
+    }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -4424,11 +4709,13 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : threadId:int -> unit -> t
 
     val threadId : t -> int
   end = struct
-    type t = {threadId : int}
+    type t = {threadId : (int[@gen Gen.gen_int31])} [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -4448,11 +4735,13 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : ?hex:bool -> unit -> t
 
     val hex : t -> bool option
   end = struct
-    type t = {hex : bool option}
+    type t = {hex : bool option} [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -4468,6 +4757,8 @@ module Data = struct
     type t
 
     val enc : t Data_encoding.t
+
+    val gen : t QCheck.Gen.t
 
     val make :
       ?hex:bool ->
@@ -4507,6 +4798,7 @@ module Data = struct
       module_ : bool option;
       includeAll : bool option;
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -4593,6 +4885,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       threadId:int ->
       ?startFrame:int ->
@@ -4610,11 +4904,12 @@ module Data = struct
     val format : t -> StackFrameFormat.t option
   end = struct
     type t = {
-      threadId : int;
-      startFrame : int option;
-      levels : int option;
+      threadId : (int[@gen Gen.gen_int31]);
+      startFrame : (int option[@gen Gen.gen_int31_opt]);
+      levels : (int option[@gen Gen.gen_int31_opt]);
       format : StackFrameFormat.t option;
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -4644,7 +4939,7 @@ module Data = struct
 
   (* dont bother with a sig for enums, the inferred one is fine *)
   module StackFrame_presentationHint = struct
-    type t = Normal | Label | Subtle
+    type t = Normal | Label | Subtle [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -4662,6 +4957,8 @@ module Data = struct
     type t
 
     val enc : t Data_encoding.t
+
+    val gen : t QCheck.Gen.t
 
     val make :
       id:int ->
@@ -4705,6 +5002,8 @@ module Data = struct
 
       val enc : t Data_encoding.t
 
+      val gen : t QCheck.Gen.t
+
       val make :
         id:int ->
         name:string ->
@@ -4740,17 +5039,19 @@ module Data = struct
       val moduleId : t -> IntString.t option
     end = struct
       type t = {
-        id : int;
-        name : string;
+        id : (int[@gen Gen.gen_int31]);
+        name : (string[@gen Gen.gen_utf8_str]);
         source : Source.t option;
-        line : int;
-        column : int;
-        endLine : int option;
-        endColumn : int option;
+        line : (int[@gen Gen.gen_int31]);
+        column : (int[@gen Gen.gen_int31]);
+        endLine : (int option[@gen Gen.gen_int31_opt]);
+        endColumn : (int option[@gen Gen.gen_int31_opt]);
         canRestart : bool option;
-        instructionPointerReference : string option;
+        instructionPointerReference :
+          (string option[@gen Gen.gen_utf8_str_opt]);
         moduleId : IntString.t option;
       }
+      [@@deriving qcheck]
 
       let enc =
         let open Data_encoding in
@@ -4853,11 +5154,14 @@ module Data = struct
 
       val enc : t Data_encoding.t
 
+      val gen : t QCheck.Gen.t
+
       val make : ?presentationHint:StackFrame_presentationHint.t -> unit -> t
 
       val presentationHint : t -> StackFrame_presentationHint.t option
     end = struct
       type t = {presentationHint : StackFrame_presentationHint.t option}
+      [@@deriving qcheck]
 
       let enc =
         let open Data_encoding in
@@ -4872,7 +5176,7 @@ module Data = struct
       let presentationHint t = t.presentationHint
     end
 
-    type t = StackFrame_0.t * StackFrame_10.t
+    type t = StackFrame_0.t * StackFrame_10.t [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -4928,13 +5232,19 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : stackFrames:StackFrame.t list -> ?totalFrames:int -> unit -> t
 
     val stackFrames : t -> StackFrame.t list
 
     val totalFrames : t -> int option
   end = struct
-    type t = {stackFrames : StackFrame.t list; totalFrames : int option}
+    type t = {
+      stackFrames : StackFrame.t list;
+      totalFrames : (int option[@gen Gen.gen_int31_opt]);
+    }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -4958,11 +5268,13 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : frameId:int -> unit -> t
 
     val frameId : t -> int
   end = struct
-    type t = {frameId : int}
+    type t = {frameId : (int[@gen Gen.gen_int31])} [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -4980,6 +5292,7 @@ module Data = struct
   (* dont bother with a sig for enums, the inferred one is fine *)
   module Scope_presentationHint = struct
     type t = Arguments | Locals | Registers | Other of string
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -5001,6 +5314,8 @@ module Data = struct
     type t
 
     val enc : t Data_encoding.t
+
+    val gen : t QCheck.Gen.t
 
     val make :
       name:string ->
@@ -5044,6 +5359,8 @@ module Data = struct
 
       val enc : t Data_encoding.t
 
+      val gen : t QCheck.Gen.t
+
       val make :
         name:string ->
         ?presentationHint:Scope_presentationHint.t ->
@@ -5079,17 +5396,18 @@ module Data = struct
       val endLine : t -> int option
     end = struct
       type t = {
-        name : string;
+        name : (string[@gen Gen.gen_utf8_str]);
         presentationHint : Scope_presentationHint.t option;
-        variablesReference : int;
-        namedVariables : int option;
-        indexedVariables : int option;
+        variablesReference : (int[@gen Gen.gen_int31]);
+        namedVariables : (int option[@gen Gen.gen_int31_opt]);
+        indexedVariables : (int option[@gen Gen.gen_int31_opt]);
         expensive : bool;
         source : Source.t option;
-        line : int option;
-        column : int option;
-        endLine : int option;
+        line : (int option[@gen Gen.gen_int31_opt]);
+        column : (int option[@gen Gen.gen_int31_opt]);
+        endLine : (int option[@gen Gen.gen_int31_opt]);
       }
+      [@@deriving qcheck]
 
       let enc =
         let open Data_encoding in
@@ -5192,11 +5510,14 @@ module Data = struct
 
       val enc : t Data_encoding.t
 
+      val gen : t QCheck.Gen.t
+
       val make : ?endColumn:int -> unit -> t
 
       val endColumn : t -> int option
     end = struct
-      type t = {endColumn : int option}
+      type t = {endColumn : (int option[@gen Gen.gen_int31_opt])}
+      [@@deriving qcheck]
 
       let enc =
         let open Data_encoding in
@@ -5211,7 +5532,7 @@ module Data = struct
       let endColumn t = t.endColumn
     end
 
-    type t = Scope_0.t * Scope_10.t
+    type t = Scope_0.t * Scope_10.t [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -5267,11 +5588,13 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : scopes:Scope.t list -> unit -> t
 
     val scopes : t -> Scope.t list
   end = struct
-    type t = {scopes : Scope.t list}
+    type t = {scopes : Scope.t list} [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -5288,7 +5611,7 @@ module Data = struct
 
   (* dont bother with a sig for enums, the inferred one is fine *)
   module VariablesArguments_filter = struct
-    type t = Indexed | Named
+    type t = Indexed | Named [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -5305,6 +5628,8 @@ module Data = struct
     type t
 
     val enc : t Data_encoding.t
+
+    val gen : t QCheck.Gen.t
 
     val make :
       variablesReference:int ->
@@ -5326,12 +5651,13 @@ module Data = struct
     val format : t -> ValueFormat.t option
   end = struct
     type t = {
-      variablesReference : int;
+      variablesReference : (int[@gen Gen.gen_int31]);
       filter : VariablesArguments_filter.t option;
-      start : int option;
-      count : int option;
+      start : (int option[@gen Gen.gen_int31_opt]);
+      count : (int option[@gen Gen.gen_int31_opt]);
       format : ValueFormat.t option;
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -5377,6 +5703,7 @@ module Data = struct
       | Virtual
       | DataBreakpoint
       | Other of string
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -5422,6 +5749,7 @@ module Data = struct
       | HasSideEffects
       | HasDataBreakpoint
       | Other of string
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -5452,6 +5780,7 @@ module Data = struct
   (* dont bother with a sig for enums, the inferred one is fine *)
   module VariablePresentationHint_visibility = struct
     type t = Public | Private | Protected | Internal | Final | Other of string
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -5478,6 +5807,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       ?kind:VariablePresentationHint_kind.t ->
       ?attributes:VariablePresentationHint_attributes_items.t list ->
@@ -5501,6 +5832,7 @@ module Data = struct
       visibility : VariablePresentationHint_visibility.t option;
       lazy_ : bool option;
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -5535,6 +5867,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       name:string ->
       value:string ->
@@ -5567,16 +5901,17 @@ module Data = struct
     val memoryReference : t -> string option
   end = struct
     type t = {
-      name : string;
-      value : string;
-      type_ : string option;
+      name : (string[@gen Gen.gen_utf8_str]);
+      value : (string[@gen Gen.gen_utf8_str]);
+      type_ : (string option[@gen Gen.gen_utf8_str_opt]);
       presentationHint : VariablePresentationHint.t option;
-      evaluateName : string option;
-      variablesReference : int;
-      namedVariables : int option;
-      indexedVariables : int option;
-      memoryReference : string option;
+      evaluateName : (string option[@gen Gen.gen_utf8_str_opt]);
+      variablesReference : (int[@gen Gen.gen_int31]);
+      namedVariables : (int option[@gen Gen.gen_int31_opt]);
+      indexedVariables : (int option[@gen Gen.gen_int31_opt]);
+      memoryReference : (string option[@gen Gen.gen_utf8_str_opt]);
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -5672,11 +6007,13 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : variables:Variable_.t list -> unit -> t
 
     val variables : t -> Variable_.t list
   end = struct
-    type t = {variables : Variable_.t list}
+    type t = {variables : Variable_.t list} [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -5696,6 +6033,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       variablesReference:int ->
       name:string ->
@@ -5713,11 +6052,12 @@ module Data = struct
     val format : t -> ValueFormat.t option
   end = struct
     type t = {
-      variablesReference : int;
-      name : string;
-      value : string;
+      variablesReference : (int[@gen Gen.gen_int31]);
+      name : (string[@gen Gen.gen_utf8_str]);
+      value : (string[@gen Gen.gen_utf8_str]);
       format : ValueFormat.t option;
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -5750,6 +6090,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       value:string ->
       ?type_:string ->
@@ -5770,12 +6112,13 @@ module Data = struct
     val indexedVariables : t -> int option
   end = struct
     type t = {
-      value : string;
-      type_ : string option;
-      variablesReference : int option;
-      namedVariables : int option;
-      indexedVariables : int option;
+      value : (string[@gen Gen.gen_utf8_str]);
+      type_ : (string option[@gen Gen.gen_utf8_str_opt]);
+      variablesReference : (int option[@gen Gen.gen_int31_opt]);
+      namedVariables : (int option[@gen Gen.gen_int31_opt]);
+      indexedVariables : (int option[@gen Gen.gen_int31_opt]);
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -5819,13 +6162,19 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : ?source:Source.t -> sourceReference:int -> unit -> t
 
     val source : t -> Source.t option
 
     val sourceReference : t -> int
   end = struct
-    type t = {source : Source.t option; sourceReference : int}
+    type t = {
+      source : Source.t option;
+      sourceReference : (int[@gen Gen.gen_int31]);
+    }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -5847,13 +6196,19 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : content:string -> ?mimeType:string -> unit -> t
 
     val content : t -> string
 
     val mimeType : t -> string option
   end = struct
-    type t = {content : string; mimeType : string option}
+    type t = {
+      content : (string[@gen Gen.gen_utf8_str]);
+      mimeType : (string option[@gen Gen.gen_utf8_str_opt]);
+    }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -5875,13 +6230,19 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : id:int -> name:string -> unit -> t
 
     val id : t -> int
 
     val name : t -> string
   end = struct
-    type t = {id : int; name : string}
+    type t = {
+      id : (int[@gen Gen.gen_int31]);
+      name : (string[@gen Gen.gen_utf8_str]);
+    }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -5903,11 +6264,13 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : threads:Thread.t list -> unit -> t
 
     val threads : t -> Thread.t list
   end = struct
-    type t = {threads : Thread.t list}
+    type t = {threads : Thread.t list} [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -5927,11 +6290,14 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : ?threadIds:int list -> unit -> t
 
     val threadIds : t -> int list option
   end = struct
-    type t = {threadIds : int list option}
+    type t = {threadIds : (int list option[@gen Gen.gen_int31_list_opt])}
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -5951,13 +6317,19 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : ?startModule:int -> ?moduleCount:int -> unit -> t
 
     val startModule : t -> int option
 
     val moduleCount : t -> int option
   end = struct
-    type t = {startModule : int option; moduleCount : int option}
+    type t = {
+      startModule : (int option[@gen Gen.gen_int31_opt]);
+      moduleCount : (int option[@gen Gen.gen_int31_opt]);
+    }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -5979,13 +6351,19 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : modules:Module_.t list -> ?totalModules:int -> unit -> t
 
     val modules : t -> Module_.t list
 
     val totalModules : t -> int option
   end = struct
-    type t = {modules : Module_.t list; totalModules : int option}
+    type t = {
+      modules : Module_.t list;
+      totalModules : (int option[@gen Gen.gen_int31_opt]);
+    }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -6007,9 +6385,11 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : unit -> t
   end = struct
-    type t = unit
+    type t = unit [@@deriving qcheck]
 
     let enc = Data_encoding.empty
 
@@ -6021,11 +6401,13 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : sources:Source.t list -> unit -> t
 
     val sources : t -> Source.t list
   end = struct
-    type t = {sources : Source.t list}
+    type t = {sources : Source.t list} [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -6043,6 +6425,7 @@ module Data = struct
   (* dont bother with a sig for enums, the inferred one is fine *)
   module EvaluateArguments_context = struct
     type t = Variables | Watch | Repl | Hover | Clipboard | Other of string
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -6069,6 +6452,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       expression:string ->
       ?frameId:int ->
@@ -6086,11 +6471,12 @@ module Data = struct
     val format : t -> ValueFormat.t option
   end = struct
     type t = {
-      expression : string;
-      frameId : int option;
+      expression : (string[@gen Gen.gen_utf8_str]);
+      frameId : (int option[@gen Gen.gen_int31_opt]);
       context : EvaluateArguments_context.t option;
       format : ValueFormat.t option;
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -6123,6 +6509,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       result:string ->
       ?type_:string ->
@@ -6149,14 +6537,15 @@ module Data = struct
     val memoryReference : t -> string option
   end = struct
     type t = {
-      result : string;
-      type_ : string option;
+      result : (string[@gen Gen.gen_utf8_str]);
+      type_ : (string option[@gen Gen.gen_utf8_str_opt]);
       presentationHint : VariablePresentationHint.t option;
-      variablesReference : int;
-      namedVariables : int option;
-      indexedVariables : int option;
-      memoryReference : string option;
+      variablesReference : (int[@gen Gen.gen_int31]);
+      namedVariables : (int option[@gen Gen.gen_int31_opt]);
+      indexedVariables : (int option[@gen Gen.gen_int31_opt]);
+      memoryReference : (string option[@gen Gen.gen_utf8_str_opt]);
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -6235,6 +6624,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       expression:string ->
       value:string ->
@@ -6252,11 +6643,12 @@ module Data = struct
     val format : t -> ValueFormat.t option
   end = struct
     type t = {
-      expression : string;
-      value : string;
-      frameId : int option;
+      expression : (string[@gen Gen.gen_utf8_str]);
+      value : (string[@gen Gen.gen_utf8_str]);
+      frameId : (int option[@gen Gen.gen_int31_opt]);
       format : ValueFormat.t option;
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -6289,6 +6681,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       value:string ->
       ?type_:string ->
@@ -6312,13 +6706,14 @@ module Data = struct
     val indexedVariables : t -> int option
   end = struct
     type t = {
-      value : string;
-      type_ : string option;
+      value : (string[@gen Gen.gen_utf8_str]);
+      type_ : (string option[@gen Gen.gen_utf8_str_opt]);
       presentationHint : VariablePresentationHint.t option;
-      variablesReference : int option;
-      namedVariables : int option;
-      indexedVariables : int option;
+      variablesReference : (int option[@gen Gen.gen_int31_opt]);
+      namedVariables : (int option[@gen Gen.gen_int31_opt]);
+      indexedVariables : (int option[@gen Gen.gen_int31_opt]);
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -6389,11 +6784,13 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : frameId:int -> unit -> t
 
     val frameId : t -> int
   end = struct
-    type t = {frameId : int}
+    type t = {frameId : (int[@gen Gen.gen_int31])} [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -6412,6 +6809,8 @@ module Data = struct
     type t
 
     val enc : t Data_encoding.t
+
+    val gen : t QCheck.Gen.t
 
     val make :
       id:int ->
@@ -6436,13 +6835,14 @@ module Data = struct
     val endColumn : t -> int option
   end = struct
     type t = {
-      id : int;
-      label : string;
-      line : int option;
-      column : int option;
-      endLine : int option;
-      endColumn : int option;
+      id : (int[@gen Gen.gen_int31]);
+      label : (string[@gen Gen.gen_utf8_str]);
+      line : (int option[@gen Gen.gen_int31_opt]);
+      column : (int option[@gen Gen.gen_int31_opt]);
+      endLine : (int option[@gen Gen.gen_int31_opt]);
+      endColumn : (int option[@gen Gen.gen_int31_opt]);
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -6481,11 +6881,13 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : targets:StepInTarget.t list -> unit -> t
 
     val targets : t -> StepInTarget.t list
   end = struct
-    type t = {targets : StepInTarget.t list}
+    type t = {targets : StepInTarget.t list} [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -6505,6 +6907,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : source:Source.t -> line:int -> ?column:int -> unit -> t
 
     val source : t -> Source.t
@@ -6513,7 +6917,12 @@ module Data = struct
 
     val column : t -> int option
   end = struct
-    type t = {source : Source.t; line : int; column : int option}
+    type t = {
+      source : Source.t;
+      line : (int[@gen Gen.gen_int31]);
+      column : (int option[@gen Gen.gen_int31_opt]);
+    }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -6536,6 +6945,8 @@ module Data = struct
     type t
 
     val enc : t Data_encoding.t
+
+    val gen : t QCheck.Gen.t
 
     val make :
       id:int ->
@@ -6563,14 +6974,15 @@ module Data = struct
     val instructionPointerReference : t -> string option
   end = struct
     type t = {
-      id : int;
-      label : string;
-      line : int;
-      column : int option;
-      endLine : int option;
-      endColumn : int option;
-      instructionPointerReference : string option;
+      id : (int[@gen Gen.gen_int31]);
+      label : (string[@gen Gen.gen_utf8_str]);
+      line : (int[@gen Gen.gen_int31]);
+      column : (int option[@gen Gen.gen_int31_opt]);
+      endLine : (int option[@gen Gen.gen_int31_opt]);
+      endColumn : (int option[@gen Gen.gen_int31_opt]);
+      instructionPointerReference : (string option[@gen Gen.gen_utf8_str_opt]);
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -6641,11 +7053,13 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : targets:GotoTarget.t list -> unit -> t
 
     val targets : t -> GotoTarget.t list
   end = struct
-    type t = {targets : GotoTarget.t list}
+    type t = {targets : GotoTarget.t list} [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -6665,6 +7079,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       ?frameId:int -> text:string -> column:int -> ?line:int -> unit -> t
 
@@ -6677,11 +7093,12 @@ module Data = struct
     val line : t -> int option
   end = struct
     type t = {
-      frameId : int option;
-      text : string;
-      column : int;
-      line : int option;
+      frameId : (int option[@gen Gen.gen_int31_opt]);
+      text : (string[@gen Gen.gen_utf8_str]);
+      column : (int[@gen Gen.gen_int31]);
+      line : (int option[@gen Gen.gen_int31_opt]);
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -6728,6 +7145,7 @@ module Data = struct
       | File
       | Reference
       | Customcolor
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -6781,6 +7199,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       label:string ->
       ?text:string ->
@@ -6813,16 +7233,17 @@ module Data = struct
     val selectionLength : t -> int option
   end = struct
     type t = {
-      label : string;
-      text : string option;
-      sortText : string option;
-      detail : string option;
+      label : (string[@gen Gen.gen_utf8_str]);
+      text : (string option[@gen Gen.gen_utf8_str_opt]);
+      sortText : (string option[@gen Gen.gen_utf8_str_opt]);
+      detail : (string option[@gen Gen.gen_utf8_str_opt]);
       type_ : CompletionItemType.t option;
-      start : int option;
-      length : int option;
-      selectionStart : int option;
-      selectionLength : int option;
+      start : (int option[@gen Gen.gen_int31_opt]);
+      length : (int option[@gen Gen.gen_int31_opt]);
+      selectionStart : (int option[@gen Gen.gen_int31_opt]);
+      selectionLength : (int option[@gen Gen.gen_int31_opt]);
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -6917,11 +7338,13 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : targets:CompletionItem.t list -> unit -> t
 
     val targets : t -> CompletionItem.t list
   end = struct
-    type t = {targets : CompletionItem.t list}
+    type t = {targets : CompletionItem.t list} [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -6941,11 +7364,13 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : threadId:int -> unit -> t
 
     val threadId : t -> int
   end = struct
-    type t = {threadId : int}
+    type t = {threadId : (int[@gen Gen.gen_int31])} [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -6964,6 +7389,8 @@ module Data = struct
     type t
 
     val enc : t Data_encoding.t
+
+    val gen : t QCheck.Gen.t
 
     val make :
       ?message:string ->
@@ -6988,13 +7415,61 @@ module Data = struct
     val innerException : t -> t list option
   end = struct
     type t = {
-      message : string option;
-      typeName : string option;
-      fullTypeName : string option;
-      evaluateName : string option;
-      stackTrace : string option;
+      message : (string option[@gen Gen.gen_utf8_str_opt]);
+      typeName : (string option[@gen Gen.gen_utf8_str_opt]);
+      fullTypeName : (string option[@gen Gen.gen_utf8_str_opt]);
+      evaluateName : (string option[@gen Gen.gen_utf8_str_opt]);
+      stackTrace : (string option[@gen Gen.gen_utf8_str_opt]);
       innerException : t list option;
     }
+
+    let gen = QCheck.Gen.sized @@ QCheck.Gen.fix (fun self n ->
+
+      let basecase : t list option QCheck.Gen.t =
+        QCheck.Gen.oneofl [None; Some []]
+      in
+      let _gen_t : t list option QCheck.Gen.t -> t QCheck.Gen.t =
+       fun g ->
+        let gg =
+          QCheck.Gen.tup6
+            Gen.gen_utf8_str_opt
+            Gen.gen_utf8_str_opt
+            Gen.gen_utf8_str_opt
+            Gen.gen_utf8_str_opt
+            Gen.gen_utf8_str_opt
+            g
+        in
+        QCheck.Gen.map
+          (fun ( message,
+                 typeName,
+                 fullTypeName,
+                 evaluateName,
+                 stackTrace,
+                 innerException ) ->
+            {
+              message;
+              typeName;
+              fullTypeName;
+              evaluateName;
+              stackTrace;
+              innerException;
+            })
+          gg
+      in
+      match n with
+      | 0 -> _gen_t basecase
+      | n ->
+          QCheck.Gen.frequency
+            [
+              (1, _gen_t basecase);
+              ( 1,
+                let g =
+                  QCheck.Gen.map (fun {innerException; _} -> innerException)
+                  @@ self (n - 1)
+                in
+                _gen_t g );
+            ]
+      )
 
     let enc =
       let open Data_encoding in
@@ -7065,6 +7540,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       exceptionId:string ->
       ?description:string ->
@@ -7082,11 +7559,12 @@ module Data = struct
     val details : t -> ExceptionDetails.t option
   end = struct
     type t = {
-      exceptionId : string;
-      description : string option;
+      exceptionId : (string[@gen Gen.gen_utf8_str]);
+      description : (string option[@gen Gen.gen_utf8_str_opt]);
       breakMode : ExceptionBreakMode.t;
       details : ExceptionDetails.t option;
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -7119,6 +7597,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : memoryReference:string -> ?offset:int -> count:int -> unit -> t
 
     val memoryReference : t -> string
@@ -7127,7 +7607,12 @@ module Data = struct
 
     val count : t -> int
   end = struct
-    type t = {memoryReference : string; offset : int option; count : int}
+    type t = {
+      memoryReference : (string[@gen Gen.gen_utf8_str]);
+      offset : (int option[@gen Gen.gen_int31_opt]);
+      count : (int[@gen Gen.gen_int31]);
+    }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -7157,6 +7642,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       address:string -> ?unreadableBytes:int -> ?data:string -> unit -> t
 
@@ -7167,10 +7654,11 @@ module Data = struct
     val data : t -> string option
   end = struct
     type t = {
-      address : string;
-      unreadableBytes : int option;
-      data : string option;
+      address : (string[@gen Gen.gen_utf8_str]);
+      unreadableBytes : (int option[@gen Gen.gen_int31_opt]);
+      data : (string option[@gen Gen.gen_utf8_str_opt]);
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -7200,6 +7688,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       memoryReference:string ->
       ?offset:int ->
@@ -7217,11 +7707,12 @@ module Data = struct
     val data : t -> string
   end = struct
     type t = {
-      memoryReference : string;
-      offset : int option;
+      memoryReference : (string[@gen Gen.gen_utf8_str]);
+      offset : (int option[@gen Gen.gen_int31_opt]);
       allowPartial : bool option;
-      data : string;
+      data : (string[@gen Gen.gen_utf8_str]);
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -7254,13 +7745,19 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : ?offset:int -> ?bytesWritten:int -> unit -> t
 
     val offset : t -> int option
 
     val bytesWritten : t -> int option
   end = struct
-    type t = {offset : int option; bytesWritten : int option}
+    type t = {
+      offset : (int option[@gen Gen.gen_int31_opt]);
+      bytesWritten : (int option[@gen Gen.gen_int31_opt]);
+    }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -7282,6 +7779,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       memoryReference:string ->
       ?offset:int ->
@@ -7302,12 +7801,13 @@ module Data = struct
     val resolveSymbols : t -> bool option
   end = struct
     type t = {
-      memoryReference : string;
-      offset : int option;
-      instructionOffset : int option;
-      instructionCount : int;
+      memoryReference : (string[@gen Gen.gen_utf8_str]);
+      offset : (int option[@gen Gen.gen_int31_opt]);
+      instructionOffset : (int option[@gen Gen.gen_int31_opt]);
+      instructionCount : (int[@gen Gen.gen_int31]);
       resolveSymbols : bool option;
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -7370,6 +7870,8 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make :
       address:string ->
       ?instructionBytes:string ->
@@ -7402,16 +7904,17 @@ module Data = struct
     val endColumn : t -> int option
   end = struct
     type t = {
-      address : string;
-      instructionBytes : string option;
-      instruction : string;
-      symbol : string option;
+      address : (string[@gen Gen.gen_utf8_str]);
+      instructionBytes : (string option[@gen Gen.gen_utf8_str_opt]);
+      instruction : (string[@gen Gen.gen_utf8_str]);
+      symbol : (string option[@gen Gen.gen_utf8_str_opt]);
       location : Source.t option;
-      line : int option;
-      column : int option;
-      endLine : int option;
-      endColumn : int option;
+      line : (int option[@gen Gen.gen_int31_opt]);
+      column : (int option[@gen Gen.gen_int31_opt]);
+      endLine : (int option[@gen Gen.gen_int31_opt]);
+      endColumn : (int option[@gen Gen.gen_int31_opt]);
     }
+    [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -7506,11 +8009,13 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : instructions:DisassembledInstruction.t list -> unit -> t
 
     val instructions : t -> DisassembledInstruction.t list
   end = struct
-    type t = {instructions : DisassembledInstruction.t list}
+    type t = {instructions : DisassembledInstruction.t list} [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -7530,11 +8035,13 @@ module Data = struct
 
     val enc : t Data_encoding.t
 
+    val gen : t QCheck.Gen.t
+
     val make : columns:ColumnDescriptor.t list -> unit -> t
 
     val columns : t -> ColumnDescriptor.t list
   end = struct
-    type t = {columns : ColumnDescriptor.t list}
+    type t = {columns : ColumnDescriptor.t list} [@@deriving qcheck]
 
     let enc =
       let open Data_encoding in
@@ -8590,6 +9097,7 @@ module Event = struct
   open Data
 
   type _ t =
+    | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
     | Fmap : ('a -> 'b) -> ('a -> 'b) t
     (* event GADT items *)
     | InitializedEvent :
@@ -8729,8 +9237,24 @@ module Event = struct
 
   (* event constructors *)
   let initializedEvent ev = InitializedEvent ev
+  let gen_initializedevent = QCheck.Gen.(
+      (
+        initializedEvent,
+        map (fun (seq, body) -> EventMessage.make_opt ~seq ~event:Dap_events.initialized ~body ()) @@
+        tup2 Gen.gen_int31 EmptyObject.gen,
+        EventMessage.enc_opt Dap_events.initialized EmptyObject.enc
+      )
+    )
 
   let stoppedEvent ev = StoppedEvent ev
+  let gen_stoppedevent = QCheck.Gen.(
+      (
+        stoppedEvent,
+        map (fun (seq, body) -> EventMessage.make ~seq ~event:Dap_events.stopped ~body ()) @@
+        tup2 Gen.gen_int31 StoppedEvent_body.gen,
+        EventMessage.enc Dap_events.stopped StoppedEvent_body.enc
+      )
+    )
 
   let continuedEvent ev = ContinuedEvent ev
 

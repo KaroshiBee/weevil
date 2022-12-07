@@ -7,6 +7,12 @@ type ('event, 'body, 'presence) t = {
   body : 'body;
 }
 
+let equal ~equal_body t1 t2 =
+  Int.equal t1.seq t2.seq &&
+  Dap_base.ProtocolMessage_type.equal t1.type_ t2.type_ &&
+  Dap_events.equal t1.event t2.event &&
+  equal_body t1.body t2.body
+
 let seq t = t.seq
 
 let set_seq ~seq:s t =
