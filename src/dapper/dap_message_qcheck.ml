@@ -9234,6 +9234,13 @@ module Event = struct
 
   (* event constructors *)
   let initializedEvent ev = InitializedEvent ev
+  let gen_initializedevent = QCheck.Gen.(
+      (
+        map (fun (seq, body) -> initializedEvent @@ EventMessage.make_opt ~seq ~event:Dap_events.initialized ~body ()) @@
+        tup2 Gen.gen_int31 EmptyObject.gen,
+        EventMessage.enc_opt Dap_events.initialized EmptyObject.enc
+      )
+    )
 
   let stoppedEvent ev = StoppedEvent ev
   let gen_stoppedevent = QCheck.Gen.(
