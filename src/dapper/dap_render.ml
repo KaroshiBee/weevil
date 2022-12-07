@@ -43,7 +43,7 @@ module RenderEnum : (RenderT with type spec := Sp.Enum_spec.t) = struct
     let t_str =
       let lns = t.enums |> List.map (fun (e:Sp.Enum_spec.enum_val) -> e.safe_name) |> String.concat " | " in
       let lns = if t.suggested then lns ^ " | Other of string" else lns in
-      Printf.sprintf "type t = %s [@@deriving qcheck]" lns
+      Printf.sprintf "type t = %s [@@deriving qcheck, eq]" lns
     in
 
     let enc_t_s =

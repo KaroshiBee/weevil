@@ -391,7 +391,7 @@ let%expect_test "Check StoppedEvent example" =
 
      (* supporting data modules *) (* dont bother with a sig for enums, the inferred one is fine *)
      module StoppedEvent_body_reason = struct
-     type t = Step | Breakpoint | Exception | Pause | Entry | Goto | Function_breakpoint | Data_breakpoint | Instruction_breakpoint | Other of string [@@deriving qcheck]
+     type t = Step | Breakpoint | Exception | Pause | Entry | Goto | Function_breakpoint | Data_breakpoint | Instruction_breakpoint | Other of string [@@deriving qcheck, eq]
 
      let enc =
      let open Data_encoding in
