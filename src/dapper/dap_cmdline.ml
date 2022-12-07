@@ -8,7 +8,7 @@ let process what_arg json_schema_arg output_file_arg () =
     let schema_js = Ezjsonm.from_channel @@ open_in json_schema_arg in
     let dfs = Dap_dfs.Dfs.make ~schema_js in
     let what_args = Dap_render.(
-        match what_arg with
+        match Option.map String.lowercase_ascii what_arg with
         | Some "commands" -> [Commands ML; Commands MLI]
         | Some "events" -> [Events ML; Events MLI]
         | _ -> [Messages]

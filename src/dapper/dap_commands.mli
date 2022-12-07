@@ -45,6 +45,8 @@ type runInTerminal
 type cancel
 type error
 
+val equal : 'a t -> 'b t -> bool
+
 val disassemble : disassemble t
 val writeMemory : writeMemory t
 val readMemory : readMemory t
