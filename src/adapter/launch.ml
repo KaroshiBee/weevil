@@ -40,7 +40,7 @@ module T (S : Types.STATE_T) = struct
   (* connects to the mdb backend and runs a script *)
   let launch_handler =
     On_request.make ~handler:(fun ~state req ->
-        let getargs = Req.(Fmap Message.arguments) in
+        let getargs = Req.(fmap_ Message.arguments) in
         let args = Req.(eval @@ map_ (val_ getargs, val_ req)) in
         let script_filename = D.LaunchRequestArguments.script_filename args in
         let storage = D.LaunchRequestArguments.storage args in

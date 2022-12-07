@@ -13,7 +13,7 @@ module T (S : Types.STATE_T) = struct
 
   let attach_handler =
     On_request.make ~handler:(fun ~state req ->
-        let getargs = Req.(Fmap Message.arguments) in
+        let getargs = Req.(fmap_ Message.arguments) in
         let args = Req.(eval @@ map_ (val_ getargs, val_ req)) in
         let script_filename = D.AttachRequestArguments.script_filename args in
         let storage = D.AttachRequestArguments.storage args in

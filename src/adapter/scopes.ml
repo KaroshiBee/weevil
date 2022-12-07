@@ -11,7 +11,7 @@ module T (S : Types.STATE_READONLY_T) = struct
 
   let scopes_handler =
     On_request.make ~handler:(fun ~state:_ req ->
-        let getargs = Req.(Fmap Message.arguments) in
+        let getargs = Req.(fmap_ Message.arguments) in
         let args = Req.(eval @@ map_ (val_ getargs, val_ req)) in
         assert (Defaults.Vals._THE_FRAME_ID = D.ScopesArguments.frameId args);
         let resp =
