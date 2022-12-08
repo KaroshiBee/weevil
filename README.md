@@ -42,12 +42,18 @@ $ dune build -w
 
 ## Test 
 
-To run the tests simply do (from project root):
+To run the all the tests simply do (from project root):
 
 ``` sh
 $ dune runtest
 ```
-Tests currently consist of [Alcotest](https://github.com/mirage/alcotest) unit tests, [expect](https://github.com/janestreet/ppx_expect) tests and [cram](https://dune.readthedocs.io/en/stable/tests.html) tests.
+Tests currently consist of [Alcotest](https://github.com/mirage/alcotest) unit/qcheck tests, [expect](https://github.com/janestreet/ppx_expect) tests and [cram](https://dune.readthedocs.io/en/stable/tests.html) tests.
+
+The qcheck tests can take some time to run through so to just run the quick tests do
+
+```sh
+$ ALCOTEST_QUICK_TESTS=1 dune runtest
+```
 
 Coverage statistics can be determined using the [bisect ppx](https://github.com/aantron/bisect_ppx#Dune) tool.  
 
