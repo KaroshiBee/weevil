@@ -12,13 +12,16 @@ module Ev_runscript = struct
 end
 
 module Ev_terminate = struct
-  type t = unit
+  (* need to distinguish it from getrecords *)
+  type t = {
+    terminate : unit;
+  }
   let enc =
     let open Data_encoding in
     (conv
-      (fun () -> ())
-      (fun () -> ())
-      (constant "Terminate")
+      (fun {terminate;} -> (terminate))
+      (fun (terminate) -> {terminate})
+      (obj1 (req "terminate" @@ constant "Terminate"))
     )
 end
 
@@ -34,13 +37,16 @@ module Ev_step = struct
 end
 
 module Ev_getrecords = struct
-  type t = unit
+  (* need to be able to distinguish it from terminate *)
+  type t = {
+    get_records: unit;
+  }
   let enc =
     let open Data_encoding in
     (conv
-      (fun () -> ())
-      (fun () -> ())
-      (constant "GetRecords")
+      (fun {get_records;} -> (get_records))
+      (fun (get_records) -> {get_records})
+      (obj1 (req "get_records" @@ constant "GetRecords"))
     )
 end
 

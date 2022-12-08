@@ -204,24 +204,26 @@ end = struct
     script_filename: (string [@gen Gen.gen_utf8_str]);
     storage: (string [@gen Gen.gen_utf8_str]);
     parameter: (string [@gen Gen.gen_utf8_str]);
+    launch_sentinal: unit; (* something to distingush it from attach request args *)
   }
   [@@deriving qcheck, eq, show]
 
   let enc =
     let open Data_encoding in
     conv
-      (fun {restart; noDebug; script_filename; storage; parameter; } -> (restart, noDebug, script_filename, storage, parameter))
-      (fun (restart, noDebug, script_filename, storage, parameter) -> {restart; noDebug; script_filename; storage; parameter;})
-      (obj5
+      (fun {restart; noDebug; script_filename; storage; parameter; launch_sentinal; } -> (restart, noDebug, script_filename, storage, parameter, launch_sentinal))
+      (fun (restart, noDebug, script_filename, storage, parameter, launch_sentinal) -> {restart; noDebug; script_filename; storage; parameter; launch_sentinal;})
+      (obj6
          (opt "__restart" json)
          (opt "noDebug" bool)
          (req "script_filename" string)
          (req "storage" string)
          (req "parameter" string)
+         (req "launch_sentinal" @@ constant module_name)
       )
 
   let make ?restart ?noDebug ~script_filename ~storage ~parameter () =
-    {restart; noDebug; script_filename; storage; parameter;}
+    {restart; noDebug; script_filename; storage; parameter; launch_sentinal=()}
 
   let restart t = t.restart
   let noDebug t = t.noDebug
@@ -261,23 +263,25 @@ end = struct
     script_filename: (string [@gen Gen.gen_utf8_str]);
     storage: (string [@gen Gen.gen_utf8_str]);
     parameter: (string [@gen Gen.gen_utf8_str]);
+    attach_sentinal: unit; (* something to distingush it from launch request args *)
   }
   [@@deriving qcheck, eq, show]
 
   let enc =
     let open Data_encoding in
     conv
-      (fun {restart; script_filename; storage; parameter; } -> (restart, script_filename, storage, parameter))
-      (fun (restart, script_filename, storage, parameter) -> {restart; script_filename; storage; parameter;})
-      (obj4
+      (fun {restart; script_filename; storage; parameter; attach_sentinal;} -> (restart, script_filename, storage, parameter, attach_sentinal))
+      (fun (restart, script_filename, storage, parameter, attach_sentinal) -> {restart; script_filename; storage; parameter; attach_sentinal;})
+      (obj5
          (opt "__restart" json)
          (req "script_filename" string)
          (req "storage" string)
          (req "parameter" string)
+         (req "attach_sentinal" @@ constant module_name)
       )
 
   let make ?restart ~script_filename ~storage ~parameter () =
-    {restart; script_filename; storage; parameter;}
+    {restart; script_filename; storage; parameter; attach_sentinal=()}
 
   let restart t = t.restart
   let script_filename t = t.script_filename
