@@ -1,5 +1,11 @@
 type ('cmd, 'args, 'presence) t
 
+val equal :
+  equal_arguments:('args1 -> 'args2 -> bool) ->
+  ('cmd1, 'args1, 'presence1) t ->
+  ('cmd2, 'args2, 'presence2) t ->
+  bool
+
 val seq : ('cmd, 'args, 'presence) t -> int
 val set_seq :
   seq:Dap_base.Seqr.t -> ('cmd, 'args, 'presence) t -> ('cmd, 'args, 'presence) t
