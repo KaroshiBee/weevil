@@ -237,21 +237,6 @@ let%expect_test "Check loading/stepping a contract" =
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] 25'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] no content length in 'weevil: [INFO] 25' yet
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] log_entry  location 14'
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] no content length in 'weevil: [INFO] log_entry  location 14' yet
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] got msg 'step''
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] no content length in 'weevil: [INFO] got msg 'step'' yet
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] log_exit  location 14'
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] no content length in 'weevil: [INFO] log_exit  location 14' yet
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] 50'
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] no content length in 'weevil: [INFO] 50' yet
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] log_entry  location 15'
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] no content length in 'weevil: [INFO] log_entry  location 15' yet
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] got messsage 'Content-Length: 84'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] got content length 84 in 'Content-Length: 84'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] got content-length message with length 84
@@ -288,6 +273,21 @@ let%expect_test "Check loading/stepping a contract" =
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] got messsage ''
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] no content length in '' yet
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] log_entry  location 14'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] no content length in 'weevil: [INFO] log_entry  location 14' yet
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] got msg 'step''
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] no content length in 'weevil: [INFO] got msg 'step'' yet
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] log_exit  location 14'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] no content length in 'weevil: [INFO] log_exit  location 14' yet
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] 50'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] no content length in 'weevil: [INFO] 50' yet
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] got messsage 'weevil: [INFO] log_entry  location 15'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] no content length in 'weevil: [INFO] log_entry  location 15' yet
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] got messsage 'Content-Length: 76'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] got content length 76 in 'Content-Length: 76'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] got content-length message with length 76
@@ -312,13 +312,13 @@ let%expect_test "Check loading/stepping a contract" =
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] got messsage ''
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] no content length in '' yet
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] waiting for content-length messages
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] got messsage 'Content-Length: 24'
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] got content length 24 in 'Content-Length: 24'
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] got content-length message with length 24
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] got content-length message with length 24 and header_break '
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] got messsage 'Content-Length: 41'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] got content length 41 in 'Content-Length: 41'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] got content-length message with length 41
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] got content-length message with length 41 and header_break '
     '
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] got content-length message with message '{ "event": "Terminate" }'
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event": "Terminate" }'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] got content-length message with message '{ "event": { "terminate": "Terminate" } }'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event": { "terminate": "Terminate" } }'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] waiting for content-length messages
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] got messsage ''
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] no content length in '' yet
@@ -433,13 +433,13 @@ let%expect_test "check for bad filename" =
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] connection closed
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] connection closed
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] got messsage 'Content-Length: 24'
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] got content length 24 in 'Content-Length: 24'
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] got content-length message with length 24
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] got content-length message with length 24 and header_break '
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] got messsage 'Content-Length: 41'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] got content length 41 in 'Content-Length: 41'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] got content-length message with length 41
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] got content-length message with length 41 and header_break '
     '
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] got content-length message with message '{ "event": "Terminate" }'
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event": "Terminate" }'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] got content-length message with message '{ "event": { "terminate": "Terminate" } }'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event": { "terminate": "Terminate" } }'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] already terminated
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] waiting for content-length messages
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] got messsage ''
@@ -558,13 +558,13 @@ let%expect_test "check for bad michelson" =
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] waiting for content-length messages
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER] connection closed
     inline_test_runner_mdb_expect_tests.exe: [INFO] [STEPPER ERR] connection closed
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] got messsage 'Content-Length: 24'
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] got content length 24 in 'Content-Length: 24'
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] got content-length message with length 24
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] got content-length message with length 24 and header_break '
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] got messsage 'Content-Length: 41'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] got content length 41 in 'Content-Length: 41'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] got content-length message with length 41
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] got content-length message with length 41 and header_break '
     '
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] got content-length message with message '{ "event": "Terminate" }'
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event": "Terminate" }'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] got content-length message with message '{ "event": { "terminate": "Terminate" } }'
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] got msg '{ "event": { "terminate": "Terminate" } }'
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] already terminated
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] waiting for content-length messages
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MDB] got messsage ''

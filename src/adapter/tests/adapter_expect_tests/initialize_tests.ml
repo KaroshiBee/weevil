@@ -102,7 +102,8 @@ let%expect_test "Check bad input for init" =
         { "seq": 20, "type": "request", "command": "attach",
           "arguments":
             { "script_filename": "data/multiply_2_x_25_equals_50.tz",
-              "storage": "Unit", "parameter": "Unit" } } |}]
+              "storage": "Unit", "parameter": "Unit",
+              "attach_sentinal": "AttachRequestArguments" } } |}]
   in
 
   match Init.handlers ~state with

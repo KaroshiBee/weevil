@@ -64,9 +64,9 @@ let%expect_test "Check sequencing etc for stack trace" =
               Printf.printf "%s" s;
               let%lwt () =
                 [%expect {|
-                  Content-Length: 25
+                  Content-Length: 44
                   
-                  { "event": "GetRecords" } |}]
+                  { "event": { "get_records": "GetRecords" } } |}]
               in
               Lwt.return_unit
             )
