@@ -31,7 +31,7 @@ end
     to_string event
 
   let terminate =
-    let event = MichEvent.(make ~event:(Terminate ()) ()) in
+    let event = MichEvent.(make ~event:(Terminate {terminate=()}) ()) in
     to_string event
 
   let step1 =
