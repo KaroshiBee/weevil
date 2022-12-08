@@ -617,7 +617,7 @@ let%expect_test "Check cyclic example" =
                 frequency
                   [
                     (1, _gen_t basecase);
-                    (1, let t = map (fun {innerException; _} -> innerException) @@ self (n - 1) in _gen_t t);
+                    (1, let t = map (fun {innerException; _} -> innerException) @@ self (n / 2) in _gen_t t);
                   ]
             ))
      let arb = QCheck.make gen

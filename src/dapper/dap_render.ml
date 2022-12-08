@@ -357,7 +357,7 @@ module RenderObject : (RenderT with type spec := Sp.Obj_spec.t) = struct
             frequency
               [
                 (1, _gen_t basecase);
-                (1, let t = map (fun {%s; _} -> %s) @@ self (n - 1) in _gen_t t);
+                (1, let t = map (fun {%s; _} -> %s) @@ self (n / 2) in _gen_t t);
               ]
         )) \n \
            let arb = QCheck.make gen \n "
