@@ -2,25 +2,25 @@ open Dap_event
 module D = Dap_message.Data
 
 module EventTests = struct
-  let equal ~equal_body ev1 ev2 =
-    let ev1 = val_ ev1 in
-    let ev2 = val_ ev2 in
+  let equal ~equal_body t1 t2 =
+    let t1 = val_ t1 in
+    let t2 = val_ t2 in
     let f = Message.equal ~equal_body in
-    eval @@ equal_ (val_ @@ eq_ f, ev1, ev2)
+    eval @@ equal_ (val_ @@ eq_ f, t1, t2)
 
   let tester ~count ~name ~equal_body (ctor, gen, enc) =
     let arb = QCheck.make gen in
-    QCheck.Test.make ~long_factor:10 ~count ~name arb (fun ev ->
-        let ev1 = ctor ev in
-        let js = Data_encoding.Json.(construct enc ev |> to_string) in
-        let ev2 =
+    QCheck.Test.make ~long_factor:100 ~count ~name arb (fun t ->
+        let t1 = ctor t in
+        let js = Data_encoding.Json.(construct enc t |> to_string) in
+        let t2 =
           ctor
           @@ Data_encoding.Json.(
                from_string js |> Result.get_ok |> destruct enc)
         in
-        equal ~equal_body ev1 ev2)
+        equal ~equal_body t1 t2)
 
-  let count = 100
+  let count = 10
 
   let test_initializedEvent =
     tester
@@ -150,11 +150,11 @@ module EventTests = struct
       ~count
       ~name:"different events, bodies set to equal"
       (QCheck.pair arb1 arb2)
-      (fun (ev1, ev2) ->
-        let ev1' = ctor1 ev1 in
-        let ev2' = ctor2 ev2 in
+      (fun (t1, t2) ->
+        let t1' = ctor1 t1 in
+        let t2' = ctor2 t2 in
         let equal_body _ _ = true in
-        not @@ equal ~equal_body ev1' ev2')
+        not @@ equal ~equal_body t1' t2')
 
   let test_different_events_different_bodies_never_equal =
     let (ctor1, gen1, _enc1) = gen_initializedEvent in
@@ -165,15 +165,15 @@ module EventTests = struct
       ~count
       ~name:"different events, bodies set to not equal"
       (QCheck.pair arb1 arb2)
-      (fun (ev1, ev2) ->
-        let ev1' = ctor1 ev1 in
-        let ev2' = ctor2 ev2 in
+      (fun (t1, t2) ->
+        let t1' = ctor1 t1 in
+        let t2' = ctor2 t2 in
         let equal_body _ _ = false in
-        not @@ equal ~equal_body ev1' ev2')
+        not @@ equal ~equal_body t1' t2')
 
   let suite_js_roundtrip =
     List.map
-      QCheck_alcotest.to_alcotest
+      (QCheck_alcotest.to_alcotest ~long:false)
       [
         test_initializedEvent;
         test_stoppedEvent;
@@ -196,7 +196,7 @@ module EventTests = struct
 
   let suite_basic_equality_checks =
     List.map
-      QCheck_alcotest.to_alcotest
+      (QCheck_alcotest.to_alcotest ~long:false)
       [
         test_different_events_same_bodies_never_equal;
         test_different_events_different_bodies_never_equal;
