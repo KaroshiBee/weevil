@@ -10,7 +10,7 @@ module EventTests = struct
 
   let tester ~count ~name ~equal_body (ctor, gen, enc) =
     let arb = QCheck.make gen in
-    QCheck.Test.make ~count ~name arb (fun ev ->
+    QCheck.Test.make ~long_factor:10 ~count ~name arb (fun ev ->
         let ev1 = ctor ev in
         let js = Data_encoding.Json.(construct enc ev |> to_string) in
         let ev2 =
@@ -20,58 +20,60 @@ module EventTests = struct
         in
         equal ~equal_body ev1 ev2)
 
+  let count = 100
+
   let test_initializedEvent =
     tester
-      ~count:1000
+      ~count
       ~name:"initializedEvent"
       ~equal_body:(Option.equal Dap_base.EmptyObject.equal)
       gen_initializedEvent
 
   let test_stoppedEvent =
     tester
-      ~count:1000
+      ~count
       ~name:"stoppedEvent"
       ~equal_body:D.StoppedEvent_body.equal
       gen_stoppedEvent
 
   let test_continuedEvent =
     tester
-      ~count:1000
+      ~count
       ~name:"continuedEvent"
       ~equal_body:D.ContinuedEvent_body.equal
       gen_continuedEvent
 
   let test_exitedEvent =
     tester
-      ~count:1000
+      ~count
       ~name:"exitedEvent"
       ~equal_body:D.ExitedEvent_body.equal
       gen_exitedEvent
 
   let test_terminatedEvent =
     tester
-      ~count:1000
+      ~count
       ~name:"terminatedEvent"
       ~equal_body:(Option.equal D.TerminatedEvent_body.equal)
       gen_terminatedEvent
 
   let test_threadEvent =
     tester
-      ~count:1000
+      ~count
       ~name:"threadEvent"
       ~equal_body:D.ThreadEvent_body.equal
       gen_threadEvent
 
   let test_outputEvent =
     tester
-      ~count:1000
+      ~count
       ~name:"outputEvent"
       ~equal_body:D.OutputEvent_body.equal
       gen_outputEvent
 
   let test_breakpointEvent =
     tester
-      ~count:1000
+      ~count
       ~name:"breakpointEvent"
       ~equal_body:D.BreakpointEvent_body.equal
       gen_breakpointEvent
@@ -85,56 +87,56 @@ module EventTests = struct
 
   let test_loadedSourceEvent =
     tester
-      ~count:1000
+      ~count
       ~name:"loadedSourceEvent"
       ~equal_body:D.LoadedSourceEvent_body.equal
       gen_loadedSourceEvent
 
   let test_processEvent =
     tester
-      ~count:1000
+      ~count
       ~name:"processEvent"
       ~equal_body:D.ProcessEvent_body.equal
       gen_processEvent
 
   let test_capabilitiesEvent =
     tester
-      ~count:1000
+      ~count
       ~name:"capabilitiesEvent"
       ~equal_body:D.CapabilitiesEvent_body.equal
       gen_capabilitiesEvent
 
   let test_progressStartEvent =
     tester
-      ~count:1000
+      ~count
       ~name:"progressStartEvent"
       ~equal_body:D.ProgressStartEvent_body.equal
       gen_progressStartEvent
 
   let test_progressUpdateEvent =
     tester
-      ~count:1000
+      ~count
       ~name:"progressUpdateEvent"
       ~equal_body:D.ProgressUpdateEvent_body.equal
       gen_progressUpdateEvent
 
   let test_progressEndEvent =
     tester
-      ~count:1000
+      ~count
       ~name:"progressEndEvent"
       ~equal_body:D.ProgressEndEvent_body.equal
       gen_progressEndEvent
 
   let test_invalidatedEvent =
     tester
-      ~count:1000
+      ~count
       ~name:"invalidatedEvent"
       ~equal_body:D.InvalidatedEvent_body.equal
       gen_invalidatedEvent
 
   let test_memoryEvent =
     tester
-      ~count:1000
+      ~count
       ~name:"memoryEvent"
       ~equal_body:D.MemoryEvent_body.equal
       gen_memoryEvent
@@ -145,7 +147,7 @@ module EventTests = struct
     let arb1 = QCheck.make gen1 in
     let arb2 = QCheck.make gen2 in
     QCheck.Test.make
-      ~count:1000
+      ~count
       ~name:"different events, bodies set to equal"
       (QCheck.pair arb1 arb2)
       (fun (ev1, ev2) ->
@@ -160,7 +162,7 @@ module EventTests = struct
     let arb1 = QCheck.make gen1 in
     let arb2 = QCheck.make gen2 in
     QCheck.Test.make
-      ~count:1000
+      ~count
       ~name:"different events, bodies set to not equal"
       (QCheck.pair arb1 arb2)
       (fun (ev1, ev2) ->

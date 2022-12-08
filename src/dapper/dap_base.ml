@@ -100,6 +100,8 @@ end
 module EmptyObject : sig
   type t
   val equal : t -> t -> bool
+  val pp : Format.formatter -> t -> unit
+  val show : t -> string
   val module_name : string
   val enc : t Data_encoding.t
   val gen : t QCheck.Gen.t
@@ -109,7 +111,7 @@ end = struct
 
   let module_name = "EmptyObject"
 
-  type t = unit [@@deriving qcheck, eq]
+  type t = unit [@@deriving qcheck, eq, show]
 
   let enc = Data_encoding.empty
 
@@ -120,6 +122,8 @@ end
 module IntString : sig
   type t
   val equal : t -> t -> bool
+  val pp : Format.formatter -> t -> unit
+  val show : t -> string
   val module_name : string
   val enc : t Data_encoding.t
   val gen : t QCheck.Gen.t
@@ -131,10 +135,24 @@ end = struct
   let module_name = "IntString"
 
   type t =
-    | I of int [@gen Gen.gen_int31]
-    | S of string [@gen Gen.gen_utf8_str]
-  [@@deriving qcheck, eq]
+    | I of int
+    | S of string
+  [@@deriving eq, show]
 
+  let gen = QCheck.Gen.(
+      frequency [
+        (1, map (fun i -> I i) Gen.gen_int31);
+        (1, map (fun s -> S s) Gen.gen_utf8_str);
+      ]
+    )
+
+  let arb =
+    let print = fun t ->
+      let () = pp Format.str_formatter t in
+      Format.flush_str_formatter ()
+    in
+
+    QCheck.make ~print gen
 
   let enc =
     let open Data_encoding in
@@ -158,6 +176,8 @@ end
 module LaunchRequestArguments : sig
   type t
   val equal : t -> t -> bool
+  val pp : Format.formatter -> t -> unit
+  val show : t -> string
   val module_name : string
   val enc : t Data_encoding.t
   val gen : t QCheck.Gen.t
@@ -170,9 +190,13 @@ module LaunchRequestArguments : sig
   val parameter : t -> string
 end = struct
 
+  let pp_json fmt = function
+    | Some js -> Data_encoding.Json.pp fmt js
+    | None -> Data_encoding.Json.pp fmt `Null
+
   let module_name = "LaunchRequestArguments"
   type t = {
-    restart: (Data_encoding.json option  [@gen Gen.gen_json_opt][@equal Eq.equal_json_opt]);
+    restart: (Data_encoding.json option  [@gen Gen.gen_json_opt][@equal Eq.equal_json_opt][@printer pp_json]);
     noDebug: bool option;
     (* Since launching is debugger/runtime specific, the arguments for this request are not part of this specification.
        Arguments for launch request. Additional attributes are implementation specific.
@@ -181,7 +205,7 @@ end = struct
     storage: (string [@gen Gen.gen_utf8_str]);
     parameter: (string [@gen Gen.gen_utf8_str]);
   }
-  [@@deriving qcheck, eq]
+  [@@deriving qcheck, eq, show]
 
   let enc =
     let open Data_encoding in
@@ -210,6 +234,8 @@ end
 module AttachRequestArguments : sig
   type t
   val equal : t -> t -> bool
+  val pp : Format.formatter -> t -> unit
+  val show : t -> string
   val module_name : string
   val enc : t Data_encoding.t
   val gen : t QCheck.Gen.t
@@ -222,8 +248,13 @@ module AttachRequestArguments : sig
 end = struct
 
   let module_name = "AttachRequestArguments"
+
+  let pp_json fmt = function
+    | Some js -> Data_encoding.Json.pp fmt js
+    | None -> Data_encoding.Json.pp fmt `Null
+
   type t = {
-    restart: (Data_encoding.json option  [@gen Gen.gen_json_opt][@equal Eq.equal_json_opt]);
+    restart: (Data_encoding.json option  [@gen Gen.gen_json_opt][@equal Eq.equal_json_opt][@printer pp_json]);
     (* Since attaching is debugger/runtime specific, the arguments for this request are not part of this specification.
        Arguments for attach request. Additional attributes are implementation specific.
     *)
@@ -231,7 +262,7 @@ end = struct
     storage: (string [@gen Gen.gen_utf8_str]);
     parameter: (string [@gen Gen.gen_utf8_str]);
   }
-  [@@deriving qcheck, eq]
+  [@@deriving qcheck, eq, show]
 
   let enc =
     let open Data_encoding in
@@ -258,6 +289,8 @@ end
 module RestartArguments : sig
   type t
   val equal : t -> t -> bool
+  val pp : Format.formatter -> t -> unit
+  val show : t -> string
   val module_name : string
   val enc : t Data_encoding.t
   val gen : t QCheck.Gen.t
@@ -271,7 +304,7 @@ end = struct
   type t =
     | LaunchRequestArgs of LaunchRequestArguments.t
     | AttachRequestArgs of AttachRequestArguments.t
-  [@@deriving qcheck, eq]
+  [@@deriving qcheck, eq, show]
 
   let enc =
     let open Data_encoding in
@@ -295,7 +328,7 @@ end
    the whole protocol is based on requests, responses and events *)
 module ProtocolMessage_type = struct
   type t = Request | Response | Event
-  [@@deriving qcheck, eq]
+  [@@deriving qcheck, eq, show]
 
   let enc =
     let open Data_encoding in
