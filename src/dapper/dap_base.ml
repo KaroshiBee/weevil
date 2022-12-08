@@ -49,15 +49,15 @@
 
 *)
 module Gen = struct
-
+  (* using small lists here as these form the leaves of the object trees *)
   let gen_utf8_str =
     QCheck.Gen.string_printable
   let gen_utf8_str_opt =
     QCheck.Gen.option gen_utf8_str
   let gen_utf8_str_list =
-    QCheck.Gen.list gen_utf8_str
+    QCheck.Gen.small_list gen_utf8_str
   let gen_utf8_str_list_opt =
-    QCheck.Gen.(option @@ list gen_utf8_str)
+    QCheck.Gen.(option @@ gen_utf8_str_list)
 
   let gen_int31 =
     let mn, mx = Int32.(min_int |> to_int, max_int |> to_int) in
@@ -66,7 +66,7 @@ module Gen = struct
   let gen_int31_opt =
     QCheck.Gen.option gen_int31
   let gen_int31_list_opt =
-    QCheck.Gen.(option @@ list gen_int31)
+    QCheck.Gen.(option @@ small_list gen_int31)
 
   (* TODO proper gen for json *)
   let gen_json = QCheck.Gen.(map (fun x -> `String x) gen_utf8_str)
