@@ -1,5 +1,11 @@
 type ('cmd, 'body, 'presence) t
 
+val equal :
+  equal_body:('body1 -> 'body2 -> bool) ->
+  ('cmd1, 'body1, 'presence1) t ->
+  ('cmd2, 'body2, 'presence2) t ->
+  bool
+
 val seq : ('cmd, 'body, 'presence) t -> int
 
 val set_seq :
