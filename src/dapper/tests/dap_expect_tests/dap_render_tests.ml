@@ -279,7 +279,7 @@ let%expect_test "Check ErrorResponse example" =
 
      (* response constructors *) let errorResponse resp = ErrorResponse resp
 
-     (* response qcheck *) let gen_errorResponse = (errorResponse, QCheck.Gen.( map (fun (seq, body) -> ResponseMessage.make ~seq ~command:Dap_commands.error ~body ()) @@ tup2 Gen.gen_int31 ErrorResponse_body.gen ), ResponseMessage.enc Dap_commands.error ErrorResponse_body.enc)
+     (* response qcheck *) let gen_errorResponse = (errorResponse, QCheck.Gen.( map (fun (seq, request_seq, success, message, body) -> ResponseMessage.make ~seq ~request_seq ~success ~command:Dap_commands.error ?message ~body ()) @@ tup5 Gen.gen_int31 Gen.gen_int31 bool Gen.gen_utf8_str_opt ErrorResponse_body.gen ), ResponseMessage.enc Dap_commands.error ErrorResponse_body.enc)
 
      end
 
@@ -1673,7 +1673,7 @@ let%expect_test "Check LaunchResponse empty body  example" =
 
      (* response constructors *) let launchResponse resp = LaunchResponse resp
 
-     (* response qcheck *) let gen_launchResponse = (launchResponse, QCheck.Gen.( map (fun (seq, body) -> ResponseMessage.make_opt ~seq ~command:Dap_commands.launch ~body ()) @@ tup2 Gen.gen_int31 EmptyObject.gen ), ResponseMessage.enc_opt Dap_commands.launch EmptyObject.enc)
+     (* response qcheck *) let gen_launchResponse = (launchResponse, QCheck.Gen.( map (fun (seq, request_seq, success, message, body) -> ResponseMessage.make_opt ~seq ~request_seq ~success ~command:Dap_commands.launch ?message ~body ()) @@ tup5 Gen.gen_int31 Gen.gen_int31 bool Gen.gen_utf8_str_opt EmptyObject.gen ), ResponseMessage.enc_opt Dap_commands.launch EmptyObject.enc)
 
      end
 

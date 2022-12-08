@@ -740,8 +740,8 @@ module RenderResponse : (RenderT with type spec := Sp.Obj_spec.t) = struct
           ~genstr:(
             Printf.sprintf
               "QCheck.Gen.( \
-               map (fun (seq, body) -> ResponseMessage.make ~seq ~command:%s.%s ~body ()) \
-               @@ tup2 Gen.gen_int31 %s.gen \
+               map (fun (seq, request_seq, success, message, body) -> ResponseMessage.make ~seq ~request_seq ~success ~command:%s.%s ?message ~body ()) \
+               @@ tup5 Gen.gen_int31 Gen.gen_int31 bool Gen.gen_utf8_str_opt %s.gen \
                )"
               CommandHelper.module_name
               command
@@ -776,8 +776,8 @@ module RenderResponse : (RenderT with type spec := Sp.Obj_spec.t) = struct
           ~genstr:(
             Printf.sprintf
               "QCheck.Gen.( \
-               map (fun (seq, body) -> ResponseMessage.make_opt ~seq ~command:%s.%s ~body ()) \
-               @@ tup2 Gen.gen_int31 %s.gen \
+               map (fun (seq, request_seq, success, message, body) -> ResponseMessage.make_opt ~seq ~request_seq ~success ~command:%s.%s ?message ~body ()) \
+               @@ tup5 Gen.gen_int31 Gen.gen_int31 bool Gen.gen_utf8_str_opt %s.gen \
                )"
               CommandHelper.module_name
               command
@@ -812,8 +812,8 @@ module RenderResponse : (RenderT with type spec := Sp.Obj_spec.t) = struct
           ~genstr:(
             Printf.sprintf
               "QCheck.Gen.( \
-               map (fun (seq, body) -> ResponseMessage.make_opt ~seq ~command:%s.%s ~body ()) \
-               @@ tup2 Gen.gen_int31 %s.gen \
+               map (fun (seq, request_seq, success, message, body) -> ResponseMessage.make_opt ~seq ~request_seq ~success ~command:%s.%s ?message ~body ()) \
+               @@ tup5 Gen.gen_int31 Gen.gen_int31 bool Gen.gen_utf8_str_opt %s.gen \
                )"
               CommandHelper.module_name
               command
