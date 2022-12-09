@@ -29,13 +29,14 @@ module type GADT_T = sig
 
   type 'a expr
 
+  val eval : 'a. 'a expr -> 'a
+
   val map_f : f:('msg -> 'a) -> 'msg t -> 'a expr
 
   val map2_f : f:('msg1 -> 'msg2 -> 'a) -> 'msg1 t -> 'msg2 t -> 'a expr
 
   val equal : equal_f:('msg1 -> 'msg2 -> bool) -> 'msg1 t -> 'msg2 t -> bool expr
 
-  val eval : 'a. 'a expr -> 'a
 end
 
 (* the parts of the combined ('a,'b,'c) Msg.t Thing.t that we need,
