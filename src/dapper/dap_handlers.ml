@@ -4,19 +4,19 @@ open Dap_types
    the input message's seqr data is read and incremented then put onto both
    the output message's & state's seqr data *)
 module LINK
-    (IN_MSG_T : MSG_T)
+    (IN_MSG_T : MSG_READONLY_T)
     (IN_T : GADT_T)
     (OUT_MSG_T : MSG_T)
     (OUT_T : GADT_T) : sig
   module Make :
     functor
-    (In : FULL_T(IN_MSG_T)(IN_T).T)
+    (In : FULL_READONLY_T(IN_MSG_T)(IN_T).T)
     (Out : FULL_T(OUT_MSG_T)(OUT_T).T)
     (S : STATE_T)
     -> LINK_T with type in_t := In.t and type out_t := Out.t and type state := S.t
 end = struct
   module Make
-      (In : FULL_T(IN_MSG_T)(IN_T).T)
+      (In : FULL_READONLY_T(IN_MSG_T)(IN_T).T)
       (Out : FULL_T(OUT_MSG_T)(OUT_T).T)
       (S : STATE_T) :
     LINK_T with type in_t := In.t and type out_t := Out.t and type state := S.t =
@@ -80,12 +80,12 @@ end
 
 (* LINK_RESTRICTED is a LINK that has just the one enum type for both In_msg and Out_msg ie Request/Response *)
 module LINK_RESTRICTED
-    (IN_MSG_T : MSG_T)
+    (IN_MSG_T : MSG_READONLY_T)
     (IN_T : GADT_T)
     (OUT_MSG_T : MSG_T)
     (OUT_T : GADT_T) : sig
   module Make : functor
-    (In : FULL_T(IN_MSG_T)(IN_T).T)
+    (In : FULL_READONLY_T(IN_MSG_T)(IN_T).T)
     (Out : FULL_T(OUT_MSG_T)(OUT_T).T with type enum = In.enum)
     (S : STATE_T)
     -> LINK_T with type in_t := In.t and type out_t := Out.t and type state := S.t
@@ -93,7 +93,7 @@ end = struct
   module L = LINK (IN_MSG_T) (IN_T) (OUT_MSG_T) (OUT_T)
 
   module Make
-      (In : FULL_T(IN_MSG_T)(IN_T).T)
+      (In : FULL_READONLY_T(IN_MSG_T)(IN_T).T)
       (Out : FULL_T(OUT_MSG_T)(OUT_T).T with type enum = In.enum)
       (S : STATE_T) :
     LINK_T with type in_t := In.t and type out_t := Out.t and type state := S.t =
@@ -165,8 +165,7 @@ end = struct
 end
 
 module Request_response =
-  LINK_RESTRICTED (Dap_request.Message) (Dap_request) (Dap_response.Message)
-    (Dap_response)
+  LINK_RESTRICTED (Dap_request.Message) (Dap_request) (Dap_response.Message) (Dap_response)
 
 module Raise_request = RAISE (Dap_request.Message) (Dap_request)
 

@@ -12,10 +12,14 @@ module type STATE_T = sig
 end
 
 (* the parts of the Request/Response/Event_messages that we need *)
-module type MSG_T = sig
+module type MSG_READONLY_T = sig
   type ('enum, 'contents, 'presence) t
 
   val seq : (_, _, _) t -> int
+end
+
+module type MSG_T = sig
+  include MSG_READONLY_T
 
   val set_seq :
     seq:Dap_base.Seqr.t ->
@@ -45,6 +49,24 @@ end
 
 (* the parts of the combined ('a,'b,'c) Msg.t Thing.t that we need,
    to define handlers parameterised by msg/gadt modules *)
+module FULL_READONLY_T (Msg : MSG_READONLY_T) (Obj : GADT_T) = struct
+  module type T = sig
+    type enum
+
+    type contents
+
+    type presence
+
+    type msg = (enum, contents, presence) Msg.t
+
+    type t = msg Obj.t
+
+    val ctor : msg -> t
+
+    val enc : msg Data_encoding.t
+  end
+end
+
 module FULL_T (Msg : MSG_T) (Obj : GADT_T) = struct
   module type T = sig
     type enum
