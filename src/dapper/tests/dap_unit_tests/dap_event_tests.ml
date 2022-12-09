@@ -3,10 +3,8 @@ module D = Dap_messages.Data
 
 module EventTests = struct
   let equal ~equal_body t1 t2 =
-    let t1 = val_ t1 in
-    let t2 = val_ t2 in
-    let f = Message.equal ~equal_body in
-    eval @@ equal_ (val_ @@ eq_ f, t1, t2)
+    let equal_f = Eq (Message.equal ~equal_body) in
+    eval @@ equal ~equal_f t1 t2
 
   let tester ~count ~name ~equal_body (ctor, gen, enc) =
     let arb = QCheck.make gen in

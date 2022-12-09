@@ -23,8 +23,8 @@ module T (S : Types.STATE_T) = struct
   (* saves the config and starts the mdb backend *)
   let initialize_handler =
     On_request.make ~handler:(fun ~state req ->
-        let getargs = Req.(fmap_ Message.arguments) in
-        let args = Req.(eval @@ map_ (val_ getargs, val_ req)) in
+        let getargs = Req.(Fmap Message.arguments) in
+        let args = Req.(eval @@ map_f ~f:getargs req) in
         let () = S.set_client_config state args in
         let config = S.config state in
         let ip = Dap.Config.backend_ip config |> Ipaddr_unix.of_inet_addr in

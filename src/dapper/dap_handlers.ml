@@ -39,22 +39,22 @@ end = struct
     let output_to_string output =
       OUT_T.(
         let to_string =
-          fmap_ (fun msg ->
+          lift_f (fun msg ->
               let r =
                 try Result.ok @@ Dap_js_msg.construct Out.enc msg
                 with _ as err -> Result.error @@ Printexc.to_string err
               in
               Result.map Dap_js_msg.to_string r)
         in
-        Lwt.return @@ eval @@ map_ (val_ to_string, val_ output))
+        Lwt.return @@ eval @@ map_f ~f:to_string output)
 
     let make ~handler =
       let wrapped_handler =
-        let getseq = IN_T.(fmap_ IN_MSG_T.seq) in
-        let setseq seq = OUT_T.(fmap_ (OUT_MSG_T.set_seq ~seq)) in
-        let setseq_err seq = Err.(fmap_ (Message.set_seq ~seq)) in
+        let getseq = IN_T.(lift_f IN_MSG_T.seq) in
+        let setseq seq = OUT_T.(lift_f (OUT_MSG_T.set_seq ~seq)) in
+        let setseq_err seq = Err.(lift_f (Message.set_seq ~seq)) in
         fun ~state in_t ->
-          let request_seq = IN_T.(eval @@ map_ (val_ getseq, val_ in_t)) in
+          let request_seq = IN_T.(eval @@ map_f ~f:getseq in_t) in
           let seq = 1 + request_seq in
           let s = Dap_base.Seqr.make ~seq ~request_seq () in
           (* setting the new seqr on state because one of the
@@ -62,10 +62,10 @@ end = struct
           let () = S.set_seqr state s in
           handler ~state in_t
           |> Dap_result.map ~f:(fun v ->
-                 OUT_T.(Out.ctor @@ eval @@ map_ (val_ (setseq s), val_ v)))
+                 OUT_T.(Out.ctor @@ eval @@ map_f ~f:(setseq s) v))
           |> Dap_result.map_error ~f:(fun err ->
                  Err.(
-                   errorResponse @@ eval @@ map_ (val_ (setseq_err s), val_ err)))
+                   errorResponse @@ eval @@ map_f ~f:(setseq_err s) err))
       in
       fun ~state msg ->
         let v =
@@ -121,19 +121,19 @@ end = struct
     let output_to_string output =
       OUT_T.(
         let to_string =
-          fmap_ (fun msg ->
+          lift_f (fun msg ->
               let r =
                 try Result.ok @@ Dap_js_msg.construct Out.enc msg
                 with _ as err -> Result.error @@ Printexc.to_string err
               in
               Result.map Dap_js_msg.to_string r)
         in
-        Lwt.return @@ eval @@ map_ (val_ to_string, val_ output))
+        Lwt.return @@ eval @@ map_f ~f:to_string output)
 
     let make ~handler =
       let wrapped_handler =
-        let setseq seq = OUT_T.(fmap_ (OUT_MSG_T.set_seq ~seq)) in
-        let setseq_err seq = Err.(fmap_ (Message.set_seq ~seq)) in
+        let setseq seq = OUT_T.(lift_f (OUT_MSG_T.set_seq ~seq)) in
+        let setseq_err seq = Err.(lift_f (Message.set_seq ~seq)) in
         fun ~state in_t ->
           (* have to pull seqr data from state because we dont have an incoming message *)
           let seqr = S.current_seqr state in
@@ -148,10 +148,10 @@ end = struct
           let () = S.set_seqr state s in
           handler ~state in_t
           |> Dap_result.map ~f:(fun v ->
-                 OUT_T.(Out.ctor @@ eval @@ map_ (val_ (setseq s), val_ v)))
+                 OUT_T.(Out.ctor @@ eval @@ map_f ~f:(setseq s) v))
           |> Dap_result.map_error ~f:(fun err ->
                  Err.(
-                   errorResponse @@ eval @@ map_ (val_ (setseq_err s), val_ err)))
+                   errorResponse @@ eval @@ map_f ~f:(setseq_err s) err))
       in
       fun ~state msg ->
         let v =

@@ -13,8 +13,8 @@ module T (S : Types.STATE_READONLY_T) = struct
   let variables_handler =
     On_request.make ~handler:(fun ~state req ->
         let recs = S.log_records state in
-        let getargs = Req.(fmap_ Message.arguments) in
-        let args = Req.(eval @@ map_ (val_ getargs, val_ req)) in
+        let getargs = Req.(Fmap Message.arguments) in
+        let args = Req.(eval @@ map_f ~f:getargs req) in
         let vrefs = D.VariablesArguments.variablesReference args in
         assert (vrefs = Defaults.Vals._THE_VARIABLES_REFERENCE);
         let resp =
