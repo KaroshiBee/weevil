@@ -18,14 +18,8 @@ let default_response_error e =
 type _ expr =
   | Val : 'msg t -> 'msg expr
   | Map : ('msg -> 'b) expr * 'msg expr -> 'b expr
-  | Equal : ('msg1 -> 'msg2 -> bool) expr * 'msg1 expr * 'msg2 expr -> bool expr
-
-let lift_f f = Fmap f
-let map_f ~f x = Map (Val f, Val x)
-let equal ~equal_f x y = Equal (Val equal_f, Val x, Val y)
 
 let rec eval : type msg. msg expr -> msg = function
-  | Val (Eq f) -> f
   | Val (Fmap f) -> f
   | Val (ErrorResponse msg) -> msg
   | Val (CancelResponse msg) -> msg
@@ -72,4 +66,10 @@ let rec eval : type msg. msg expr -> msg = function
   | Val (WriteMemoryResponse msg) -> msg
   | Val (DisassembleResponse msg) -> msg
   | Map (f, v) -> let f' = (eval f) and v' = eval v in (f' v')
-  | Equal (eq, v1, v2) -> let eq' = (eval eq) and v1' = eval v1 and v2' = eval v2 in (eq' v1' v2')
+
+let map_f ~f x = Map (Val (Fmap f), Val x)
+let map2_f ~f x y =
+  let f' x' = fun y' -> f x' y' in
+  let f' = eval @@ map_f ~f:f' x in
+  map_f ~f:f' y
+let equal ~equal_f = map2_f ~f:equal_f

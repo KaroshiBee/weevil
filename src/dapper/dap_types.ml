@@ -29,14 +29,13 @@ module type GADT_T = sig
 
   type 'a expr
 
-  (* NOTE we dont need a lift_v : 'a -> 'a t because that is the GADT variants themselves *)
-  val lift_f : ('a -> 'b) -> ('a -> 'b) t
+  val map_f : f:('msg -> 'a) -> 'msg t -> 'a expr
 
-  val map_f : f:('msg -> 'b) t -> 'msg t -> 'b expr
+  val map2_f : f:('msg1 -> 'msg2 -> 'a) -> 'msg1 t -> 'msg2 t -> 'a expr
 
-  val equal : equal_f:('msg1 -> 'msg2 -> bool) t -> 'msg1 t -> 'msg2 t -> bool expr
+  val equal : equal_f:('msg1 -> 'msg2 -> bool) -> 'msg1 t -> 'msg2 t -> bool expr
 
-  val eval : 'msg. 'msg expr -> 'msg
+  val eval : 'a. 'a expr -> 'a
 end
 
 (* the parts of the combined ('a,'b,'c) Msg.t Thing.t that we need,

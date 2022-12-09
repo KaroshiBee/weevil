@@ -3,7 +3,7 @@ module D = Dap_messages.Data
 
 module RequestTests = struct
   let equal ~equal_arguments t1 t2 =
-    let equal_f = Eq (Message.equal ~equal_arguments) in
+    let equal_f = Message.equal ~equal_arguments in
     eval @@ equal ~equal_f t1 t2
 
   let tester ~count ~name ~equal_arguments (ctor, gen, enc) =

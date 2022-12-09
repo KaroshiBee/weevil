@@ -39,7 +39,7 @@ end = struct
     let output_to_string output =
       OUT_T.(
         let to_string =
-          lift_f (fun msg ->
+          (fun msg ->
               let r =
                 try Result.ok @@ Dap_js_msg.construct Out.enc msg
                 with _ as err -> Result.error @@ Printexc.to_string err
@@ -50,9 +50,9 @@ end = struct
 
     let make ~handler =
       let wrapped_handler =
-        let getseq = IN_T.(lift_f IN_MSG_T.seq) in
-        let setseq seq = OUT_T.(lift_f (OUT_MSG_T.set_seq ~seq)) in
-        let setseq_err seq = Err.(lift_f (Message.set_seq ~seq)) in
+        let getseq = IN_MSG_T.seq in
+        let setseq seq = OUT_MSG_T.set_seq ~seq in
+        let setseq_err seq = Err.Message.set_seq ~seq in
         fun ~state in_t ->
           let request_seq = IN_T.(eval @@ map_f ~f:getseq in_t) in
           let seq = 1 + request_seq in
@@ -121,7 +121,7 @@ end = struct
     let output_to_string output =
       OUT_T.(
         let to_string =
-          lift_f (fun msg ->
+          (fun msg ->
               let r =
                 try Result.ok @@ Dap_js_msg.construct Out.enc msg
                 with _ as err -> Result.error @@ Printexc.to_string err
@@ -132,8 +132,8 @@ end = struct
 
     let make ~handler =
       let wrapped_handler =
-        let setseq seq = OUT_T.(lift_f (OUT_MSG_T.set_seq ~seq)) in
-        let setseq_err seq = Err.(lift_f (Message.set_seq ~seq)) in
+        let setseq seq = OUT_MSG_T.set_seq ~seq in
+        let setseq_err seq = Err.Message.set_seq ~seq in
         fun ~state in_t ->
           (* have to pull seqr data from state because we dont have an incoming message *)
           let seqr = S.current_seqr state in

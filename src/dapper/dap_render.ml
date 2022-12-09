@@ -1032,7 +1032,6 @@ let render (dfs:Dfs.t) = let open Render_output in function
        module Request  = struct \n\n \
        open Data \n\n \
        type _ t = \n
-       | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t \n
        | Fmap : ('a -> 'b) -> ('a -> 'b) t \n
        (* request GADT items *) %s\n\n \
        (* request constructors *) %s\n\n \
@@ -1041,7 +1040,6 @@ let render (dfs:Dfs.t) = let open Render_output in function
        module Response = struct \n\n \
        open Data \n\n \
        type _ t = \n
-       | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t \n
        | Fmap : ('a -> 'b) -> ('a -> 'b) t \n
        (* response GADT items *) %s\n\n \
        (* response constructors *) %s\n\n \
@@ -1050,7 +1048,6 @@ let render (dfs:Dfs.t) = let open Render_output in function
        module Event = struct \n\n \
        open Data \n\n \
        type _ t = \n
-       | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t \n
        | Fmap : ('a -> 'b) -> ('a -> 'b) t \n
        (* event GADT items *) %s\n\n
        (* event constructors *) %s\n\n \

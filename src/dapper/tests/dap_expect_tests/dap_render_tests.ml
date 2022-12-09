@@ -253,8 +253,6 @@ let%expect_test "Check ErrorResponse example" =
 
      type _ t =
 
-           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
-
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* request GADT items *)
@@ -271,8 +269,6 @@ let%expect_test "Check ErrorResponse example" =
 
      type _ t =
 
-           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
-
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* response GADT items *) | ErrorResponse : (Dap_commands.error, ErrorResponse_body.t, Presence.req) ResponseMessage.t -> (Dap_commands.error, ErrorResponse_body.t, Presence.req) ResponseMessage.t t
@@ -288,8 +284,6 @@ let%expect_test "Check ErrorResponse example" =
      open Data
 
      type _ t =
-
-           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
 
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
@@ -364,8 +358,6 @@ let%expect_test "Check CancelRequest example" =
 
      type _ t =
 
-           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
-
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* request GADT items *) | CancelRequest : (Dap_commands.cancel, CancelArguments.t option, Presence.opt) RequestMessage.t -> (Dap_commands.cancel, CancelArguments.t option, Presence.opt) RequestMessage.t t
@@ -382,8 +374,6 @@ let%expect_test "Check CancelRequest example" =
 
      type _ t =
 
-           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
-
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* response GADT items *)
@@ -399,8 +389,6 @@ let%expect_test "Check CancelRequest example" =
      open Data
 
      type _ t =
-
-           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
 
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
@@ -509,8 +497,6 @@ let%expect_test "Check StoppedEvent example" =
 
      type _ t =
 
-           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
-
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* request GADT items *)
@@ -527,8 +513,6 @@ let%expect_test "Check StoppedEvent example" =
 
      type _ t =
 
-           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
-
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* response GADT items *)
@@ -544,8 +528,6 @@ let%expect_test "Check StoppedEvent example" =
      open Data
 
      type _ t =
-
-           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
 
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
@@ -660,8 +642,6 @@ let%expect_test "Check cyclic example" =
 
      type _ t =
 
-           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
-
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* request GADT items *)
@@ -678,8 +658,6 @@ let%expect_test "Check cyclic example" =
 
      type _ t =
 
-           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
-
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* response GADT items *)
@@ -695,8 +673,6 @@ let%expect_test "Check cyclic example" =
      open Data
 
      type _ t =
-
-           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
 
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
@@ -1022,8 +998,6 @@ let%expect_test "Check large example" =
 
      type _ t =
 
-           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
-
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* request GADT items *)
@@ -1040,8 +1014,6 @@ let%expect_test "Check large example" =
 
      type _ t =
 
-           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
-
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* response GADT items *)
@@ -1057,8 +1029,6 @@ let%expect_test "Check large example" =
      open Data
 
      type _ t =
-
-           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
 
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
@@ -1131,8 +1101,6 @@ let%expect_test "Check anyOf example" =
 
      type _ t =
 
-           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
-
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* request GADT items *)
@@ -1149,8 +1117,6 @@ let%expect_test "Check anyOf example" =
 
      type _ t =
 
-           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
-
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* response GADT items *)
@@ -1166,8 +1132,6 @@ let%expect_test "Check anyOf example" =
      open Data
 
      type _ t =
-
-           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
 
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
@@ -1206,8 +1170,6 @@ let%expect_test "Check oneOf example" =
 
      type _ t =
 
-           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
-
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* request GADT items *) | RestartRequest : (Dap_commands.restart, RestartArguments.t option, Presence.opt) RequestMessage.t -> (Dap_commands.restart, RestartArguments.t option, Presence.opt) RequestMessage.t t
@@ -1224,8 +1186,6 @@ let%expect_test "Check oneOf example" =
 
      type _ t =
 
-           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
-
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* response GADT items *)
@@ -1241,8 +1201,6 @@ let%expect_test "Check oneOf example" =
      open Data
 
      type _ t =
-
-           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
 
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
@@ -1315,8 +1273,6 @@ let%expect_test "Check nullable example" =
 
      type _ t =
 
-           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
-
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* request GADT items *)
@@ -1333,8 +1289,6 @@ let%expect_test "Check nullable example" =
 
      type _ t =
 
-           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
-
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* response GADT items *)
@@ -1350,8 +1304,6 @@ let%expect_test "Check nullable example" =
      open Data
 
      type _ t =
-
-           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
 
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
@@ -1479,8 +1431,6 @@ let%expect_test "Check valueFormat example" =
 
      type _ t =
 
-           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
-
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* request GADT items *)
@@ -1497,8 +1447,6 @@ let%expect_test "Check valueFormat example" =
 
      type _ t =
 
-           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
-
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* response GADT items *)
@@ -1514,8 +1462,6 @@ let%expect_test "Check valueFormat example" =
      open Data
 
      type _ t =
-
-           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
 
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
@@ -1571,8 +1517,6 @@ let%expect_test "Check empty example" =
 
      type _ t =
 
-           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
-
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* request GADT items *) | ConfigurationDoneRequest : (Dap_commands.configurationDone, ConfigurationDoneArguments.t option, Presence.opt) RequestMessage.t -> (Dap_commands.configurationDone, ConfigurationDoneArguments.t option, Presence.opt) RequestMessage.t t
@@ -1589,8 +1533,6 @@ let%expect_test "Check empty example" =
 
      type _ t =
 
-           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
-
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* response GADT items *)
@@ -1606,8 +1548,6 @@ let%expect_test "Check empty example" =
      open Data
 
      type _ t =
-
-           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
 
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
@@ -1647,8 +1587,6 @@ let%expect_test "Check LaunchResponse empty body  example" =
 
      type _ t =
 
-           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
-
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* request GADT items *)
@@ -1665,8 +1603,6 @@ let%expect_test "Check LaunchResponse empty body  example" =
 
      type _ t =
 
-           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
-
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
            (* response GADT items *) | LaunchResponse : (Dap_commands.launch, EmptyObject.t option, Presence.opt) ResponseMessage.t -> (Dap_commands.launch, EmptyObject.t option, Presence.opt) ResponseMessage.t t
@@ -1682,8 +1618,6 @@ let%expect_test "Check LaunchResponse empty body  example" =
      open Data
 
      type _ t =
-
-           | Eq : ('a -> 'b -> bool) -> ('a -> 'b -> bool) t
 
            | Fmap : ('a -> 'b) -> ('a -> 'b) t
 
