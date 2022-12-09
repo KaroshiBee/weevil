@@ -9,7 +9,7 @@ let default_event_opt event body =
 
 type _ expr =
   | Val : 'msg t -> 'msg expr
-  | Map : ('msg -> 'b) expr * 'msg expr -> 'b expr
+  | Map : ('msg -> 'a) expr * 'msg expr -> 'a expr
 
 let rec eval : type msg. msg expr -> msg = function
   | Val (Fmap f) -> f
