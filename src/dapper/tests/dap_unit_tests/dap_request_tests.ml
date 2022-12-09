@@ -108,7 +108,7 @@ module RequestTests = struct
 
   let test_setExceptionBreakpointsRequest =
     tester
-      ~count
+      ~count:1 (* this one takes ages to run *)
       ~name:"setExceptionBreakpointsRequest"
       ~equal_arguments:D.SetExceptionBreakpointsArguments.equal
       gen_setExceptionBreakpointsRequest

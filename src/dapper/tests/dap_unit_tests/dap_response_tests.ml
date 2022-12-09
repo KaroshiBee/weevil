@@ -10,7 +10,7 @@ module ResponseTests = struct
 
   let tester ~count ~name ~equal_body (ctor, gen, enc) =
     let arb = QCheck.make gen in
-    QCheck.Test.make ~long_factor:1 ~count ~name arb (fun t ->
+    QCheck.Test.make ~long_factor:100 ~count ~name arb (fun t ->
         let t1 = ctor t in
         let js = Data_encoding.Json.(construct enc t |> to_string) in
         let t2 =
@@ -101,7 +101,7 @@ module ResponseTests = struct
 
   let test_setBreakpointsResponse =
     tester
-      ~count
+      ~count:1
       ~name:"setBreakpointsResponse"
       ~equal_body:D.SetBreakpointsResponse_body.equal
       gen_setBreakpointsResponse
@@ -115,7 +115,7 @@ module ResponseTests = struct
 
   let test_setExceptionBreakpointsResponse =
     tester
-      ~count
+      ~count:1 (* this one takes ages to run *)
       ~name:"setExceptionBreakpointsResponse"
       ~equal_body:(Option.equal D.SetExceptionBreakpointsResponse_body.equal)
       gen_setExceptionBreakpointsResponse
@@ -206,7 +206,7 @@ module ResponseTests = struct
 
   let test_stackTraceResponse =
     tester
-      ~count
+      ~count:1
       ~name:"stackTraceResponse"
       ~equal_body:D.StackTraceResponse_body.equal
       gen_stackTraceResponse

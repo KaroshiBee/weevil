@@ -1,5 +1,14 @@
 open Alcotest
 
+(* let n = ref 0 *)
+
+(* let check_numbers ~count ~long_factor = *)
+(*   QCheck.(Test.make ~long_factor ~count (pair int int) (fun (i, j) -> *)
+(*       Printf.printf "n: %d\n" !n; *)
+(*       n := succ !n; *)
+(*       i + j = j + i *)
+(*     )) *)
+
 let () =
   run "Dapper" [
     "Dap_header - content length", [
