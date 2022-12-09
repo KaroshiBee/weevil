@@ -1,5 +1,5 @@
-include Dap_message.Event
-module Message = Dap_message.EventMessage
+include Dap_messages.Event
+module Message = Dap_messages.EventMessage
 
 let default_event_req event body =
   Message.make ~seq:Dap_base.Seqr.not_set ~event ~body ()

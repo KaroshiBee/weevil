@@ -1,4 +1,4 @@
-module D = Dap_message.Data
+module D = Dap_messages.Data
 
 module On_request =
   Dap_handlers.Request_response.Make

@@ -1,5 +1,5 @@
-include Dap_message.Request
-module Message = Dap_message.RequestMessage
+include Dap_messages.Request
+module Message = Dap_messages.RequestMessage
 
 type _ expr =
   | Val : 'msg t -> 'msg expr

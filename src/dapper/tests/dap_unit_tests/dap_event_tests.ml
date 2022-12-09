@@ -1,5 +1,5 @@
 open Dap_event
-module D = Dap_message.Data
+module D = Dap_messages.Data
 
 module EventTests = struct
   let equal ~equal_body t1 t2 =

@@ -1,4 +1,4 @@
-module D = Dap_message.Data
+module D = Dap_messages.Data
 
 module Raise_error =
   Dap_handlers.Raise_response.Make

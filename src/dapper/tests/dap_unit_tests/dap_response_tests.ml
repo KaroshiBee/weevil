@@ -1,5 +1,5 @@
 open Dap_response
-module D = Dap_message.Data
+module D = Dap_messages.Data
 
 module ResponseTests = struct
   let equal ~equal_body t1 t2 =

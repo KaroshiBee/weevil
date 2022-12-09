@@ -17,7 +17,7 @@ The development tool capabilities are provided in the InitializeRequestArguments
 The debug adapter returns the supported capabilities in the InitializeResponse via the Capabilities type. It is not necessary to return an explicit false for unsupported capabilities.
  *)
 
-module D = Dap_message.Data
+module D = Dap_messages.Data
 
 module On_request =
   Dap_handlers.Request_response.Make

@@ -2,7 +2,7 @@
 *)
 type error =
   ( Dap_commands.error,
-    Dap_message.Data.ErrorResponse_body.t,
+    Dap_messages.Data.ErrorResponse_body.t,
     Dap_base.Presence.req )
   Dap_response.Message.t
   Dap_response.t

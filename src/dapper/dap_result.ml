@@ -2,7 +2,7 @@ module Js = Data_encoding.Json
 module R = Dap_response
 
 type error =
-  (Dap_commands.error, Dap_message.Data.ErrorResponse_body.t, Dap_base.Presence.req) R.Message.t
+  (Dap_commands.error, Dap_messages.Data.ErrorResponse_body.t, Dap_base.Presence.req) R.Message.t
   R.t
 
 type 'a t = ('a, error) Lwt_result.t
@@ -16,7 +16,7 @@ let from_lwt_result t = t
 let from_error_string s = R.(errorResponse @@ default_response_error s) |> error
 
 let _err_str =
-    let enc = R.Message.enc Dap_commands.error Dap_message.Data.ErrorResponse_body.enc in
+    let enc = R.Message.enc Dap_commands.error Dap_messages.Data.ErrorResponse_body.enc in
     fun err -> Js.construct enc err |> Js.to_string
 
 let to_lwt_error_as_str t =

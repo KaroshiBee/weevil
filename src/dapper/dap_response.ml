@@ -1,5 +1,5 @@
-include Dap_message.Response
-module Message = Dap_message.ResponseMessage
+include Dap_messages.Response
+module Message = Dap_messages.ResponseMessage
 
 let default_response_req ?(success = true) command body =
   Message.make ~seq:Dap_base.Seqr.not_set ~request_seq:Dap_base.Seqr.not_set ~success ~command ~body ()
@@ -10,8 +10,8 @@ let default_response_opt ?(success = true) command body =
 let default_response_error e =
   let id = Hashtbl.hash e in
   let variables = `O [("error", `String e)] in
-  let error = Dap_message.Data.Message.make ~id ~format:"{error}" ~variables () in
-  let body = Dap_message.Data.ErrorResponse_body.make ~error () in
+  let error = Dap_messages.Data.Message.make ~id ~format:"{error}" ~variables () in
+  let body = Dap_messages.Data.ErrorResponse_body.make ~error () in
   Message.make ~seq:Dap_base.Seqr.not_set ~request_seq:Dap_base.Seqr.not_set ~success:false ~command:Dap_commands.error ~body ()
 
 (* stuff that is used in handlers *)

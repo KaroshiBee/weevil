@@ -1,5 +1,5 @@
 open Dap_request
-module D = Dap_message.Data
+module D = Dap_messages.Data
 
 module RequestTests = struct
   let equal ~equal_arguments t1 t2 =
