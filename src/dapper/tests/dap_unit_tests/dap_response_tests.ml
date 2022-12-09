@@ -5,6 +5,7 @@ module ResponseTests = struct
   let equal ~equal_body t1 t2 =
     let equal_f = Eq (Message.equal ~equal_body) in
     eval @@ equal ~equal_f t1 t2
+
   let tester ~count ~name ~equal_body (ctor, gen, enc) =
     let arb = QCheck.make gen in
     QCheck.Test.make ~long_factor:100 ~count ~name arb (fun t ->
