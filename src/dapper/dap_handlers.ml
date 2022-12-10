@@ -167,7 +167,9 @@ end
 module Request_response =
   LINK_RESTRICTED (Dap_request.Message) (Dap_request) (Dap_response.Message) (Dap_response)
 
-module Raise_request = RAISE (Dap_request.Message) (Dap_request)
+(* NOTE that we use the read-write version of Dap_request msg here
+   this is for the 'reverse-request' messages that the DAP protocol specifies *)
+module Raise_request = RAISE (Dap_request_message) (Dap_request)
 
 module Raise_response = RAISE (Dap_response.Message) (Dap_response)
 

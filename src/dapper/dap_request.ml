@@ -1,5 +1,5 @@
 include Dap_messages.Request
-module Message = Dap_messages.RequestMessage
+module Message = Dap_request_message.MakeRO(Dap_messages.RequestMessage)
 
 type _ expr =
   | Val : 'msg t -> 'msg expr

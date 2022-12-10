@@ -14,6 +14,7 @@ let equal ~equal_arguments t1 t2 =
   equal_arguments t1.arguments t2.arguments
 
 let seq t = t.seq
+
 let set_seq ~seq:s t =
   let seq = Dap_base.Seqr.seq s in
   {t with seq}
@@ -53,3 +54,7 @@ let make ~seq ~command ~arguments () =
 let make_opt ~seq ~command ?arguments () =
   let type_ = ProtocolMessage_type.Request in
   {seq; type_; command; arguments}
+
+module MakeRO (Req:Dap_message_types.REQUEST_T) = struct
+  include Req
+end

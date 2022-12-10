@@ -1,36 +1,6 @@
-type ('cmd, 'args, 'presence) t
+open Dap_message_types
 
-val equal :
-  equal_arguments:('args1 -> 'args2 -> bool) ->
-  ('cmd1, 'args1, 'presence1) t ->
-  ('cmd2, 'args2, 'presence2) t ->
-  bool
+include REQUEST_T
 
-val seq : ('cmd, 'args, 'presence) t -> int
-val set_seq :
-  seq:Dap_base.Seqr.t -> ('cmd, 'args, 'presence) t -> ('cmd, 'args, 'presence) t
-
-val message : ('cmd, 'args, 'presence) t -> Dap_base.ProtocolMessage_type.t
-
-val command : ('cmd, 'args, 'presence) t -> 'cmd Dap_commands.t
-
-val arguments : ('cmd, 'args, 'presence) t -> 'args
-
-val enc : 'cmd Dap_commands.t -> 'args Data_encoding.t -> ('cmd, 'args, Dap_base.Presence.req) t Data_encoding.t
-
-val enc_opt :
-  'cmd Dap_commands.t -> 'args Data_encoding.t -> ('cmd, 'args option, Dap_base.Presence.opt) t Data_encoding.t
-
-val make :
-  seq:int ->
-  command:'cmd Dap_commands.t ->
-  arguments:'args ->
-  unit ->
-  ('cmd, 'args, Dap_base.Presence.req) t
-
-val make_opt :
-  seq:int ->
-  command:'cmd Dap_commands.t ->
-  ?arguments:'args ->
-  unit ->
-  ('cmd, 'args option, Dap_base.Presence.opt) t
+module MakeRO : functor (REQ:REQUEST_T) ->
+  REQUEST_READONLY_T with type ('cmd, 'args, 'presence) t = ('cmd, 'args, 'presence) REQ.t
