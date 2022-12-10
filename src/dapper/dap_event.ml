@@ -38,3 +38,10 @@ let map2_f ~f x y =
   let f' = eval @@ map_f ~f:f' x in
   map_f ~f:f' y
 let equal ~equal_f = map2_f ~f:equal_f
+
+let extract x = eval @@ map_f ~f:(fun x' -> x') x
+
+let bind_f ~f x =
+  let id_ = map_f ~f:(fun x -> x) in
+  let x' = eval @@ map_f ~f x in
+  id_ x'

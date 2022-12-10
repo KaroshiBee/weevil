@@ -53,8 +53,12 @@ let rec eval : type msg. msg expr -> msg = function
   | Map (f, v) -> let f' = (eval f) and v' = eval v in (f' v')
 
 let map_f ~f x = Map (Val (Fmap f), Val x)
+
 let map2_f ~f x y =
   let f' x' = fun y' -> f x' y' in
   let f' = eval @@ map_f ~f:f' x in
   map_f ~f:f' y
+
 let equal ~equal_f = map2_f ~f:equal_f
+
+let extract x = eval @@ map_f ~f:(fun x' -> x') x
