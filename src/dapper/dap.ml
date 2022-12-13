@@ -25,6 +25,9 @@ module Stack_trace = Dap_stack_trace
 module Scopes = Dap_scopes
 module Variables = Dap_variables
 module Next = Dap_next
+module Restart = Dap_restart
+module Terminate = Dap_terminate
+module Disconnect = Dap_disconnect
 
 exception Wrong_encoder = Js_msg.Wrong_encoder
 
