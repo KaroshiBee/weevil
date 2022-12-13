@@ -41,14 +41,15 @@ module type GADT_T = sig
 
   val equal : equal_f:('msg1 -> 'msg2 -> bool) -> 'msg1 t -> 'msg2 t -> bool expr
 
-  (* TODO not sure we want to be able to extract?
-     could think of how to restrict seq modification to just the dap_handlers functors *)
-  (* val extract : 'msg t -> 'msg *)
+  (* TODO still not sure we want to be able to extract?
+     but we do restrict seq modification to just the inside of the dap_handlers functors *)
+  val extract : 'msg t -> 'msg
 
 end
 
 (* the parts of the combined ('a,'b,'c) Msg.t Thing.t that we need,
-   to define handlers parameterised by msg/gadt modules *)
+   to define handlers parameterised by msg/gadt modules,
+   we distinguish between ones that can modify seq numbers and ones that cant *)
 module FULL_READONLY_T (Msg : MSG_READONLY_T) (Obj : GADT_T) = struct
   module type T = sig
     type enum
