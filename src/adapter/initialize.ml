@@ -15,7 +15,7 @@ module T (S : Types.STATE_T) = struct
       S.set_start_backend st ip port cmd
     | Some _ ->
         let%lwt () =
-          Logs_lwt.info (fun m ->
+          Logs_lwt.debug (fun m ->
               m "backend service already running on port %d" port)
         in
         Dap.Result.ok ()

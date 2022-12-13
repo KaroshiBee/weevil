@@ -59,23 +59,23 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
   let trace_logger ~in_channel ~out_channel () =
 
     let log_interp _ ctxt loc sty stack =
-      Logs.info (fun m -> m "log_interp @ location %d" loc);
+      Logs.debug (fun m -> m "log_interp @ location %d" loc);
       let log_element = Cfg.make_log ctxt loc stack sty in
       log_element_to_out log_element out_channel
     in
     let log_entry _ _ctxt loc _sty _stack =
-      Logs.info (fun m -> m "log_entry @ location %d" loc);
+      Logs.debug (fun m -> m "log_entry @ location %d" loc);
       (* block waiting for a \n on in_channel *)
       let msg = input_line in_channel in
-      Logs.info (fun m -> m "got msg '%s'" msg)
+      Logs.debug (fun m -> m "got msg '%s'" msg)
     in
     let log_exit _ ctxt loc sty stack =
-      Logs.info (fun m -> m "log_exit @ location %d" loc);
+      Logs.debug (fun m -> m "log_exit @ location %d" loc);
       let log_element = Cfg.make_log ctxt loc stack sty in
       log_element_to_out log_element out_channel
     in
     let log_control _ =
-      Logs.info (fun m -> m "log_control");
+      Logs.debug (fun m -> m "log_control");
     in
     let get_log () =
       (* NOTE we dont need to use this anymore *)

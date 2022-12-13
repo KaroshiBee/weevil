@@ -26,19 +26,19 @@ let read_weevil_recs ~enc = function
     )
   | ln when 0 < String.length ln && String.get ln 0 = '#' ->
     (* comments *)
-    let%lwt () = Logs_lwt.info (fun m -> m "comment: %s" ln) in
+    let%lwt () = Logs_lwt.debug (fun m -> m "comment: %s" ln) in
     Lwt.return_none
   | ln ->
     (* other stuff - octez writes out to stdout sometimes *)
-    let%lwt () = Logs_lwt.info (fun m -> m "other: %s" ln) in
+    let%lwt () = Logs_lwt.debug (fun m -> m "other: %s" ln) in
     Lwt.return_none
 
 let step_handler ~recs msg _ic _oc =
-  let%lwt () = Logs_lwt.info (fun m -> m "[STEPPER] got msg from subprocess '%s'" msg) in
+  let%lwt () = Logs_lwt.debug (fun m -> m "[STEPPER] got msg from subprocess '%s'" msg) in
   match%lwt read_weevil_recs ~enc:Model.Weevil_json.enc msg with
   | Some wrec ->
     let () = Tbl.add_new recs wrec.location wrec in
-    Logs_lwt.info (fun m -> m "[STEPPER] got weevil log record from subprocess '%s'" msg)
+    Logs_lwt.debug (fun m -> m "[STEPPER] got weevil log record from subprocess '%s'" msg)
   | None -> Lwt.return_unit
 
 and step_err_handler err _ic _oc =
@@ -48,10 +48,10 @@ and step_err_handler err _ic _oc =
 let stepper_process : Lwt_process.process_full option ref = ref None
 
 let rec main_handler ~recs msg ic oc =
-  let%lwt _ = Logs_lwt.info (fun m -> m "[MICH] got msg '%s'" msg) in
+  let%lwt _ = Logs_lwt.debug (fun m -> m "[MICH] got msg '%s'" msg) in
   match (MichEvent.from_msg_opt msg, !stepper_process) with
   | Some MichEvent.GetRecords _, _ ->
-    let%lwt _ = Logs_lwt.info (fun m -> m "[MICH] getting current records") in
+    let%lwt _ = Logs_lwt.debug (fun m -> m "[MICH] getting current records") in
     (* we use an option here becaus want to distinguish if list is empty *)
     let enc = Data_encoding.(option @@ list Model.Weevil_json.enc) in
     let records =
@@ -68,7 +68,7 @@ let rec main_handler ~recs msg ic oc =
 
   | Some (MichEvent.RunScript {cmd}), Some _
   | Some (MichEvent.RunScript {cmd}), None ->
-    let%lwt _ = Logs_lwt.info (fun m -> m "[MICH] starting new stepper with cmd '%s'" cmd) in
+    let%lwt _ = Logs_lwt.debug (fun m -> m "[MICH] starting new stepper with cmd '%s'" cmd) in
     (* NOTE clear out old log records *)
     let () = Tbl.remove_all recs in
     let cmd = Dap.Config.to_process_command cmd in
@@ -79,7 +79,7 @@ let rec main_handler ~recs msg ic oc =
     let%lwt () =
       try%lwt
         Lwt_io.write oc_process "step\n" >>= fun _ ->
-        Logs_lwt.info (fun m -> m "[MICH] Got Next request\n%s\n" msg)
+        Logs_lwt.debug (fun m -> m "[MICH] Got Next request\n%s\n" msg)
       with Sys_error _ -> (
           (* run out of contract to step through *)
           try%lwt
@@ -103,7 +103,7 @@ let rec main_handler ~recs msg ic oc =
 
   | Some MichEvent.Terminate _, Some _
   | Some MichEvent.Terminate _, None ->
-    let%lwt () = Logs_lwt.info (fun m -> m "[MICH] already terminated") in
+    let%lwt () = Logs_lwt.debug (fun m -> m "[MICH] already terminated") in
     let () = stepper_process := None in
     Lwt.return_unit
 
@@ -114,8 +114,8 @@ let rec main_handler ~recs msg ic oc =
     Logs_lwt.warn (fun m -> m "[MICH] couldn't decode '%s'" msg)
 
 and stepper_process_start ~recs ic oc process_full =
-  let%lwt _ = Logs_lwt.info (fun m -> m "[MICH] stepper_process_start") in
-  let%lwt _ = Logs_lwt.info (fun m -> m "[STEPPER] starting") in
+  let%lwt _ = Logs_lwt.debug (fun m -> m "[MICH] stepper_process_start") in
+  let%lwt _ = Logs_lwt.debug (fun m -> m "[STEPPER] starting") in
   let () = stepper_process := Some process_full in
   let st_out = Dap.content_length_message_handler
       ~name:"STEPPER"
@@ -144,7 +144,7 @@ let on_exn exn =
   Lwt.ignore_result @@ Logs_lwt.err (fun m -> m "%s" @@ Printexc.to_string exn)
 
 let on_connection _flow ic oc =
-  let%lwt () = Logs_lwt.info (fun m -> m "[MICH] got connection") in
+  let%lwt () = Logs_lwt.debug (fun m -> m "[MICH] got connection") in
   let recs : Model.Weevil_json.t Tbl.t = Tbl.make () in
   Dap.content_length_message_handler
     ~name:"MDB"

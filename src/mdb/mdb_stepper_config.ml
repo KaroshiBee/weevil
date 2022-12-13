@@ -15,7 +15,7 @@ let setup_mockup_rpc_client_config cctxt protocol_hash base_dir =
     match protocol with
     | None -> Tezos_mockup.Persistence.default_mockup_context cctxt
     | Some protocol_hash ->
-        let*! () = Logs_lwt.info (fun m -> m "making with a protocol hash") in
+        let*! () = Logs_lwt.debug (fun m -> m "making with a protocol hash") in
         Tezos_mockup.Persistence.init_mockup_context_by_protocol_hash
           ~cctxt
           ~protocol_hash

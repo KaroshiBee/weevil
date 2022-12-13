@@ -582,7 +582,7 @@ module Dfs = struct
     in
     (* NOTE know all /definitions/ are objects and are the only top-level things *)
     let ns = Q.query [`Field "definitions"] schema_js |> names in
-    Logs.info (fun m -> m "\n\nprocessing '%d' names" @@ List.length ns) ;
+    Logs.debug (fun m -> m "\n\nprocessing '%d' names" @@ List.length ns) ;
     ns
     |> List.fold_left
          (fun t_acc nm ->

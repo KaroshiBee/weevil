@@ -57,7 +57,7 @@ module Weevil_record = struct
       PP.print_expr
       expr
     in
-    Logs.info (fun m -> m "%s" s);
+    Logs.debug (fun m -> m "%s" s);
     if is_ticket then
       let spaces = Str.regexp {| +|} in
       let tkt = Str.regexp {|(Pair "tz1.+"|} in

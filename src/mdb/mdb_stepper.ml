@@ -108,10 +108,10 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
 
     (* NOTE the RPC call to this also has block parameter after ctxt and type of ctxt is
        'pr #Environment.RPC_context.simple where type of block is 'pr *)
-    let*! () = Logs_lwt.info (fun m -> m "getting storage and code") in
+    let*! () = Logs_lwt.debug (fun m -> m "getting storage and code") in
     let storage = Script.lazy_expr storage in
     let code = Script.lazy_expr script in
-    let*! () = Logs_lwt.info (fun m -> m "getting ctxt config from configure contracts") in
+    let*! () = Logs_lwt.debug (fun m -> m "getting ctxt config from configure contracts") in
     let* ctxt_config =
       configure_contracts
         ctxt
@@ -122,7 +122,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
         ~self_opt:self
     in
     let (ctxt, Plugin.RPC.Scripts.{balance; self; source; payer}) = ctxt_config in
-    let*! () = Logs_lwt.info (fun m -> m "getting gas") in
+    let*! () = Logs_lwt.debug (fun m -> m "getting gas") in
     let gas =
       match gas with
       | Some gas -> gas
@@ -130,11 +130,11 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
         Gas.Arith.integral_of_int_exn
           100 (* Constants.hard_gas_limit_per_operation ctxt *)
     in
-    let*! () = Logs_lwt.info (fun m -> m "setting gas limit") in
+    let*! () = Logs_lwt.debug (fun m -> m "setting gas limit") in
     let ctxt = Gas.set_limit ctxt gas in
-    let*! () = Logs_lwt.info (fun m -> m "getting now timestamp") in
+    let*! () = Logs_lwt.debug (fun m -> m "getting now timestamp") in
     let now = match now with None -> Script_timestamp.now ctxt | Some t -> t in
-    let*! () = Logs_lwt.info (fun m -> m "getting level") in
+    let*! () = Logs_lwt.debug (fun m -> m "getting level") in
     let level =
       match level with
       | None ->
@@ -142,13 +142,13 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
         |> Script_int.abs
       | Some z -> z
     in
-    let*! () = Logs_lwt.info (fun m -> m "getting step constants") in
+    let*! () = Logs_lwt.debug (fun m -> m "getting step constants") in
     let step_constants =
       let open Script_interpreter in
       {source; payer; self; amount; balance; chain_id; now; level}
     in
 
-    let*! () = Logs_lwt.info (fun m -> m "executing contract") in
+    let*! () = Logs_lwt.debug (fun m -> m "executing contract") in
     (* NOTE in the old code this was a Lwt_result.map - so wouldnt need the return() at end of code block *)
     let* res = Interp.execute
       ctxt
@@ -160,7 +160,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
     |> Lwt.map Environment.wrap_tzresult
     in
 
-    let*! () = Logs_lwt.info (fun m -> m "executed all of contract") in
+    let*! () = Logs_lwt.debug (fun m -> m "executed all of contract") in
     let ( Script_interpreter.{
             script = _;
             code_size = _;
@@ -187,9 +187,9 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
     Random.self_init ();
 
     (* believe this RPC config gets overwritten in mock creation, same for the #full cctxt? *)
-    let*! () = Logs_lwt.info (fun m -> m "making rpc config") in
+    let*! () = Logs_lwt.debug (fun m -> m "making rpc config") in
     let rpc_config = RPC.{media_type=Any; endpoint=Uri.empty; logger=null_logger} in
-    let*! () = Logs_lwt.info (fun m -> m "making client context unix full") in
+    let*! () = Logs_lwt.debug (fun m -> m "making client context unix full") in
     let cctxt =
       new Client_context_unix.unix_full
         ~chain:`Test
@@ -201,7 +201,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
         ~verbose_rpc_error_diagnostics:true
     in
 
-    let*! () = Logs_lwt.info (fun m -> m "making client context unix mockup") in
+    let*! () = Logs_lwt.debug (fun m -> m "making client context unix mockup") in
     let protocol_hash = Protocol_hash.of_b58check_opt protocol_str in
     let* {chain_id; rpc_context; unix_mockup=mock_context} = Mdb_stepper_config.setup_mockup_rpc_client_config
         (cctxt :> Client_context.printer)
@@ -220,7 +220,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
         rpc_context.context
       |> Lwt.map Environment.wrap_tzresult
     in
-    (* let*! () = Logs_lwt.info (fun m -> m "doing client config init mockup - ONLY NEEDED FOR DISK BASED MOCKS") *)
+    (* let*! () = Logs_lwt.debug (fun m -> m "doing client config init mockup - ONLY NEEDED FOR DISK BASED MOCKS") *)
     (* let* () = Client_config.config_init_mockup *)
     (*     unix_mockup *)
     (*     protocol_hash *)
@@ -231,7 +231,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
 
 
     (* TODO not sure if we need a remote signer in mock mode *)
-    (* let*! () = Logs_lwt.info (fun m -> m "setup remote signer with mock client config\n") *)
+    (* let*! () = Logs_lwt.debug (fun m -> m "setup remote signer with mock client config\n") *)
     (* setup_remote_signer *)
     (*   (module C) *)
     (*   client_config *)
@@ -244,13 +244,13 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
 
     let open Lwt_result_syntax in
 
-    let*! () = Logs_lwt.info (fun m -> m "reading contract file") in
+    let*! () = Logs_lwt.debug (fun m -> m "reading contract file") in
     let* source = t.mock_context#read_file script_filename in
-    let*! () = Logs_lwt.info (fun m -> m "parsing contract source") in
+    let*! () = Logs_lwt.debug (fun m -> m "parsing contract source") in
     let*? script = Mdb_typechecker.of_source source in
-    let*! () = Logs_lwt.info (fun m -> m "parsing storage") in
+    let*! () = Logs_lwt.debug (fun m -> m "parsing storage") in
     let*? storage = Mdb_typechecker.from_string storage in
-    let*! () = Logs_lwt.info (fun m -> m "parsing input") in
+    let*! () = Logs_lwt.debug (fun m -> m "parsing input") in
     let*? input = Mdb_typechecker.from_string input in
     return (script, storage, input)
 
@@ -259,7 +259,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
 
     let open Lwt_result_syntax in
 
-    let*! () = Logs_lwt.info (fun m -> m "running contract code") in
+    let*! () = Logs_lwt.debug (fun m -> m "running contract code") in
     let* code_trace = trace_code
         ~script:script.expanded
         ~storage:storage.expanded

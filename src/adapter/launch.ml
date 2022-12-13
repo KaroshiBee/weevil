@@ -32,7 +32,7 @@ module T (S : Types.STATE_T) = struct
 
   let _connect_background_svc st ip port =
     let%lwt () =
-      Logs_lwt.info (fun m ->
+      Logs_lwt.debug (fun m ->
           m "trying to connect to backend service on port %d" port)
     in
     S.set_connect_backend st ip port |> Dap_result.or_log_error
@@ -52,7 +52,7 @@ module T (S : Types.STATE_T) = struct
         |> Dap_result.bind ~f:(fun (_ic, oc) ->
             let stepper_cmd = Dap.Config.stepper_cmd ~script_filename ~storage ~parameter config in
                let%lwt () =
-                 Logs_lwt.info (fun m ->
+                 Logs_lwt.debug (fun m ->
                      m
                        "trying to start the debugger with cmd: '%s'"
                        stepper_cmd)

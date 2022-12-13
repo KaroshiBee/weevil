@@ -42,18 +42,18 @@ let rec content_length_message_handler
 
   match content_length with
   | None -> (
-      let%lwt () = Logs_lwt.info (fun m -> m "[%s] waiting for content-length messages" name) in
+      let%lwt () = Logs_lwt.debug (fun m -> m "[%s] waiting for content-length messages" name) in
       match%lwt Lwt_io.read_line_opt ic with
       | Some msg ->
-          let%lwt () = Logs_lwt.info (fun m -> m "[%s] got messsage '%s'" name msg) in
+          let%lwt () = Logs_lwt.debug (fun m -> m "[%s] got messsage '%s'" name msg) in
           (* if theres content length info in there, strip it out *)
           let content_length = get_content_length msg in
           let%lwt () =
             match content_length with
             | Some i ->
-              Logs_lwt.info (fun m -> m "[%s] got content length %d in '%s'" name i msg)
+              Logs_lwt.debug (fun m -> m "[%s] got content length %d in '%s'" name i msg)
             | None ->
-              Logs_lwt.info (fun m -> m "[%s] no content length in '%s' yet" name msg)
+              Logs_lwt.debug (fun m -> m "[%s] no content length in '%s' yet" name msg)
           in
           content_length_message_handler
             ~name
@@ -61,19 +61,19 @@ let rec content_length_message_handler
             ~content_length
             ic
             oc
-      | None -> Logs_lwt.info (fun m -> m "[%s] connection closed" name))
+      | None -> Logs_lwt.debug (fun m -> m "[%s] connection closed" name))
   | Some count ->
-      let%lwt () = Logs_lwt.info (fun m ->
+      let%lwt () = Logs_lwt.debug (fun m ->
           m "[%s] got content-length message with length %d" name count)
       in
       (* \r\n throw away *)
       let%lwt header_break = Lwt_io.read ~count:2 ic in
-      let%lwt () = Logs_lwt.info (fun m ->
+      let%lwt () = Logs_lwt.debug (fun m ->
           m "[%s] got content-length message with length %d and header_break '%s'" name count header_break)
       in
       let () = assert (header_break = "\r\n") in
       let%lwt msg = Lwt_io.read ~count ic in
-      let%lwt () = Logs_lwt.info (fun m ->
+      let%lwt () = Logs_lwt.debug (fun m ->
           m "[%s] got content-length message with message '%s'" name msg)
       in
       let%lwt _ = handle_message msg ic oc in

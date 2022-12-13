@@ -14,10 +14,10 @@ module Mdb_ = struct
     let enc = Data_encoding.(option @@ list Model.Weevil_json.enc) in
 
     let handle_message msg _ic _oc =
-      let%lwt () = Logs_lwt.info (fun m -> m "[DAP-stacktrace] got msg from subprocess '%s'" msg) in
+      let%lwt () = Logs_lwt.debug (fun m -> m "[DAP-stacktrace] got msg from subprocess '%s'" msg) in
       match%lwt Mdb.Mdb_server.read_weevil_recs ~enc msg with
       | Some (Some wrecs) ->
-        let%lwt () = Logs_lwt.info (fun m -> m "[DAP-stacktrace] got %d weevil log records from mdb" @@ List.length wrecs) in
+        let%lwt () = Logs_lwt.debug (fun m -> m "[DAP-stacktrace] got %d weevil log records from mdb" @@ List.length wrecs) in
         raise @@ Get_records wrecs
       | _ -> Lwt.return_unit
     in
