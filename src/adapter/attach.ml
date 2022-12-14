@@ -11,37 +11,45 @@ module T (S : Types.STATE_T) = struct
   module On_response = Dap.Attach.Raise_process (S)
   module On_attached = Dap.Attach.Raise_stopped (S)
 
+  module Utils = struct
+    let update_state state dap_config mdb_config =
+        match S.backend_oc state with
+        | Some _ ->
+          (* already connected so just update state *)
+          let () = S.set_mdb_config state mdb_config in
+          let () = S.set_launch_mode state `Attach in
+          Dap_result.ok ()
+        | None -> (
+            (* NOTE dont need to start the backend as we are in attach mode, just connect to the backend *)
+            let ip = Dap.Config.backend_ip dap_config |> Ipaddr_unix.of_inet_addr in
+            let port = Dap.Config.backend_port dap_config in
+            S.set_connect_backend state ip port
+            |> Dap_result.or_log_error
+            |> Dap_result.map ~f:(fun _ ->
+                (* not errored so update state *)
+                let () = S.set_mdb_config state mdb_config in
+                let () = S.set_launch_mode state `Attach in
+                ())
+          )
+  end
+
   let attach_handler =
     On_request.make ~handler:(fun ~state req ->
-        let getargs = Req.Message.arguments in
-        let args = Req.(eval @@ map_f ~f:getargs req) in
+        let args = Req.(Message.arguments @@ extract req) in
         let script_filename = D.AttachRequestArguments.script_filename args in
         let storage = D.AttachRequestArguments.storage args in
         let parameter = D.AttachRequestArguments.parameter args in
-        let config = S.config state in
+        let mdb_config = Mdb.Mdb_types.{script_filename; storage; parameter} in
+        let dap_config = S.config state in
+
         let body = D.EmptyObject.make () in
         let command = Dap.Commands.attach in
         let resp =
           Res.attachResponse @@ Res.default_response_opt command body
         in
-        match S.backend_oc state with
-        | Some _ ->
-          (* already connected so just update state *)
-          let () = S.set_mdb_config state Mdb.Mdb_types.{script_filename; storage; parameter} in
-          let () = S.set_launch_mode state `Attach in
-          Dap_result.ok resp
-        | None -> (
-            (* NOTE dont need to start the backend as we are in attach mode, just connect to the backend *)
-            let ip = Dap.Config.backend_ip config |> Ipaddr_unix.of_inet_addr in
-            let port = Dap.Config.backend_port config in
-            S.set_connect_backend state ip port
-            |> Dap_result.or_log_error
-            |> Dap_result.map ~f:(fun _ ->
-                (* not errored so update state *)
-                let () = S.set_mdb_config state Mdb.Mdb_types.{script_filename; storage; parameter} in
-                let () = S.set_launch_mode state `Attach in
-                resp)
-          ))
+        Utils.update_state state dap_config mdb_config
+        |> Dap_result.map ~f:(fun _ -> resp)
+      )
 
   let process_handler =
     On_response.make ~handler:(fun ~state:_ _resp ->

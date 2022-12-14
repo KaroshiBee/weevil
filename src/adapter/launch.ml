@@ -30,57 +30,72 @@ module T (S : Types.STATE_T) = struct
   module On_response = Dap.Launch.Raise_process (S)
   module On_launched = Dap.Launch.Raise_stopped (S)
 
-  let _connect_background_svc st ip port =
-    let%lwt () =
-      Logs_lwt.debug (fun m ->
-          m "trying to connect to backend service on port %d" port)
-    in
-    S.set_connect_backend st ip port |> Dap_result.or_log_error
+  module Utils = struct
+    let connect_background_svc st ip port =
+      let%lwt () =
+        Logs_lwt.debug (fun m ->
+            m "trying to connect to backend service on port %d" port)
+      in
+      S.set_connect_backend st ip port |> Dap_result.or_log_error
+
+    let update_state state dap_config mdb_config =
+        let ip = Dap.Config.backend_ip dap_config |> Ipaddr_unix.of_inet_addr in
+        let port = Dap.Config.backend_port dap_config in
+        connect_background_svc state ip port
+        |> Dap_result.bind ~f:(fun (_ic, oc) ->
+            let stepper_cmd = Mdb.Mdb_types.(
+              Dap.Config.stepper_cmd
+                ~script_filename:mdb_config.script_filename
+                ~storage:mdb_config.storage
+                ~parameter:mdb_config.parameter
+                dap_config
+            ) in
+            let%lwt () =
+              Logs_lwt.debug (fun m ->
+                  m
+                    "trying to start the debugger with cmd: '%s'"
+                    stepper_cmd)
+            in
+            let runscript =
+              Mich_event.make ~event:(RunScript {cmd=stepper_cmd}) ()
+            in
+            (* NOTE remove all \n with wrap *)
+            let runscript_s =
+              Js.(
+                construct Mich_event.enc runscript
+                |> to_string
+                |> Dap.Header.wrap
+              )
+            in
+            (* NOTE then write_line to make server consume *)
+            let%lwt () = Lwt_io.write_line oc runscript_s in
+            (* only change state if ok connection *)
+            let () = S.set_mdb_config state mdb_config in
+            let () = S.set_launch_mode state `Launch in
+            Dap_result.ok ()
+          )
+
+  end
+
 
   (* connects to the mdb backend and runs a script *)
   let launch_handler =
     On_request.make ~handler:(fun ~state req ->
-        let getargs = Req.Message.arguments in
-        let args = Req.(eval @@ map_f ~f:getargs req) in
+        let args = Req.(Message.arguments @@ extract req) in
         let script_filename = D.LaunchRequestArguments.script_filename args in
         let storage = D.LaunchRequestArguments.storage args in
         let parameter = D.LaunchRequestArguments.parameter args in
-        let config = S.config state in
-        let ip = Dap.Config.backend_ip config |> Ipaddr_unix.of_inet_addr in
-        let port = Dap.Config.backend_port config in
-        _connect_background_svc state ip port
-        |> Dap_result.bind ~f:(fun (_ic, oc) ->
-            let stepper_cmd = Dap.Config.stepper_cmd ~script_filename ~storage ~parameter config in
-               let%lwt () =
-                 Logs_lwt.debug (fun m ->
-                     m
-                       "trying to start the debugger with cmd: '%s'"
-                       stepper_cmd)
-               in
-               let runscript =
-                 Mich_event.make ~event:(RunScript {cmd=stepper_cmd}) ()
-               in
-               (* NOTE remove all \n with wrap *)
-               let runscript_s =
-                 Js.(
-                   construct Mich_event.enc runscript
-                   |> to_string
-                   |> Dap.Header.wrap
-                 )
-               in
-               (* NOTE then write_line to make server consume *)
-               let%lwt () = Lwt_io.write_line oc runscript_s in
-               (* this is a DAP response message *)
-               let resp =
-                 let command = Dap.Commands.launch in
-                 let body = D.EmptyObject.make () in
-                 Res.default_response_opt command body
-               in
-               let ret = Res.launchResponse resp in
-               (* only change state if ok connection *)
-               let () = S.set_mdb_config state Mdb.Mdb_types.{script_filename; storage; parameter} in
-               let () = S.set_launch_mode state `Launch in
-               Dap_result.ok ret))
+        let mdb_config = Mdb.Mdb_types.{script_filename; storage; parameter} in
+        let dap_config = S.config state in
+
+        let body = D.EmptyObject.make () in
+        let command = Dap.Commands.launch in
+        let resp =
+          Res.launchResponse @@ Res.default_response_opt command body
+        in
+        Utils.update_state state dap_config mdb_config
+        |> Dap_result.map ~f:(fun _ -> resp)
+      )
 
   let process_handler =
     On_response.make ~handler:(fun ~state:_ _ ->
