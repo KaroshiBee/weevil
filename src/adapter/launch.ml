@@ -18,12 +18,6 @@ module Js = Data_encoding.Json
 (* Since arguments for both requests are highly dependent on a specific debugger and debug adapter implementation, the Debug Adapter Protocol does not specify any arguments for these requests. Instead, the development tool is expected to get information about debugger specific arguments from elsewhere (e.g. contributed by some plugin or extension mechanism) and to build a UI and validation mechanism on top of that. *)
 (*   *\) *)
 
-let _get_onDebug = function
-  | Req.LaunchRequest req ->
-      let args = Req.Message.arguments req in
-      D.LaunchRequestArguments.noDebug args |> Option.value ~default:false
-  | _ -> false
-
 module T (S : Types.STATE_T) = struct
 
   module On_request = Dap.Launch.On_request (S)
@@ -31,6 +25,12 @@ module T (S : Types.STATE_T) = struct
   module On_launched = Dap.Launch.Raise_stopped (S)
 
   module Utils = struct
+    let _get_onDebug = function
+      | Req.LaunchRequest req ->
+        let args = Req.Message.arguments req in
+        D.LaunchRequestArguments.noDebug args |> Option.value ~default:false
+      | _ -> false
+
     let connect_background_svc st ip port =
       let%lwt () =
         Logs_lwt.debug (fun m ->
@@ -43,7 +43,7 @@ module T (S : Types.STATE_T) = struct
         let port = Dap.Config.backend_port dap_config in
         connect_background_svc state ip port
         |> Dap_result.bind ~f:(fun (_ic, oc) ->
-            let stepper_cmd = Mdb.Mdb_types.(
+            let stepper_cmd = Mdb.Mdb_types.Mich_config.(
               Dap.Config.stepper_cmd
                 ~script_filename:mdb_config.script_filename
                 ~storage:mdb_config.storage
@@ -85,7 +85,7 @@ module T (S : Types.STATE_T) = struct
         let script_filename = D.LaunchRequestArguments.script_filename args in
         let storage = D.LaunchRequestArguments.storage args in
         let parameter = D.LaunchRequestArguments.parameter args in
-        let mdb_config = Mdb.Mdb_types.{script_filename; storage; parameter} in
+        let mdb_config = Mdb.Mdb_types.Mich_config.make ~script_filename ~storage ~parameter () in
         let dap_config = S.config state in
 
         let body = D.EmptyObject.make () in

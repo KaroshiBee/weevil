@@ -12,8 +12,10 @@ module StateMock = struct
     mutable seqr: Data.Seqr.t;
     mutable config : Config.t;
     mutable client_config : Data.InitializeRequestArguments.t option;
-    mutable mdb_config : Mdb.Mdb_types.mich_config option;
+    mutable mdb_config : Mdb.Mdb_types.Mich_config.t option;
     mutable log_records : Model.Weevil_json.t list;
+    mutable should_restart_on_terminate : bool option;
+
   }
 
   let make () = {
@@ -29,7 +31,12 @@ module StateMock = struct
         {location=2; gas="9"; stack=["1";"2";"3";"4"]};
         {location=3; gas="8"; stack=["1";"2";"7"]};
         ]);
+    should_restart_on_terminate = None;
   }
+
+  let reset_backend t =
+    t.ic <- None;
+    t.oc <- None
 
   let set_connect_backend _ip _port = failwith "MOCK connect"
 
@@ -45,6 +52,8 @@ module StateMock = struct
     t.log_records <- (recs @ t.log_records)
 
   let log_records t = t.log_records
+
+  let should_restart_on_terminate t = t.should_restart_on_terminate
 
   let launch_mode t = t.launch_mode
 
@@ -65,6 +74,8 @@ module StateMock = struct
   let mdb_config t = t.mdb_config
 
   let set_mdb_config t config = t.mdb_config <- Some config
+
+  let set_should_restart_on_terminate t restart = t.should_restart_on_terminate <- restart
 
 end
 

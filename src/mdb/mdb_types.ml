@@ -1,9 +1,27 @@
 open Protocol
 open Alpha_context
 
-type mich_config = {
-  script_filename:string; storage:string; parameter:string;
-}
+module Mich_config = struct
+  type t = {
+    script_filename:string; storage:string; parameter:string;
+  }
+
+  let make ~script_filename ~storage ~parameter () =
+    {script_filename; storage; parameter}
+
+  let enc =
+    let open Data_encoding in
+    conv
+      (fun {script_filename; storage; parameter;} -> (script_filename, storage, parameter))
+      (fun (script_filename, storage, parameter) -> {script_filename; storage; parameter;})
+      (obj3
+         (req "script_filename" string)
+         (req "storage" string)
+         (req "parameter" string)
+      )
+
+end
+
 
 module type INTERPRETER_CFG = sig
   open Environment

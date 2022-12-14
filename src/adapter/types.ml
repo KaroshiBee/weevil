@@ -16,6 +16,9 @@ module type STATE_READONLY_T = sig
   (* the backend data that gets sent back up to the adapter *)
   val log_records : t -> Model.Weevil_json.t list
 
+  (* whether to restart when terminating  *)
+  val should_restart_on_terminate : t -> bool option
+
   (* need to retain which launch type was requested *)
   val launch_mode : t -> Dap.Launch_mode.t option
 
@@ -26,12 +29,14 @@ module type STATE_READONLY_T = sig
   val client_config : t -> Dap.Data.InitializeRequestArguments.t option
 
   (* the mdb stuff - script, storage, parameter *)
-  val mdb_config : t -> Mdb.Mdb_types.mich_config option
+  val mdb_config : t -> Mdb.Mdb_types.Mich_config.t option
 
 end
 
 module type STATE_T = sig
   include STATE_READONLY_T
+
+  val reset_backend : t -> unit
 
   val set_start_backend : t -> Ipaddr.t -> int -> string -> unit Dap.Result.t
 
@@ -45,7 +50,9 @@ module type STATE_T = sig
 
   val set_client_config : t -> Dap.Data.InitializeRequestArguments.t -> unit
 
-  val set_mdb_config : t -> Mdb.Mdb_types.mich_config -> unit
+  val set_mdb_config : t -> Mdb.Mdb_types.Mich_config.t -> unit
+
+  val set_should_restart_on_terminate : t -> bool option -> unit
 
 end
 

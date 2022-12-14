@@ -13,8 +13,9 @@ module T (Dap_state:Dap.STATE_T) = struct
     mutable launch_mode : Dap.Launch_mode.t option;
     mutable config : Dap.Config.t;
     mutable client_config : Dap.Data.InitializeRequestArguments.t option;
-    mutable mdb_config : Mdb.Mdb_types.mich_config option;
+    mutable mdb_config : Mdb.Mdb_types.Mich_config.t option;
     mutable log_records : Model.Weevil_json.t list;
+    mutable should_restart_on_terminate : bool option;
   }
 
   let make () = {
@@ -27,7 +28,13 @@ module T (Dap_state:Dap.STATE_T) = struct
     client_config = None;
     mdb_config = None;
     log_records = [];
+    should_restart_on_terminate = None;
   }
+
+  let reset_backend t =
+    t.process <- None;
+    t.ic <- None;
+    t.oc <- None
 
   let backend_svc t = t.process
 
@@ -39,6 +46,8 @@ module T (Dap_state:Dap.STATE_T) = struct
     t.log_records <- (recs @ t.log_records)
 
   let log_records t = t.log_records
+
+  let should_restart_on_terminate t = t.should_restart_on_terminate
 
   let _set_io t ic oc =
     t.ic <- Some ic ;
@@ -107,5 +116,7 @@ module T (Dap_state:Dap.STATE_T) = struct
   let mdb_config t = t.mdb_config
 
   let set_mdb_config t config = t.mdb_config <- Some config
+
+  let set_should_restart_on_terminate t restart = t.should_restart_on_terminate <- restart
 
 end
