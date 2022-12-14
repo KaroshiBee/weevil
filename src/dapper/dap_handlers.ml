@@ -50,22 +50,26 @@ end = struct
 
     let make ~handler =
       let wrapped_handler =
-        let getseq = IN_MSG_T.seq in
-        let setseq seq = OUT_MSG_T.set_seq ~seq in
-        let setseq_err seq = Err.Message.set_seq ~seq in
         fun ~state in_t ->
-          let request_seq = IN_T.(eval @@ map_f ~f:getseq in_t) in
+          let args = IN_T.extract in_t in
+          let request_seq = IN_MSG_T.seq args in
           let seq = 1 + request_seq in
-          let s = Dap_base.Seqr.make ~seq ~request_seq () in
+          let seq = Dap_base.Seqr.make ~seq ~request_seq () in
           (* setting the new seqr on state because one of the
-             following two messages will always get sent back *)
-          let () = S.set_seqr state s in
+             following two messages will always get sent back,
+             also NOTE we set the global state before invoking the handler *)
+          let () = S.set_seqr state seq in
           handler ~state in_t
           |> Dap_result.map ~f:(fun v ->
-                 OUT_T.(Out.ctor @@ eval @@ map_f ~f:(setseq s) v))
+              let msg = OUT_T.extract v in
+              let msg = OUT_MSG_T.set_seq ~seq msg in
+              Out.ctor msg
+            )
           |> Dap_result.map_error ~f:(fun err ->
-                 Err.(
-                   errorResponse @@ eval @@ map_f ~f:(setseq_err s) err))
+                let msg = Err.extract err in
+                let msg = Err.Message.set_seq ~seq msg in
+                Err.errorResponse msg
+            )
       in
       fun ~state msg ->
         let v =
@@ -132,8 +136,6 @@ end = struct
 
     let make ~handler =
       let wrapped_handler =
-        let setseq seq = OUT_MSG_T.set_seq ~seq in
-        let setseq_err seq = Err.Message.set_seq ~seq in
         fun ~state in_t ->
           (* have to pull seqr data from state because we dont have an incoming message *)
           let seqr = S.current_seqr state in
@@ -142,16 +144,22 @@ end = struct
           let request_seq = Dap_base.Seqr.request_seq seqr in
           (* but increment the seq number *)
           let seq = 1 + Dap_base.Seqr.seq seqr in
-          let s = Dap_base.Seqr.make ~seq ~request_seq () in
+          let seq = Dap_base.Seqr.make ~seq ~request_seq () in
           (* setting the new seqr on state because one of the
-             following two messages will always get sent back *)
-          let () = S.set_seqr state s in
+             following two messages will always get sent back
+             NOTE we do this before calling the handler that's being wrapped *)
+          let () = S.set_seqr state seq in
           handler ~state in_t
           |> Dap_result.map ~f:(fun v ->
-                 OUT_T.(Out.ctor @@ eval @@ map_f ~f:(setseq s) v))
+              let msg = OUT_T.extract v in
+              let msg = OUT_MSG_T.set_seq ~seq msg in
+              Out.ctor msg
+            )
           |> Dap_result.map_error ~f:(fun err ->
-                 Err.(
-                   errorResponse @@ eval @@ map_f ~f:(setseq_err s) err))
+                let msg = Err.extract err in
+                let msg = Err.Message.set_seq ~seq msg in
+                Err.errorResponse msg
+            )
       in
       fun ~state msg ->
         let v =

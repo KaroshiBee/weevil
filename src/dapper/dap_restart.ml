@@ -35,40 +35,38 @@ module On_request =
         Dap_response.Message.enc_opt Dap_commands.restart D.EmptyObject.enc
     end)
 
-module Internal_request_launch =
-  Dap_handlers.Raise_request.Make
+module Raise_process =
+  Dap_handlers.Raise_event.Make
     (struct
-      type enum = Dap_commands.launch
+      type enum = Dap_events.process
 
-      type contents = D.LaunchRequestArguments.t
+      type contents = D.ProcessEvent_body.t
 
       type presence = D.Presence.req
 
-      type msg = (enum, contents, presence) Dap_request.Message.t
+      type msg = (enum, contents, presence) Dap_event.Message.t
 
-      type t = msg Dap_request.t
+      type t = msg Dap_event.t
 
-      let ctor = Dap_request.launchRequest
+      let ctor = Dap_event.processEvent
 
-      let enc =
-        Dap_request.Message.enc Dap_commands.launch D.LaunchRequestArguments.enc
+      let enc = Dap_event.Message.enc Dap_events.process D.ProcessEvent_body.enc
     end)
 
-module Internal_request_attach =
-  Dap_handlers.Raise_request.Make
+module Raise_stopped =
+  Dap_handlers.Raise_event.Make
     (struct
-      type enum = Dap_commands.attach
+      type enum = Dap_events.stopped
 
-      type contents = D.AttachRequestArguments.t
+      type contents = D.StoppedEvent_body.t
 
       type presence = D.Presence.req
 
-      type msg = (enum, contents, presence) Dap_request.Message.t
+      type msg = (enum, contents, presence) Dap_event.Message.t
 
-      type t = msg Dap_request.t
+      type t = msg Dap_event.t
 
-      let ctor = Dap_request.attachRequest
+      let ctor = Dap_event.stoppedEvent
 
-      let enc =
-        Dap_request.Message.enc Dap_commands.attach D.AttachRequestArguments.enc
+      let enc = Dap_event.Message.enc Dap_events.stopped D.StoppedEvent_body.enc
     end)

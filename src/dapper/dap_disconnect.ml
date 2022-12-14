@@ -53,21 +53,21 @@ module Raise_exited =
       let enc = Dap_event.Message.enc Dap_events.exited D.ExitedEvent_body.enc
     end)
 
-module Internal_request_terminate =
-  Dap_handlers.Raise_request.Make
+module Raise_terminate =
+  Dap_handlers.Raise_event.Make
     (struct
-      type enum = Dap_commands.terminate
+      type enum = Dap_events.terminated
 
-      type contents = D.TerminateArguments.t option
+      type contents = D.TerminatedEvent_body.t option
 
       type presence = D.Presence.opt
 
-      type msg = (enum, contents, presence) Dap_request.Message.t
+      type msg = (enum, contents, presence) Dap_event.Message.t
 
-      type t = msg Dap_request.t
+      type t = msg Dap_event.t
 
-      let ctor = Dap_request.terminateRequest
+      let ctor = Dap_event.terminatedEvent
 
       let enc =
-        Dap_request.Message.enc_opt Dap_commands.terminate D.TerminateArguments.enc
+        Dap_event.Message.enc_opt Dap_events.terminated D.TerminatedEvent_body.enc
     end)
