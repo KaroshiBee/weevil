@@ -23,60 +23,13 @@ module T (S : Types.STATE_T) = struct
   module On_request = Dap.Launch.On_request (S)
   module On_response = Dap.Launch.Raise_process (S)
   module On_launched = Dap.Launch.Raise_stopped (S)
+  module Utils = State_utils.T (S)
 
-  module Utils = struct
-    let _get_onDebug = function
-      | Req.LaunchRequest req ->
-        let args = Req.Message.arguments req in
-        D.LaunchRequestArguments.noDebug args |> Option.value ~default:false
-      | _ -> false
-
-    let connect_background_svc st ip port =
-      let%lwt () =
-        Logs_lwt.debug (fun m ->
-            m "trying to connect to backend service on port %d" port)
-      in
-      S.set_connect_backend st ip port |> Dap_result.or_log_error
-
-    let update_state state dap_config mdb_config =
-        let ip = Dap.Config.backend_ip dap_config |> Ipaddr_unix.of_inet_addr in
-        let port = Dap.Config.backend_port dap_config in
-        connect_background_svc state ip port
-        |> Dap_result.bind ~f:(fun (_ic, oc) ->
-            let stepper_cmd = Mdb.Mdb_types.Mich_config.(
-              Dap.Config.stepper_cmd
-                ~script_filename:mdb_config.script_filename
-                ~storage:mdb_config.storage
-                ~parameter:mdb_config.parameter
-                dap_config
-            ) in
-            let%lwt () =
-              Logs_lwt.debug (fun m ->
-                  m
-                    "trying to start the debugger with cmd: '%s'"
-                    stepper_cmd)
-            in
-            let runscript =
-              Mich_event.make ~event:(RunScript {cmd=stepper_cmd}) ()
-            in
-            (* NOTE remove all \n with wrap *)
-            let runscript_s =
-              Js.(
-                construct Mich_event.enc runscript
-                |> to_string
-                |> Dap.Header.wrap
-              )
-            in
-            (* NOTE then write_line to make server consume *)
-            let%lwt () = Lwt_io.write_line oc runscript_s in
-            (* only change state if ok connection *)
-            let () = S.set_mdb_config state mdb_config in
-            let () = S.set_launch_mode state `Launch in
-            Dap_result.ok ()
-          )
-
-  end
-
+  let _get_onDebug = function
+    | Req.LaunchRequest req ->
+      let args = Req.Message.arguments req in
+      D.LaunchRequestArguments.noDebug args |> Option.value ~default:false
+    | _ -> false
 
   (* connects to the mdb backend and runs a script *)
   let launch_handler =
@@ -93,7 +46,7 @@ module T (S : Types.STATE_T) = struct
         let resp =
           Res.launchResponse @@ Res.default_response_opt command body
         in
-        Utils.update_state state dap_config mdb_config
+        Utils.launch state dap_config mdb_config
         |> Dap_result.map ~f:(fun _ -> resp)
       )
 

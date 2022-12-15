@@ -4,39 +4,21 @@ module Dap_result = Dapper.Dap_result
 module Req = Dap.Request
 module Res = Dap.Response
 module Ev = Dap.Event
-module Mich_event = Mdb.Mdb_server.MichEvent
 module Mich_config = Mdb.Mdb_types.Mich_config
-module Js = Data_encoding.Json
 
 
 module T (S : Types.STATE_T) = struct
 
   module On_request = Dap.Terminate.On_request (S)
   module On_response = Dap.Terminate.Raise_terminated (S)
-
-  module Utils = struct
-    let update_state state restart =
-      let () = S.set_should_restart_on_terminate state restart in
-      (* terminate the backend process *)
-      match S.backend_svc state with
-      | None ->
-        Logs_lwt.warn (fun m -> m "process already terminated")
-      | Some p ->
-        (* using close because it cleans up the io channels too *)
-        let%lwt () = Logs_lwt.debug (fun m -> m "closing backend process") in
-        let%lwt _status = p#close in
-        let%lwt () = Logs_lwt.debug (fun m -> m "reset backend state") in
-        let () = S.reset_backend state in
-        Lwt.return_unit
-
-  end
-
+  module Utils = State_utils.T (S)
 
   let terminate_handler =
     On_request.make ~handler:(fun ~state req ->
+        let%lwt () = Utils.terminate state in
         let args = Req.(Message.arguments @@ extract req) in
         let restart = Option.bind args (fun args -> D.TerminateArguments.restart args) in
-        let%lwt () = Utils.update_state state restart in
+        let () = S.set_should_restart_on_terminate state restart in
 
         let body = D.EmptyObject.make () in
         let command = Dap.Commands.terminate in

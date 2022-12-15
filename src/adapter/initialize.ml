@@ -39,6 +39,8 @@ module T (S : Types.STATE_T) = struct
                   ~supportsConfigurationDoneRequest:true
                   ~supportsRestartRequest:true
                   ~supportsTerminateRequest:true
+                  (* ~supportTerminateDebuggee for disconnecting *)
+                  (* ~supportSuspendDebuggee for disconnecting *)
                   ()
               in
               Dap.Response.default_response_opt command body

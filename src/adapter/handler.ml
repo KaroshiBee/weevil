@@ -42,6 +42,9 @@ module T (S:Types.STATE_T) = struct
   module Scopes = Scopes.T (S)
   module Variables = Variables.T (S)
   module Next = Next.T (S)
+  module Terminate = Terminate.T (S)
+  module Disconnect = Disconnect.T (S)
+
 
   type t = {handlers : (string, (module HANDLER_T)) Hashtbl.t;}
 
@@ -60,8 +63,8 @@ module T (S:Types.STATE_T) = struct
           "variables", (module Variables : HANDLER_T);
           "next", (module Next : HANDLER_T);
           (* "restart", (module Restart : HANDLER_T with type state = S.t); *)
-          (* "disconnect", (module Disconnect : HANDLER_T with type state = S.t); *)
-          (* "terminate", (module Terminate : HANDLER_T with type state = S.t); *)
+          "terminate", (module Terminate : HANDLER_T);
+          "disconnect", (module Disconnect : HANDLER_T);
         ]
         |> List.to_seq |> Hashtbl.of_seq;
     }
@@ -104,8 +107,8 @@ module T (S:Types.STATE_T) = struct
           "variables";
           "next";
           "restart"; (* TODO *)
-          "disconnect"; (* TODO *)
-          "terminate"; (* TODO *)
+          "terminate";
+          "disconnect";
         ]
       in
       (* First one that doesnt raise Wrong_encoder is what we want *)
