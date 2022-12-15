@@ -24,4 +24,6 @@ module T (S : Types.STATE_READONLY_T) = struct
     configuration_handler ~state;
   ]
 
+  let on_handled ~state:_ = ()
+
 end

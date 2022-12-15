@@ -48,4 +48,6 @@ module T (S : Types.STATE_READONLY_T) = struct
     variables_handler ~state;
   ]
 
+  let on_handled ~state:_ = ()
+
 end

@@ -92,4 +92,6 @@ module T (S : Types.STATE_T) = struct
     launched_handler ~state;
   ]
 
+  let on_handled ~state:_ = ()
+
 end

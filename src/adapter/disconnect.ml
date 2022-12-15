@@ -56,4 +56,6 @@ module T (S : Types.STATE_T) = struct
     disconnect_handler ~state;
   ]
 
+  let on_handled ~state:_ = ()
+
 end

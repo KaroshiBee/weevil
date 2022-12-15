@@ -64,6 +64,9 @@ module type STRING_HANDLER_T = sig
   val handlers :
     state:state -> (string -> (string, string) Lwt_result.t) list
 
+  val on_handled : state:state -> unit
+
+
 end
 
 

@@ -30,4 +30,6 @@ module T (S : Types.STATE_READONLY_T) = struct
     scopes_handler ~state;
   ]
 
+  let on_handled ~state:_ = ()
+
 end

@@ -89,6 +89,7 @@ module T (S:Types.STATE_T) = struct
               init
               handlers
           in
+          let () = H.on_handled ~state in
           Lwt.return_some output
         with Dap.Wrong_encoder _ -> Lwt.return_none)
 

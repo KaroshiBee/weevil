@@ -50,8 +50,6 @@ module T (S : Types.STATE_T) = struct
           Ev.default_event_opt event body
         in
         let ret = Ev.terminatedEvent ev in
-        (* reset the restart field to None *)
-        let () = S.set_should_restart_on_terminate state None in
         Dap_result.ok ret
       )
 
@@ -59,5 +57,10 @@ module T (S : Types.STATE_T) = struct
     terminate_handler ~state;
     terminated_handler ~state;
   ]
+
+  let on_handled ~state =
+    (* reset the restart field to None *)
+    S.set_should_restart_on_terminate state None
+
 
 end

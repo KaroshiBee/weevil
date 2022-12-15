@@ -63,4 +63,6 @@ module T (S : Types.STATE_T) = struct
     raise_initialized ~state;
   ]
 
+  let on_handled ~state:_ = ()
+
 end
