@@ -3,10 +3,8 @@
  (libraries
    dapper
    defaults
-   ; loop_connect
-   utils
-   ; MichEvent
-   mdb
+   utils ; loop_connect
+   mdb ; MichEvent
    lwt
    lwt.unix
    conduit-lwt-unix

@@ -1,33 +1,5 @@
 module Dap = Dapper.Dap
 
-let _deduplicate_stable xs =
-  (* de-dups the string list but keeps it in order *)
-  let module SSet = Set.Make (String) in
-  let (_, ys) =
-    let init = (SSet.empty, []) in
-    List.fold_left
-      (fun (sset, out) -> function
-         | x when SSet.mem x sset -> (sset, out)
-         | _ as x ->
-           let sset = SSet.add x sset in
-           let out = x :: out in
-           (sset, out))
-      init
-      xs
-  in
-  List.rev ys
-
-let%expect_test "check deduplicate_stable" =
-  let xs = [] in
-  let s = _deduplicate_stable xs |> String.concat "," in
-  Printf.printf "%s" s;
-  [%expect {||}];
-
-  let xs = [555;111;222;222;333;111;444] |> List.map string_of_int in
-  let s = _deduplicate_stable xs |> String.concat "," in
-  Printf.printf "%s" s;
-  [%expect {| 555,111,222,333,444 |}]
-
 
 module T (S:Types.STATE_T) = struct
 
@@ -69,29 +41,46 @@ module T (S:Types.STATE_T) = struct
         |> List.to_seq |> Hashtbl.of_seq;
     }
 
-  let _find_handler ~state message = function
+  let apply_handler ~state message = function
     | None -> Lwt.return_none
     | Some h -> (
-        let module H = (val h : HANDLER_T) in
-        let handlers = H.handlers ~state in
-        let init = Lwt.return (message, []) in
-        try%lwt
-          let%lwt (_, output) =
-            List.fold_left
-              (fun acc f ->
-                 let%lwt (inp, outp) = acc in
-                 let%lwt o =
-                   match%lwt f inp with
-                   | Result.Ok msg -> Lwt.return msg
-                   | Result.Error err -> Lwt.return err
-                 in
-                 Lwt.return (o, o :: outp))
-              init
-              handlers
-          in
-          let () = H.on_handled ~state in
-          Lwt.return_some output
-        with Dap.Wrong_encoder _ -> Lwt.return_none)
+        let%lwt msgs =
+          let module H = (val h : HANDLER_T) in
+          let handlers = H.handlers ~state in
+          let init = Lwt.return (Result.Ok message, []) in
+          try%lwt
+            let%lwt (_i, output) =
+              List.fold_left
+                (fun acc f ->
+                   (* NOTE the idea is to fold over the list of handlers that make up this action,
+                      each handler f[i] is string -> (string, string) result.t Lwt.t
+                      and the output from f[i] is passed as the input to f[i+1] as long as f[i] doesnt error,
+                      if f[i] errors then all subsequent handlers are skipped,
+                      at each stage either the non-errored output msg string or error msg string is added
+                      to the list of returned messages *)
+                   let%lwt (inp, outp) = acc in
+                   match inp with
+                   | Result.Ok inp ->
+                     let%lwt o = f inp in
+                     let msg_or_err =
+                       match o with
+                       | Result.Ok msg -> msg
+                       | Result.Error err -> err
+                     in
+                     Lwt.return (o, msg_or_err :: outp)
+                   | Result.Error _ ->
+                     Lwt.return (inp, outp)
+                )
+                init
+                handlers
+            in
+            (* TODO call on_success/on_error on _i *)
+            Lwt.return_some output
+          with Dap.Wrong_encoder _ -> Lwt.return_none
+        in
+        Lwt.return @@ Option.map ( fun xs -> List.rev xs |> Utils.Helpers.deduplicate_stable ) msgs
+      )
+
 
   let handle_exn t state message =
     let%lwt output =
@@ -116,15 +105,20 @@ module T (S:Types.STATE_T) = struct
       cmds
       |> Lwt_list.filter_map_p (fun cmd ->
           let h = Hashtbl.find_opt t.handlers cmd in
-          _find_handler ~state message h)
+          apply_handler ~state message h)
     in
 
     let ret =
       match output with
       | [] ->
+        let () = Logs.err (fun m -> m "[DAP] Cannot handle message: '%s'" message) in
         Printf.sprintf "[DAP] Cannot handle message: '%s'" message
         |> Result.error
-      | output :: _ -> Result.ok @@ _deduplicate_stable output
+      | output :: [] -> Result.ok output
+      | output :: rest ->
+        let n = List.length rest in
+        let () = Logs.warn (fun m -> m "[DAP] Got %d more messages for msg '%s', ignoring" n message) in
+        Result.ok output
     in
     Lwt.return ret
 end

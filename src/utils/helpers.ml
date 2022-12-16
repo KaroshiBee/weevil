@@ -4,6 +4,25 @@ open Lwt
 open Data_encoding
 module Model = Mdb.Mdb_model
 
+
+let deduplicate_stable xs =
+  (* de-dups the string list but keeps it in order *)
+  let module SSet = Set.Make (String) in
+  let (_, ys) =
+    let init = (SSet.empty, []) in
+    List.fold_left
+      (fun (sset, out) -> function
+         | x when SSet.mem x sset -> (sset, out)
+         | _ as x ->
+           let sset = SSet.add x sset in
+           let out = x :: out in
+           (sset, out))
+      init
+      xs
+  in
+  List.rev ys
+
+
 module StateMock = struct
   type t = {
     mutable ic : Lwt_io.input_channel option;
