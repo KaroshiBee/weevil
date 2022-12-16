@@ -49,7 +49,7 @@ module T (S:Types.STATE_T) = struct
           let handlers = H.handlers ~state in
           let init = Lwt.return (Result.Ok message, []) in
           try%lwt
-            let%lwt (_i, output) =
+            let%lwt (final, output) =
               List.fold_left
                 (fun acc f ->
                    (* NOTE the idea is to fold over the list of handlers that make up this action,
@@ -74,7 +74,12 @@ module T (S:Types.STATE_T) = struct
                 init
                 handlers
             in
-            (* TODO call on_success/on_error on _i *)
+            (* call on_success/on_error on final output, only care whether its in error or not *)
+            let _ =
+              final
+              |> Result.map (fun _ -> H.on_success ~state)
+              |> Result.map_error (fun _ -> H.on_error ~state)
+            in
             Lwt.return_some output
           with Dap.Wrong_encoder _ -> Lwt.return_none
         in

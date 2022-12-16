@@ -50,6 +50,7 @@ module T (S : Types.STATE_READONLY_T) = struct
     stopped_handler ~state;
   ]
 
-  let on_handled ~state:_ = ()
+  let on_success ~state:_ = ()
+  let on_error ~state:_ = ()
 
 end

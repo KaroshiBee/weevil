@@ -58,9 +58,14 @@ module T (S : Types.STATE_T) = struct
     terminated_handler ~state;
   ]
 
-  let on_handled ~state =
+
+  let clean_up ~state =
     (* reset the restart field to None *)
     S.set_should_restart_on_terminate state None
+
+  let on_success = clean_up
+
+  let on_error = clean_up
 
 
 end
