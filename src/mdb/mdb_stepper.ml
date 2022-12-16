@@ -18,6 +18,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
   }
 
   type logger = Interp.t
+  type expansion_table = Interp.expansion_table
 
   let code_trace t = t.code_trace
   let chain_id t = t.chain_id
@@ -94,6 +95,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
       ~script
       ~storage
       ~input
+      ~expansion_table
       ?(amount = Tez.fifty_cents)
       ?(chain_id = Chain_id.zero)
       ?source
@@ -101,7 +103,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
       ?self
       ?now
       ?level
-      ~logger
+      ~make_logger
       ctxt =
 
     let open Lwt_result_syntax in
@@ -109,6 +111,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
     (* NOTE the RPC call to this also has block parameter after ctxt and type of ctxt is
        'pr #Environment.RPC_context.simple where type of block is 'pr *)
     let*! () = Logs_lwt.debug (fun m -> m "getting storage and code") in
+    let logger = make_logger expansion_table in
     let storage = Script.lazy_expr storage in
     let code = Script.lazy_expr script in
     let*! () = Logs_lwt.debug (fun m -> m "getting ctxt config from configure contracts") in
@@ -255,7 +258,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
     return (script, storage, input)
 
 
-  let step ~logger ~(script:Mdb_typechecker.t) ~(storage:Mdb_typechecker.t) ~(input:Mdb_typechecker.t) t =
+  let step ~make_logger ~(script:Mdb_typechecker.t) ~(storage:Mdb_typechecker.t) ~(input:Mdb_typechecker.t) t =
 
     let open Lwt_result_syntax in
 
@@ -264,7 +267,8 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
         ~script:script.expanded
         ~storage:storage.expanded
         ~input:input.expanded
-        ~logger
+        ~expansion_table:(script.expansion_table |> Array.of_list)
+        ~make_logger
         t.alpha_context
     in
 

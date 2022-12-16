@@ -7,7 +7,7 @@ let mich_arg = "MICHELSON"
 let protocol_str = "PtKathmankSpLLDALzWw7CGD2j2MtyveTwboEYokqUCP4a1LxMg"
 let base_dir = "/tmp/.weevil"
 
-let logger = Interpreter.trace_logger ~in_channel:stdin ~out_channel:stdout ()
+let make_logger = Interpreter.trace_logger ~in_channel:stdin ~out_channel:stdout
 
 (* NOTE unit on end is for the logging setup *)
 let process headless script_filename_opt storage_opt input_opt () =
@@ -22,7 +22,7 @@ let process headless script_filename_opt storage_opt input_opt () =
       let* stepper = Stepper.init ~protocol_str ~base_dir () in
       let* (script, storage, input) =
           Stepper.typecheck ~script_filename ~storage ~input stepper in
-      Stepper.step ~logger ~script ~storage ~input stepper
+      Stepper.step ~make_logger ~script ~storage ~input stepper
     | None ->
       let s = Printf.sprintf "required argument %s is missing" file_arg in
       Lwt.return @@ error_with_exn @@ Invalid_argument s

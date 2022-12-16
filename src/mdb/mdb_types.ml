@@ -56,14 +56,13 @@ module type INTERPRETER = sig
 
   type t
 
+  type expansion_table = (int * (Tezos_micheline.Micheline_parser.location * int list)) array
+
   val trace_logger :
     in_channel:in_channel ->
     out_channel:out_channel ->
-    unit ->
+    expansion_table ->
     t
-
-  (* val get_execution_trace_updates : *)
-  (*   t -> Script_typed_ir.execution_trace tzresult Lwt.t *)
 
   val execute :
     Alpha_context.t ->
@@ -81,6 +80,7 @@ module type STEPPER = sig
 
   type t
   type logger
+  type expansion_table
 
   val code_trace : t -> (
       Script.expr *
@@ -106,7 +106,7 @@ module type STEPPER = sig
     (Mdb_typechecker.t * Mdb_typechecker.t * Mdb_typechecker.t) tzresult Lwt.t
 
   val step :
-    logger:logger ->
+    make_logger:(expansion_table -> logger) ->
     script:Mdb_typechecker.t ->
     storage:Mdb_typechecker.t ->
     input:Mdb_typechecker.t ->

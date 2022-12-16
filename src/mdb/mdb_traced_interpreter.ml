@@ -6,6 +6,7 @@ module Log_records = Mdb_log_records
 module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
 
   type t = Script_typed_ir.logger
+  type expansion_table = (int * (Tezos_micheline.Micheline_parser.location * int list)) array
 
   let log_element_to_json log_element =
     let open Lwt_result_syntax in
@@ -56,7 +57,7 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
     in
     aux ()
 
-  let trace_logger ~in_channel ~out_channel () =
+  let trace_logger ~in_channel ~out_channel _expansion_table =
 
     let log_interp _ ctxt loc sty stack =
       Logs.debug (fun m -> m "log_interp @ location %d" loc);
