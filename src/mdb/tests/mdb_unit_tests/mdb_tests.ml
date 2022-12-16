@@ -31,33 +31,33 @@ module TestInterp = TI.T (TestCfg)
 (* The tests *)
 let test_get_execution_trace_updates () =
   let tbl = Tbl.make () in
-  Tbl.add_new tbl 3 @@ TestCfg.TestLog 3;
-  Tbl.add_old tbl 2 @@ TestCfg.TestLog 2;
-  Tbl.add_new tbl 1 @@ TestCfg.TestLog 1;
+  Tbl.add_new tbl @@ TestCfg.TestLog 3;
+  Tbl.add_old tbl @@ TestCfg.TestLog 2;
+  Tbl.add_new tbl @@ TestCfg.TestLog 1;
 
   (* check before *)
   let is_in = Tbl.mem tbl in
-  let all_in = is_in 1 && is_in 2 && is_in 3 in
+  let all_in = is_in 0 && is_in 1 && is_in 2 in
   let () =
-    Alcotest.(check bool) "contains locs 1,2,3 before" all_in true
+    Alcotest.(check bool) "contains indices 0,1,2 before" all_in true
   in
 
   let () =
     match Tbl.to_list tbl with
-    | [TestCfg.TestLog 1; TestCfg.TestLog 3;] -> ()
+    | [TestCfg.TestLog 3; TestCfg.TestLog 1;] -> ()
     | xs ->
-        xs |> List.iter (function TestCfg.TestLog x -> Printf.printf "%d" x);
-        failwith "should return sorted list by loc of only new ones"
+        xs |> List.iter (function TestCfg.TestLog x -> Printf.printf "x:%d\n" x);
+        failwith "should return sorted list by index of only new ones"
   in
 
   let () = Tbl.new_to_old_inplace ~keep_old:false tbl in
-  let _2_not_in = not @@ is_in 2 in
+  let _2_not_in = not @@ is_in 1 in
   let () =
-    Alcotest.(check bool) "no longer contains locs 2 after" _2_not_in true
+    Alcotest.(check bool) "no longer contains locs 2 (index 1) after" _2_not_in true
   in
-  let _1_3_in = is_in 1 && is_in 3 in
+  let _1_3_in = is_in 0 && is_in 2 in
   let () =
-    Alcotest.(check bool) "still contains locs 1,3 after" _1_3_in true
+    Alcotest.(check bool) "still contains locs 1,3 after (ix: 0,2)" _1_3_in true
   in
 
   let () =
@@ -66,7 +66,7 @@ let test_get_execution_trace_updates () =
     | _ -> failwith "should not have any new entries left"
   in
   let () = Tbl.remove_all tbl in
-  let nothing_in = not (is_in 1 || is_in 2 || is_in 3) in
+  let nothing_in = not (is_in 0 || is_in 1 || is_in 2) in
   Alcotest.(check bool) "contains nothing after remove all" nothing_in true
 
 

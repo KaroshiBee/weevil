@@ -8,6 +8,8 @@ open Lwt
 
 exception Stepper_error of string
 
+let _MDB_NAME = "MDB"
+
 let read_weevil_recs ~enc = function
   | ln when 0 < String.length ln && String.get ln 0 != '#' -> (
       (* non-comments *)
@@ -37,7 +39,7 @@ let step_handler ~recs msg _ic _oc =
   let%lwt () = Logs_lwt.debug (fun m -> m "[STEPPER] got msg from subprocess '%s'" msg) in
   match%lwt read_weevil_recs ~enc:Model.Weevil_json.enc msg with
   | Some wrec ->
-    let () = Tbl.add_new recs wrec.location wrec in
+    let () = Tbl.add_new recs wrec in
     Logs_lwt.debug (fun m -> m "[STEPPER] got weevil log record from subprocess '%s'" msg)
   | None -> Lwt.return_unit
 
@@ -48,11 +50,14 @@ and step_err_handler err _ic _oc =
 let stepper_process : Lwt_process.process_full option ref = ref None
 
 let rec main_handler ~recs msg ic oc =
+
   let%lwt _ = Logs_lwt.debug (fun m -> m "[MICH] got msg '%s'" msg) in
+
   match (MichEvent.from_msg_opt msg, !stepper_process) with
+
   | Some MichEvent.GetRecords _, _ ->
     let%lwt _ = Logs_lwt.debug (fun m -> m "[MICH] getting current records") in
-    (* we use an option here becaus want to distinguish if list is empty *)
+    (* we use an option here because want to distinguish when list is empty *)
     let enc = Data_encoding.(option @@ list Model.Weevil_json.enc) in
     let records =
       Tbl.to_list recs
@@ -63,6 +68,7 @@ let rec main_handler ~recs msg ic oc =
     (* NOTE keep old ones so we can do back stepping - TODO back stepping *)
     Lwt.return @@ Tbl.new_to_old_inplace ~keep_old:true recs
 
+  (* NOTE currently can only run one debugger at a time *)
   | Some (MichEvent.RunScript _), Some process when process#state = Lwt_process.Running ->
     Logs_lwt.err (fun m -> m "[MICH] trying to start a new stepper with old one still running, ignore")
 
@@ -132,7 +138,7 @@ and stepper_process_start ~recs ic oc process_full =
       process_full#stdin
   in
   let m = Dap.content_length_message_handler
-    ~name:"MDB"
+    ~name:_MDB_NAME
     ~handle_message:(main_handler ~recs)
     ~content_length:None
     ic
@@ -147,12 +153,11 @@ let on_connection _flow ic oc =
   let%lwt () = Logs_lwt.debug (fun m -> m "[MICH] got connection") in
   let recs : Model.Weevil_json.t Tbl.t = Tbl.make () in
   Dap.content_length_message_handler
-    ~name:"MDB"
+    ~name:_MDB_NAME
     ~handle_message:(main_handler ~recs)
     ~content_length:None
     ic
     oc
-
 
 let lwt_svc ?stopper port =
   let open Lwt_result_syntax in
