@@ -70,11 +70,11 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
     in
     aux ()
 
-  let trace_logger ~in_channel ~out_channel expansion_table =
+  let trace_logger ~in_channel ~out_channel file_locations =
 
     let log_interp _ ctxt loc sty stack =
       Logs.debug (fun m -> m "log_interp @ location %d" loc);
-      let file_loc = Mdb_file_locations.get expansion_table loc in
+      let file_loc = Mdb_file_locations.get file_locations loc in
 
       file_loc
       |> Option.map (fun floc ->
@@ -92,7 +92,7 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
     in
     let log_exit _ ctxt loc sty stack =
       Logs.debug (fun m -> m "log_exit @ location %d" loc);
-      let file_loc = Mdb_file_locations.get expansion_table loc in
+      let file_loc = Mdb_file_locations.get file_locations loc in
 
       file_loc
       |> Option.map (fun floc ->
