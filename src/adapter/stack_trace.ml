@@ -61,16 +61,18 @@ module T (S : Types.STATE_T) = struct
             let stackFrames =
               match List.nth_opt recs 0 with
               | None -> []
-              | Some _wrec ->
-                let loc = 1 in (* Mdb.Mdb_model.Weevil_json.relative_loc wrec in *)
+              | Some wrec ->
+                let loc = wrec.location in
                 (* TODO put these filenames on the wrec? *)
                 let source = D.Source.make ~name:"example.tz" ~path:"/home/wyn/dev/weevil/example.tz" () in
                 [D.StackFrame.make
                    ~id:Defaults.Vals._THE_FRAME_ID
                    ~name:Defaults.Vals._THE_FRAME_NAME
                    ~source
-                   ~line:loc
-                   ~column:0
+                   ~line:loc.start.line
+                   ~column:loc.start.column
+                   ~endLine:loc.stop.line
+                   ~endColumn:loc.stop.column
                    ()]
             in
             let totalFrames = List.length stackFrames in
