@@ -70,7 +70,7 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
     in
     aux ()
 
-  let trace_logger ~in_channel ~out_channel file_locations =
+  let trace_interp ~in_channel ~out_channel file_locations =
 
     let log_interp _ ctxt loc sty stack =
       Logs.debug (fun m -> m "log_interp @ location %d" loc);
@@ -112,10 +112,10 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
     in
     Script_typed_ir.{log_exit; log_entry; log_interp; get_log; log_control}
 
-  let execute ctxt step_constants ~script ~entrypoint ~parameter ~logger =
+  let execute ctxt step_constants ~script ~entrypoint ~parameter ~interp =
     let open Script_interpreter in
     execute
-      ~logger
+      ~logger:interp
       ~cached_script:None
       ctxt
       Cfg.unparsing_mode

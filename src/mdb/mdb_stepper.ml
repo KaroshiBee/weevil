@@ -17,7 +17,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
     code_trace:code_trace option;
   }
 
-  type logger = Interp.t
+  type interp = Interp.t
 
   let code_trace t = t.code_trace
   let chain_id t = t.chain_id
@@ -102,7 +102,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
       ?self
       ?now
       ?level
-      ~make_logger
+      ~make_interp
       ctxt =
 
     let open Lwt_result_syntax in
@@ -110,7 +110,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
     (* NOTE the RPC call to this also has block parameter after ctxt and type of ctxt is
        'pr #Environment.RPC_context.simple where type of block is 'pr *)
     let*! () = Logs_lwt.debug (fun m -> m "getting storage and code") in
-    let logger = make_logger file_locations in
+    let interp = make_interp file_locations in
     let storage = Script.lazy_expr storage in
     let code = Script.lazy_expr script in
     let*! () = Logs_lwt.debug (fun m -> m "getting ctxt config from configure contracts") in
@@ -158,7 +158,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
       ~script:{storage; code}
       ~entrypoint
       ~parameter:input
-      ~logger
+      ~interp
     |> Lwt.map Environment.wrap_tzresult
     in
 
@@ -257,7 +257,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
     return (script, storage, input)
 
 
-  let step ~make_logger ~(script:Mdb_typechecker.t) ~(storage:Mdb_typechecker.t) ~(input:Mdb_typechecker.t) t =
+  let step ~make_interp ~(script:Mdb_typechecker.t) ~(storage:Mdb_typechecker.t) ~(input:Mdb_typechecker.t) t =
 
     let open Lwt_result_syntax in
     let file_locations = Mdb_file_locations.of_script script in
@@ -267,7 +267,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
         ~storage:storage.expanded
         ~input:input.expanded
         ~file_locations
-        ~make_logger
+        ~make_interp
         t.alpha_context
     in
 

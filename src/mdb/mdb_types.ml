@@ -57,7 +57,7 @@ module type INTERPRETER = sig
 
   type t
 
-  val trace_logger :
+  val trace_interp :
     in_channel:in_channel ->
     out_channel:out_channel ->
     Mdb_file_locations.t ->
@@ -69,7 +69,7 @@ module type INTERPRETER = sig
     script:Script.t ->
     entrypoint:Entrypoint_repr.t ->
     parameter:Script.expr ->
-    logger:t ->
+    interp:t ->
     (Script_interpreter.execution_result * Alpha_context.t) tzresult Lwt.t
 
 end
@@ -78,7 +78,7 @@ end
 module type STEPPER = sig
 
   type t
-  type logger
+  type interp
 
   val code_trace : t -> (
       Script.expr *
@@ -104,7 +104,7 @@ module type STEPPER = sig
     (Mdb_typechecker.t * Mdb_typechecker.t * Mdb_typechecker.t) tzresult Lwt.t
 
   val step :
-    make_logger:(Mdb_file_locations.t -> logger) ->
+    make_interp:(Mdb_file_locations.t -> interp) ->
     script:Mdb_typechecker.t ->
     storage:Mdb_typechecker.t ->
     input:Mdb_typechecker.t ->
