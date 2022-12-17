@@ -19,7 +19,10 @@ module TestCfg = struct
   let unparse_stack = function
     | TestLog _i -> Lwt_result_syntax.return []
 
-  let get_loc _ = 100
+  let get_loc _ = Tezos_micheline.Micheline_parser.{
+      start={point=0; byte=0; line=100; column=2};
+      stop={point=10; byte=0; line=110; column=20};
+    }
 
   (* cant make Gas.t directly *)
   let get_gas _ = Data_encoding.Json.(destruct Gas.encoding (`String "unaccounted"))

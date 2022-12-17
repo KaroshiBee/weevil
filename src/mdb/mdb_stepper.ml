@@ -18,7 +18,6 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
   }
 
   type logger = Interp.t
-  type expansion_table = Interp.expansion_table
 
   let code_trace t = t.code_trace
   let chain_id t = t.chain_id
@@ -261,13 +260,13 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
   let step ~make_logger ~(script:Mdb_typechecker.t) ~(storage:Mdb_typechecker.t) ~(input:Mdb_typechecker.t) t =
 
     let open Lwt_result_syntax in
-
+    let expansion_table = Mdb_file_locations.of_script script in
     let*! () = Logs_lwt.debug (fun m -> m "running contract code") in
     let* code_trace = trace_code
         ~script:script.expanded
         ~storage:storage.expanded
         ~input:input.expanded
-        ~expansion_table:(script.expansion_table |> Array.of_list)
+        ~expansion_table
         ~make_logger
         t.alpha_context
     in

@@ -61,8 +61,8 @@ module T (S : Types.STATE_T) = struct
             let stackFrames =
               match List.nth_opt recs 0 with
               | None -> []
-              | Some wrec ->
-                let loc = Mdb.Mdb_model.Weevil_json.relative_loc wrec in
+              | Some _wrec ->
+                let loc = 1 in (* Mdb.Mdb_model.Weevil_json.relative_loc wrec in *)
                 (* TODO put these filenames on the wrec? *)
                 let source = D.Source.make ~name:"example.tz" ~path:"/home/wyn/dev/weevil/example.tz" () in
                 [D.StackFrame.make

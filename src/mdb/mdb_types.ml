@@ -26,11 +26,12 @@ end
 module type INTERPRETER_CFG = sig
   open Environment
   open Environment.Error_monad
+
   type t
 
   val make_log :
     context ->
-    Script.location ->
+    Tezos_micheline.Micheline_parser.location ->
     ('a * 's) ->
     ('a, 's) Script_typed_ir.stack_ty ->
     t
@@ -42,7 +43,7 @@ module type INTERPRETER_CFG = sig
     (Script.expr * string option * bool) list tzresult Lwt.t
 
   val get_loc :
-    t -> Script.location
+    t -> Tezos_micheline.Micheline_parser.location
 
   val get_gas :
     t -> Gas.t
@@ -56,12 +57,10 @@ module type INTERPRETER = sig
 
   type t
 
-  type expansion_table = (int * (Tezos_micheline.Micheline_parser.location * int list)) array
-
   val trace_logger :
     in_channel:in_channel ->
     out_channel:out_channel ->
-    expansion_table ->
+    Mdb_file_locations.t ->
     t
 
   val execute :
@@ -80,7 +79,6 @@ module type STEPPER = sig
 
   type t
   type logger
-  type expansion_table
 
   val code_trace : t -> (
       Script.expr *
@@ -106,7 +104,7 @@ module type STEPPER = sig
     (Mdb_typechecker.t * Mdb_typechecker.t * Mdb_typechecker.t) tzresult Lwt.t
 
   val step :
-    make_logger:(expansion_table -> logger) ->
+    make_logger:(Mdb_file_locations.t -> logger) ->
     script:Mdb_typechecker.t ->
     storage:Mdb_typechecker.t ->
     input:Mdb_typechecker.t ->

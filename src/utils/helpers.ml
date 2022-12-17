@@ -3,7 +3,7 @@ open Conduit_lwt_unix
 open Lwt
 open Data_encoding
 module Model = Mdb.Mdb_model
-
+module PP = Tezos_micheline.Micheline_parser
 
 let deduplicate_stable xs =
   (* de-dups the string list but keeps it in order *)
@@ -46,9 +46,9 @@ module StateMock = struct
     client_config=Option.some @@ Data.InitializeRequestArguments.make ~adapterID:"MOCK" ();
     mdb_config=None;
     log_records=Model.Weevil_json.([
-        {location=1; gas="10"; stack=["1";"2";"3"]};
-        {location=2; gas="9"; stack=["1";"2";"3";"4"]};
-        {location=3; gas="8"; stack=["1";"2";"7"]};
+        {location=PP.{start={point=1;byte=1;line=1;column=0}; stop={point=1;byte=1;line=1;column=3}}; gas="10"; stack=["1";"2";"3"]};
+        {location=PP.{start={point=2;byte=2;line=2;column=0}; stop={point=2;byte=2;line=2;column=3}}; gas="9"; stack=["1";"2";"3";"4"]};
+        {location=PP.{start={point=3;byte=3;line=3;column=0}; stop={point=3;byte=3;line=3;column=3}}; gas="8"; stack=["1";"2";"7"]};
         ]);
     should_restart_on_terminate = None;
   }

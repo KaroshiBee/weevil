@@ -6,7 +6,7 @@ open Alpha_context
 type t =
   | Log :
       context
-      * Script.location
+      * Tezos_micheline.Micheline_parser.location
       * ('a * 's)
       * ('a, 's) Script_typed_ir.stack_ty
       -> t
@@ -30,6 +30,7 @@ let unparse_stack = function
       | Item_t (ty, rest_ty), (v, rest) ->
         let* (data, _ctxt) = Script_ir_translator.unparse_data ctxt unparsing_mode ty v in
         let+ rest = _unparse_stack (rest_ty, rest) in
+        (* TODO do we need to strip locations? *)
         let data = Environment.Micheline.strip_locations data in
         (data, None, false) :: rest
     in

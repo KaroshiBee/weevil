@@ -2,11 +2,11 @@ open Protocol
 open Environment.Error_monad
 module Plugin = Tezos_protocol_plugin_014_PtKathma
 module Log_records = Mdb_log_records
+module PP = Tezos_client_014_PtKathma.Michelson_v1_printer
 
 module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
 
   type t = Script_typed_ir.logger
-  type expansion_table = (int * (Tezos_micheline.Micheline_parser.location * int list)) array
 
   let log_element_to_json log_element =
     let open Lwt_result_syntax in
@@ -24,7 +24,7 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
 
   let log_element_to_out log_element out_channel =
     (* unparse the log_element and wait for the data *)
-    let to_out : (int * Alpha_context.Gas.t * 'exprs) option ref = ref None in
+    let to_out : (Tezos_micheline.Micheline_parser.location * Alpha_context.Gas.t * 'exprs) option ref = ref None in
     let lck = Lwt_mutex.create () in
     let () =
       Lwt.async (fun () ->
@@ -39,12 +39,25 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
             Lwt.return @@ Lwt_mutex.unlock lck
         )
     in
+
+    let pp_exprs =
+      let pp expr =
+        (* TODO better handling of mich expressions/tickets *)
+        Format.asprintf "%a" PP.print_expr expr
+      in
+      List.map pp
+    in
+
+    let pp_gas gas =
+      Format.asprintf "%a" Alpha_context.Gas.pp gas
+    in
+
     let rec aux () =
       match Lwt_mutex.is_locked lck, !to_out with
-      | false, Some (loc, gas, exprs) ->
-        (* TODO better handling of mich expressions/tickets *)
-        let wrec = Mdb_model.Weevil_record.make loc gas (exprs |> List.map (fun e -> (e, None, false))) in
-        let wrec_js = Mdb_model.Weevil_record.to_weevil_json wrec in
+      | false, Some (location, gas, exprs) ->
+        let gas = pp_gas gas in
+        let stack = pp_exprs exprs in
+        let wrec_js = Mdb_model.Weevil_json.make ~location ~gas ~stack () in
         let js = Data_encoding.Json.(
             construct Mdb_model.Weevil_json.enc wrec_js
             |> to_string
@@ -57,12 +70,19 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
     in
     aux ()
 
-  let trace_logger ~in_channel ~out_channel _expansion_table =
+  let trace_logger ~in_channel ~out_channel expansion_table =
 
     let log_interp _ ctxt loc sty stack =
       Logs.debug (fun m -> m "log_interp @ location %d" loc);
-      let log_element = Cfg.make_log ctxt loc stack sty in
-      log_element_to_out log_element out_channel
+      let file_loc = Mdb_file_locations.get expansion_table loc in
+
+      file_loc
+      |> Option.map (fun floc ->
+           let log_element = Cfg.make_log ctxt floc stack sty in
+           log_element_to_out log_element out_channel
+        )
+      |> Option.value ~default:()
+
     in
     let log_entry _ _ctxt loc _sty _stack =
       Logs.debug (fun m -> m "log_entry @ location %d" loc);
@@ -72,8 +92,15 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
     in
     let log_exit _ ctxt loc sty stack =
       Logs.debug (fun m -> m "log_exit @ location %d" loc);
-      let log_element = Cfg.make_log ctxt loc stack sty in
-      log_element_to_out log_element out_channel
+      let file_loc = Mdb_file_locations.get expansion_table loc in
+
+      file_loc
+      |> Option.map (fun floc ->
+           let log_element = Cfg.make_log ctxt floc stack sty in
+           log_element_to_out log_element out_channel
+        )
+      |> Option.value ~default:()
+
     in
     let log_control _ =
       Logs.debug (fun m -> m "log_control");
