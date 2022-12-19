@@ -77,7 +77,8 @@ module T (S : Types.STATE_T) = struct
     | None ->
       Logs_lwt.warn (fun m -> m "process already terminated")
     | Some p ->
-      (* using close because it cleans up the io channels too *)
+      (* TODO use terminate mich command,
+         currently using close because it cleans up the io channels too *)
       let%lwt () = Logs_lwt.debug (fun m -> m "closing backend process") in
       let%lwt _status = p#close in
       let%lwt () = Logs_lwt.debug (fun m -> m "reset backend state") in
