@@ -7,7 +7,7 @@ module Ev = Dap.Event
 module Model = Mdb.Mdb_model
 
 module Mdb_ = struct
-  (* inspired by effect handlers - need a way to break out of handle message *)
+  (* need a way to break out of handle message *)
   exception Get_records of Model.Weevil_json.t list
 
   let get_recs ic oc =
