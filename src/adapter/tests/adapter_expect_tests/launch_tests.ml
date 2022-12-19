@@ -28,6 +28,7 @@ module Launch = Launch.T (LaunchStateMock)
 let script_filename = "data/multiply_2_x_25_equals_50.tz"
 let storage = "Unit"
 let parameter = "Unit"
+let entrypoint = "default"
 
 let%expect_test "Check sequencing etc for launch" =
   let st = LaunchStateMock.make () in
@@ -36,7 +37,7 @@ let%expect_test "Check sequencing etc for launch" =
       let command = Dap.Commands.launch in
       let req =
         Dap.Request.(
-          Helpers.launch_msg ~seq:20 ~script_filename ~storage ~parameter
+          Helpers.launch_msg ~seq:20 ~script_filename ~storage ~parameter ~entrypoint
           |> Js.construct (Message.enc command D.LaunchRequestArguments.enc)
           |> Js.to_string)
       in
@@ -47,7 +48,7 @@ let%expect_test "Check sequencing etc for launch" =
             { "seq": 20, "type": "request", "command": "launch",
               "arguments":
                 { "script_filename": "data/multiply_2_x_25_equals_50.tz",
-                  "storage": "Unit", "parameter": "Unit",
+                  "storage": "Unit", "parameter": "Unit", "entrypoint": "default",
                   "launch_sentinal": "LaunchRequestArguments" } } |}]
       in
 
@@ -121,7 +122,7 @@ let%expect_test "Check bad input for launch" =
       let command = Dap.Commands.attach in
       let req =
         Dap.Request.(
-          Helpers.attach_msg ~seq:20 ~script_filename ~storage ~parameter
+          Helpers.attach_msg ~seq:20 ~script_filename ~storage ~parameter ~entrypoint
           |> Js.construct (Message.enc command D.AttachRequestArguments.enc)
           |> Js.to_string)
       in
@@ -132,7 +133,7 @@ let%expect_test "Check bad input for launch" =
             { "seq": 20, "type": "request", "command": "attach",
               "arguments":
                 { "script_filename": "data/multiply_2_x_25_equals_50.tz",
-                  "storage": "Unit", "parameter": "Unit",
+                  "storage": "Unit", "parameter": "Unit", "entrypoint": "default",
                   "attach_sentinal": "AttachRequestArguments" } } |}]
       in
 

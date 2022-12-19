@@ -56,8 +56,9 @@ let%expect_test "Check sequencing request/response" =
   let script_filename = "example.tz" in
   let storage = "Unit" in
   let parameter = "Unit" in
+  let entrypoint = "default" in
 
-  let arguments = Dap.Data.LaunchRequestArguments.make  ~script_filename ~storage ~parameter () in
+  let arguments = Dap.Data.LaunchRequestArguments.make  ~script_filename ~storage ~parameter ~entrypoint () in
   let req_launch =
     Req.(
       Message.make

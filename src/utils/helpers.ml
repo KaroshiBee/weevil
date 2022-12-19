@@ -115,17 +115,19 @@ let initialize_msg ~seq =
 
 let initialize_req ~seq = Request.initializeRequest @@ initialize_msg ~seq
 
-let launch_msg ~seq ~script_filename ~storage ~parameter =
-  let arguments = Data.LaunchRequestArguments.make ~script_filename ~storage ~parameter () in
+let launch_msg ~seq ~script_filename ~storage ~parameter ~entrypoint =
+  let arguments = Data.LaunchRequestArguments.make ~script_filename ~storage ~parameter ~entrypoint () in
   Request.Message.make ~seq ~command:Commands.launch ~arguments ()
 
-let launch_req ~seq ~script_filename ~storage ~parameter = Request.launchRequest @@ launch_msg ~seq ~script_filename ~storage ~parameter
+let launch_req ~seq ~script_filename ~storage ~parameter ~entrypoint =
+  Request.launchRequest @@ launch_msg ~seq ~script_filename ~storage ~parameter ~entrypoint
 
-let attach_msg ~seq ~script_filename ~storage ~parameter =
-  let arguments = Data.AttachRequestArguments.make ~script_filename ~storage ~parameter () in
+let attach_msg ~seq ~script_filename ~storage ~parameter ~entrypoint =
+  let arguments = Data.AttachRequestArguments.make ~script_filename ~storage ~parameter ~entrypoint () in
   Request.Message.make ~seq ~command:Commands.attach ~arguments ()
 
-let attach_req ~seq ~script_filename ~storage ~parameter = Request.attachRequest @@ attach_msg ~seq ~script_filename ~storage ~parameter
+let attach_req ~seq ~script_filename ~storage ~parameter ~entrypoint =
+  Request.attachRequest @@ attach_msg ~seq ~script_filename ~storage ~parameter ~entrypoint
 
 let configurationDone_msg ~seq =
   let arguments = Data.ConfigurationDoneArguments.make () in

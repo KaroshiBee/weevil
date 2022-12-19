@@ -58,6 +58,9 @@ module Gen = struct
     QCheck.Gen.small_list gen_utf8_str
   let gen_utf8_str_list_opt =
     QCheck.Gen.(option @@ gen_utf8_str_list)
+  (* entrypoints have to be <31 chars *)
+  let gen_entrypoint_str =
+    QCheck.Gen.(string_printable |> map (fun s -> String.sub s 0 31))
 
   let gen_int31 =
     let mn, mx = Int32.(min_int |> to_int, max_int |> to_int) in
@@ -182,12 +185,13 @@ module LaunchRequestArguments : sig
   val enc : t Data_encoding.t
   val gen : t QCheck.Gen.t
   val arb : t QCheck.arbitrary
-  val make : ?restart:Data_encoding.json -> ?noDebug:bool -> script_filename:string -> storage:string -> parameter:string -> unit -> t
+  val make : ?restart:Data_encoding.json -> ?noDebug:bool -> script_filename:string -> storage:string -> parameter:string -> entrypoint:string -> unit -> t
   val restart : t -> Data_encoding.json option
   val noDebug : t -> bool option
   val script_filename : t -> string
   val storage : t -> string
   val parameter : t -> string
+  val entrypoint : t -> string
 end = struct
 
   let pp_json fmt = function
@@ -204,6 +208,7 @@ end = struct
     script_filename: (string [@gen Gen.gen_utf8_str]);
     storage: (string [@gen Gen.gen_utf8_str]);
     parameter: (string [@gen Gen.gen_utf8_str]);
+    entrypoint: (string [@gen Gen.gen_entrypoint_str]);
     launch_sentinal: unit; (* something to distingush it from attach request args *)
   }
   [@@deriving qcheck, eq, show]
@@ -211,25 +216,27 @@ end = struct
   let enc =
     let open Data_encoding in
     conv
-      (fun {restart; noDebug; script_filename; storage; parameter; launch_sentinal; } -> (restart, noDebug, script_filename, storage, parameter, launch_sentinal))
-      (fun (restart, noDebug, script_filename, storage, parameter, launch_sentinal) -> {restart; noDebug; script_filename; storage; parameter; launch_sentinal;})
-      (obj6
+      (fun {restart; noDebug; script_filename; storage; parameter; entrypoint; launch_sentinal; } -> (restart, noDebug, script_filename, storage, parameter, entrypoint, launch_sentinal))
+      (fun (restart, noDebug, script_filename, storage, parameter, entrypoint, launch_sentinal) -> {restart; noDebug; script_filename; storage; parameter; entrypoint; launch_sentinal;})
+      (obj7
          (opt "__restart" json)
          (opt "noDebug" bool)
          (req "script_filename" string)
          (req "storage" string)
          (req "parameter" string)
+         (req "entrypoint" string)
          (req "launch_sentinal" @@ constant module_name)
       )
 
-  let make ?restart ?noDebug ~script_filename ~storage ~parameter () =
-    {restart; noDebug; script_filename; storage; parameter; launch_sentinal=()}
+  let make ?restart ?noDebug ~script_filename ~storage ~parameter ~entrypoint () =
+    {restart; noDebug; script_filename; storage; parameter; entrypoint; launch_sentinal=()}
 
   let restart t = t.restart
   let noDebug t = t.noDebug
   let script_filename t = t.script_filename
   let storage t = t.storage
   let parameter t = t.parameter
+  let entrypoint t = t.entrypoint
 
 end
 
@@ -242,11 +249,13 @@ module AttachRequestArguments : sig
   val enc : t Data_encoding.t
   val gen : t QCheck.Gen.t
   val arb : t QCheck.arbitrary
-  val make : ?restart:Data_encoding.json -> script_filename:string -> storage:string -> parameter:string -> unit -> t
+  val make : ?restart:Data_encoding.json -> script_filename:string -> storage:string -> parameter:string -> entrypoint:string -> unit -> t
   val restart : t -> Data_encoding.json option
   val script_filename : t -> string
   val storage : t -> string
   val parameter : t -> string
+  val entrypoint : t -> string
+
 end = struct
 
   let module_name = "AttachRequestArguments"
@@ -263,6 +272,7 @@ end = struct
     script_filename: (string [@gen Gen.gen_utf8_str]);
     storage: (string [@gen Gen.gen_utf8_str]);
     parameter: (string [@gen Gen.gen_utf8_str]);
+    entrypoint: (string [@gen Gen.gen_entrypoint_str]);
     attach_sentinal: unit; (* something to distingush it from launch request args *)
   }
   [@@deriving qcheck, eq, show]
@@ -270,23 +280,25 @@ end = struct
   let enc =
     let open Data_encoding in
     conv
-      (fun {restart; script_filename; storage; parameter; attach_sentinal;} -> (restart, script_filename, storage, parameter, attach_sentinal))
-      (fun (restart, script_filename, storage, parameter, attach_sentinal) -> {restart; script_filename; storage; parameter; attach_sentinal;})
-      (obj5
+      (fun {restart; script_filename; storage; parameter; entrypoint; attach_sentinal;} -> (restart, script_filename, storage, parameter, entrypoint, attach_sentinal))
+      (fun (restart, script_filename, storage, parameter, entrypoint, attach_sentinal) -> {restart; script_filename; storage; parameter; entrypoint; attach_sentinal;})
+      (obj6
          (opt "__restart" json)
          (req "script_filename" string)
          (req "storage" string)
          (req "parameter" string)
+         (req "entrypoint" string)
          (req "attach_sentinal" @@ constant module_name)
       )
 
-  let make ?restart ~script_filename ~storage ~parameter () =
-    {restart; script_filename; storage; parameter; attach_sentinal=()}
+  let make ?restart ~script_filename ~storage ~parameter ~entrypoint () =
+    {restart; script_filename; storage; parameter; entrypoint; attach_sentinal=()}
 
   let restart t = t.restart
   let script_filename t = t.script_filename
   let storage t = t.storage
   let parameter t = t.parameter
+  let entrypoint t = t.entrypoint
 
 end
 
