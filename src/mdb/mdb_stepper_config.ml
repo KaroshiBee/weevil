@@ -6,6 +6,7 @@ type t = {
   rpc_context:Environment.Updater.rpc_context;
   unix_mockup:Client_context_unix.unix_mockup;
 }
+
 (* NOTE we are in Tezos_base.TzPervasives.tzresult Lwt.t because of Tezos_mockup lib calls *)
 let setup_mockup_rpc_client_config cctxt protocol_hash base_dir =
 
