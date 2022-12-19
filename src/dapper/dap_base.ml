@@ -60,7 +60,7 @@ module Gen = struct
     QCheck.Gen.(option @@ gen_utf8_str_list)
   (* entrypoints have to be <31 chars *)
   let gen_entrypoint_str =
-    QCheck.Gen.(string_printable |> map (fun s -> String.sub s 0 31))
+    QCheck.Gen.(string_printable |> map (fun s -> let n = min 31 (String.length s) in String.sub s 0 n))
 
   let gen_int31 =
     let mn, mx = Int32.(min_int |> to_int, max_int |> to_int) in
