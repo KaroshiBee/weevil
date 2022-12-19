@@ -42,6 +42,7 @@ module T (S : Types.STATE_T) = struct
               ~script_filename:mdb_config.script_filename
               ~storage:mdb_config.storage
               ~parameter:mdb_config.parameter
+              ~entrypoint:mdb_config.entrypoint
               dap_config
           ) in
         let%lwt () =

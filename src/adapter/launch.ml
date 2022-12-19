@@ -38,7 +38,8 @@ module T (S : Types.STATE_T) = struct
         let script_filename = D.LaunchRequestArguments.script_filename args in
         let storage = D.LaunchRequestArguments.storage args in
         let parameter = D.LaunchRequestArguments.parameter args in
-        let mdb_config = Mdb.Mdb_types.Mich_config.make ~script_filename ~storage ~parameter () in
+        let entrypoint = D.LaunchRequestArguments.entrypoint args in
+        let mdb_config = Mdb.Mdb_types.Mich_config.make ~script_filename ~storage ~parameter ~entrypoint () in
         let dap_config = S.config state in
 
         let body = D.EmptyObject.make () in

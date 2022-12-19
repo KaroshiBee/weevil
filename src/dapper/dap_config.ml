@@ -3,7 +3,12 @@ type t = {
   backend_ip: string;
   backend_port: int;
   backend_cmd: string;
-  stepper_cmd: script_filename:string -> storage:string -> parameter:string -> string;
+  stepper_cmd:
+    script_filename:string ->
+    storage:string ->
+    parameter:string ->
+    entrypoint:string ->
+    string;
 }
 
 let _backend_ip = Defaults.Vals._DEFAULT_LISTEN_ADDRESS
@@ -33,6 +38,5 @@ let backend_cmd t = t.backend_cmd
 
 let to_process_command s = Lwt_process.shell s
 
-let stepper_cmd ~script_filename ~storage ~parameter t =
-  t.stepper_cmd ~script_filename ~storage ~parameter
-
+let stepper_cmd ~script_filename ~storage ~parameter ~entrypoint t =
+  t.stepper_cmd ~script_filename ~storage ~parameter ~entrypoint
