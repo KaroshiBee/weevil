@@ -3,6 +3,7 @@ module Stepper = Mdb_stepper.T (Interpreter)
 
 let file_arg = "FILE"
 let mich_arg = "MICHELSON"
+let name_arg = "NAME"
 
 let protocol_str = "PtKathmankSpLLDALzWw7CGD2j2MtyveTwboEYokqUCP4a1LxMg"
 let base_dir = "/tmp/.weevil"
@@ -10,19 +11,20 @@ let base_dir = "/tmp/.weevil"
 let make_interp = Interpreter.trace_interp ~in_channel:stdin ~out_channel:stdout
 
 (* NOTE unit on end is for the logging cmdline setup *)
-let process headless script_filename_opt storage_opt input_opt () =
+let process headless script_filename_opt storage_opt input_opt entrypoint_opt () =
   let open Lwt_result_syntax in
 
   let storage = Option.value storage_opt ~default:"Unit" in
   let input = Option.value input_opt ~default:"Unit" in
+  let entrypoint = Option.value entrypoint_opt ~default:"default" in
 
   let stepper : unit -> Stepper.t tzresult Lwt.t = fun () ->
     match script_filename_opt with
     | Some script_filename ->
       let* stepper = Stepper.init ~protocol_str ~base_dir () in
-      let* (script, storage, input) =
-          Stepper.typecheck ~script_filename ~storage ~input stepper in
-      Stepper.step ~make_interp ~script ~storage ~input stepper
+      let* (script, storage, input, entrypoint) =
+          Stepper.typecheck ~script_filename ~storage ~input ~entrypoint stepper in
+      Stepper.step ~make_interp ~script ~storage ~input ~entrypoint stepper
     | None ->
       let s = Printf.sprintf "required argument %s is missing" file_arg in
       Lwt.return @@ error_with_exn @@ Invalid_argument s
@@ -92,6 +94,14 @@ module Tm = struct
       value & opt (some string) None & info ["p"; "parameter"] ~doc ~docv:mich_arg
     )
 
+  let entrypoint_arg =
+    let doc =
+      "The Michelson entrypoint function name that the weevil stepper will execute with (default 'default')."
+    in
+    Arg.(
+      value & opt (some string) None & info ["e"; "entrypoint"] ~doc ~docv:name_arg
+    )
+
   let term (setup_log:unit Term.t) =
     Term.(
       let t = (const process
@@ -99,6 +109,7 @@ module Tm = struct
                $ contract_file_arg
                $ storage_arg
                $ input_arg
+               $ entrypoint_arg
                $ setup_log
               ) in
       ret t

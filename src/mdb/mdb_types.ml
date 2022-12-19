@@ -100,14 +100,16 @@ module type STEPPER = sig
     script_filename:string ->
     storage:string ->
     input:string ->
+    entrypoint:string ->
     t ->
-    (Mdb_typechecker.t * Mdb_typechecker.t * Mdb_typechecker.t) tzresult Lwt.t
+    (Mdb_typechecker.t * Mdb_typechecker.t * Mdb_typechecker.t * Entrypoint.t) tzresult Lwt.t
 
   val step :
     make_interp:(Mdb_file_locations.t -> interp) ->
     script:Mdb_typechecker.t ->
     storage:Mdb_typechecker.t ->
     input:Mdb_typechecker.t ->
+    entrypoint:Entrypoint.t ->
     t ->
     t tzresult Lwt.t
 

@@ -243,7 +243,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
 
     return {chain_id; alpha_context; mock_context; code_trace=None}
 
-  let typecheck ~script_filename ~storage ~input t =
+  let typecheck ~script_filename ~storage ~input ~entrypoint t =
 
     let open Lwt_result_syntax in
 
@@ -255,10 +255,11 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
     let*? storage = Mdb_typechecker.from_string storage in
     let*! () = Logs_lwt.debug (fun m -> m "parsing input") in
     let*? input = Mdb_typechecker.from_string input in
-    return (script, storage, input)
+    let*? entrypoint = Entrypoint.of_string_lax entrypoint |> Environment.wrap_tzresult in
+    return (script, storage, input, entrypoint)
 
 
-  let step ~make_interp ~(script:Mdb_typechecker.t) ~(storage:Mdb_typechecker.t) ~(input:Mdb_typechecker.t) t =
+  let step ~make_interp ~(script:Mdb_typechecker.t) ~(storage:Mdb_typechecker.t) ~(input:Mdb_typechecker.t) ~entrypoint t =
 
     let open Lwt_result_syntax in
     let file_locations = Mdb_file_locations.of_script script in
@@ -267,6 +268,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
         ~script:script.expanded
         ~storage:storage.expanded
         ~input:input.expanded
+        ~entrypoint
         ~file_locations
         ~make_interp
         t.alpha_context

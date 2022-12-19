@@ -128,6 +128,10 @@ show the help
          ----ccoolloorr=_W_H_E_N (absent=aauuttoo)
              Colorize the output. _W_H_E_N must be one of aauuttoo, aallwwaayyss or nneevveerr.
   
+         --ee _N_A_M_E, ----eennttrryyppooiinntt=_N_A_M_E
+             The Michelson entrypoint function name that the weevil stepper will
+             execute with (default 'default').
+  
          --hh, ----hheeaaddlleessss
              Run the tool in headless mode, this means that --help is not shown
              on error and any errors are returned as JSON
