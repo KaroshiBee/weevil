@@ -151,6 +151,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
     in
 
     let*! () = Logs_lwt.debug (fun m -> m "executing contract") in
+
     (* NOTE in the old code this was a Lwt_result.map - so wouldnt need the return() at end of code block *)
     let* res = Interp.execute
       ctxt

@@ -9,7 +9,7 @@ let base_dir = "/tmp/.weevil"
 
 let make_interp = Interpreter.trace_interp ~in_channel:stdin ~out_channel:stdout
 
-(* NOTE unit on end is for the logging setup *)
+(* NOTE unit on end is for the logging cmdline setup *)
 let process headless script_filename_opt storage_opt input_opt () =
   let open Lwt_result_syntax in
 
