@@ -291,7 +291,7 @@ end = struct
          (req "entrypoint" string)
       )
 
-  let enc = Data_encoding.tup2 enc_1 enc_2
+  let enc = Data_encoding.merge_objs enc_1 enc_2
 
   let make ?restart ?noDebug ~type_ ~request ~mode ?name ?host ?debugServer ~script_filename ~storage ~parameter ~entrypoint () =
     {restart; noDebug; type_; request; mode; name; host; debugServer; }, {script_filename; storage; parameter; entrypoint; }
