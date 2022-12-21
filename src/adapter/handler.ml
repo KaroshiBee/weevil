@@ -85,17 +85,26 @@ module T (S:Types.STATE_T) = struct
               |> Result.map (fun _ -> H.on_success ~state)
               |> Result.map_error (fun _ -> H.on_error ~state)
             in
-            Lwt.return_some output
+            Lwt.return_some @@ Result.Ok output
           with
           | Dap.Wrong_encoder (err, `Cannot_destruct_wrong_fields) ->
             (* NOTE we are trying to find the correct message handler by expected errors,
                `Cannot_destruct_wrong_fields implies we have the right handler but something else is wrong *)
             let%lwt () = Logs_lwt.err (fun m -> m "%s" err) in
-            Lwt.return_none
+            Lwt.return_some @@ Result.Error err
           | Dap.Wrong_encoder (_, _) ->
+            (* NOTE these wrong encoder errors are ok *)
             Lwt.return_none
+          | _ as e ->
+            (* NOTE any other errors should be sent back too *)
+            let err = Printexc.to_string e in
+            let%lwt () = Logs_lwt.err (fun m -> m "%s" err) in
+            Lwt.return_some @@ Result.Error err
         in
-        Lwt.return @@ Option.map ( fun xs -> List.rev xs |> Utils.Helpers.deduplicate_stable ) msgs
+        Lwt.return @@
+        Option.map (fun xs_ ->
+            xs_ |> Result.map ( fun xs -> List.rev xs |> Utils.Helpers.deduplicate_stable )
+          ) msgs
       )
 
 
@@ -131,11 +140,12 @@ module T (S:Types.STATE_T) = struct
         let%lwt () = Logs_lwt.err (fun m -> m "[DAP] Cannot handle message: '%s'" message) in
         Printf.sprintf "[DAP] Cannot handle message: '%s'" message
         |> Result.error |> Lwt.return
-      | output :: [] -> Lwt.return @@ Result.ok output
-      | output :: rest ->
-        let n = List.length rest in
-        let%lwt () = Logs_lwt.warn (fun m -> m "[DAP] Got %d more messages for msg '%s', ignoring" n message) in
-        Lwt.return @@ Result.ok output
+      | Result.Ok output :: [] -> Lwt.return @@ Result.ok output
+      | Result.Error output :: [] -> Lwt.return @@ Result.Error output
+      | _ :: rest ->
+        let n = 1+List.length rest in
+        let%lwt () = Logs_lwt.err (fun m -> m "[DAP] Got too many replies (%d) for msg '%s'" n message) in
+        Lwt.return @@ Result.error @@ Printf.sprintf "Too many replies [%d] for message '%s'" n message
 
     in
     Lwt.return ret
