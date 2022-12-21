@@ -40,10 +40,13 @@
 
 (dap-register-debug-provider "tezos-weevil-tcp" #'dap-weevil--populate-start-tcp-args)
 
-(dap-register-debug-template "Tezos Weevil Launch (Console)"
+(dap-register-debug-template "Tezos Weevil Launch (Open Tezos - example 1)"
                              (list :type "tezos-weevil-tcp"
                                    :request "launch"
                                    :mode "launch"
+                                   :script_filename "/home/wyn/dev/weevil/examples/open_tezos_example1_looping.tz"
+                                   :storage "0"
+                                   :parameter "(Pair 7 5)"
                                    :name "Tezos-Weevil::Launch"))
 
 (provide 'dap-weevil)

@@ -66,10 +66,10 @@ module T (S:Types.STATE_T) = struct
                      let%lwt msg_or_err =
                        match o with
                        | Result.Ok msg ->
-                         let%lwt () = Logs_lwt.debug (fun m -> m "got input '%s', got reply '%s'" inp msg) in
+                         let%lwt () = Logs_lwt.debug (fun m -> m "got input '%s',\n got reply '%s'" inp msg) in
                          Lwt.return msg
                        | Result.Error err ->
-                         let%lwt () = Logs_lwt.err (fun m -> m "got input '%s', got error '%s'" inp err) in
+                         let%lwt () = Logs_lwt.err (fun m -> m "got input '%s',\n got error '%s'" inp err) in
                          Lwt.return err
                      in
                      Lwt.return (o, msg_or_err :: outp)
