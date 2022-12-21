@@ -13,9 +13,9 @@ module T (S : Types.STATE_READONLY_T) = struct
   let variables_handler =
     On_request.make ~handler:(fun ~state req ->
         let recs = S.log_records state in
-        let getargs = Req.Message.arguments in
-        let args = Req.(eval @@ map_f ~f:getargs req) in
+        let args = Req.Message.arguments @@ Req.extract req in
         let vrefs = D.VariablesArguments.variablesReference args in
+        Logs.debug (fun m -> m "vrefs %d, default vrefs %d" vrefs Defaults.Vals._THE_VARIABLES_REFERENCE);
         assert (vrefs = Defaults.Vals._THE_VARIABLES_REFERENCE);
         let resp =
           let command = Dap.Commands.variables in

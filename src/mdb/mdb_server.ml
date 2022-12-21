@@ -39,9 +39,10 @@ let step_handler ~recs msg _ic _oc =
   let%lwt () = Logs_lwt.debug (fun m -> m "[STEPPER] got msg from subprocess '%s'" msg) in
   match%lwt read_weevil_recs ~enc:Model.Weevil_json.enc msg with
   | Some wrec ->
-    let () = Tbl.add_new recs wrec in
-    Logs_lwt.debug (fun m -> m "[STEPPER] got weevil log record from subprocess '%s'" msg)
-  | None -> Lwt.return_unit
+    let%lwt () = Logs_lwt.debug (fun m -> m "[STEPPER] got weevil log record from subprocess '%s'" msg) in
+    Lwt.return @@ Tbl.add_new recs wrec
+  | None ->
+    Logs_lwt.debug (fun m -> m "[STEPPER] couldnt read weevil log record from subprocess msg '%s'" msg)
 
 and step_err_handler err _ic _oc =
   let%lwt () = Logs_lwt.err (fun m -> m "[STEPPER ERR] step_err_handler: %s" err) in
@@ -55,18 +56,26 @@ let rec main_handler ~recs msg ic oc =
 
   match (MichEvent.from_msg_opt msg, !stepper_process) with
 
-  | Some MichEvent.GetRecords _, _ ->
+  | Some MichEvent.GetRecords _, _ -> (
     let%lwt _ = Logs_lwt.debug (fun m -> m "[MICH] getting current records") in
+    let enc = Data_encoding.list Model.Weevil_json.enc in
     (* we use an option here because want to distinguish when list is empty *)
-    let enc = Data_encoding.(option @@ list Model.Weevil_json.enc) in
-    let records =
+    let%lwt records =
       Tbl.to_list recs
-      |> function | [] -> None | _ as ls -> Some ls
+      |> function
+      | [] ->
+        let%lwt () = Logs_lwt.debug (fun m -> m "[MICH] no current records") in
+        Lwt.return []
+      | _ as ls ->
+        let%lwt () = Logs_lwt.debug (fun m -> m "[MICH] %d current records" @@ List.length ls) in
+        Lwt.return ls
     in
     let msg = Js.(construct enc records |> to_string |> Dapper.Dap.Header.wrap) in
+    let%lwt () = Logs_lwt.debug (fun m -> m "[MICH] writing msg '%s' backend -> adaptor" msg) in
     let%lwt () = Lwt_io.write oc msg in
     (* NOTE keep old ones so we can do back stepping - TODO back stepping *)
     Lwt.return @@ Tbl.new_to_old_inplace ~keep_old:true recs
+  )
 
   (* NOTE currently can only run one debugger at a time *)
   | Some (MichEvent.RunScript _), Some process when process#state = Lwt_process.Running ->

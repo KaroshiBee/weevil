@@ -64,7 +64,7 @@ module T (S : Types.STATE_T) = struct
               | Some wrec ->
                 let loc = wrec.location in
                 (* TODO put these filenames on the wrec? *)
-                let source = D.Source.make ~name:"example.tz" ~path:"/home/wyn/dev/weevil/example.tz" () in
+                let source = D.Source.make ~name:"open_tezos_example1_looping.tz" ~path:"/home/wyn/dev/weevil/examples/open_tezos_example1_looping.tz" () in
                 [D.StackFrame.make
                    ~id:Defaults.Vals._THE_FRAME_ID
                    ~name:Defaults.Vals._THE_FRAME_NAME

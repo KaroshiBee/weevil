@@ -18,4 +18,4 @@ let _THE_FRAME_NAME = "main" (* TODO would probably be the method name or contra
 let _THE_ONLY_SCOPE = ("Locals", 1) (* suggested -> | Arguments | Locals | Registers *)
 let _THE_GAS_LOCAL = ("gas", 0)
 let _THE_MICHELSON_STACK_LOCAL = ("stack", 1)
-let _THE_VARIABLES_REFERENCE = 0
+let _THE_VARIABLES_REFERENCE = 1
