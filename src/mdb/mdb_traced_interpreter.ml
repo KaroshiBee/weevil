@@ -29,14 +29,21 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
     let () =
       Lwt.async (fun () ->
           let open Lwt_syntax in
-          let* () = Lwt_mutex.lock lck in
-          let* res = log_element_to_json log_element in
-          match res with
-          | Ok t ->
-            let () = to_out := Some t in
-            Lwt.return @@ Lwt_mutex.unlock lck
-          | Error _ ->
-            Lwt.return @@ Lwt_mutex.unlock lck
+          let* () = Lwt_mutex.with_lock lck (fun () ->
+              let%lwt () = Logs_lwt.debug (fun m -> m "async log element to json") in
+              let* res = log_element_to_json log_element in
+              match res with
+              | Ok t ->
+                let%lwt () = Logs_lwt.debug (fun m -> m "async log element to json, got data, writing to to_out") in
+                let () = to_out := Some t in
+                Lwt.return_unit
+              | Error err ->
+                let s = Format.asprintf "%a" pp_trace err in
+                let%lwt () = Logs_lwt.err (fun m -> m "async log element to json, got error %s" s) in
+                Lwt.return_unit
+            )
+          in
+          Lwt.return_unit
         )
     in
 
@@ -55,18 +62,26 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
     let rec aux () =
       match Lwt_mutex.is_locked lck, !to_out with
       | false, Some (location, gas, exprs) ->
+        let () = Logs.debug (fun m -> m "pp gas") in
         let gas = pp_gas gas in
+        let () = Logs.debug (fun m -> m "pp stack") in
         let stack = pp_exprs exprs in
+        let () = Logs.debug (fun m -> m "making weevil js record") in
         let wrec_js = Mdb_model.Weevil_json.make ~location ~gas ~stack () in
         let js = Data_encoding.Json.(
             construct Mdb_model.Weevil_json.enc wrec_js
             |> to_string
             |> Dapper.Dap.Header.wrap
           ) in
-        Printf.(fprintf out_channel "%s\n" js; flush out_channel)
+        let () = Logs.debug (fun m -> m "writing back child process -> mdb backend") in
+        let () = Printf.(fprintf out_channel "%s" js; flush out_channel) in
+        to_out := None
+
       | true, _ | _, None ->
+        let () = Logs.debug (fun m -> m "waiting for to_out") in
         Unix.sleepf 0.1;
         aux ()
+
     in
     aux ()
 
