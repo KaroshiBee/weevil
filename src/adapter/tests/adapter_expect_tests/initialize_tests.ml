@@ -116,7 +116,7 @@ let%expect_test "Check bad input for init" =
       try%lwt
         f_resp req
       with
-      | Dap.Wrong_encoder err -> Lwt_result.fail err
+      | Dap.Wrong_encoder (err, _) -> Lwt_result.fail err
     in
     Printf.printf "%s" @@ Result.get_error err ;
     let%lwt () =

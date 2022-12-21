@@ -15,7 +15,12 @@ let handle_message ~hdl ~state msg _ic oc =
     let%lwt _ = Logs_lwt.debug (fun m -> m "[DAP] got response: '%s'" js) in
     Lwt_io.write oc js
   | Error err ->
-    Logs_lwt.err (fun m -> m "[DAP] %s" err)
+    let%lwt () = Logs_lwt.err (fun m -> m "[DAP] %s" err) in
+    (* send error response back, TODO get seq correct? *)
+    let err_msg = Dap.Result.err_js @@ Dap.Response.(errorResponse @@ default_response_error err) in
+    let js = Dap.Header.wrap ~add_header:true err_msg in
+    let%lwt _ = Logs_lwt.err (fun m -> m "[DAP] got error response: '%s'" js) in
+    Lwt_io.write oc js
 
 let on_exn exn = Lwt.ignore_result @@ Logs_lwt.err (fun m -> m "%s" @@ Printexc.to_string exn)
 

@@ -1,6 +1,11 @@
 type t = Data_encoding.Json.json
 
-exception Wrong_encoder of string
+type wrong_encoder_details = [
+  | `Cannot_construct
+  | `Cannot_destruct
+  | `Cannot_destruct_wrong_fields
+]
+exception Wrong_encoder of (string * wrong_encoder_details)
 
 val from_string : string -> (t, string) Result.t
 

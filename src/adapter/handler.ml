@@ -86,8 +86,13 @@ module T (S:Types.STATE_T) = struct
               |> Result.map_error (fun _ -> H.on_error ~state)
             in
             Lwt.return_some output
-          with Dap.Wrong_encoder err ->
-            let%lwt () = Logs_lwt.debug (fun m -> m "wrong encoder '%s'" err) in
+          with
+          | Dap.Wrong_encoder (err, `Cannot_destruct_wrong_fields) ->
+            (* NOTE we are trying to find the correct message handler by expected errors,
+               `Cannot_destruct_wrong_fields implies we have the right handler but something else is wrong *)
+            let%lwt () = Logs_lwt.err (fun m -> m "%s" err) in
+            Lwt.return_none
+          | Dap.Wrong_encoder (_, _) ->
             Lwt.return_none
         in
         Lwt.return @@ Option.map ( fun xs -> List.rev xs |> Utils.Helpers.deduplicate_stable ) msgs
@@ -120,17 +125,18 @@ module T (S:Types.STATE_T) = struct
           apply_handler ~state message h)
     in
 
-    let ret =
+    let%lwt ret =
       match output with
       | [] ->
-        let () = Logs.err (fun m -> m "[DAP] Cannot handle message: '%s'" message) in
+        let%lwt () = Logs_lwt.err (fun m -> m "[DAP] Cannot handle message: '%s'" message) in
         Printf.sprintf "[DAP] Cannot handle message: '%s'" message
-        |> Result.error
-      | output :: [] -> Result.ok output
+        |> Result.error |> Lwt.return
+      | output :: [] -> Lwt.return @@ Result.ok output
       | output :: rest ->
         let n = List.length rest in
-        let () = Logs.warn (fun m -> m "[DAP] Got %d more messages for msg '%s', ignoring" n message) in
-        Result.ok output
+        let%lwt () = Logs_lwt.warn (fun m -> m "[DAP] Got %d more messages for msg '%s', ignoring" n message) in
+        Lwt.return @@ Result.ok output
+
     in
     Lwt.return ret
 end
