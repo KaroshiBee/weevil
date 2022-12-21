@@ -91,7 +91,7 @@ let%expect_test "Check bad input for init" =
   (* unhappy path, f_resp is expecting an init request *)
   let req =
     Dap.Request.(
-      Helpers.attach_msg ~seq:20 ~script_filename ~storage ~parameter ~entrypoint
+      Helpers.attach_msg ~seq:20 ~script_filename ~storage ~parameter ~entrypoint ()
       |> Js.construct (Message.enc command D.AttachRequestArguments.enc)
       |> Js.to_string
     )
@@ -102,9 +102,11 @@ let%expect_test "Check bad input for init" =
       {|
         { "seq": 20, "type": "request", "command": "attach",
           "arguments":
-            { "script_filename": "data/multiply_2_x_25_equals_50.tz",
-              "storage": "Unit", "parameter": "Unit", "entrypoint": "default",
-              "attach_sentinal": "AttachRequestArguments" } } |}]
+            { "type": "tezos-weevil-tcp", "request": "attach", "mode": "attach",
+              "name": "Tezos-Weevil::Attach<2>", "host": "localhost",
+              "debugServer": 9000,
+              "script_filename": "data/multiply_2_x_25_equals_50.tz",
+              "storage": "Unit", "parameter": "Unit", "entrypoint": "default" } } |}]
   in
 
   match Init.handlers ~state with

@@ -17,7 +17,7 @@ let%expect_test "Check sequencing etc for attach" =
   let command = Dap.Commands.attach in
   let req =
     Dap.Request.(
-      Helpers.attach_msg ~seq:20 ~script_filename ~storage ~parameter ~entrypoint
+      Helpers.attach_msg ~seq:20 ~script_filename ~storage ~parameter ~entrypoint ()
       |> Js.construct (Message.enc command D.AttachRequestArguments.enc)
       |> Js.to_string
     )
@@ -28,9 +28,11 @@ let%expect_test "Check sequencing etc for attach" =
       {|
         { "seq": 20, "type": "request", "command": "attach",
           "arguments":
-            { "script_filename": "data/multiply_2_x_25_equals_50.tz",
-              "storage": "Unit", "parameter": "Unit", "entrypoint": "default",
-              "attach_sentinal": "AttachRequestArguments" } } |}]
+            { "type": "tezos-weevil-tcp", "request": "attach", "mode": "attach",
+              "name": "Tezos-Weevil::Attach<2>", "host": "localhost",
+              "debugServer": 9000,
+              "script_filename": "data/multiply_2_x_25_equals_50.tz",
+              "storage": "Unit", "parameter": "Unit", "entrypoint": "default" } } |}]
   in
 
   match Attach.handlers ~state with
@@ -85,7 +87,7 @@ let%expect_test "Check bad input for attach" =
   let command = Dap.Commands.launch in
   let req =
     Dap.Request.(
-      Helpers.launch_msg ~seq:20 ~script_filename ~storage ~parameter ~entrypoint
+      Helpers.launch_msg ~seq:20 ~script_filename ~storage ~parameter ~entrypoint ()
       |> Js.construct (Message.enc command D.LaunchRequestArguments.enc)
       |> Js.to_string
     )
@@ -96,9 +98,11 @@ let%expect_test "Check bad input for attach" =
       {|
         { "seq": 20, "type": "request", "command": "launch",
           "arguments":
-            { "script_filename": "data/multiply_2_x_25_equals_50.tz",
-              "storage": "Unit", "parameter": "Unit", "entrypoint": "default",
-              "launch_sentinal": "LaunchRequestArguments" } } |}]
+            { "type": "tezos-weevil-tcp", "request": "launch", "mode": "launch",
+              "name": "Tezos-Weevil::Launch<2>", "host": "localhost",
+              "debugServer": 9000,
+              "script_filename": "data/multiply_2_x_25_equals_50.tz",
+              "storage": "Unit", "parameter": "Unit", "entrypoint": "default" } } |}]
   in
 
   match Attach.handlers ~state with

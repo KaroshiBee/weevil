@@ -115,19 +115,33 @@ let initialize_msg ~seq =
 
 let initialize_req ~seq = Request.initializeRequest @@ initialize_msg ~seq
 
-let launch_msg ~seq ~script_filename ~storage ~parameter ~entrypoint =
-  let arguments = Data.LaunchRequestArguments.make ~script_filename ~storage ~parameter ~entrypoint () in
+let launch_msg
+    ?(type_="tezos-weevil-tcp")
+    ?(request="launch")
+    ?(mode="launch")
+    ?(name="Tezos-Weevil::Launch<2>")
+    ?(host="localhost")
+    ?(debugServer=9000)
+    ~seq ~script_filename ~storage ~parameter ~entrypoint () =
+  let arguments = Data.LaunchRequestArguments.make ~type_ ~request ~mode ~name ~host ~debugServer ~script_filename ~storage ~parameter ~entrypoint () in
   Request.Message.make ~seq ~command:Commands.launch ~arguments ()
 
 let launch_req ~seq ~script_filename ~storage ~parameter ~entrypoint =
-  Request.launchRequest @@ launch_msg ~seq ~script_filename ~storage ~parameter ~entrypoint
+  Request.launchRequest @@ launch_msg ~seq ~script_filename ~storage ~parameter ~entrypoint ()
 
-let attach_msg ~seq ~script_filename ~storage ~parameter ~entrypoint =
-  let arguments = Data.AttachRequestArguments.make ~script_filename ~storage ~parameter ~entrypoint () in
+let attach_msg
+    ?(type_="tezos-weevil-tcp")
+    ?(request="attach")
+    ?(mode="attach")
+    ?(name="Tezos-Weevil::Attach<2>")
+    ?(host="localhost")
+    ?(debugServer=9000)
+    ~seq ~script_filename ~storage ~parameter ~entrypoint () =
+  let arguments = Data.AttachRequestArguments.make ~type_ ~request ~mode ~name ~host ~debugServer ~script_filename ~storage ~parameter ~entrypoint () in
   Request.Message.make ~seq ~command:Commands.attach ~arguments ()
 
 let attach_req ~seq ~script_filename ~storage ~parameter ~entrypoint =
-  Request.attachRequest @@ attach_msg ~seq ~script_filename ~storage ~parameter ~entrypoint
+  Request.attachRequest @@ attach_msg ~seq ~script_filename ~storage ~parameter ~entrypoint ()
 
 let configurationDone_msg ~seq =
   let arguments = Data.ConfigurationDoneArguments.make () in

@@ -1,6 +1,5 @@
-;;; dap-weevil.el --- Debug Adapter Protocol mode for WEEVIL      -*- lexical-binding: t; -*-
-
-;; Copyright (C) 2022 Simon Parry
+;;; dap-weevil.el --- Debug Adapter Protocol mode for Michelson -*- lexical-binding: t; -*-
+;; Copyright (C) 2022 KaroshiBee
 
 ;; Author: Simon Parry <simon.parry@karoshibee.com>
 ;; Keywords: languages
@@ -18,33 +17,34 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-;; URL: https://github.com/yyoncho/dap-mode
-;; Package-Requires: ((emacs "25.1") (dash "2.14.1") (lsp-mode "4.0"))
-;; Version: 0.2
 
 ;;; Commentary:
-;; Adapter for https://github.com/wyn/weevil
+;; dap-mode adapter for https://github.com/wyn/weevil
 
 ;;; Code:
 
 (require 'dap-mode)
 
-(defun dap-tezos-weevil--populate-start-tcp-args (conf)
+(defun dap-weevil--populate-start-tcp-args (conf)
   "Populate CONF with the required arguments."
   (let ((conf (-> conf
                   (dap--put-if-absent :host "localhost")
                   (dap--put-if-absent :debugServer 9000)
-                  (dap--put-if-absent :request "attach")
-                  (dap--put-if-absent :name "Tezos-Weevil::Connected"))))
+                  (dap--put-if-absent :request "launch")
+                  ;(dap--put-if-absent :name "Tezos-Weevil::Connected")
+                  (dap--put-if-absent :script_filename "TODO")
+                  (dap--put-if-absent :storage "Unit")
+                  (dap--put-if-absent :parameter "Unit")
+                  (dap--put-if-absent :entrypoint "default"))))
     conf))
 
-(dap-register-debug-provider "tezos-weevil-tcp" #'dap-tezos-weevil--populate-start-tcp-args)
+(dap-register-debug-provider "tezos-weevil-tcp" #'dap-weevil--populate-start-tcp-args)
 
-(dap-register-debug-template "Tezos Weevil Attach (Console)"
+(dap-register-debug-template "Tezos Weevil Launch (Console)"
                              (list :type "tezos-weevil-tcp"
-                                   :request "attach"
-                                   :mode "attach"
-                                   :name "Tezos-Weevil::Attach"))
+                                   :request "launch"
+                                   :mode "launch"
+                                   :name "Tezos-Weevil::Launch"))
 
 (provide 'dap-weevil)
 ;;; dap-weevil.el ends here

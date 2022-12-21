@@ -61,11 +61,16 @@ module T (S:Types.STATE_T) = struct
                    let%lwt (inp, outp) = acc in
                    match inp with
                    | Result.Ok inp ->
+                     (* NOTE wrong encoder would be raised here *)
                      let%lwt o = f inp in
-                     let msg_or_err =
+                     let%lwt msg_or_err =
                        match o with
-                       | Result.Ok msg -> msg
-                       | Result.Error err -> err
+                       | Result.Ok msg ->
+                         let%lwt () = Logs_lwt.debug (fun m -> m "got input '%s', got reply '%s'" inp msg) in
+                         Lwt.return msg
+                       | Result.Error err ->
+                         let%lwt () = Logs_lwt.err (fun m -> m "got input '%s', got error '%s'" inp err) in
+                         Lwt.return err
                      in
                      Lwt.return (o, msg_or_err :: outp)
                    | Result.Error _ ->
@@ -81,7 +86,9 @@ module T (S:Types.STATE_T) = struct
               |> Result.map_error (fun _ -> H.on_error ~state)
             in
             Lwt.return_some output
-          with Dap.Wrong_encoder _ -> Lwt.return_none
+          with Dap.Wrong_encoder err ->
+            let%lwt () = Logs_lwt.debug (fun m -> m "wrong encoder '%s'" err) in
+            Lwt.return_none
         in
         Lwt.return @@ Option.map ( fun xs -> List.rev xs |> Utils.Helpers.deduplicate_stable ) msgs
       )

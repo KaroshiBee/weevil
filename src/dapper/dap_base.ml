@@ -176,18 +176,50 @@ end = struct
 end
 
 (* launching and attaching requests are special - weevil defines what should go into them *)
+(* "arguments":{
+      "type":"tezos-weevil-tcp",
+      "request":"launch",
+      "mode":"launch",
+      "name":"Tezos-Weevil::Launch",
+      "host":"localhost",
+      "debugServer":9000,
+      "script_filename":"TODO",
+      "storage":"Unit",
+      "parameter":"Unit",
+      "entrypoint":"default"
+      } *)
 module LaunchRequestArguments : sig
   type t
   val equal : t -> t -> bool
   val pp : Format.formatter -> t -> unit
   val show : t -> string
-  val module_name : string
+  val sentinal : string
   val enc : t Data_encoding.t
   val gen : t QCheck.Gen.t
   val arb : t QCheck.arbitrary
-  val make : ?restart:Data_encoding.json -> ?noDebug:bool -> script_filename:string -> storage:string -> parameter:string -> entrypoint:string -> unit -> t
+  val make :
+    ?restart:Data_encoding.json ->
+    ?noDebug:bool ->
+    type_:string ->
+    request:string ->
+    mode:string ->
+    ?name:string ->
+    ?host:string ->
+    ?debugServer:int ->
+    script_filename:string ->
+    storage:string ->
+    parameter:string ->
+    entrypoint:string ->
+    unit ->
+    t
   val restart : t -> Data_encoding.json option
   val noDebug : t -> bool option
+  (* val type_ : t -> string option *)
+  (* val request : t -> string option *)
+  (* val mode : t -> string option *)
+  (* val name : t -> string option *)
+  (* val host : t -> string option *)
+  (* val debugServer : t -> int option *)
   val script_filename : t -> string
   val storage : t -> string
   val parameter : t -> string
@@ -198,10 +230,21 @@ end = struct
     | Some js -> Data_encoding.Json.pp fmt js
     | None -> Data_encoding.Json.pp fmt `Null
 
-  let module_name = "LaunchRequestArguments"
-  type t = {
+  let sentinal = "launch"
+
+  type t1 = {
     restart: (Data_encoding.json option  [@gen Gen.gen_json_opt][@equal Eq.equal_json_opt][@printer pp_json]);
     noDebug: bool option;
+    type_ : (string [@gen Gen.gen_utf8_str]);
+    request : (string [@gen QCheck.Gen.return sentinal]); (* distinguishes from attach *)
+    mode : (string [@gen QCheck.Gen.return sentinal]); (* distinguishes from attach *)
+    name : (string option [@gen Gen.gen_utf8_str_opt]);
+    host : (string option [@gen Gen.gen_utf8_str_opt]);
+    debugServer : (int option [@gen Gen.gen_int31_opt]);
+  }
+  [@@deriving qcheck, eq, show]
+
+  type t2 = {
     (* Since launching is debugger/runtime specific, the arguments for this request are not part of this specification.
        Arguments for launch request. Additional attributes are implementation specific.
     *)
@@ -209,63 +252,114 @@ end = struct
     storage: (string [@gen Gen.gen_utf8_str]);
     parameter: (string [@gen Gen.gen_utf8_str]);
     entrypoint: (string [@gen Gen.gen_entrypoint_str]);
-    launch_sentinal: unit; (* something to distingush it from attach request args *)
   }
   [@@deriving qcheck, eq, show]
 
-  let enc =
+  type t = t1 * t2
+  [@@deriving qcheck, eq, show]
+
+  let enc_1 =
     let open Data_encoding in
-    conv
-      (fun {restart; noDebug; script_filename; storage; parameter; entrypoint; launch_sentinal; } -> (restart, noDebug, script_filename, storage, parameter, entrypoint, launch_sentinal))
-      (fun (restart, noDebug, script_filename, storage, parameter, entrypoint, launch_sentinal) -> {restart; noDebug; script_filename; storage; parameter; entrypoint; launch_sentinal;})
-      (obj7
+    conv_with_guard
+      (fun {restart; noDebug; type_; request; mode; name; host; debugServer;} -> (restart, noDebug, type_, request, mode, name, host, debugServer ))
+      (fun (restart, noDebug, type_, request, mode, name, host, debugServer ) ->
+         if (request, mode) = (sentinal, sentinal) then Ok {restart; noDebug; type_; request; mode; name; host; debugServer;}
+         else
+           let err = Printf.sprintf "expected '%s', got mode='%s', request='%s'" sentinal mode request in
+           Error err
+      )
+      (obj8
          (opt "__restart" json)
          (opt "noDebug" bool)
+         (req "type" string)
+         (req "request" string)
+         (req "mode" string)
+         (opt "name" string)
+         (opt "host" string)
+         (opt "debugServer" int31)
+      )
+
+  let enc_2 =
+    let open Data_encoding in
+    conv
+      (fun {script_filename; storage; parameter; entrypoint; } -> (script_filename, storage, parameter, entrypoint ))
+      (fun (script_filename, storage, parameter, entrypoint ) -> {script_filename; storage; parameter; entrypoint; })
+      (obj4
          (req "script_filename" string)
          (req "storage" string)
          (req "parameter" string)
          (req "entrypoint" string)
-         (req "launch_sentinal" @@ constant module_name)
       )
 
-  let make ?restart ?noDebug ~script_filename ~storage ~parameter ~entrypoint () =
-    {restart; noDebug; script_filename; storage; parameter; entrypoint; launch_sentinal=()}
+  let enc = Data_encoding.merge_objs enc_1 enc_2
 
-  let restart t = t.restart
-  let noDebug t = t.noDebug
-  let script_filename t = t.script_filename
-  let storage t = t.storage
-  let parameter t = t.parameter
-  let entrypoint t = t.entrypoint
+  let make ?restart ?noDebug ~type_ ~request ~mode ?name ?host ?debugServer ~script_filename ~storage ~parameter ~entrypoint () =
+    {restart; noDebug; type_; request; mode; name; host; debugServer; }, {script_filename; storage; parameter; entrypoint; }
+
+  let restart (_t1, _t2) = _t1.restart
+  let noDebug (_t1, _t2) = _t1.noDebug
+  let script_filename (_t1, _t2) = _t2.script_filename
+  let storage (_t1, _t2) = _t2.storage
+  let parameter (_t1, _t2) = _t2.parameter
+  let entrypoint (_t1, _t2) = _t2.entrypoint
 
 end
+
 
 module AttachRequestArguments : sig
   type t
   val equal : t -> t -> bool
   val pp : Format.formatter -> t -> unit
   val show : t -> string
-  val module_name : string
+  val sentinal : string
   val enc : t Data_encoding.t
   val gen : t QCheck.Gen.t
   val arb : t QCheck.arbitrary
-  val make : ?restart:Data_encoding.json -> script_filename:string -> storage:string -> parameter:string -> entrypoint:string -> unit -> t
+  val make :
+    ?restart:Data_encoding.json ->
+    type_:string ->
+    request:string ->
+    mode:string ->
+    ?name:string ->
+    ?host:string ->
+    ?debugServer:int ->
+    script_filename:string ->
+    storage:string ->
+    parameter:string ->
+    entrypoint:string ->
+    unit ->
+    t
   val restart : t -> Data_encoding.json option
+  (* val type_ : t -> string option *)
+  (* val request : t -> string option *)
+  (* val mode : t -> string option *)
+  (* val name : t -> string option *)
+  (* val host : t -> string option *)
+  (* val debugServer : t -> int option *)
   val script_filename : t -> string
   val storage : t -> string
   val parameter : t -> string
   val entrypoint : t -> string
-
 end = struct
-
-  let module_name = "AttachRequestArguments"
 
   let pp_json fmt = function
     | Some js -> Data_encoding.Json.pp fmt js
     | None -> Data_encoding.Json.pp fmt `Null
 
-  type t = {
+  let sentinal = "attach"
+
+  type t1 = {
     restart: (Data_encoding.json option  [@gen Gen.gen_json_opt][@equal Eq.equal_json_opt][@printer pp_json]);
+    type_ : (string [@gen Gen.gen_utf8_str]);
+    request : (string [@gen QCheck.Gen.return sentinal]); (* distinguishes from attach *)
+    mode : (string [@gen QCheck.Gen.return sentinal]); (* distinguishes from attach *)
+    name : (string option [@gen Gen.gen_utf8_str_opt]);
+    host : (string option [@gen Gen.gen_utf8_str_opt]);
+    debugServer : (int option [@gen Gen.gen_int31_opt]);
+  }
+  [@@deriving qcheck, eq, show]
+
+  type t2 = {
     (* Since attaching is debugger/runtime specific, the arguments for this request are not part of this specification.
        Arguments for attach request. Additional attributes are implementation specific.
     *)
@@ -273,32 +367,54 @@ end = struct
     storage: (string [@gen Gen.gen_utf8_str]);
     parameter: (string [@gen Gen.gen_utf8_str]);
     entrypoint: (string [@gen Gen.gen_entrypoint_str]);
-    attach_sentinal: unit; (* something to distingush it from launch request args *)
   }
   [@@deriving qcheck, eq, show]
 
-  let enc =
+  type t = t1 * t2
+  [@@deriving qcheck, eq, show]
+
+  let enc_1 =
+    let open Data_encoding in
+    conv_with_guard
+      (fun {restart; type_; request; mode; name; host; debugServer;} -> (restart, type_, request, mode, name, host, debugServer ))
+      (fun (restart, type_, request, mode, name, host, debugServer ) ->
+         if (request, mode) = (sentinal, sentinal) then Ok {restart; type_; request; mode; name; host; debugServer;}
+         else
+           let err = Printf.sprintf "expected '%s', got mode='%s', request='%s'" sentinal mode request in
+           Error err
+      )
+      (obj7
+         (opt "__restart" json)
+         (req "type" string)
+         (req "request" string)
+         (req "mode" string)
+         (opt "name" string)
+         (opt "host" string)
+         (opt "debugServer" int31)
+      )
+
+  let enc_2 =
     let open Data_encoding in
     conv
-      (fun {restart; script_filename; storage; parameter; entrypoint; attach_sentinal;} -> (restart, script_filename, storage, parameter, entrypoint, attach_sentinal))
-      (fun (restart, script_filename, storage, parameter, entrypoint, attach_sentinal) -> {restart; script_filename; storage; parameter; entrypoint; attach_sentinal;})
-      (obj6
-         (opt "__restart" json)
+      (fun {script_filename; storage; parameter; entrypoint; } -> (script_filename, storage, parameter, entrypoint ))
+      (fun (script_filename, storage, parameter, entrypoint ) -> {script_filename; storage; parameter; entrypoint; })
+      (obj4
          (req "script_filename" string)
          (req "storage" string)
          (req "parameter" string)
          (req "entrypoint" string)
-         (req "attach_sentinal" @@ constant module_name)
       )
 
-  let make ?restart ~script_filename ~storage ~parameter ~entrypoint () =
-    {restart; script_filename; storage; parameter; entrypoint; attach_sentinal=()}
+  let enc = Data_encoding.merge_objs enc_1 enc_2
 
-  let restart t = t.restart
-  let script_filename t = t.script_filename
-  let storage t = t.storage
-  let parameter t = t.parameter
-  let entrypoint t = t.entrypoint
+  let make ?restart ~type_ ~request ~mode ?name ?host ?debugServer ~script_filename ~storage ~parameter ~entrypoint () =
+    {restart; type_; request; mode; name; host; debugServer; }, {script_filename; storage; parameter; entrypoint; }
+
+  let restart (_t1, _t2) = _t1.restart
+  let script_filename (_t1, _t2) = _t2.script_filename
+  let storage (_t1, _t2) = _t2.storage
+  let parameter (_t1, _t2) = _t2.parameter
+  let entrypoint (_t1, _t2) = _t2.entrypoint
 
 end
 
