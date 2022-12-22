@@ -12,7 +12,7 @@ let default_response_error e =
   let variables = `O [("error", `String e)] in
   let error = Dap_messages.Data.Message.make ~id ~format:"{error}" ~variables () in
   let body = Dap_messages.Data.ErrorResponse_body.make ~error () in
-  Message.make ~seq:Dap_base.Seqr.not_set ~request_seq:Dap_base.Seqr.not_set ~success:false ~command:Dap_commands.error ~body ()
+  Message.make ~seq:Dap_base.Seqr.not_set ~request_seq:Dap_base.Seqr.not_set ~success:false ~command:Dap_commands.error ~body ~message:e ()
 
 (* stuff that is used in handlers *)
 type _ expr =
