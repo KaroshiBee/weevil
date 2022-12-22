@@ -59,7 +59,6 @@ let rec main_handler ~recs msg ic oc =
   | Some MichEvent.GetRecords _, _ -> (
     let%lwt _ = Logs_lwt.debug (fun m -> m "[MICH] getting current records") in
     let enc = Data_encoding.list Model.Weevil_json.enc in
-    (* we use an option here because want to distinguish when list is empty *)
     let%lwt records =
       Tbl.to_list recs
       |> function
