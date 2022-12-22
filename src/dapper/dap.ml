@@ -29,6 +29,7 @@ module Restart = Dap_restart
 module Terminate = Dap_terminate
 module Disconnect = Dap_disconnect
 
+
 exception Wrong_encoder = Js_msg.Wrong_encoder
 
 let content_length_message_handler = Header.content_length_message_handler

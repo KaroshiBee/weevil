@@ -16,7 +16,8 @@ module T (S:Types.STATE_T) = struct
   module Next = Next.T (S)
   module Terminate = Terminate.T (S)
   module Disconnect = Disconnect.T (S)
-
+  (* NOTE this catch all one is special, gets applied with error str if none of the others work *)
+  module Catch_all = Errored.T (S)
 
   type t = {handlers : (string, (module HANDLER_T)) Hashtbl.t;}
 
@@ -37,6 +38,7 @@ module T (S:Types.STATE_T) = struct
           (* "restart", (module Restart : HANDLER_T with type state = S.t); *)
           "terminate", (module Terminate : HANDLER_T);
           "disconnect", (module Disconnect : HANDLER_T);
+          (* NOTE we dont add Catch_all to the hashtbl *)
         ]
         |> List.to_seq |> Hashtbl.of_seq;
     }
@@ -89,11 +91,13 @@ module T (S:Types.STATE_T) = struct
           with
           | Dap.Wrong_encoder (err, `Cannot_destruct_wrong_fields) ->
             (* NOTE we are trying to find the correct message handler by expected errors,
-               `Cannot_destruct_wrong_fields implies we have the right handler but something else is wrong *)
+               `Cannot_destruct_wrong_fields implies we have the right handler but something else is wrong
+               hence we record this fact in the error part of result.t *)
             let%lwt () = Logs_lwt.err (fun m -> m "%s" err) in
             Lwt.return_some @@ Result.Error err
           | Dap.Wrong_encoder (_, _) ->
-            (* NOTE these wrong encoder errors are ok *)
+            (* NOTE these wrong encoder errors are ok,
+               just means its one of the other handlers *)
             Lwt.return_none
           | _ as e ->
             (* NOTE any other errors should be sent back too *)
@@ -129,7 +133,7 @@ module T (S:Types.STATE_T) = struct
       in
       (* First one that doesnt raise Wrong_encoder is what we want *)
       cmds
-      |> Lwt_list.filter_map_p (fun cmd ->
+      |> Lwt_list.filter_map_s (fun cmd ->
           let h = Hashtbl.find_opt t.handlers cmd in
           apply_handler ~state message h)
     in
@@ -138,15 +142,22 @@ module T (S:Types.STATE_T) = struct
       match output with
       | [] ->
         let%lwt () = Logs_lwt.err (fun m -> m "[DAP] Cannot handle message: '%s'" message) in
-        Printf.sprintf "[DAP] Cannot handle message: '%s'" message
-        |> Result.error |> Lwt.return
+        let s = Printf.sprintf "Cannot handle message: '%s'" message in
+        let%lwt r = Catch_all.catch_all_handler ~state s in
+        r |> Result.map (fun s -> [s]) |> Lwt.return
+
+      | Result.Error output :: [] ->
+        let%lwt r = Catch_all.catch_all_handler ~state output in
+        r |> Result.map (fun s -> [s]) |> Lwt.return
+
       | Result.Ok output :: [] -> Lwt.return @@ Result.ok output
-      | Result.Error output :: [] -> Lwt.return @@ Result.Error output
+
       | _ :: rest ->
         let n = 1+List.length rest in
         let%lwt () = Logs_lwt.err (fun m -> m "[DAP] Got too many replies (%d) for msg '%s'" n message) in
-        Lwt.return @@ Result.error @@ Printf.sprintf "Too many replies [%d] for message '%s'" n message
-
+        let s = Printf.sprintf "Too many replies (%d) for message '%s'" n message in
+        let%lwt r = Catch_all.catch_all_handler ~state s in
+        r |> Result.map (fun s -> [s]) |> Lwt.return
     in
     Lwt.return ret
 end

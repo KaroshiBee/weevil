@@ -1,7 +1,7 @@
 module D = Dap_messages.Data
 
 module Raise_error =
-  Dap_handlers.Raise_response.Make
+  Dap_handlers.Raise_error.Make
     (struct
       type enum = Dap_commands.error
 

@@ -84,11 +84,11 @@ module type HANDLER_T = sig
      so happy-path messages *and* error message responses,
      they live in the type 'a = string list of the ('a, _) Result.t,
 
-     however we can still have errors (e.g. not being able to decode the incoming message at all)
-     which we also need to deal with
+     however we *may* still have errors
+     which we also need to deal with (probably just log out to err)
      that is the type 'b = string of the (_, 'b) Result.t
 
-     TODO return these arb errors as ErrorResponse strs too
+     TODO return these arb errors as ErrorResponse strs too?
 
   *)
   val handle_exn :
