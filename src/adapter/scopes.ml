@@ -18,7 +18,7 @@ module T (S : Types.STATE_READONLY_T) = struct
           let command = Dap.Commands.scopes in
           let locals_name, locals_var = Defaults.Vals._THE_ONLY_SCOPE in
           let scopes = [
-            D.Scope.make ~name:locals_name ~variablesReference:locals_var ~expensive:false ()
+            D.Scope.make ~name:locals_name ~presentationHint:D.Scope_presentationHint.Locals ~variablesReference:locals_var ~expensive:false ()
           ] in
           let body = D.ScopesResponse_body.make ~scopes () in
           Dap.Response.default_response_req command body

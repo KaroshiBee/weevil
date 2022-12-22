@@ -57,20 +57,20 @@ end = struct
           (* however we need the request seq number from the incoming message *)
           let args = IN_T.extract in_t in
           let request_seq = IN_MSG_T.seq args in
-          let seq = Dap_base.Seqr.make ~seq ~request_seq () in
+          let seqr = Dap_base.Seqr.make ~seq ~request_seq () in
           (* setting the new seqr on state because one of the
              following two messages will always get sent back,
              also NOTE we set the global state before invoking the handler *)
-          let () = S.set_seqr state seq in
+          let () = S.set_seqr state seqr in
           handler ~state in_t
           |> Dap_result.map ~f:(fun v ->
               let msg = OUT_T.extract v in
-              let msg = OUT_MSG_T.set_seq ~seq msg in
+              let msg = OUT_MSG_T.set_seq ~seqr msg in
               Out.ctor msg
             )
           |> Dap_result.map_error ~f:(fun err ->
                 let msg = Err.extract err in
-                let msg = Err.Message.set_seq ~seq msg in
+                let msg = Err.Message.set_seq ~seqr msg in
                 Err.errorResponse msg
             )
       in
@@ -148,20 +148,20 @@ end = struct
              because these messages will all relate to an ongoing request in some way *)
           let request_seq = Dap_base.Seqr.request_seq seqr in
           (* make the new seqr pair *)
-          let seq = Dap_base.Seqr.make ~seq ~request_seq () in
+          let seqr = Dap_base.Seqr.make ~seq ~request_seq () in
           (* setting the new seqr on state because one of the
              following two messages will always get sent back
              NOTE we do this before calling the handler that's being wrapped *)
-          let () = S.set_seqr state seq in
+          let () = S.set_seqr state seqr in
           handler ~state ()
           |> Dap_result.map ~f:(fun v ->
               let msg = OUT_T.extract v in
-              let msg = OUT_MSG_T.set_seq ~seq msg in
+              let msg = OUT_MSG_T.set_seq ~seqr msg in
               Out.ctor msg
             )
           |> Dap_result.map_error ~f:(fun err ->
                 let msg = Err.extract err in
-                let msg = Err.Message.set_seq ~seq msg in
+                let msg = Err.Message.set_seq ~seqr msg in
                 Err.errorResponse msg
             )
       in
@@ -217,20 +217,20 @@ end = struct
              raised an error in response to a request that we cannot handle, *)
           let request_seq = succ @@ Dap_base.Seqr.request_seq seqr in
           (* make the new seqr pair *)
-          let seq = Dap_base.Seqr.make ~seq ~request_seq () in
+          let seqr = Dap_base.Seqr.make ~seq ~request_seq () in
           (* setting the new seqr on state because one of the
              following two messages will always get sent back
              NOTE we do this before calling the handler that's being wrapped *)
-          let () = S.set_seqr state seq in
+          let () = S.set_seqr state seqr in
           handler ~state err_str
             |> Dap_result.map ~f:(fun v ->
               let msg = OUT_T.extract v in
-              let msg = OUT_MSG_T.set_seq ~seq msg in
+              let msg = OUT_MSG_T.set_seq ~seqr msg in
               Out.ctor msg
             )
           |> Dap_result.map_error ~f:(fun err ->
                 let msg = Err.extract err in
-                let msg = Err.Message.set_seq ~seq msg in
+                let msg = Err.Message.set_seq ~seqr msg in
                 Err.errorResponse msg
             )
       in

@@ -31,9 +31,9 @@ let%expect_test "Check sequencing etc for threads" =
     let%lwt () =
       [%expect
         {|
-      { "seq": 21, "type": "response", "request_seq": 20, "success": true,
+      { "seq": 1, "type": "response", "request_seq": 20, "success": true,
         "command": "threads",
-        "body": { "threads": [ { "id": 1, "name": "main" } ] } } |}]
+        "body": { "threads": [ { "id": 1, "name": "main thread" } ] } } |}]
     in
     Lwt.return_unit
 

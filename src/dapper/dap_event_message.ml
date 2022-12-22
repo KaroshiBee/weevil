@@ -15,8 +15,8 @@ let equal ~equal_body t1 t2 =
 
 let seq t = t.seq
 
-let set_seq ~seq:s t =
-  let seq = Dap_base.Seqr.seq s in
+let set_seq ~seqr t =
+  let seq = Dap_base.Seqr.seq seqr in
   {t with seq}
 
 let type_ t = t.type_

@@ -44,7 +44,7 @@ let%expect_test "Check sequencing etc for attach" =
     let%lwt () =
       [%expect
         {|
-      { "seq": 21, "type": "response", "request_seq": 20, "success": true,
+      { "seq": 1, "type": "response", "request_seq": 20, "success": true,
         "command": "attach", "body": {} } |}]
     in
 
@@ -52,7 +52,7 @@ let%expect_test "Check sequencing etc for attach" =
     let ev = Result.get_ok ev in
     Printf.printf "%s" ev ;
     let%lwt () = [%expect {|
-        { "seq": 22, "type": "event", "event": "process",
+        { "seq": 2, "type": "event", "event": "process",
           "body":
             { "name": "TODO PROCESS EVENT NAME e.g. test.tz",
               "startMethod": "attach" } } |}] in
@@ -61,7 +61,7 @@ let%expect_test "Check sequencing etc for attach" =
     let ev = Result.get_ok ev in
     Printf.printf "%s" ev ;
     let%lwt () = [%expect {|
-        { "seq": 23, "type": "event", "event": "stopped",
+        { "seq": 3, "type": "event", "event": "stopped",
           "body":
             { "reason": "entry", "threadId": 1, "preserveFocusHint": true,
               "allThreadsStopped": true } } |}] in

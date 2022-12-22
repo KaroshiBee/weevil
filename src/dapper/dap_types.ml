@@ -22,7 +22,7 @@ module type MSG_T = sig
   include MSG_READONLY_T
 
   val set_seq :
-    seq:Dap_base.Seqr.t ->
+    seqr:Dap_base.Seqr.t ->
     ('enum, 'contents, 'presence) t ->
     ('enum, 'contents, 'presence) t
 end

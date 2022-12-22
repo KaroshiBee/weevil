@@ -79,7 +79,7 @@ let%expect_test "Check sequencing request/response" =
   let seq = Dap.Seqr.seq seqr in
   Printf.printf "seq %d" seq;
   let%lwt () =
-    [%expect {| seq 1 |}]
+    [%expect {| seq 0 |}]
   in
 
   let%lwt s = handler ~state req_launch in
@@ -87,7 +87,7 @@ let%expect_test "Check sequencing request/response" =
   let%lwt () =
     [%expect
       {|
-    { "seq": 2, "type": "response", "request_seq": 101, "success": true,
+    { "seq": 1, "type": "response", "request_seq": 101, "success": true,
       "command": "launch", "body": {} } |}]
   in
 
@@ -101,7 +101,7 @@ let%expect_test "Check sequencing request/response" =
   let seq = Dap.Seqr.seq seqr in
   Printf.printf "seq %d" seq;
   let%lwt () =
-    [%expect {| seq 2 |}]
+    [%expect {| seq 1 |}]
   in
 
   (* NOTE can no longer pass wrong type in *)
@@ -118,7 +118,7 @@ let%expect_test "Check sequencing request/response" =
   Printf.printf "%s" @@ Result.get_error s ;
   let%lwt () = [%expect
     {|
-    { "seq": 3, "type": "response", "request_seq": 101, "success": false,
+    { "seq": 2, "type": "response", "request_seq": 101, "success": false,
       "command": "error", "message": "testing error",
       "body":
         { "error":
@@ -134,4 +134,4 @@ let%expect_test "Check sequencing request/response" =
 
   let seq = Dap.Seqr.seq seqr in
   Printf.printf "seq %d" seq;
-  [%expect {| seq 3 |}]
+  [%expect {| seq 2 |}]

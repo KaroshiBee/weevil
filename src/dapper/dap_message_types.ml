@@ -38,7 +38,7 @@ end
 module type REQUEST_T = sig
   include REQUEST_READONLY_T
   val set_seq :
-    seq:Dap_base.Seqr.t -> ('cmd, 'args, 'presence) t -> ('cmd, 'args, 'presence) t
+    seqr:Dap_base.Seqr.t -> ('cmd, 'args, 'presence) t -> ('cmd, 'args, 'presence) t
 end
 
 
@@ -94,7 +94,7 @@ end
 module type RESPONSE_T = sig
   include RESPONSE_READONLY_T
   val set_seq :
-    seq:Dap_base.Seqr.t -> ('cmd, 'body, 'presence) t -> ('cmd, 'body, 'presence) t
+    seqr:Dap_base.Seqr.t -> ('cmd, 'body, 'presence) t -> ('cmd, 'body, 'presence) t
 end
 
 
@@ -140,5 +140,5 @@ end
 module type EVENT_T = sig
   include EVENT_READONLY_T
   val set_seq :
-    seq:Dap_base.Seqr.t -> ('event, 'body, 'presence) t -> ('event, 'body, 'presence) t
+    seqr:Dap_base.Seqr.t -> ('event, 'body, 'presence) t -> ('event, 'body, 'presence) t
 end

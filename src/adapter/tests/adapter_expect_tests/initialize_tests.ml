@@ -49,7 +49,7 @@ let%expect_test "Check sequencing etc for init" =
     let%lwt () =
       [%expect
         {|
-      { "seq": 21, "type": "response", "request_seq": 20, "success": true,
+      { "seq": 1, "type": "response", "request_seq": 20, "success": true,
         "command": "initialize",
         "body":
           { "supportsConfigurationDoneRequest": true,
@@ -60,7 +60,7 @@ let%expect_test "Check sequencing etc for init" =
     let ev = Result.get_ok ev in
     Printf.printf "%s" ev ;
     let%lwt () = [%expect {|
-        { "seq": 22, "type": "event", "event": "initialized", "body": {} } |}] in
+        { "seq": 2, "type": "event", "event": "initialized", "body": {} } |}] in
 
     (* should have set the client config *)
     let client_cfg =

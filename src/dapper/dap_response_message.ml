@@ -18,9 +18,9 @@ let equal ~equal_body t1 t2 =
 
 let seq t = t.seq
 
-let set_seq ~seq:s t =
+let set_seq ~seqr t =
   let seq, request_seq = Dap_base.Seqr.(
-      seq s, request_seq s
+      seq seqr, request_seq seqr
     ) in
     {t with seq; request_seq}
 

@@ -63,7 +63,7 @@ let%expect_test "Check sequencing etc for launch" =
         let%lwt () =
           [%expect
             {|
-      { "seq": 21, "type": "response", "request_seq": 20, "success": true,
+      { "seq": 1, "type": "response", "request_seq": 20, "success": true,
         "command": "launch", "body": {} } |}]
         in
 
@@ -71,7 +71,7 @@ let%expect_test "Check sequencing etc for launch" =
         let ev = Result.get_ok ev in
         Printf.printf "%s" ev ;
         let%lwt () = [%expect {|
-        { "seq": 22, "type": "event", "event": "process",
+        { "seq": 2, "type": "event", "event": "process",
           "body":
             { "name": "TODO PROCESS EVENT NAME e.g. test.tz",
               "startMethod": "launch" } } |}] in
@@ -80,7 +80,7 @@ let%expect_test "Check sequencing etc for launch" =
         let ev = Result.get_ok ev in
         Printf.printf "%s" ev ;
         let%lwt () = [%expect {|
-        { "seq": 23, "type": "event", "event": "stopped",
+        { "seq": 3, "type": "event", "event": "stopped",
           "body":
             { "reason": "entry", "threadId": 1, "preserveFocusHint": true,
               "allThreadsStopped": true } } |}] in
@@ -100,9 +100,9 @@ let%expect_test "Check sequencing etc for launch" =
               Printf.printf "%s" s;
               let%lwt () =
                 [%expect {|
-                  Content-Length: 170
+                  Content-Length: 173
                   
-                  { "event":    { "cmd":        "dune exec -- weevil stepper -v --headless --storage 'Unit' --parameter 'Unit' --entrypoint 'default' data/multiply_2_x_25_equals_50.tz" } } |}]
+                  { "event":    { "cmd":        "dune exec -- weevil stepper -v -v --headless --storage 'Unit' --parameter 'Unit' --entrypoint 'default' data/multiply_2_x_25_equals_50.tz" } } |}]
               in
               Lwt.return_unit
             )

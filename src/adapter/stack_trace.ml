@@ -12,13 +12,13 @@ module Mdb_ = struct
   exception Get_records of Model.Weevil_json.t list
 
   let get_recs ic oc =
-    (* TODO this type is declared in mdb_server too *)
-    let enc = Data_encoding.list Model.Weevil_json.enc in
+    (* TODO is this a list or single? *)
+    let enc = Data_encoding.(option @@ list Model.Weevil_json.enc) in
 
     let handle_message msg _ic _oc =
       let%lwt () = Logs_lwt.debug (fun m -> m "[DAP-stacktrace] got msg from subprocess '%s'" msg) in
       match%lwt Mdb.Mdb_server.read_weevil_recs ~enc msg with
-      | Some wrecs ->
+      | Some (Some wrecs) ->
         let%lwt () = Logs_lwt.debug (fun m -> m "[DAP-stacktrace] got %d weevil log records from mdb" @@ List.length wrecs) in
         raise @@ Get_records wrecs
       | _ -> Lwt.return_unit
@@ -65,10 +65,10 @@ module T (S : Types.STATE_T) = struct
               | (_, None) | (None, _) -> []
               | (Some Mdb_cfg.{script_filename; entrypoint; _}, Some wrec) ->
                 let loc = wrec.location in
-                let source = D.Source.make ~name:entrypoint ~path:script_filename () in
+                let source = D.Source.make ~name:(Filename.basename script_filename) ~path:script_filename () in
                 [D.StackFrame.make
                    ~id:Defaults.Vals._THE_FRAME_ID
-                   ~name:Defaults.Vals._THE_FRAME_NAME
+                   ~name:entrypoint
                    ~source
                    ~line:loc.start.line
                    ~column:loc.start.column

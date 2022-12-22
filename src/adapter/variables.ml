@@ -10,6 +10,8 @@ module T (S : Types.STATE_READONLY_T) = struct
 
   module On_request = Dap.Variables.On_request (S)
 
+  let not_structured = 0
+
   let variables_handler =
     On_request.make ~handler:(fun ~state req ->
         let recs = S.log_records state in
@@ -22,18 +24,18 @@ module T (S : Types.STATE_READONLY_T) = struct
           let gas_name, _gas_var = Defaults.Vals._THE_GAS_LOCAL in
           let stack_name, _stack_var = Defaults.Vals._THE_MICHELSON_STACK_LOCAL in
           let gas_val, stack_val =
-            match List.nth_opt (List.rev recs) 0 with
+            match List.nth_opt recs 0 with
             | None -> "", []
             | Some wrec -> Model.Weevil_json.(wrec.gas, wrec.stack)
           in
           let variables = [
-            [D.Variable_.make ~name:gas_name ~value:gas_val ~variablesReference:vrefs ()]; (* 0 here means not structured ie no children? *)
-            [D.Variable_.make ~name:stack_name ~value:"" ~variablesReference:vrefs ()]; (* 0 here means not structured ie no children? *)
+            [D.Variable_.make ~name:gas_name ~value:gas_val ~variablesReference:not_structured ()]; (* 0 here means not structured ie no children? *)
+            [D.Variable_.make ~name:stack_name ~value:"" ~variablesReference:not_structured ()]; (* 0 here means not structured ie no children? *)
             stack_val |> List.mapi (fun i sv ->
                 D.Variable_.make
                   ~name:(Printf.sprintf "%d:" i)
                   ~value:(String.trim sv)
-                  ~variablesReference:vrefs
+                  ~variablesReference:not_structured
                   ()
               )
           ] |> List.concat

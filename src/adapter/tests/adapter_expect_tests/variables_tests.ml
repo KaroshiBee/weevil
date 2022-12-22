@@ -21,7 +21,7 @@ let%expect_test "Check sequencing etc for variables" =
     [%expect
       {|
         { "seq": 20, "type": "request", "command": "variables",
-          "arguments": { "variablesReference": 0 } } |}]
+          "arguments": { "variablesReference": 1 } } |}]
   in
 
   match Variables.handlers ~state:st with
@@ -33,15 +33,15 @@ let%expect_test "Check sequencing etc for variables" =
     let%lwt () =
       [%expect
         {|
-      { "seq": 21, "type": "response", "request_seq": 20, "success": true,
+      { "seq": 1, "type": "response", "request_seq": 20, "success": true,
         "command": "variables",
         "body":
           { "variables":
-              [ { "name": "gas", "value": "8", "variablesReference": 0 },
+              [ { "name": "gas", "value": "10", "variablesReference": 0 },
                 { "name": "stack", "value": "", "variablesReference": 0 },
                 { "name": "0:", "value": "1", "variablesReference": 0 },
                 { "name": "1:", "value": "2", "variablesReference": 0 },
-                { "name": "2:", "value": "7", "variablesReference": 0 } ] } } |}]
+                { "name": "2:", "value": "3", "variablesReference": 0 } ] } } |}]
     in
     Lwt.return_unit
 

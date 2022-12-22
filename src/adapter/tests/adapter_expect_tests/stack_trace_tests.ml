@@ -47,11 +47,11 @@ let%expect_test "Check sequencing etc for stack trace" =
         let%lwt () =
           [%expect
             {|
-              { "seq": 21, "type": "response", "request_seq": 20, "success": true,
+              { "seq": 1, "type": "response", "request_seq": 20, "success": true,
                 "command": "stackTrace",
                 "body":
                   { "stackFrames":
-                      [ { "id": 1, "name": "main",
+                      [ { "id": 1, "name": "default",
                           "source":
                             { "name": "example.tz",
                               "path": "/home/wyn/dev/weevil/example.tz" }, "line": 1,

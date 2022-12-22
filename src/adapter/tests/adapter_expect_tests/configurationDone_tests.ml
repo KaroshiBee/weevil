@@ -34,7 +34,7 @@ let%expect_test "Check sequencing etc for configurationDone" =
     let%lwt () =
       [%expect
         {|
-      { "seq": 21, "type": "response", "request_seq": 20, "success": true,
+      { "seq": 1, "type": "response", "request_seq": 20, "success": true,
         "command": "configurationDone", "body": {} } |}]
     in
 
@@ -50,6 +50,7 @@ let%expect_test "Check sequencing etc for configurationDone" =
       [%expect {|
         { "seq": -1, "type": "response", "request_seq": -1, "success": false,
           "command": "error",
+          "message": "JSON.of_buffer expected value or array end (value or ']')",
           "body":
             { "error":
                 { "id": 698498095, "format": "{error}",

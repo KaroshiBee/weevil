@@ -33,11 +33,12 @@ let%expect_test "Check sequencing etc for scopes" =
     let%lwt () =
       [%expect
         {|
-      { "seq": 21, "type": "response", "request_seq": 20, "success": true,
+      { "seq": 1, "type": "response", "request_seq": 20, "success": true,
         "command": "scopes",
         "body":
           { "scopes":
-              [ { "name": "Locals", "variablesReference": 1, "expensive": false } ] } } |}]
+              [ { "name": "Locals", "presentationHint": "locals",
+                  "variablesReference": 1, "expensive": false } ] } } |}]
     in
     Lwt.return_unit
 

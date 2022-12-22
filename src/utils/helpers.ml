@@ -44,7 +44,12 @@ module StateMock = struct
     seqr = Data.Seqr.make ~seq:0 ();
     config=Config.make ();
     client_config=Option.some @@ Data.InitializeRequestArguments.make ~adapterID:"MOCK" ();
-    mdb_config=None;
+    mdb_config=Option.some @@ Mdb.Mdb_types.Mich_config.make
+        ~script_filename:"/home/wyn/dev/weevil/example.tz"
+        ~storage:"Unit"
+        ~parameter:"Unit"
+        ~entrypoint:"default"
+        ();
     log_records=Model.Weevil_json.([
         {location=PP.{start={point=1;byte=1;line=1;column=0}; stop={point=1;byte=1;line=1;column=3}}; gas="10"; stack=["1";"2";"3"]};
         {location=PP.{start={point=2;byte=2;line=2;column=0}; stop={point=2;byte=2;line=2;column=3}}; gas="9"; stack=["1";"2";"3";"4"]};
@@ -168,7 +173,7 @@ let scopes_msg ~seq =
 let scopes_req ~seq = Request.scopesRequest @@ scopes_msg ~seq
 
 let variables_msg ~seq =
-  let arguments = Data.VariablesArguments.make ~variablesReference:0 () in
+  let arguments = Data.VariablesArguments.make ~variablesReference:1 () in
   Request.Message.make ~seq ~command:Commands.variables ~arguments ()
 
 let variables_req ~seq = Request.variablesRequest @@ variables_msg ~seq
