@@ -502,7 +502,7 @@ module Seqr : SEQR = struct
   let not_set = -1
 
   let make ~seq ?request_seq () =
-    let request_seq = Option.value ~default:(-1) request_seq in
+    let request_seq = Option.value ~default:not_set request_seq in
     {seq; request_seq}
 
   let seq t = t.seq

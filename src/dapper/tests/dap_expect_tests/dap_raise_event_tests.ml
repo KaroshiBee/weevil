@@ -88,7 +88,7 @@ let%expect_test "Check sequencing raise event" =
   let%lwt () = [%expect
     {|
     { "seq": 112, "type": "response", "request_seq": 110, "success": false,
-      "command": "error",
+      "command": "error", "message": "testing error",
       "body":
         { "error":
             { "id": 400237674, "format": "{error}",

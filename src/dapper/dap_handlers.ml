@@ -1,8 +1,8 @@
 open Dap_types
 
 (* LINK links Input and Output and ensures that the seqr numbers get set properly,
-   the input message's seqr data is read and incremented then put onto both
-   the output message's & state's seqr data *)
+   the input message's seq number is read and then put as the request seq for the response,
+   also it is saved on the state for cases when we need to raise an error message *)
 module LINK
     (IN_MSG_T : MSG_READONLY_T)
     (IN_T : GADT_T)
@@ -51,9 +51,12 @@ end = struct
     let make ~handler =
       let wrapped_handler =
         fun ~state in_t ->
+          (* pull seq data from state and increment - seq numbers are a per-actor message id,
+             ie the DAP has its own stream of seqs *)
+          let seq = succ (S.current_seqr state |> Dap_base.Seqr.seq) in
+          (* however we need the request seq number from the incoming message *)
           let args = IN_T.extract in_t in
           let request_seq = IN_MSG_T.seq args in
-          let seq = 1 + request_seq in
           let seq = Dap_base.Seqr.make ~seq ~request_seq () in
           (* setting the new seqr on state because one of the
              following two messages will always get sent back,
@@ -137,13 +140,14 @@ end = struct
     let make ~handler =
       let wrapped_handler =
         fun ~state () ->
-          (* have to pull seqr data from state because we dont have an incoming message *)
+          (* pull seqr data from state *)
           let seqr = S.current_seqr state in
-          (* think we need to keep the request_seq as is,
-             because these messages will all relate to the current request in some way *)
+          (* always increment the seq number *)
+          let seq = succ @@ Dap_base.Seqr.seq seqr in
+          (* for this kind of RAISE we need to keep the request_seq as is,
+             because these messages will all relate to an ongoing request in some way *)
           let request_seq = Dap_base.Seqr.request_seq seqr in
-          (* but increment the seq number *)
-          let seq = 1 + Dap_base.Seqr.seq seqr in
+          (* make the new seqr pair *)
           let seq = Dap_base.Seqr.make ~seq ~request_seq () in
           (* setting the new seqr on state because one of the
              following two messages will always get sent back
@@ -207,11 +211,12 @@ end = struct
         fun ~state err_str ->
           (* have to pull seqr data from state because we dont have an incoming message *)
           let seqr = S.current_seqr state in
-          (* we need to inc the last request_seq as we will have
+          (* always increment the seq number *)
+          let seq = succ @@ Dap_base.Seqr.seq seqr in
+          (* we also need to inc the last request_seq as we will have
              raised an error in response to a request that we cannot handle, *)
-          let request_seq = 1 + Dap_base.Seqr.request_seq seqr in
-          (* but increment the seq number *)
-          let seq = 1 + Dap_base.Seqr.seq seqr in
+          let request_seq = succ @@ Dap_base.Seqr.request_seq seqr in
+          (* make the new seqr pair *)
           let seq = Dap_base.Seqr.make ~seq ~request_seq () in
           (* setting the new seqr on state because one of the
              following two messages will always get sent back
@@ -253,8 +258,8 @@ module Raise_error = RAISE_ERR (Dap_response.Message) (Dap_response)
 
 
 
-(* NOTE that we use the read-write version of Dap_request msg here
-   this is for the 'reverse-request' messages that the DAP protocol specifies,
-   Not sure we will need to support this functionality *)
-module Raise_request = RAISE (Dap_request_message) (Dap_request)
-module Raise_response = RAISE (Dap_response.Message) (Dap_response)
+(* (\* NOTE that we use the read-write version of Dap_request msg here *)
+(*    this is for the 'reverse-request' messages that the DAP protocol specifies, *)
+(*    Not sure we will need to support this functionality *\) *)
+(* module Raise_request = RAISE (Dap_request_message) (Dap_request) *)
+(* module Raise_response = RAISE (Dap_response.Message) (Dap_response) *)

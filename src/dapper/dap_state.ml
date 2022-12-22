@@ -1,7 +1,8 @@
 module T () = struct
   type t = {mutable seqr : Dap_base.Seqr.t}
 
-  let make () = {seqr = Dap_base.Seqr.make ~seq:0 ()}
+  (* NOTE protocol says that seq starts at 1 *)
+  let make () = {seqr = Dap_base.Seqr.make ~seq:1 ()}
 
   let current_seqr {seqr} = seqr
 
