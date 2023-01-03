@@ -11,8 +11,7 @@ module T (S : Types.STATE_READONLY_T) = struct
 
   let scopes_handler =
     On_request.make ~handler:(fun ~state:_ req ->
-        let getargs = Req.Message.arguments in
-        let args = Req.(eval @@ map_f ~f:getargs req) in
+        let args = Req.Message.arguments @@ Req.extract req in
         assert (Defaults.Vals._THE_FRAME_ID = D.ScopesArguments.frameId args);
         let resp =
           let command = Dap.Commands.scopes in
