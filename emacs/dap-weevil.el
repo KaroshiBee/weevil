@@ -47,7 +47,43 @@
                                    :script_filename "/home/wyn/dev/weevil/examples/open_tezos_example1_looping.tz"
                                    :storage "0"
                                    :parameter "(Pair 7 5)"
-                                   :name "Tezos-Weevil::Launch"))
+                                   :name "Tezos-Weevil::Launch1"))
+
+(dap-register-debug-template "Tezos Weevil Launch (Open Tezos - example 2)"
+                             (list :type "tezos-weevil-tcp"
+                                   :request "launch"
+                                   :mode "launch"
+                                   :script_filename "/home/wyn/dev/weevil/examples/open_tezos_example2_iter.tz"
+                                   :storage "None"
+                                   :parameter "{1;2;5;3;7;2;15;4}"
+                                   :name "Tezos-Weevil::Launch2"))
+
+(dap-register-debug-template "Tezos Weevil Launch (Open Tezos - example 3)"
+                             (list :type "tezos-weevil-tcp"
+                                   :request "launch"
+                                   :mode "launch"
+                                   :script_filename "/home/wyn/dev/weevil/examples/open_tezos_example3_lambda.tz"
+                                   :storage "5"
+                                   :parameter "1"
+                                   :name "Tezos-Weevil::Launch3"))
+
+(dap-register-debug-template "Tezos Weevil Launch (Open Tezos - example 4)"
+                             (list :type "tezos-weevil-tcp"
+                                   :request "launch"
+                                   :mode "launch"
+                                   :script_filename "/home/wyn/dev/weevil/examples/open_tezos_example4_loop_left.tz"
+                                   :storage "100"
+                                   :parameter "5"
+                                   :name "Tezos-Weevil::Launch4"))
+
+(dap-register-debug-template "Tezos Weevil Launch (Open Tezos - example 5)"
+                             (list :type "tezos-weevil-tcp"
+                                   :request "launch"
+                                   :mode "launch"
+                                   :script_filename "/home/wyn/dev/weevil/examples/open_tezos_example5_factorial.tz"
+                                   :storage "1"
+                                   :parameter "5"
+                                   :name "Tezos-Weevil::Launch5"))
 
 (provide 'dap-weevil)
 ;;; dap-weevil.el ends here
