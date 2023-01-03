@@ -21,7 +21,7 @@ let%expect_test "Check sequencing etc for scopes" =
     [%expect
       {|
         { "seq": 20, "type": "request", "command": "scopes",
-          "arguments": { "frameId": 1 } } |}]
+          "arguments": { "frameId": 2 } } |}]
   in
 
   match Scopes.handlers ~state:st with
@@ -38,7 +38,8 @@ let%expect_test "Check sequencing etc for scopes" =
         "body":
           { "scopes":
               [ { "name": "Locals", "presentationHint": "locals",
-                  "variablesReference": 1, "expensive": false } ] } } |}]
+                  "variablesReference": 3, "namedVariables": 2,
+                  "expensive": false } ] } } |}]
     in
     Lwt.return_unit
 

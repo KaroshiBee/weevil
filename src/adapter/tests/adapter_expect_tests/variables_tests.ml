@@ -12,7 +12,7 @@ let%expect_test "Check sequencing etc for variables" =
   let command = Dap.Commands.variables in
   let req =
     Dap.Request.(
-      Helpers.variables_msg ~seq:20
+      Helpers.variables_msg ~seq:20 ~vref:3
       |> Js.construct (Message.enc command D.VariablesArguments.enc)
       |> Js.to_string)
   in
@@ -21,7 +21,7 @@ let%expect_test "Check sequencing etc for variables" =
     [%expect
       {|
         { "seq": 20, "type": "request", "command": "variables",
-          "arguments": { "variablesReference": 1 } } |}]
+          "arguments": { "variablesReference": 3 } } |}]
   in
 
   match Variables.handlers ~state:st with
@@ -37,11 +37,8 @@ let%expect_test "Check sequencing etc for variables" =
         "command": "variables",
         "body":
           { "variables":
-              [ { "name": "gas", "value": "10", "variablesReference": 0 },
-                { "name": "stack", "value": "", "variablesReference": 0 },
-                { "name": "0:", "value": "1", "variablesReference": 0 },
-                { "name": "1:", "value": "2", "variablesReference": 0 },
-                { "name": "2:", "value": "3", "variablesReference": 0 } ] } } |}]
+              [ { "name": "gas", "value": "", "variablesReference": 4 },
+                { "name": "stack", "value": "", "variablesReference": 5 } ] } } |}]
     in
     Lwt.return_unit
 

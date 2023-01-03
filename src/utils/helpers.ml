@@ -167,16 +167,16 @@ let stack_trace_msg ~seq =
 let stack_trace_req ~seq = Request.stackTraceRequest @@ stack_trace_msg ~seq
 
 let scopes_msg ~seq =
-  let arguments = Data.ScopesArguments.make ~frameId:1 () in
+  let arguments = Data.ScopesArguments.make ~frameId:2 () in
   Request.Message.make ~seq ~command:Commands.scopes ~arguments ()
 
 let scopes_req ~seq = Request.scopesRequest @@ scopes_msg ~seq
 
-let variables_msg ~seq =
-  let arguments = Data.VariablesArguments.make ~variablesReference:1 () in
+let variables_msg ~seq ~vref =
+  let arguments = Data.VariablesArguments.make ~variablesReference:vref () in
   Request.Message.make ~seq ~command:Commands.variables ~arguments ()
 
-let variables_req ~seq = Request.variablesRequest @@ variables_msg ~seq
+let variables_req ~seq ~vref = Request.variablesRequest @@ variables_msg ~seq ~vref
 
 let next_msg ~seq =
   let arguments = Data.NextArguments.make ~threadId:1 () in

@@ -51,11 +51,13 @@ let%expect_test "Check sequencing etc for stack trace" =
                 "command": "stackTrace",
                 "body":
                   { "stackFrames":
-                      [ { "id": 1, "name": "default",
+                      [ { "id": 2, "name": "default",
                           "source":
                             { "name": "example.tz",
-                              "path": "/home/wyn/dev/weevil/example.tz" }, "line": 1,
-                          "column": 0, "endLine": 1, "endColumn": 3 } ], "totalFrames": 1 } } |}]
+                              "path": "/home/wyn/dev/weevil/example.tz",
+                              "presentationHint": "normal" }, "line": 1, "column": 0,
+                          "endLine": 1, "endColumn": 3, "presentationHint": "normal" } ],
+                    "totalFrames": 1 } } |}]
         in
         let%lwt () =
           let%lwt () = Lwt_io.flush oc in
