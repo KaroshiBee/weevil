@@ -91,30 +91,37 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
       Logs.debug (fun m -> m "log_interp @ location %d" loc);
       let file_loc = Mdb_file_locations.get file_locations loc in
 
-      file_loc
+      let () = file_loc
       |> Option.map (fun floc ->
            let log_element = Cfg.make_log ctxt floc stack sty in
            log_element_to_out log_element out_channel
         )
       |> Option.value ~default:()
+      in
+
+      (* block waiting for a \n on in_channel *)
+      let msg = input_line in_channel in
+      Logs.debug (fun m -> m "got msg '%s'" msg)
 
     in
     let log_entry _ _ctxt loc _sty _stack =
       Logs.debug (fun m -> m "log_entry @ location %d" loc);
-      (* block waiting for a \n on in_channel *)
-      let msg = input_line in_channel in
-      Logs.debug (fun m -> m "got msg '%s'" msg)
     in
     let log_exit _ ctxt loc sty stack =
       Logs.debug (fun m -> m "log_exit @ location %d" loc);
       let file_loc = Mdb_file_locations.get file_locations loc in
 
-      file_loc
+      let () = file_loc
       |> Option.map (fun floc ->
            let log_element = Cfg.make_log ctxt floc stack sty in
            log_element_to_out log_element out_channel
         )
       |> Option.value ~default:()
+      in
+
+      (* block waiting for a \n on in_channel *)
+      let msg = input_line in_channel in
+      Logs.debug (fun m -> m "got msg '%s'" msg)
 
     in
     let log_control _ =
