@@ -62,6 +62,7 @@ module T (S : Types.STATE_T) = struct
           let () = S.set_new_log_records state recs in
 
           (* make sure to get the master set of recs from the state - does stuff like sorting and dedup *)
+          (* TODO move to irmin based db that sits between mdb and dap *)
           let recs = S.log_records state in
           let resp =
             let command = Dap.Commands.stackTrace in
