@@ -48,14 +48,19 @@ module T (S : Types.STATE_T) = struct
   module On_request = Dap.Stack_trace.On_request (S)
 
   let stack_trace_handler =
-    On_request.make ~handler:(fun ~state _req ->
+    On_request.make ~handler:(fun ~state req ->
         match (S.backend_ic state, S.backend_oc state) with
         | (Some ic, Some oc) ->
+          let args = Req.Message.arguments @@ Req.extract req in
+          let threadId = D.StackTraceArguments.threadId args in
+          assert (threadId = Defaults.Vals._THE_THREAD_ID);
+
           let mich_get_recs = Mdb.Mdb_event.(make ~event:(GetRecords {get_records=()}) ()) in
           let mich_msg = Data_encoding.Json.(construct Mdb.Mdb_event.enc mich_get_recs |> to_string |> Dap.Header.wrap) in
           let%lwt () = Lwt_io.write oc mich_msg in
           let%lwt recs = Mdb_.get_recs ic oc in
           let () = S.set_new_log_records state recs in
+
           (* make sure to get the master set of recs from the state - does stuff like sorting and dedup *)
           let recs = S.log_records state in
           let resp =
@@ -77,6 +82,8 @@ module T (S : Types.STATE_T) = struct
                    ()]
             in
             let totalFrames = List.length stackFrames in
+            assert (totalFrames <= 1);
+
             let body = D.StackTraceResponse_body.make ~stackFrames ~totalFrames () in
             Dap.Response.default_response_req command body
           in

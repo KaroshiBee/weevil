@@ -13,32 +13,37 @@ module T (S : Types.STATE_READONLY_T) = struct
   let not_structured = 0
 
   let variables_handler =
+    (* I think we are suppposed to retreive the variables with vref=XX *)
     On_request.make ~handler:(fun ~state req ->
         let recs = S.log_records state in
         let args = Req.Message.arguments @@ Req.extract req in
-        let vrefs = D.VariablesArguments.variablesReference args in
-        Logs.debug (fun m -> m "vrefs %d, default vrefs %d" vrefs Defaults.Vals._THE_VARIABLES_REFERENCE);
-        assert (vrefs = Defaults.Vals._THE_VARIABLES_REFERENCE);
+        let vref = D.VariablesArguments.variablesReference args in
+        let () = Logs.debug (fun m -> m "requested vref %d" vref) in
         let resp =
           let command = Dap.Commands.variables in
-          let gas_name, _gas_var = Defaults.Vals._THE_GAS_LOCAL in
-          let stack_name, _stack_var = Defaults.Vals._THE_MICHELSON_STACK_LOCAL in
+          let gas_name, gas_var = Defaults.Vals._THE_GAS_LOCAL in
+          let stack_name, stack_var = Defaults.Vals._THE_MICHELSON_STACK_LOCAL in
           let gas_val, stack_val =
             match List.nth_opt recs 0 with
             | None -> "", []
             | Some wrec -> Model.Weevil_json.(wrec.gas, wrec.stack)
           in
-          let variables = [
-            [D.Variable_.make ~name:gas_name ~value:gas_val ~variablesReference:not_structured ()]; (* 0 here means not structured ie no children? *)
-            [D.Variable_.make ~name:stack_name ~value:"" ~variablesReference:not_structured ()]; (* 0 here means not structured ie no children? *)
-            stack_val |> List.mapi (fun i sv ->
-                D.Variable_.make
-                  ~name:(Printf.sprintf "%d:" i)
-                  ~value:(String.trim sv)
-                  ~variablesReference:not_structured
-                  ()
-              )
-          ] |> List.concat
+          let variables =
+            if vref = gas_var then
+              [D.Variable_.make ~name:gas_name ~value:gas_val ~variablesReference:not_structured ()]
+            else (
+              assert (vref = stack_var);
+              [
+                [D.Variable_.make ~name:stack_name ~value:"" ~variablesReference:not_structured ()];
+                stack_val |> List.mapi (fun i sv ->
+                    D.Variable_.make
+                      ~name:(Printf.sprintf "%d:" i)
+                      ~value:(String.trim sv)
+                      ~variablesReference:not_structured
+                      ()
+                  )
+              ] |> List.concat
+            )
           in
           let body = D.VariablesResponse_body.make ~variables () in
           Dap.Response.default_response_req command body
