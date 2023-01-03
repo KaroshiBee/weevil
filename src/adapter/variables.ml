@@ -19,6 +19,7 @@ module T (S : Types.STATE_READONLY_T) = struct
         let args = Req.Message.arguments @@ Req.extract req in
         let vref = D.VariablesArguments.variablesReference args in
         let () = Logs.debug (fun m -> m "requested vref %d" vref) in
+
         let resp =
           let command = Dap.Commands.variables in
           let gas_name, gas_var = Defaults.Vals._THE_GAS_LOCAL in
@@ -29,21 +30,27 @@ module T (S : Types.STATE_READONLY_T) = struct
             | Some wrec -> Model.Weevil_json.(wrec.gas, wrec.stack)
           in
           let variables =
-            if vref = gas_var then
-              [D.Variable_.make ~name:gas_name ~value:gas_val ~variablesReference:not_structured ()]
-            else (
-              assert (vref = stack_var);
+            match Defaults.Vals.classify_vref_exn vref with
+            | `Locals ->
+              let () = Logs.debug (fun m -> m "requested Locals %d" vref) in
               [
-                [D.Variable_.make ~name:stack_name ~value:"" ~variablesReference:not_structured ()];
-                stack_val |> List.mapi (fun i sv ->
-                    D.Variable_.make
-                      ~name:(Printf.sprintf "%d:" i)
-                      ~value:(String.trim sv)
-                      ~variablesReference:not_structured
-                      ()
-                  )
-              ] |> List.concat
-            )
+                D.Variable_.make ~name:gas_name ~value:"" ~variablesReference:gas_var ();
+                D.Variable_.make ~name:stack_name ~value:"" ~variablesReference:stack_var ();
+              ]
+            | `Gas ->
+              let () = Logs.debug (fun m -> m "requested Gas %d" vref) in
+              [
+                D.Variable_.make ~name:"Limited" ~value:gas_val ~variablesReference:not_structured ();
+              ]
+            | `Mich_stack ->
+              let () = Logs.debug (fun m -> m "requested Michelson stack %d" vref) in
+              stack_val |> List.mapi (fun i sv ->
+                  D.Variable_.make
+                    ~name:(Printf.sprintf "[%d]" i)
+                    ~value:(String.trim sv)
+                    ~variablesReference:not_structured
+                    ()
+                )
           in
           let body = D.VariablesResponse_body.make ~variables () in
           Dap.Response.default_response_req command body

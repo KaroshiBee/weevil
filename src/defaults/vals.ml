@@ -22,3 +22,13 @@ let _THE_ONLY_SCOPE = ("Locals", succ _THE_FRAME_ID) (* suggested -> | Arguments
 let _THE_GAS_LOCAL = ("gas", succ @@ snd _THE_ONLY_SCOPE)
 (* NOTE keep this as the last one, can add to it for the mich stack elements *)
 let _THE_MICHELSON_STACK_LOCAL = ("stack", succ @@ snd _THE_GAS_LOCAL)
+
+let classify_vref_exn vref =
+  let locals = snd _THE_ONLY_SCOPE in
+  let gas = snd _THE_GAS_LOCAL in
+  let mich = snd _THE_MICHELSON_STACK_LOCAL in
+  if vref = locals then `Locals
+  else if vref = gas then `Gas
+  else if vref = mich then `Mich_stack
+  else
+    raise @@ Invalid_argument (Printf.sprintf "Unknown vref %d" vref)

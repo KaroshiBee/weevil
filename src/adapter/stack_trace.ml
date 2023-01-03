@@ -70,7 +70,12 @@ module T (S : Types.STATE_T) = struct
               | (_, None) | (None, _) -> []
               | (Some Mdb_cfg.{script_filename; entrypoint; _}, Some wrec) ->
                 let loc = wrec.location in
-                let source = D.Source.make ~name:(Filename.basename script_filename) ~path:script_filename () in
+                let source = D.Source.make
+                    ~name:(Filename.basename script_filename)
+                    ~path:script_filename
+                    ~presentationHint:D.Source_presentationHint.Normal
+                    ()
+                in
                 [D.StackFrame.make
                    ~id:Defaults.Vals._THE_FRAME_ID
                    ~name:entrypoint
@@ -79,10 +84,11 @@ module T (S : Types.STATE_T) = struct
                    ~column:loc.start.column
                    ~endLine:loc.stop.line
                    ~endColumn:loc.stop.column
+                   ~presentationHint:D.StackFrame_presentationHint.Normal
                    ()]
             in
             let totalFrames = List.length stackFrames in
-            assert (totalFrames <= 1);
+            assert (totalFrames <= 1); (* NOTE can be zero if stepping hasnt started yet *)
 
             let body = D.StackTraceResponse_body.make ~stackFrames ~totalFrames () in
             Dap.Response.default_response_req command body

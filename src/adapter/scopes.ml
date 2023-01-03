@@ -15,23 +15,29 @@ module T (S : Types.STATE_READONLY_T) = struct
         assert (Defaults.Vals._THE_FRAME_ID = D.ScopesArguments.frameId args);
         let resp =
           let command = Dap.Commands.scopes in
-          let _locals_name, _locals_var = Defaults.Vals._THE_ONLY_SCOPE in
-          let gas_name, gas_var = Defaults.Vals._THE_GAS_LOCAL in
-          let stack_name, stack_var = Defaults.Vals._THE_MICHELSON_STACK_LOCAL in
+          let locals_name, locals_var = Defaults.Vals._THE_ONLY_SCOPE in
+          (* let gas_name, gas_var = Defaults.Vals._THE_GAS_LOCAL in *)
+          (* let stack_name, stack_var = Defaults.Vals._THE_MICHELSON_STACK_LOCAL in *)
           let scopes = [
             D.Scope.make
-              ~name:gas_name
+              ~name:locals_name
               ~presentationHint:D.Scope_presentationHint.Locals
-              ~variablesReference:gas_var
+              ~variablesReference:locals_var
+              ~namedVariables:2 (* NOTE always the GAS and MICH STACK *)
               ~expensive:false
               ();
-            D.Scope.make
-              ~name:stack_name
-              ~presentationHint:D.Scope_presentationHint.Locals
-              ~variablesReference:stack_var
-              ~expensive:false
-              ()
-
+            (* D.Scope.make *)
+            (*   ~name:gas_name *)
+            (*   ~presentationHint:D.Scope_presentationHint.Locals *)
+            (*   ~variablesReference:gas_var *)
+            (*   ~expensive:false *)
+            (*   (); *)
+            (* D.Scope.make *)
+            (*   ~name:stack_name *)
+            (*   ~presentationHint:D.Scope_presentationHint.Locals *)
+            (*   ~variablesReference:stack_var *)
+            (*   ~expensive:false *)
+            (*   () *)
           ] in
           let body = D.ScopesResponse_body.make ~scopes () in
           Dap.Response.default_response_req command body
