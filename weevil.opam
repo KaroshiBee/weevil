@@ -1,9 +1,9 @@
 opam-version: "2.0"
 maintainer: "simon.parry@karoshibee.com"
 authors: ["Simon Parry"]
-homepage: "https://TODO.com/"
-bug-reports: "https://TODO/issues"
-dev-repo: "git+https://TODO.git"
+homepage: "https://github.com/wyn/weevil"
+bug-reports: "https://github.com/wyn/weevil/issues"
+dev-repo: "git+https://github.com/wyn/weevil.git"
 license: "MIT"
 depends: [
   "bisect_ppx" {dev & >= "2.5.0"}
@@ -18,4 +18,4 @@ build: [
   ["dune" "build" "-p" name "-j" jobs]
   ["dune" "runtest" "-p" name "-j" jobs] {with-test}
 ]
-synopsis: "Tezos: `tezos-weevil` binary"
+synopsis: "Tezos: `weevil` binary - a tool for debugging Michelson code"
