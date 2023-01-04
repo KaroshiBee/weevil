@@ -73,16 +73,25 @@ module T (S : Types.STATE_T) = struct
 
   let terminate state =
     (* terminate the backend process *)
-    match S.backend_svc state with
-    | None ->
-      Logs_lwt.warn (fun m -> m "process already terminated")
-    | Some p ->
-      (* TODO use terminate mich command,
-         currently using close because it cleans up the io channels too *)
-      let%lwt () = Logs_lwt.debug (fun m -> m "closing backend process") in
-      let%lwt _status = p#close in
-      let%lwt () = Logs_lwt.debug (fun m -> m "reset backend state") in
-      let () = S.reset_backend state in
+    match S.backend_oc state, S.backend_svc state with
+    | None, _ ->
+      Logs_lwt.err (fun m -> m "no backend oc channel, cannot terminate")
+    | _, None ->
+      Logs_lwt.err (fun m -> m "no backend svc, cannot terminate")
+    | Some oc, Some process ->
+      let%lwt () = Logs_lwt.debug (fun m -> m "closing stepper process") in
+      let mich_stop = Mdb.Mdb_event.(make ~event:(Terminate {terminate=()}) ()) in
+      let mich_msg = Data_encoding.Json.(construct Mdb.Mdb_event.enc mich_stop |> to_string |> Dap.Header.wrap) in
+      let%lwt () = Lwt_io.write oc mich_msg in
+      (* TODO sequence in a better way after closing stepper *)
+      let%lwt () = Lwt_unix.sleep 0.5 in
+      let%lwt () = Logs_lwt.debug (fun m -> m "Terminating backend with pid '%d'" process#pid) in
+      let%lwt () =
+        match%lwt process#close with
+        | Unix.WEXITED i -> Logs_lwt.debug (fun m -> m "backend process closed normally %d" i)
+        | Unix.WSIGNALED i -> Logs_lwt.debug (fun m -> m "backend process killed by signal %d" i)
+        | Unix.WSTOPPED i -> Logs_lwt.debug (fun m -> m "backend process stopped by signal %d" i)
+      in
       Lwt.return_unit
 
 end

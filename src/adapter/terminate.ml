@@ -60,6 +60,7 @@ module T (S : Types.STATE_T) = struct
 
 
   let clean_up ~state =
+    let () = Logs.debug (fun m -> m "cleaning up for termination") in
     (* reset the restart field to None *)
     S.set_should_restart_on_terminate state None
 

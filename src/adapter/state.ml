@@ -34,7 +34,9 @@ module T (Dap_state:Dap.STATE_T) = struct
   let reset_backend t =
     t.process <- None;
     t.ic <- None;
-    t.oc <- None
+    t.oc <- None;
+    t.log_records <- [];
+    t.mdb_config <- None
 
   let backend_svc t = t.process
 
@@ -99,6 +101,7 @@ module T (Dap_state:Dap.STATE_T) = struct
 
   let launch_mode t = t.launch_mode
 
+  (* set in launch/attach *)
   let set_launch_mode t launch_mode = t.launch_mode <- Some launch_mode
 
   let current_seqr t = Dap_state.current_seqr t.sequencing
@@ -107,14 +110,17 @@ module T (Dap_state:Dap.STATE_T) = struct
 
   let config t = t.config
 
+  (* not used I dont think *)
   let set_config t config = t.config <- config
 
   let client_config t = t.client_config
 
+  (* set in initialize *)
   let set_client_config t config = t.client_config <- Some config
 
   let mdb_config t = t.mdb_config
 
+  (* set in launch/attach  *)
   let set_mdb_config t config = t.mdb_config <- Some config
 
   let set_should_restart_on_terminate t restart = t.should_restart_on_terminate <- restart
