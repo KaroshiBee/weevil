@@ -37,7 +37,7 @@ let%expect_test "Check sequencing etc for scopes" =
         "command": "scopes",
         "body":
           { "scopes":
-              [ { "name": "Locals", "presentationHint": "locals",
+              [ { "name": "Script Locals", "presentationHint": "locals",
                   "variablesReference": 3, "namedVariables": 2,
                   "expensive": false } ] } } |}]
     in
