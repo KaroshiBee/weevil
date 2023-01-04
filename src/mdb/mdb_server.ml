@@ -6,6 +6,15 @@ module Model = Mdb_model
 module Tbl = Mdb_log_records
 open Lwt
 
+let terminated = ref false
+
+let rec stopper () =
+  let%lwt () = Lwt_unix.sleep 0.1 in
+  if !terminated then
+    Logs_lwt.warn (fun m -> m "[MICH] Stopping mdb server")
+  else
+    stopper ()
+
 exception Stepper_error of string
 
 let _MDB_NAME = "MDB"
@@ -110,16 +119,24 @@ let rec main_handler ~recs msg ic oc =
 
   | Some MichEvent.Terminate _, Some process when process#state = Lwt_process.Running ->
     (* NOTE debug this message because cram tests use Info and we dont want PIDs in the cram test data *)
-    let%lwt () = Logs_lwt.debug (fun m -> m "[MICH] Terminating pid '%d'" process#pid) in
-    let () = process#terminate in
+    let%lwt () = Logs_lwt.debug (fun m -> m "[MICH] Terminating stepper pid '%d'" process#pid) in
+    let%lwt () =
+      match%lwt process#close with
+      | Unix.WEXITED i -> Logs_lwt.debug (fun m -> m "[MICH] stepper processed closed normally %d" i)
+      | Unix.WSIGNALED i -> Logs_lwt.debug (fun m -> m "[MICH] stepper processed killed by signal %d" i)
+      | Unix.WSTOPPED i -> Logs_lwt.debug (fun m -> m "[MICH] stepper processed stopped by signal %d" i)
+    in
+    let%lwt () = Logs_lwt.debug (fun m -> m "[MICH] Setting stepper process to None") in
     let () = stepper_process := None in
-    Lwt.return_unit
+    (* set the global terminated to true so that the stopper activates *)
+    Lwt.return (terminated := true)
 
   | Some MichEvent.Terminate _, Some _
   | Some MichEvent.Terminate _, None ->
     let%lwt () = Logs_lwt.debug (fun m -> m "[MICH] already terminated") in
     let () = stepper_process := None in
-    Lwt.return_unit
+    (* set the global terminated to true so that the stopper activates *)
+    Lwt.return (terminated := true)
 
   | Some _, None ->
     Logs_lwt.warn (fun m -> m "[MICH] LOST PROCESS '%s'" msg)
@@ -174,12 +191,17 @@ let lwt_svc ?stopper port =
   let*! ctx = Conduit.init () in
   let*! ret =
     match stopper with
-    | Some stop -> Conduit.serve ~stop ~on_exn ~ctx ~mode @@ on_connection
-    | None -> Conduit.serve ~on_exn ~ctx ~mode @@ on_connection
+    | Some stop ->
+      let () = Logs.info (fun m -> m "[MICH] starting backend server on port %d with stopper" port) in
+      Conduit.serve ~stop ~on_exn ~ctx ~mode @@ on_connection
+    | None ->
+      let () = Logs.info (fun m -> m "[MICH] starting backend server on port %d without stopper" port) in
+      Conduit.serve ~on_exn ~ctx ~mode @@ on_connection
   in
   return ret
 
 let svc ~port =
-  match Lwt_main.run (lwt_svc port) with
+  let stopper = stopper () in
+  match Lwt_main.run (lwt_svc ~stopper port) with
   | Ok _ -> `Ok ()
   | Error err -> `Error (true, Data_encoding.Json.(construct trace_encoding err |> to_string))
