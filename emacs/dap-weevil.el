@@ -29,11 +29,11 @@
   "Utility to make the fully qualified FILENAME of the examples/*.tz ."
   (f-join (f-dirname (f-this-file)) ".." "examples" filename))
 
-(defvar dap-weevil--script-filename1 (dap-weevil--full-example-filename "open_tezos_example_looping.tz"))
-(defvar dap-weevil--script-filename2 (dap-weevil--full-example-filename "open_tezos_example2_iter.tz"))
-(defvar dap-weevil--script-filename3 (dap-weevil--full-example-filename "open_tezos_example3_lambda.tz"))
-(defvar dap-weevil--script-filename4 (dap-weevil--full-example-filename "open_tezos_example4_loop_left.tz"))
-(defvar dap-weevil--script-filename5 (dap-weevil--full-example-filename "open_tezos_example5_factorial.tz"))
+(defconst dap-weevil--script-filename1 (dap-weevil--full-example-filename "open_tezos_example_looping.tz"))
+(defconst dap-weevil--script-filename2 (dap-weevil--full-example-filename "open_tezos_example2_iter.tz"))
+(defconst dap-weevil--script-filename3 (dap-weevil--full-example-filename "open_tezos_example3_lambda.tz"))
+(defconst dap-weevil--script-filename4 (dap-weevil--full-example-filename "open_tezos_example4_loop_left.tz"))
+(defconst dap-weevil--script-filename5 (dap-weevil--full-example-filename "open_tezos_example5_factorial.tz"))
 
 (defun dap-weevil--populate-start-tcp-args (conf)
   "Populate CONF with the required arguments."
