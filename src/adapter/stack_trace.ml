@@ -82,7 +82,7 @@ module T (S : Types.STATE_T) = struct
                    ~name:entrypoint
                    ~source
                    ~line:loc.start.line
-                   ~column:loc.start.column
+                   ~column:loc.stop.column (* NOTE puts cursor at end of expression *)
                    ~endLine:loc.stop.line
                    ~endColumn:loc.stop.column
                    ~presentationHint:D.StackFrame_presentationHint.Normal

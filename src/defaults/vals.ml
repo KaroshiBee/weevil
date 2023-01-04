@@ -17,7 +17,7 @@ let _THE_THREAD_ID = 1
 
 (* only one stack frame currently *)
 let _THE_FRAME_ID = succ _THE_THREAD_ID
-let _THE_ONLY_SCOPE = ("Locals", succ _THE_FRAME_ID) (* suggested -> | Arguments | Locals | Registers *)
+let _THE_ONLY_SCOPE = ("Script Locals", succ _THE_FRAME_ID) (* suggested -> | Arguments | Locals | Registers *)
 (* can now do Arguments too (input and storage) *)
 let _THE_GAS_LOCAL = ("gas", succ @@ snd _THE_ONLY_SCOPE)
 (* NOTE keep this as the last one, can add to it for the mich stack elements *)
