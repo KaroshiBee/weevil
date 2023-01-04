@@ -17,17 +17,27 @@ let _THE_THREAD_ID = 1
 
 (* only one stack frame currently *)
 let _THE_FRAME_ID = succ _THE_THREAD_ID
-let _THE_ONLY_SCOPE = ("Script Locals", succ _THE_FRAME_ID) (* suggested -> | Arguments | Locals | Registers *)
-(* can now do Arguments too (input and storage) *)
-let _THE_GAS_LOCAL = ("gas", succ @@ snd _THE_ONLY_SCOPE)
+(* suggested -> | Arguments | Locals | Registers *)
+let _THE_LOCALS_SCOPE = ("Script Locals", succ _THE_FRAME_ID)
+let _THE_ARGS_SCOPE = ("Script Arguments", succ @@ snd _THE_LOCALS_SCOPE)
+
+let _THE_PARAMETERS_LOCAL = ("parameter", succ @@ snd _THE_ARGS_SCOPE)
+let _THE_STORAGE_LOCAL = ("storage", succ @@ snd _THE_PARAMETERS_LOCAL)
+let _THE_GAS_LOCAL = ("gas", succ @@ snd _THE_STORAGE_LOCAL)
 (* NOTE keep this as the last one, can add to it for the mich stack elements *)
 let _THE_MICHELSON_STACK_LOCAL = ("stack", succ @@ snd _THE_GAS_LOCAL)
 
 let classify_vref_exn vref =
-  let locals = snd _THE_ONLY_SCOPE in
+  let locals = snd _THE_LOCALS_SCOPE in
+  let args = snd _THE_ARGS_SCOPE in
+  let params = snd _THE_PARAMETERS_LOCAL in
+  let storage = snd _THE_STORAGE_LOCAL in
   let gas = snd _THE_GAS_LOCAL in
   let mich = snd _THE_MICHELSON_STACK_LOCAL in
   if vref = locals then `Locals
+  else if vref = args then `Args
+  else if vref = params then `Params
+  else if vref = storage then `Storage
   else if vref = gas then `Gas
   else if vref = mich then `Mich_stack
   else

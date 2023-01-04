@@ -55,7 +55,7 @@ let%expect_test "Check sequencing etc for stack trace" =
                           "source":
                             { "name": "example.tz",
                               "path": "/home/wyn/dev/weevil/example.tz",
-                              "presentationHint": "normal" }, "line": 1, "column": 3,
+                              "presentationHint": "normal" }, "line": 1, "column": 0,
                           "endLine": 1, "endColumn": 3, "presentationHint": "normal" } ],
                     "totalFrames": 1 } } |}]
         in

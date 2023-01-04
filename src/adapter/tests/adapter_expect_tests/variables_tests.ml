@@ -37,8 +37,8 @@ let%expect_test "Check sequencing etc for variables" =
         "command": "variables",
         "body":
           { "variables":
-              [ { "name": "gas", "value": "", "variablesReference": 4 },
-                { "name": "stack", "value": "", "variablesReference": 5 } ] } } |}]
+              [ { "name": "gas", "value": "", "variablesReference": 7 },
+                { "name": "stack", "value": "", "variablesReference": 8 } ] } } |}]
     in
     Lwt.return_unit
 

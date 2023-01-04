@@ -15,13 +15,21 @@ module T (S : Types.STATE_READONLY_T) = struct
         assert (Defaults.Vals._THE_FRAME_ID = D.ScopesArguments.frameId args);
         let resp =
           let command = Dap.Commands.scopes in
-          let locals_name, locals_var = Defaults.Vals._THE_ONLY_SCOPE in
+          let locals_name, locals_var = Defaults.Vals._THE_LOCALS_SCOPE in
+          let args_name, args_var = Defaults.Vals._THE_ARGS_SCOPE in
           let scopes = [
             D.Scope.make
               ~name:locals_name
               ~presentationHint:D.Scope_presentationHint.Locals
               ~variablesReference:locals_var
               ~namedVariables:2 (* NOTE always the GAS and MICH STACK *)
+              ~expensive:false
+              ();
+            D.Scope.make
+              ~name:args_name
+              ~presentationHint:D.Scope_presentationHint.Arguments
+              ~variablesReference:args_var
+              ~namedVariables:2 (* NOTE always params and storage *)
               ~expensive:false
               ();
           ] in

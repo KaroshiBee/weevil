@@ -5,6 +5,7 @@ module Req = Dap.Request
 module Res = Dap.Response
 module Ev = Dap.Event
 module Model = Mdb.Mdb_model
+module Mich_config = Mdb.Mdb_types.Mich_config
 
 module T (S : Types.STATE_READONLY_T) = struct
 
@@ -22,6 +23,10 @@ module T (S : Types.STATE_READONLY_T) = struct
 
         let resp =
           let command = Dap.Commands.variables in
+          let params_name, params_var = Defaults.Vals._THE_PARAMETERS_LOCAL in
+          let storage_name, storage_var = Defaults.Vals._THE_STORAGE_LOCAL in
+          let params_val = S.mdb_config state |> Option.map (fun Mich_config.{parameter; _} -> parameter) |> Option.value ~default:"unknown" in
+          let storage_val = S.mdb_config state |> Option.map (fun Mich_config.{storage; _} -> storage) |> Option.value ~default:"unknown" in
           let gas_name, gas_var = Defaults.Vals._THE_GAS_LOCAL in
           let stack_name, stack_var = Defaults.Vals._THE_MICHELSON_STACK_LOCAL in
           let gas_val, stack_val =
@@ -31,6 +36,22 @@ module T (S : Types.STATE_READONLY_T) = struct
           in
           let variables =
             match Defaults.Vals.classify_vref_exn vref with
+            | `Args ->
+              let () = Logs.debug (fun m -> m "requested Args %d" vref) in
+              [
+                D.Variable_.make ~name:params_name ~value:"" ~variablesReference:params_var ();
+                D.Variable_.make ~name:storage_name ~value:"" ~variablesReference:storage_var ();
+              ]
+            | `Params ->
+              let () = Logs.debug (fun m -> m "requested input params %d" vref) in
+              [
+                D.Variable_.make ~name:"Input" ~value:params_val ~variablesReference:not_structured ();
+              ]
+            | `Storage ->
+              let () = Logs.debug (fun m -> m "requested storage %d" vref) in
+              [
+                D.Variable_.make ~name:"Storage" ~value:storage_val ~variablesReference:not_structured ();
+              ]
             | `Locals ->
               let () = Logs.debug (fun m -> m "requested Locals %d" vref) in
               [
