@@ -25,6 +25,16 @@
 
 (require 'dap-mode)
 
+(defun dap-weevil--full-example-filename (filename)
+  "Utility to make the fully qualified FILENAME of the examples/*.tz ."
+  (f-join (f-dirname (f-this-file)) ".." "examples" filename))
+
+(defvar dap-weevil--script-filename1 (dap-weevil--full-example-filename "open_tezos_example_looping.tz"))
+(defvar dap-weevil--script-filename2 (dap-weevil--full-example-filename "open_tezos_example2_iter.tz"))
+(defvar dap-weevil--script-filename3 (dap-weevil--full-example-filename "open_tezos_example3_lambda.tz"))
+(defvar dap-weevil--script-filename4 (dap-weevil--full-example-filename "open_tezos_example4_loop_left.tz"))
+(defvar dap-weevil--script-filename5 (dap-weevil--full-example-filename "open_tezos_example5_factorial.tz"))
+
 (defun dap-weevil--populate-start-tcp-args (conf)
   "Populate CONF with the required arguments."
   (let ((conf (-> conf
@@ -44,7 +54,7 @@
                              (list :type "tezos-weevil-tcp"
                                    :request "launch"
                                    :mode "launch"
-                                   :script_filename "/home/wyn/dev/weevil/examples/open_tezos_example1_looping.tz"
+                                   :script_filename dap-weevil--script-filename1
                                    :storage "0"
                                    :parameter "(Pair 7 5)"
                                    :name "Tezos-Weevil::Launch1"))
@@ -53,7 +63,7 @@
                              (list :type "tezos-weevil-tcp"
                                    :request "launch"
                                    :mode "launch"
-                                   :script_filename "/home/wyn/dev/weevil/examples/open_tezos_example2_iter.tz"
+                                   :script_filename dap-weevil--script-filename2
                                    :storage "None"
                                    :parameter "{1;2;5;3;7;2;15;4}"
                                    :name "Tezos-Weevil::Launch2"))
@@ -62,7 +72,7 @@
                              (list :type "tezos-weevil-tcp"
                                    :request "launch"
                                    :mode "launch"
-                                   :script_filename "/home/wyn/dev/weevil/examples/open_tezos_example3_lambda.tz"
+                                   :script_filename dap-weevil--script-filename3
                                    :storage "5"
                                    :parameter "1"
                                    :name "Tezos-Weevil::Launch3"))
@@ -71,7 +81,7 @@
                              (list :type "tezos-weevil-tcp"
                                    :request "launch"
                                    :mode "launch"
-                                   :script_filename "/home/wyn/dev/weevil/examples/open_tezos_example4_loop_left.tz"
+                                   :script_filename dap-weevil--script-filename4
                                    :storage "100"
                                    :parameter "5"
                                    :name "Tezos-Weevil::Launch4"))
@@ -80,7 +90,7 @@
                              (list :type "tezos-weevil-tcp"
                                    :request "launch"
                                    :mode "launch"
-                                   :script_filename "/home/wyn/dev/weevil/examples/open_tezos_example5_factorial.tz"
+                                   :script_filename dap-weevil--script-filename5
                                    :storage "1"
                                    :parameter "5"
                                    :name "Tezos-Weevil::Launch5"))
