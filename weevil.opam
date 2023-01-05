@@ -9,7 +9,6 @@ bug-reports: "https://github.com/KaroshiBee/weevil/issues"
 dev-repo: "git+https://github.com/KaroshiBee/weevil.git"
 license: "MIT"
 depends: [
-  "bisect_ppx" {dev & >= "2.5.0"}
   "dune" { >= "2.9" }
   "tezos-base"
   "tezos-stdlib-unix"
@@ -20,6 +19,8 @@ depends: [
   "conduit-lwt-unix"
   "lwt_ppx"
   "ppx_deriving_qcheck"
+  "bisect_ppx" {dev & >= "2.5.0"}
+  "qcheck-alcotest" {dev}
   ]
 build: [
   ["dune" "build" "-p" name "-j" jobs]

@@ -21,13 +21,13 @@ let err_js =
 
 let to_lwt_error_as_str t =
   (* NOTE seem to need the t otherwise type checker complains *)
-  Lwt_result.map_err err_js t
+  Lwt_result.map_error err_js t
 
 let map ~f = Lwt_result.map f
 
 let bind ~f x = Lwt_result.bind x f
 
-let map_error ~f = Lwt_result.map_err f
+let map_error ~f = Lwt_result.map_error f
 
 let or_log_error result =
   Lwt.bind result (fun r ->
