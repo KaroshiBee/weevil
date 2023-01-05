@@ -119,7 +119,7 @@ Tests currently consist of [Alcotest](https://github.com/mirage/alcotest) unit/q
 The qcheck tests can take some time to run through so to just run the quick tests do
 
 ```sh
-$ ALCOTEST_QUICK_TESTS=1 dune runtest
+$ ALCOTEST_QUICK_TESTS=1 dune runtest -f
 ```
 
 Coverage statistics can be determined using the [bisect ppx](https://github.com/aantron/bisect_ppx#Dune) tool.  
@@ -178,7 +178,7 @@ $ dune exec -- weevil dap-gen --help
 
 As noted above, there are three message types: Request, Response and Event.  Requests and Responses have a related ```command``` value and Events have an ```event``` value.  All message types also carry some sort of data, and this can be required or optional.  The command and event values are basically enumerations and the data content types are typically JSON objects that themselves contain other objects/lists/enums etc.
 
-This leads to the following OCaml representation (c.f. in ```src/dapper/dap_request_message.mli``` & ```dap_response_message.mli``` & ```dap_event_message.mli```):
+This leads to the following OCaml representation (c.f. in ```ROOT/src/dapper/dap_request_message.mli``` & ```dap_response_message.mli``` & ```dap_event_message.mli```):
 
 ``` ocaml
 
@@ -211,7 +211,7 @@ Editor tooling like [Merlin](https://github.com/ocaml/merlin) and [Tuareg](https
 
 ## The ```dap-gen``` tool
 
-The ```dap-gen``` tool will generate the command and event enumerations (c.f. ```src/dapper/dap_commands.ml*``` and ```src/dapper/dap_events.ml*```) and also the message types and supporting objects (c.f. ```src/dapper/dap_message.ml```).
+The ```dap-gen``` tool will generate the command and event enumerations (c.f. ```ROOT/src/dapper/dap_commands.ml*``` and ```ROOT/src/dapper/dap_events.ml*```) and also the message types and supporting objects (c.f. ```ROOT/src/dapper/dap_message.ml```).
 
 Simply run it with the required output type, JSON schema and filename:
 
