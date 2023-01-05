@@ -4,18 +4,19 @@ version: "0.1"
 synopsis: "Tezos: `weevil` binary - a tool for debugging Michelson code"
 maintainer: "simon.parry@karoshibee.com"
 authors: ["Simon Parry"]
-homepage: "https://github.com/wyn/weevil"
-bug-reports: "https://github.com/wyn/weevil/issues"
-dev-repo: "git+https://github.com/wyn/weevil.git"
+homepage: "https://github.com/KaroshiBee/weevil"
+bug-reports: "https://github.com/KaroshiBee/weevil/issues"
+dev-repo: "git+https://github.com/KaroshiBee/weevil.git"
 license: "MIT"
 depends: [
   "bisect_ppx" {dev & >= "2.5.0"}
   "dune" { >= "2.9" }
   "tezos-base"
   "tezos-stdlib-unix"
-  "tezos-014-PtKathma-test-helpers"
   "tezos-protocol-014-PtKathma"
+  "conduit-lwt-unix"
   "lwt_ppx"
+  "ppx_deriving_qcheck"
   ]
 build: [
   ["dune" "build" "-p" name "-j" jobs]
