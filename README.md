@@ -211,7 +211,7 @@ Editor tooling like [Merlin](https://github.com/ocaml/merlin) and [Tuareg](https
 
 ## The ```dap-gen``` tool
 
-The ```dap-gen``` tool will generate the command and event enumerations (c.f. src/dapper/dap_commands.ml* and src/dapper/dap_events.ml*) and also the message types and supporting objects (c.f. src/dapper/dap_message.ml).
+The ```dap-gen``` tool will generate the command and event enumerations (c.f. ```src/dapper/dap_commands.ml*``` and ```src/dapper/dap_events.ml*```) and also the message types and supporting objects (c.f. ```src/dapper/dap_message.ml```).
 
 Simply run it with the required output type, JSON schema and filename:
 
