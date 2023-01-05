@@ -162,7 +162,7 @@ This html report can then be viewed with your web browser at http://localhost:80
 
 The [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/overview) describes a general method and message protocol for building debuggers.  A DAP frontend will send ```Request``` JSON messages to the DAP adapter which then performs that request action and responds with a ```Response``` JSON message, and optionally one or more ```Event``` JSON messages.
 
-Microsoft publishes a machine-readable [schema](https://microsoft.github.io/debug-adapter-protocol/debugAdapterProtocol.json) describing all the message types and supporting objects.  This schema file is also checked in to the Weevil codebase (c.f. ./schema).
+Microsoft publishes a machine-readable [schema](https://microsoft.github.io/debug-adapter-protocol/debugAdapterProtocol.json) describing all the message types and supporting objects.  This schema file is also checked in to the Weevil codebase (c.f. ```ROOT/schema```).
 
 So the first thing a new adapter implementation needs is a way to consume and produce JSON messages of these types.
 
@@ -178,7 +178,7 @@ $ dune exec -- weevil dap-gen --help
 
 As noted above, there are three message types: Request, Response and Event.  Requests and Responses have a related ```command``` value and Events have an ```event``` value.  All message types also carry some sort of data, and this can be required or optional.  The command and event values are basically enumerations and the data content types are typically JSON objects that themselves contain other objects/lists/enums etc.
 
-This leads to the following OCaml representation (c.f. in src/dapper/ dap_request_message.mli & dap_response_message.mli & dap_event_message.mli):
+This leads to the following OCaml representation (c.f. in ```src/dapper/dap_request_message.mli``` & ```dap_response_message.mli``` & ```dap_event_message.mli```):
 
 ``` ocaml
 
