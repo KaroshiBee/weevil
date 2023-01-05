@@ -45,7 +45,7 @@ module StateMock = struct
     config=Config.make ();
     client_config=Option.some @@ Data.InitializeRequestArguments.make ~adapterID:"MOCK" ();
     mdb_config=Option.some @@ Mdb.Mdb_types.Mich_config.make
-        ~script_filename:"/home/wyn/dev/weevil/example.tz"
+        ~script_filename:"/home/kbee/dev/weevil/example.tz"
         ~storage:"Unit"
         ~parameter:"Unit"
         ~entrypoint:"default"

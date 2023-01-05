@@ -19,7 +19,7 @@
 
 
 ;;; Commentary:
-;; dap-mode adapter for https://github.com/wyn/weevil
+;; dap-mode adapter for https://github.com/karoshibee/weevil
 
 ;;; Code:
 
