@@ -13,6 +13,7 @@ depends: [
   "dune" { >= "2.9" }
   "tezos-base"
   "tezos-stdlib-unix"
+  "tezos-rpc-http-client-unix"
   "tezos-protocol-014-PtKathma"
   "conduit-lwt-unix"
   "lwt_ppx"
