@@ -6,9 +6,19 @@ Hooks straight into the [Octez](https://gitlab.com/tezos/tezos) Michelson interp
 
 Wraps everything up in the [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/overview).
 
-# Setup
+# Install 
 
-Currently under heavy development so to play along please check out the source code and build locally.
+WARN under heavy development - better to follow Developer Setup below
+
+Using opam just do the usual 
+
+```sh
+$ opam install weevil
+```
+
+# Developer Setup
+
+The Tezos Weevil is currently under heavy development so to play along please check out the source code and build locally.
 
 ## Requirements 
 
@@ -26,7 +36,7 @@ $ opam switch list-available | grep base-compiler | grep Official
 ## Check out & install dependencies
 
 ``` sh
-$ git checkout https://github.com/wyn/weevil.git
+$ git checkout https://github.com/karoshibee/weevil.git
 $ cd weevil/
 $ opam switch create . ocaml-base-compiler.4.14.0 
 Package tezos-weevil does not exist, create as a NEW package? [Y/n] Y
@@ -40,12 +50,69 @@ The dune build tool should now be available, I usually leave it running in watch
 $ dune build -w
 ```
 
+## Run
+
+To run locally in Emacs you will need to do three things:
+
+## Step 1 - make Emacs aware of the weevil extension to [dap-mode](https://github.com/emacs-lsp/dap-mode)
+
+In Emacs open the file in the weevil source ```ROOT/emacs/dap-weevil.el``` and evaluate the elisp
+```elisp
+M-x eval-buffer
+```
+
+This should make available five example dap-debug sessions that can be run/debugged with the weevil.  
+
+These five setups correspond to the five examples found in the weevil source ```ROOT/examples/*.tz``` which are taken from the five examples used in the [opentezos](https://opentezos.com/michelson/examples/) website.
+
+## Step 2 - run the adapter service in a separate process 
+
+```sh
+$ dune exec -- weevil adapter -v -v
+```
+
+This should set the adapter service running and listening to connections on the default port 9000.
+
+## Step 3 - back in emacs run 
+```elisp
+M-x dap-debug
+```
+
+It should show you the five debug sessions from step 1, choose the one you want to debug.
+
+The debug session should start and you should see Emacs connecting with the adapter.
+
+To step into the Michelson code do
+```elisp
+M-x dap-next
+```
+The example code file should be presented (if you aren't already viewing it in a buffer) with the current line and cursor point highlighted.
+
+To see a standard debugging window setup do
+```elisp
+M-x dap-ui-show-many-windows
+```
+On the right-hand side you should be able to drill down into the Michelson stack & gas along with the input parameter values and initial storage.
+
+Repeated use of 
+```elisp
+M-x dap-next 
+```
+will alllow you to continue to step through the Michelson code one instruction at a time.
+
+To disconnect use
+```elisp
+M-x dap-disconnect
+```
+
+NOTE currently that is all the UI instructions that the weevil will respond to.
+
 ## Test 
 
 To run the all the tests simply do (from project root):
 
 ``` sh
-$ dune runtest
+$ dune runtest -f
 ```
 Tests currently consist of [Alcotest](https://github.com/mirage/alcotest) unit/qcheck tests, [expect](https://github.com/janestreet/ppx_expect) tests and [cram](https://dune.readthedocs.io/en/stable/tests.html) tests.
 
@@ -104,8 +171,9 @@ Given that there are so many message types and also that the schema doesn't chan
 The ```dap-gen``` CLI tool is used to re-generate the necessary OCaml files:
 
 ``` sh
-$ dune exec -- ./src/main.exe dap-gen --help
+$ dune exec -- weevil dap-gen --help
 ```
+
 ## Aside - DAP message structure
 
 As noted above, there are three message types: Request, Response and Event.  Requests and Responses have a related ```command``` value and Events have an ```event``` value.  All message types also carry some sort of data, and this can be required or optional.  The command and event values are basically enumerations and the data content types are typically JSON objects that themselves contain other objects/lists/enums etc.
@@ -148,16 +216,16 @@ The ```dap-gen``` tool will generate the command and event enumerations (c.f. sr
 Simply run it with the required output type, JSON schema and filename:
 
 ``` sh
-$ dune exec -- ./src/main.exe dap-gen messages ./schema/debugAdapterProtocol-1.56.X.json $HOME/dap_message
+$ dune exec -- weevil dap-gen messages ./schema/debugAdapterProtocol-1.56.X.json $HOME/dap_message
 ```
 will output the dap_message.ml file in your $HOME dir.  Similarly, 
 
 ``` sh
-$ dune exec -- ./src/main.exe dap-gen commands ./schema/debugAdapterProtocol-1.56.X.json $HOME/dap_commands
+$ dune exec -- weevil dap-gen commands ./schema/debugAdapterProtocol-1.56.X.json $HOME/dap_commands
 ```
 Will generate dap_commands.ml and dap_commands.mli in $HOME, and 
 ``` sh
-$ dune exec -- ./src/main.exe dap-gen events ./schema/debugAdapterProtocol-1.56.X.json $HOME/dap_events
+$ dune exec -- weevil dap-gen events ./schema/debugAdapterProtocol-1.56.X.json $HOME/dap_events
 ```
 will generate dap_events.ml and dap_events.mli in $HOME.
 
@@ -191,7 +259,7 @@ let make ~a_required_parameter ?an_optional_parameter ... () =
 
 - Request/Response/Event types also have an ```enc_opt``` encoder to encode/decode message types with optional content data,
 
-- coming soon: qcheck generators for the auto-generated types 
+- they all have (fairly simple) [qcheck](https://github.com/c-cube/qcheck/) generators for property based testing 
 
 # Demo
 Pretty early-stage; here's a demo of an early prototype Emacs integration:
