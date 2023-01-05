@@ -69,7 +69,8 @@ let%expect_test "Check loading/stepping a contract" =
   let actions = Msgs.(connect port >>= run ~fname:"data/multiply_2_x_25_equals_50.tz") in
   let%lwt _ = Mdb_svc.lwt_svc ~stopper:actions port in
   let%lwt () = [%expect {|
-    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] starting backend server on port 9002 |}] in
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] starting backend server on port 9002
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] starting backend server on port 9002 with stopper |}] in
 
   Lwt.return_unit
 
@@ -78,6 +79,7 @@ let%expect_test "check for bad filename" =
   let%lwt _ = Mdb_svc.lwt_svc ~stopper:actions port in
   let%lwt () = [%expect {|
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] starting backend server on port 9002
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] starting backend server on port 9002 with stopper
     inline_test_runner_mdb_expect_tests.exe: [ERROR] [STEPPER ERR] step_err_handler: { "error":    [ { "kind": "temporary", "id": "failure",        "msg":          "cannot read file (Unix.Unix_error(Unix.ENOENT, \"open\", \"data/notthere.tz\"))" } ] } |}] in
   Lwt.return_unit
 
@@ -87,5 +89,6 @@ let%expect_test "check for bad michelson" =
   let%lwt _ = Mdb_svc.lwt_svc ~stopper:actions port in
   let%lwt () = [%expect {|
     inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] starting backend server on port 9002
+    inline_test_runner_mdb_expect_tests.exe: [INFO] [MICH] starting backend server on port 9002 with stopper
     inline_test_runner_mdb_expect_tests.exe: [ERROR] [STEPPER ERR] step_err_handler: { "error":    [ { "kind": "permanent",        "id": "proto.014-PtKathma.michelson_v1.invalid_primitive_name",        "expression":          [ { "prim": "parameter", "args": [ { "prim": "unit" } ] },            { "prim": "storage", "args": [ { "prim": "unit" } ] },            { "prim": "code",              "args":                [ [ { "prim": "DROP" },                    { "prim": "PUSH",                      "args": [ { "prim": "mutez" }, { "int": "25" } ] },                    { "prim": "PUSH",                      "args": [ { "prim": "nat" }, { "int": "2" } ] },                    { "prim": "MUL" }, { "prim": "DROP_IT_LIKE_ITS_HOT" },                    { "prim": "UNIT" },                    { "prim": "NIL", "args": [ { "prim": "operation" } ] },                    { "prim": "PAIR" } ] ] } ], "location": 15 },      { "kind": "permanent",        "id": "proto.014-PtKathma.michelson_v1.unknown_primitive_name",        "wrong_primitive_name": "DROP_IT_LIKE_ITS_HOT" } ] } |}] in
   Lwt.return_unit
