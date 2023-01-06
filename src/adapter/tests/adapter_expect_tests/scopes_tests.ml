@@ -38,11 +38,7 @@ let%expect_test "Check sequencing etc for scopes" =
         "body":
           { "scopes":
               [ { "name": "Script Locals", "presentationHint": "locals",
-                  "variablesReference": 3, "namedVariables": 2,
-                  "expensive": false },
-                { "name": "Script Arguments", "presentationHint": "arguments",
-                  "variablesReference": 4, "namedVariables": 2,
-                  "expensive": false } ] } } |}]
+                  "variablesReference": 3, "expensive": false } ] } } |}]
     in
     Lwt.return_unit
 
