@@ -9,7 +9,8 @@ bug-reports: "https://github.com/KaroshiBee/weevil/issues"
 dev-repo: "git+https://github.com/KaroshiBee/weevil.git"
 license: "MIT"
 depends: [
-  "dune" { >= "2.9" }
+  "dune" { >= "3.0" }
+  "ocaml" {>= "4.14.0"}
   "tezos-base"
   "tezos-stdlib-unix"
   "tezos-rpc-http-client-unix"
