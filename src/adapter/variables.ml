@@ -39,8 +39,17 @@ module T (S : Types.STATE_READONLY_T) = struct
             | `Args ->
               let () = Logs.debug (fun m -> m "requested Args %d" vref) in
               [
-                D.Variable_.make ~name:params_name ~value:"" ~variablesReference:params_var ();
-                D.Variable_.make ~name:storage_name ~value:"" ~variablesReference:storage_var ();
+                (* D.Variable_.make ~name:params_name ~value:"" ~variablesReference:params_var (); *)
+                (* D.Variable_.make ~name:storage_name ~value:"" ~variablesReference:storage_var (); *)
+              ]
+            | `Locals ->
+              let () = Logs.debug (fun m -> m "requested Locals %d" vref) in
+              [
+                (* NOTE really important that the value is not "" for nodes with children *)
+                D.Variable_.make ~name:params_name ~value:".." ~variablesReference:params_var ();
+                D.Variable_.make ~name:storage_name ~value:".." ~variablesReference:storage_var ();
+                D.Variable_.make ~name:gas_name ~value:".." ~variablesReference:gas_var ();
+                D.Variable_.make ~name:stack_name ~value:"[..]" ~variablesReference:stack_var ();
               ]
             | `Params ->
               let () = Logs.debug (fun m -> m "requested input params %d" vref) in
@@ -51,12 +60,6 @@ module T (S : Types.STATE_READONLY_T) = struct
               let () = Logs.debug (fun m -> m "requested storage %d" vref) in
               [
                 D.Variable_.make ~name:"Storage" ~value:storage_val ~variablesReference:not_structured ();
-              ]
-            | `Locals ->
-              let () = Logs.debug (fun m -> m "requested Locals %d" vref) in
-              [
-                D.Variable_.make ~name:gas_name ~value:"" ~variablesReference:gas_var ();
-                D.Variable_.make ~name:stack_name ~value:"" ~variablesReference:stack_var ();
               ]
             | `Gas ->
               let () = Logs.debug (fun m -> m "requested Gas %d" vref) in
