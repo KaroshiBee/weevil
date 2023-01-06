@@ -45,7 +45,7 @@ testing a contract that has a failwith, it should incrementally step up to it an
   
   { "location":    { "start": { "line": 8, "column": 7, "point": 119, "byte": 119 },      "stop": { "line": 8, "column": 21, "point": 133, "byte": 133 } },  "gas": "91.729 units remaining", "stack": [ "True", "7", "5" ] }Content-Length: 230
   
-  { "location":    { "start": { "line": 9, "column": 7, "point": 143, "byte": 143 },      "stop": { "line": 9, "column": 24, "point": 160, "byte": 160 } },  "gas": "91.719 units remaining", "stack": [ "\"BOO\"", "True", "7", "5" ] }tezos-weevil: 
+  { "location":    { "start": { "line": 9, "column": 7, "point": 143, "byte": 143 },      "stop": { "line": 9, "column": 24, "point": 160, "byte": 160 } },  "gas": "91.719 units remaining", "stack": [ "\"BOO\"", "True", "7", "5" ] }weevil: 
   Content-Length: 368
   
   { "error":    [ { "kind": "temporary",        "id": "proto.014-PtKathma.michelson_v1.runtime_error",        "contract_handle": "KT1BEqzn5Wx8uJrZNvuS9DVHmLvG9td3fDLi",        "contract_code": "Deprecated" },      { "kind": "temporary",        "id": "proto.014-PtKathma.michelson_v1.script_rejected",        "location": 20, "with": { "string": "BOO" }, "trace": [] } ] }
@@ -53,16 +53,16 @@ testing a contract that has a failwith, it should incrementally step up to it an
 
 testing with no filename and not headless
   $ weevil stepper
-  tezos-weevil: Stepper error - Error:
-                                  Invalid_argument("required argument FILE is missing")
-                
-  Usage: tezos-weevil stepper [OPTION]… [FILE]
-  Try 'tezos-weevil stepper --help' or 'tezos-weevil --help' for more information.
+  weevil: Stepper error - Error:
+                            Invalid_argument("required argument FILE is missing")
+          
+  Usage: weevil stepper [OPTION]… [FILE]
+  Try 'weevil stepper --help' or 'weevil --help' for more information.
   [124]
 
 testing with no filename in headless mode
   $ weevil stepper --headless
-  tezos-weevil: 
+  weevil: 
   Content-Length: 133
   
   { "error":    [ { "kind": "temporary", "id": "failure",        "msg": "Invalid_argument(\"required argument FILE is missing\")" } ] }
@@ -70,7 +70,7 @@ testing with no filename in headless mode
 
 testing with bad filename in headless mode
   $ weevil stepper -h notthere.tz
-  tezos-weevil: 
+  weevil: 
   Content-Length: 161
   
   { "error":    [ { "kind": "temporary", "id": "failure",        "msg":          "cannot read file (Unix.Unix_error(Unix.ENOENT, \"open\", \"notthere.tz\"))" } ] }
@@ -78,7 +78,7 @@ testing with bad filename in headless mode
 
 testing with bad michelson in headless mode
   $ weevil stepper -h bad_michelson.tz
-  tezos-weevil: 
+  weevil: 
   Content-Length: 573
   
   { "error":    [ { "kind": "permanent", "id": "micheline.parse_error.unclosed_token",        "location":          { "start": { "line": 2, "column": 7, "point": 39, "byte": 39 },            "stop": { "line": 2, "column": 8, "point": 40, "byte": 40 } },        "token": { "punctuation": "{" } },      { "kind": "permanent", "id": "micheline.parse_error.unclosed_token",        "location":          { "start": { "line": 1, "column": 0, "point": 0, "byte": 0 },            "stop": { "line": 1, "column": 1, "point": 1, "byte": 1 } },        "token": { "punctuation": "{" } } ] }

@@ -16,11 +16,11 @@ let commands = [
 ]
 
 let info =
-  let version = "1.0" in (* Tezos_version.Bin_version.version_string in *)
+  let version = "0.1" in (* Tezos_version.Bin_version.version_string in *)
   Cmdliner.Cmd.info
     ~doc:"The Tezos Weevil tool"
     ~version
-    "tezos-weevil"
+    "weevil"
 
 let main_cmd =
   Cmdliner.Cmd.group info commands
