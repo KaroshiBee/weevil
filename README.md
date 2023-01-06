@@ -77,7 +77,6 @@ This should set the adapter service running and listening to connections on the 
 ```elisp
 M-x dap-debug
 ```
-
 It should show you the five debug sessions from step 1, choose the one you want to debug.
 
 The debug session should start and you should see Emacs connecting with the adapter.
@@ -104,8 +103,29 @@ To disconnect use
 ```elisp
 M-x dap-disconnect
 ```
-
 NOTE currently that is all the UI instructions that the weevil will respond to.
+
+## Running other Michelson files
+
+You will need to run 
+```elisp
+M-x dap-debug-edit-template
+```
+and choose one of the five setups to copy - it doesn't matter which one.  
+
+Edit the ```script_filename```, ```storage``` and ```parameter``` string fields to the filename, storage and input parameter values you want.
+
+Dont forget to also change the ```name``` field and have it register under that same new name.
+
+Now when you next run ```M-x dap-debug``` you should see that new setup as one of the choices to run.
+
+## Logging 
+
+Currently we recommend running the adapter with the ```-v -v``` logging level (debug) to have full visibility of the message passing and sequencing of events.
+
+Note also that by default the backend debugger service logs to a file called ```ROOT/weevil_mdb.log```. 
+
+Please look in there for extra information if something is not running as expected.  It is possible that some errors in the backend do not get propagated back to the adapter (and on to the UI).  Please raise an issue if this is the case. 
 
 ## Test 
 
