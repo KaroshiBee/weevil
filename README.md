@@ -39,7 +39,7 @@ $ opam switch list-available | grep base-compiler | grep Official
 $ git checkout https://github.com/karoshibee/weevil.git
 $ cd weevil/
 $ opam switch create . ocaml-base-compiler.4.14.0 
-Package tezos-weevil does not exist, create as a NEW package? [Y/n] Y
+Package weevil does not exist, create as a NEW package? [Y/n] Y
 ...lots of packages get installed
 ```
 ## Build 
