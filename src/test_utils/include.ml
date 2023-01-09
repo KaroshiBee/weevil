@@ -21,4 +21,6 @@ module Expect_test_config :
   let flushed () = Lwt_io.(buffered stdout = 0)
   let upon_unreleasable_issue = `CR
   let sanitize s = s
+  (* NOTE opam publish seems to check against an older version of ppx_expect that is expecting this flush func *)
+  let [@warning "-32"] flush () = Lwt.return_unit
 end
