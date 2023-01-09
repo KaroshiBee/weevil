@@ -11,6 +11,7 @@ license: "MIT"
 depends: [
   "dune" { >= "3.0" }
   "ocaml" {>= "4.14.0"}
+  "cmdliner" {>= "1.1.1"}
   "tezos-base"
   "tezos-stdlib-unix"
   "tezos-rpc-http-client-unix"
@@ -19,9 +20,9 @@ depends: [
   "tezos-client-014-PtKathma"
   "conduit-lwt-unix"
   "lwt_ppx"
-  "ppx_expect" {>= "0.15.1"}
-  "ppx_deriving_qcheck"
-  "qcheck-alcotest"
+  "ppx_expect" {>= "v0.15.1"}
+  "ppx_deriving_qcheck" {>= "0.3.0"}
+  "qcheck-alcotest" {>= "0.20"}
   "bisect_ppx" {>= "2.5.0"}
   ]
 build: [
