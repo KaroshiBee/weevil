@@ -12,14 +12,14 @@ depends: [
   "dune" { >= "3.0" }
   "ocaml" {>= "4.14.0"}
   "cmdliner" {>= "1.1.1"}
-  "tezos-base"
-  "tezos-stdlib-unix"
-  "tezos-rpc-http-client-unix"
-  "tezos-protocol-014-PtKathma"
-  "tezos-protocol-plugin-014-PtKathma"
-  "tezos-client-014-PtKathma"
-  "conduit-lwt-unix"
-  "lwt_ppx"
+  "tezos-base" {= "15.0"}
+  "tezos-stdlib-unix" {= "15.0"}
+  "tezos-rpc-http-client-unix" {= "15.0"}
+  "tezos-protocol-014-PtKathma" {= "15.0"}
+  "tezos-protocol-plugin-014-PtKathma" {= "15.0"}
+  "tezos-client-014-PtKathma" {= "15.0"}
+  "conduit-lwt-unix" {>= "6.0.1"}
+  "lwt_ppx" {>= "2.1.0"}
   "ppx_expect" {>= "v0.15.1"}
   "ppx_deriving_qcheck" {>= "0.3.0"}
   "qcheck-alcotest" {>= "0.20"}
