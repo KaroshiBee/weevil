@@ -20,10 +20,9 @@ depends: [
   "conduit-lwt-unix"
   "lwt_ppx"
   "ppx_deriving_qcheck"
-  "bisect_ppx" {dev & >= "2.5.0"}
-  "qcheck-alcotest" {dev}
+  "qcheck-alcotest"
+  "bisect_ppx" {>= "2.5.0"}
   ]
 build: [
   ["dune" "build" "-p" name "-j" jobs]
-  ["dune" "runtest" "-p" name "-j" jobs] {with-test}
 ]
