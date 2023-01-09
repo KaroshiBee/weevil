@@ -19,6 +19,7 @@ depends: [
   "tezos-client-014-PtKathma"
   "conduit-lwt-unix"
   "lwt_ppx"
+  "ppx_expect" {>= "0.15.1"}
   "ppx_deriving_qcheck"
   "qcheck-alcotest"
   "bisect_ppx" {>= "2.5.0"}
