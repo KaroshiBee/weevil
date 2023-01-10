@@ -22,9 +22,23 @@ Fortunately the traced interpreter can be parameterised by a user-defined [logge
 
 This then is the approach taken in the ```weevil``` stepping tool.
 
-## The MDB stepper
+| Parent service                      |                   | Child process                       | 
+|  ---:                               | :---:             | :---                                | 
+| ```$ weevil backend PORT ```        | .... spawns ....> | ```$ weevil stepper FILE```         |
+|  runs as localhost service on PORT  |                   |  stdio connected to parent          |
+|                                     | ....  step  ....> |                                     |
+|                                     | <.... state ....  |                                     |
+|                                     |                   |                                     |
+|                                     | ....  step  ....> |                                     |
+|                                     | <.... state ....  |                                     |
+|                                     | <.... exit  ....  |                                     |
+
 
 ## The MDB backend service
+
+## The MDB stepper
+
+The stepper itself is run as a child process of the backend service.   
 
 ## Querying the state of the program 
 
