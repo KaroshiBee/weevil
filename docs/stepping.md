@@ -25,10 +25,10 @@ This then is the approach taken in the ```weevil``` stepping tool.
 | Parent service                      |                   | Child process                       | 
 |  ---:                               | :---:             | :---                                | 
 | ```$ weevil backend PORT ```        | .... spawns ....> | ```$ weevil stepper FILE```         |
-|  runs as localhost service on PORT  |                   |  stdio connected to parent          |
-|                                     | ....  step  ....> |                                     |
-|                                     | <.... state ....  |                                     |
-|                                     |                   |                                     |
+|*service - listens on localhost:PORT to DAP*  |                   |  *stdin/out connected to parent*          |
+|                                     | ....  step  ....> | *logger unpause then pause*                         |
+|                                     | <.... state ....  | *logger send log*                          |
+|                                     |       ...         |                                     |
 |                                     | ....  step  ....> |                                     |
 |                                     | <.... state ....  |                                     |
 |                                     | <.... exit  ....  |                                     |
