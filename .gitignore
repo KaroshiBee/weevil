@@ -10,3 +10,4 @@
 *.coverage
 /trace.out
 /mockup_create.log 
+*.html
