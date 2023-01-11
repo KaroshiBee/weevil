@@ -77,7 +77,7 @@ On startup the stepper compiles and typechecks the specified contract, storage a
 
 The stepper pauses at the beginning of the contract execution and awaits the instruction from the parent service to step.
 
-When the backend receieves the ```next``` instruction from the debug adapter it passes that message on to the stepper (parent and child communicate via stdio channels) and the stepper takes one step then pauses again.  The stepper will log any new records back to the backend service on each step too.
+When the backend receives the ```next``` instruction from the debug adapter it passes that message on to the stepper (parent and child communicate via stdio channels) and the stepper takes one step then pauses again.  The stepper will log any new records back to the backend service on each step too.
 
 When the debug adapter requests stack-frame information the backend service retreives the latest log messages that it has received from the stepper and passes them back to the adapter.
 
@@ -86,6 +86,12 @@ When the debug adapter requests to stop the debugging session the backend servic
 TODO clean up of child process when it reaches the end of the contract
 
 ## Interacting with Octez 
+
+The ```weevil``` tool directly reuses the Octez Michelson interpreter in OCaml.  We do this to give users confidence that the debugger output is as close to 'real-life' execution as possible.  It should also make it easier to keep up with the fast pace of Tezos protocol development.
+
+All of the Octez interactions are kept inside the stepper child process.  The stepper uses the [mockup](https://tezos.gitlab.io/user/mockup.html) mode (currently the in-memory version) to allow for fully-local execution of contracts.  This mode of operation is augmented too with a special implementation of the [traced interpreter](https://gitlab.com/tezos/tezos/-/blob/master/src/proto_014_PtKathma/lib_plugin/RPC.ml#L468) that can pause execution of Michelson at each code location (c.f. the mdb [traced interpreter](./src/mdb/mdb_traced_interpreter.ml)). 
+
+TODO move to using the file backed mockup mode.
 
 ## Next steps 
 
@@ -97,11 +103,11 @@ In the ```continue ``` state the stepper should not pause after each executable 
 
 ### Step in/out/over 
 
-It's debatable whether we would want to support stepping in or over things at the Michelson level, it may be better to defer this functionality to when the weevil can be connected to other higher-level languages.  However it is the case that Michelson supports things that can be 'stepped into' e.g. ```lambdas``` and operations that jump the execution frame deeper into the Michelson stack.
+It's debatable whether we would want to support stepping in or over things at the Michelson level, it may be better to defer this functionality to when the ```weevil``` can be connected to other higher-level languages.  However it is the case that Michelson supports things that can be 'stepped into' e.g. ```lambdas``` and operations that jump the execution frame deeper into the Michelson stack.  It may be worth considering in the future.
 
 ### Other ideas
 
-* Support multiple Tezos protocol versions
-* Debug adapter/Backend state management with [Irmin](https://irmin.org/)
-* DWARF file writer for e.g. [Ligo](https://ligolang.org/), DWARF file reader for the weevil
+* Support multiple Tezos protocol versions c.f. dune [virtual-libraries](https://dune.readthedocs.io/en/stable/variants.html)
+* Debug adapter/backend state management with [Irmin](https://irmin.org/)
+* [DWARF](https://en.wikipedia.org/wiki/DWARF) file writer for e.g. [Ligo](https://ligolang.org/), [DWARF](https://en.wikipedia.org/wiki/DWARF) file reader for the ```weevil```
 
