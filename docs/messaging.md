@@ -4,7 +4,7 @@
 
 The [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/overview) (henceforth DAP) describes a general method and message protocol for building debuggers.  A DAP frontend will send ```Request``` JSON messages to the DAP adapter which then performs that request action and responds with a ```Response``` JSON message, and optionally one or more ```Event``` JSON messages.
 
-Microsoft publishes a machine-readable [schema](https://microsoft.github.io/debug-adapter-protocol/debugAdapterProtocol.json) describing all the message types and supporting objects.  This schema file is also checked in to the [weevil](./schema) codebase.
+Microsoft publishes a machine-readable [schema](https://microsoft.github.io/debug-adapter-protocol/debugAdapterProtocol.json) describing all the message types and supporting objects.  This schema file is also checked in to the [weevil](../schema) codebase.
 
 So the first thing a new adapter implementation needs is a way to consume and produce JSON messages of these types.
 
@@ -23,7 +23,7 @@ As noted above, there are three message types: ```Request```, ```Response``` and
 
 The command and event values are basically enumerations and the data content types are typically JSON objects that themselves contain other objects/lists/enums etc.
 
-This leads to the following OCaml representation (c.f. [requests](./src/dapper/dap_request_message.ml) & [responses](./src/dapper/dap_response_message.ml) & [events](./src/dapper/dap_event_message.ml):
+This leads to the following OCaml representation (c.f. [requests](../src/dapper/dap_request_message.ml) & [responses](../src/dapper/dap_response_message.ml) & [events](../src/dapper/dap_event_message.ml) ):
 
 ``` ocaml
 
@@ -56,7 +56,7 @@ Editor tooling like [Merlin](https://github.com/ocaml/merlin) and [Tuareg](https
 
 ## The ```dap-gen``` tool
 
-The ```dap-gen``` tool will generate the command and event enumerations (c.f. [commands](./src/dapper/dap_commands.mli)/[impl](./src/dapper/dap_commands.ml) and [events](./src/dapper/dap_events.mli)/[impl](./src/dapper/dap_events.ml) and also the [message types](./src/dapper/dap_messages.ml) with supporting objects.
+The ```dap-gen``` tool will generate the command and event enumerations (c.f. [commands](../src/dapper/dap_commands.mli)/[impl](../src/dapper/dap_commands.ml) and [events](../src/dapper/dap_events.mli)/[impl](../src/dapper/dap_events.ml) and also the [message types](../src/dapper/dap_messages.ml) with supporting objects).
 
 Simply run it with the required output type, JSON schema and filename:
 
