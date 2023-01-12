@@ -72,7 +72,7 @@ This all means that in the ```adapter``` library one only has to worry about imp
 
 In particular, at this point one does not have to worry about ```seq``` numbers or string handling.  All considerations are from within the well-typed world of OCaml and what ```state``` changes you wish to make.  
 
-To continue the ```next``` example shown above please consider the full ```next``` adapter [implementation](../src/adaper/next.ml).  The DAP specifies that on receipt of a [next request](https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Next) the backend should move the debugger forward one step, respond with the ```next response``` and also raise the [stopped event](https://microsoft.github.io/debug-adapter-protocol/specification#Events_Stopped).  The code is detailed below:
+To continue the ```next``` example shown above please consider the full ```next``` adapter [implementation](../src/adapter/next.ml).  The DAP specifies that on receipt of a [next request](https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Next) the backend should move the debugger forward one step, respond with the ```next response``` and also raise the [stopped event](https://microsoft.github.io/debug-adapter-protocol/specification#Events_Stopped).  The code is detailed below:
 
 ```ocaml
 
@@ -165,7 +165,27 @@ As before there is no need to worry about ```seq``` numbers or JSON string handl
 ```
 type can be returned.
 
+After defining these two handlers we need to 'register' them for this ```next``` adapter action by defining a function ```handlers```:
 
+```ocaml
+  let handlers ~state = [
+    next_handler ~state;
+    stopped_handler ~state;
+  ]
+```
+
+It is important to note that the adapter machinery will process these handlers in the order that you specify.  So in this case the ```next``` request handler will be processed first, followed by the ```stopped``` handler.  If the first handler errors then the subsequent handler is ignored.
+
+The last part is the state cleanup:
+
+```ocaml
+  let on_success ~state:_ = ()
+  let on_error ~state:_ = ()
+
+end
+```
+
+Each of these adapter modules allow you the opportunity to modify the ```state``` for either the success path or the error path.  See below for more details.
 
 ## State
 
