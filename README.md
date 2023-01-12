@@ -54,16 +54,16 @@ $ dune build -w
 
 To run locally in Emacs you will need to do three things:
 
-## Step 1 - make Emacs aware of the weevil extension to [dap-mode](https://github.com/emacs-lsp/dap-mode)
+## Step 1 - load the dap-weevil extension to [dap-mode](https://github.com/emacs-lsp/dap-mode)
 
-In Emacs open the file in the weevil source ```ROOT/emacs/dap-weevil.el``` and evaluate the elisp
+In Emacs open the [dap-weevil](./emacs/dap-weevil.el) elisp file and evaluate the elisp
 ```elisp
 M-x eval-buffer
 ```
 
 This should make available five example dap-debug sessions that can be run/debugged with the weevil.  
 
-These five setups correspond to the five examples found in the weevil source ```ROOT/examples/*.tz``` which are taken from the five examples used in the [opentezos](https://opentezos.com/michelson/examples/) website.
+These five setups correspond to the five examples found in the [weevil source](./examples/) which are taken from the five examples used in the [opentezos](https://opentezos.com/michelson/examples/) website.
 
 ## Step 2 - run the adapter service in a separate process 
 
@@ -182,7 +182,7 @@ This html report can then be viewed with your web browser at http://localhost:80
 
 The [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/overview) describes a general method and message protocol for building debuggers.  A DAP frontend will send ```Request``` JSON messages to the DAP adapter which then performs that request action and responds with a ```Response``` JSON message, and optionally one or more ```Event``` JSON messages.
 
-Microsoft publishes a machine-readable [schema](https://microsoft.github.io/debug-adapter-protocol/debugAdapterProtocol.json) describing all the message types and supporting objects.  This schema file is also checked in to the Weevil codebase (c.f. ```ROOT/schema```).
+Microsoft publishes a machine-readable [schema](https://microsoft.github.io/debug-adapter-protocol/debugAdapterProtocol.json) describing all the message types and supporting objects.  This schema file is also checked in to the [weevil](./schema) codebase.
 
 So the first thing a new adapter implementation needs is a way to consume and produce JSON messages of these types.
 
@@ -198,7 +198,7 @@ $ dune exec -- weevil dap-gen --help
 
 As noted above, there are three message types: Request, Response and Event.  Requests and Responses have a related ```command``` value and Events have an ```event``` value.  All message types also carry some sort of data, and this can be required or optional.  The command and event values are basically enumerations and the data content types are typically JSON objects that themselves contain other objects/lists/enums etc.
 
-This leads to the following OCaml representation (c.f. in ```ROOT/src/dapper/dap_request_message.mli``` & ```dap_response_message.mli``` & ```dap_event_message.mli```):
+This leads to the following OCaml representation (c.f. [requests](./src/dapper/dap_request_message.ml) & [responses](./src/dapper/dap_response_message.ml) & [events](./src/dapper/dap_event_message.ml):
 
 ``` ocaml
 
@@ -231,7 +231,7 @@ Editor tooling like [Merlin](https://github.com/ocaml/merlin) and [Tuareg](https
 
 ## The ```dap-gen``` tool
 
-The ```dap-gen``` tool will generate the command and event enumerations (c.f. ```ROOT/src/dapper/dap_commands.ml*``` and ```ROOT/src/dapper/dap_events.ml*```) and also the message types and supporting objects (c.f. ```ROOT/src/dapper/dap_message.ml```).
+The ```dap-gen``` tool will generate the command and event enumerations (c.f. [commands](./src/dapper/dap_commands.mli) and [events](./src/dapper/dap_events.mli) and also the [message types](./src/dapper/dap_messages.ml) with supporting objects.
 
 Simply run it with the required output type, JSON schema and filename:
 
