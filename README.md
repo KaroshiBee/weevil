@@ -285,6 +285,8 @@ let make ~a_required_parameter ?an_optional_parameter ... () =
 
 * Notes on the [Michelson stepper](./docs/stepping.md)
 
+* Notes on the [adapter](./docs/adapter.md)
+
 # Demo
 Pretty early-stage; here's a demo of an early prototype Emacs integration:
 
