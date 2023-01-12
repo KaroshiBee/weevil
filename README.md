@@ -281,6 +281,10 @@ let make ~a_required_parameter ?an_optional_parameter ... () =
 
 - they all have (fairly simple) [qcheck](https://github.com/c-cube/qcheck/) generators for property based testing 
 
+# More documentation
+
+* Notes on the [Michelson stepper](./docs/stepping.md)
+
 # Demo
 Pretty early-stage; here's a demo of an early prototype Emacs integration:
 
