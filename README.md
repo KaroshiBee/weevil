@@ -6,16 +6,6 @@ Hooks straight into the [Octez](https://gitlab.com/tezos/tezos) Michelson interp
 
 Wraps everything up in the [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/overview).
 
-# Install 
-
-WARN under heavy development - better to follow Developer Setup below
-
-Using opam just do the usual 
-
-```sh
-$ opam install weevil
-```
-
 # Developer Setup
 
 The Tezos Weevil is currently under heavy development so to play along please check out the source code and build locally.
@@ -177,6 +167,18 @@ Serving HTTP on 0.0.0.0 port 8000 (http://0.0.0.0:8000/) ...
 ```
 
 This html report can then be viewed with your web browser at http://localhost:8000
+
+# Opam Install 
+
+WARN under heavy development - it is recommended to follow [Developer Setup](#developer-setup) above.
+
+However an early preview version is available on opam; just do the usual 
+
+```sh
+$ opam install weevil
+```
+
+With this version you can run the ```weevil``` command to have a preview of the functionality, to obtain the full functionality please use the [Developer Setup](#developer-setup). 
 
 # Documentation
 
