@@ -56,7 +56,16 @@ $ dune build -w
 
 To run locally in Emacs you will need to do three things:
 
-## Step 1 - load the dap-weevil extension to [dap-mode](https://github.com/emacs-lsp/dap-mode)
+## Step 1 - run the adapter service 
+
+In a local shell run 
+```sh
+$ dune exec -- weevil adapter -v -v
+```
+
+This should set the adapter service running and listening to connections on the default port 9000.
+
+## Step 2 - load the dap-weevil extension to Emacs [dap-mode](https://github.com/emacs-lsp/dap-mode)
 
 In Emacs open the [dap-weevil](./emacs/dap-weevil.el) elisp file and evaluate the elisp
 ```elisp
@@ -67,19 +76,12 @@ This should make available five example dap-debug sessions that can be run/debug
 
 These five setups correspond to the five examples found in the [weevil source](./examples/) which are taken from the five examples used in the [opentezos](https://opentezos.com/michelson/examples/) website.
 
-## Step 2 - run the adapter service in a separate process 
 
-```sh
-$ dune exec -- weevil adapter -v -v
-```
-
-This should set the adapter service running and listening to connections on the default port 9000.
-
-## Step 3 - back in emacs run 
+## Step 3 - in Emacs run 
 ```elisp
 M-x dap-debug
 ```
-It should show you the five debug sessions from step 1, choose the one you want to debug.
+It should show you the five debug sessions from the previous step, choose the one you want to debug.
 
 The debug session should start and you should see Emacs connecting with the adapter.
 
@@ -109,7 +111,7 @@ NOTE currently that is all the UI instructions that the weevil will respond to.
 
 ## Running other Michelson files
 
-You will need to run 
+In Emacs you will need to run (after doing the three steps above)
 ```elisp
 M-x dap-debug-edit-template
 ```
