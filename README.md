@@ -1,10 +1,22 @@
 # Weevil
 
-A debugger for Michelson in OCaml.
+A debugger for the [Tezos](https://tezos.com/) smart contract language [Michelson](https://tezos.gitlab.io/active/michelson.html).
+
+Implemented in [OCaml](https://ocaml.org/).
 
 Hooks straight into the [Octez](https://gitlab.com/tezos/tezos) Michelson interpreter.
 
 Wraps everything up in the [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/overview).
+
+Please see the [Developer Setup](#developer-setup) below to get started.
+
+# Thanks
+
+Many thanks to the [Tezos Foundation](https://tezos.foundation/) who are funding this work.
+
+If you would also like to get involved through sponsorship please see [here](https://github.com/sponsors/KaroshiBee).
+
+If you just want to chat please reach out on Twitter [@karoshibee](https://twitter.com/karoshibee) or [LinkedIn](https://www.linkedin.com/in/simon-parry-3528b0198).
 
 # Developer Setup
 
@@ -184,9 +196,9 @@ With this version you can run the ```weevil``` command to have a preview of the 
 
 * Notes on [messaging](./docs/messaging.md) including how to use the ```weevil dap-gen``` tool to auto-generate OCaml code for all the DAP message types,
 
-* Notes on the [Michelson stepper](./docs/stepping.md),
+* Notes on the ```weevil``` [Michelson stepper](./docs/stepping.md),
 
-* Notes on the [adapter](./docs/adapter.md).
+* Notes on the ```weevil``` [debug adapter](./docs/adapter.md).
 
 # Demo
 Pretty early-stage; here's a demo of an early prototype Emacs integration:
