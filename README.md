@@ -192,7 +192,15 @@ However an early preview version is available on opam; just do the usual
 $ opam install weevil
 ```
 
-With this version you can run the ```weevil``` command to have a preview of the functionality, to obtain the full functionality please use the [Developer Setup](#developer-setup). 
+With this version you can run the ```weevil``` command to have a preview of the functionality, for example you can run the ```stepper``` directly as a CLI tool:
+
+```sh
+$ weevil stepper -v -v --headless --storage '0' --parameter '(Pair 7 5)' --entrypoint 'default' open_tezos_example1_looping.tz
+```
+
+It will pause at the first Michelson instruction, to step just press ```<return>```.
+
+To obtain the full functionality please use the [Developer Setup](#developer-setup). 
 
 # Documentation
 
