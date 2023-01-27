@@ -9,7 +9,7 @@ code { CAR ;
        LOOP { DIP { DUP } ;
               DUP ;
               DIP { SWAP } ;
-              CMPLE ;
+              CMPLE; /* TODO we should macro expand to COMPARE; LE ; */
               IF
                      { PUSH bool False }
                      { DIP { DUP } ; SUB ; PUSH bool True } ; } ;
