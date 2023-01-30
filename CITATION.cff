@@ -1,0 +1,20 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: 'weevil'
+type: software
+authors:
+  - given-names: Simon
+    family-names: Parry
+    email: simon.parry@karoshibee.com
+    affiliation: 'Karoshibee Ltd'
+repository-code: 'https://github.com/karoshibee/weevil.git'
+abstract: >-
+  The Tezos Weevil is a debugging system for the Tezos smart
+  contact platform
+keywords:
+  - tezos
+  - debugging
+  - michelson
+license: MIT
