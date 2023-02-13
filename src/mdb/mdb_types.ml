@@ -1,6 +1,3 @@
-open Tezos_protocol_014_PtKathma.Protocol
-open Alpha_context
-
 module Mich_config = struct
   type t = {
     script_filename:string; storage:string; parameter:string; entrypoint:string;
@@ -25,31 +22,36 @@ end
 
 
 module type INTERPRETER_CFG = sig
-  open Tezos_protocol_014_PtKathma.Environment
-  open Tezos_protocol_014_PtKathma.Environment.Error_monad
+  module P = Tezos_protocol_014_PtKathma.Protocol
+  module Ctxt = P.Alpha_context
+  module Env = Tezos_protocol_014_PtKathma.Environment
+  module Err = Tezos_protocol_014_PtKathma.Environment.Error_monad
 
   type t
 
   val make_log :
-    context ->
+    Ctxt.context ->
     Tezos_micheline.Micheline_parser.location ->
     ('a * 's) ->
-    ('a, 's) Script_typed_ir.stack_ty ->
+    ('a, 's) P.Script_typed_ir.stack_ty ->
     t
 
-  val unparsing_mode : Script_ir_translator.unparsing_mode
+  val unparsing_mode : P.Script_ir_translator.unparsing_mode
 
   val unparse_stack :
     t ->
-    (Script.expr * string option * bool) list tzresult Lwt.t
+    (Ctxt.Script.expr * string option * bool) list Err.tzresult Lwt.t
 
   val get_loc :
     t -> Tezos_micheline.Micheline_parser.location
 
   val get_gas :
-    t -> Gas.t
+    t -> Ctxt.Gas.t
 end
 
+
+open Tezos_protocol_014_PtKathma.Protocol
+open Alpha_context
 
 module type INTERPRETER = sig
 

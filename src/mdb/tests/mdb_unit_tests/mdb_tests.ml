@@ -8,6 +8,11 @@ module Tbl = Mdb.Mdb_log_records
 
 module TestCfg = struct
 
+  module P = Protocol
+  module Ctxt = P.Alpha_context
+  module Env = Environment
+  module Err = Environment.Error_monad
+
   type t =
     | TestLog of int
 

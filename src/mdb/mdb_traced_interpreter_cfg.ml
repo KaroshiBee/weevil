@@ -1,7 +1,10 @@
 open Tezos_protocol_014_PtKathma.Protocol
 open Alpha_context
 
-(* NOTE type unparsing_mode = Optimized | Readable | Optimized_legacy, could we phantom this into the logger type? *)
+module P = Tezos_protocol_014_PtKathma.Protocol
+module Ctxt = P.Alpha_context
+module Env = Tezos_protocol_014_PtKathma.Environment
+module Err = Tezos_protocol_014_PtKathma.Environment.Error_monad
 
 type t =
   | Log :
