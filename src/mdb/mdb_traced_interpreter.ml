@@ -1,18 +1,22 @@
-open Tezos_protocol_014_PtKathma.Protocol
-open Tezos_protocol_014_PtKathma.Environment.Error_monad
-module Plugin = Tezos_protocol_plugin_014_PtKathma
 module Log_records = Mdb_log_records
+
+module Plugin = Tezos_protocol_plugin_014_PtKathma
 module PP = Tezos_client_014_PtKathma.Michelson_v1_printer
+
+module P = Tezos_protocol_014_PtKathma.Protocol
+module Ctxt = P.Alpha_context
+module Env = Tezos_protocol_014_PtKathma.Environment
+module Err = Tezos_protocol_014_PtKathma.Environment.Error_monad
 
 module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
 
-  type t = Script_typed_ir.logger
+  type t = P.Script_typed_ir.logger
 
   let log_element_to_json log_element =
     let open Lwt_result_syntax in
     let module List = Tezos_protocol_014_PtKathma.Environment.List in
     let* (loc, gas, exprs) =
-      trace
+      Err.trace
         Plugin.Plugin_errors.Cannot_serialize_log
         (let* stack = Cfg.unparse_stack log_element in
          let stack = List.map (fun (expr, _, _) -> expr) stack in
@@ -24,7 +28,7 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
 
   let log_element_to_out log_element out_channel =
     (* unparse the log_element and wait for the data *)
-    let to_out : (Tezos_micheline.Micheline_parser.location * Alpha_context.Gas.t * 'exprs) option ref = ref None in
+    let to_out : (Tezos_micheline.Micheline_parser.location * Ctxt.Gas.t * 'exprs) option ref = ref None in
     let lck = Lwt_mutex.create () in
     let () =
       Lwt.async (fun () ->
@@ -38,7 +42,7 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
                 let () = to_out := Some t in
                 Lwt.return_unit
               | Error err ->
-                let s = Format.asprintf "%a" pp_trace err in
+                let s = Format.asprintf "%a" Err.pp_trace err in
                 let%lwt () = Logs_lwt.err (fun m -> m "async log element to json, got error %s" s) in
                 Lwt.return_unit
             )
@@ -56,7 +60,7 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
     in
 
     let pp_gas gas =
-      Format.asprintf "%a" Alpha_context.Gas.pp gas
+      Format.asprintf "%a" Ctxt.Gas.pp gas
     in
 
     let rec aux () =
@@ -128,14 +132,14 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
       Logs.debug (fun m -> m "log_control");
     in
     let get_log () =
-      (* NOTE we dont need to use this anymore *)
+      (* NOTE we dont need to use get_log anymore *)
       let open Lwt_result_syntax in
       return @@ Some []
     in
-    Script_typed_ir.{log_exit; log_entry; log_interp; get_log; log_control}
+    P.Script_typed_ir.{log_exit; log_entry; log_interp; get_log; log_control}
 
   let execute ctxt step_constants ~script ~entrypoint ~parameter ~interp =
-    let open Script_interpreter in
+    let open P.Script_interpreter in
     execute
       ~logger:interp
       ~cached_script:None

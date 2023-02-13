@@ -1,6 +1,3 @@
-open Tezos_protocol_014_PtKathma.Protocol
-open Alpha_context
-module Plugin = Tezos_protocol_plugin_014_PtKathma
 module RPC = Tezos_rpc_http_client_unix.RPC_client_unix (* TODO use lib_mockup one? *)
 module Client_context_unix = Tezos_client_base_unix.Client_context_unix
 module Client_context = Tezos_client_base.Client_context
@@ -8,11 +5,15 @@ module Client_context = Tezos_client_base.Client_context
 
 module T (Interp : Mdb_types.INTERPRETER) = struct
 
-  type code_trace = (Script.expr * Apply_internal_results.packed_internal_contents trace * Lazy_storage.diffs option)
+  module Plugin = Tezos_protocol_plugin_014_PtKathma
+  module P = Tezos_protocol_014_PtKathma.Protocol
+  module Ctxt = P.Alpha_context
+
+  type code_trace = (Ctxt.Script.expr * P.Apply_internal_results.packed_internal_contents trace * Ctxt.Lazy_storage.diffs option)
 
   type t = {
-    chain_id:Chain_id.t;
-    alpha_context:Alpha_context.t;
+    chain_id:Tezos_crypto.Chain_id.t;
+    alpha_context:Ctxt.t;
     mock_context:Client_context_unix.unix_mockup;
     code_trace:code_trace option;
   }
@@ -26,15 +27,15 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
 
   let originate_dummy_contract ctxt script balance =
     let open Lwt_result_syntax in
-    let ctxt = Origination_nonce.init ctxt Tezos_protocol_014_PtKathma.Environment.Operation_hash.zero in
+    let ctxt = Ctxt.Origination_nonce.init ctxt Tezos_protocol_014_PtKathma.Environment.Operation_hash.zero in
     let* (ctxt, dummy_contract_hash) =
       Lwt.return @@
       Tezos_protocol_014_PtKathma.Environment.wrap_tzresult @@
-      Contract.fresh_contract_from_current_nonce ctxt
+      Ctxt.Contract.fresh_contract_from_current_nonce ctxt
     in
-    let dummy_contract = Contract.Originated dummy_contract_hash in
+    let dummy_contract = Ctxt.Contract.Originated dummy_contract_hash in
     let* ctxt =
-      Contract.raw_originate
+      Ctxt.Contract.raw_originate
         ctxt
         ~prepaid_bootstrap_storage:false
         dummy_contract_hash
@@ -42,7 +43,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
       |> Lwt.map Tezos_protocol_014_PtKathma.Environment.wrap_tzresult
     in
     let* (ctxt, _) =
-      Token.transfer
+      Ctxt.Token.transfer
         ~origin:Simulation
         ctxt
         `Minted
@@ -68,7 +69,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
          let* bal =
            Plugin.RPC.Scripts.default_from_context
              ctxt
-             (fun c -> Contract.get_balance c @@ Contract.Originated addr)
+             (fun c -> Ctxt.Contract.get_balance c @@ Ctxt.Contract.Originated addr)
              balance
            |> Lwt.map Tezos_protocol_014_PtKathma.Environment.wrap_tzresult
          in
@@ -77,7 +78,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
     let (source, payer) =
       match (src_opt, pay_opt) with
       | (None, None) ->
-        let self = Contract.Originated self in
+        let self = Ctxt.Contract.Originated self in
         (self, self)
       | (Some c, None) | (None, Some c) -> (c, c)
       | (Some src, Some pay) -> (src, pay)
@@ -89,13 +90,13 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
   (* TODO move all these args to API call points *)
   let trace_code
       ?gas
-      ?(entrypoint = Entrypoint.default)
+      ?(entrypoint = Ctxt.Entrypoint.default)
       ?balance
       ~script
       ~storage
       ~input
       ~file_locations
-      ?(amount = Tez.fifty_cents)
+      ?(amount = Ctxt.Tez.fifty_cents)
       ?(chain_id = Chain_id.zero)
       ?source
       ?payer
@@ -111,8 +112,8 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
        'pr #Environment.RPC_context.simple where type of block is 'pr *)
     let*! () = Logs_lwt.debug (fun m -> m "getting storage and code") in
     let interp = make_interp file_locations in
-    let storage = Script.lazy_expr storage in
-    let code = Script.lazy_expr script in
+    let storage = Ctxt.Script.lazy_expr storage in
+    let code = Ctxt.Script.lazy_expr script in
     let*! () = Logs_lwt.debug (fun m -> m "getting ctxt config from configure contracts") in
     let* ctxt_config =
       configure_contracts
@@ -129,24 +130,24 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
       match gas with
       | Some gas -> gas
       | None ->
-        Gas.Arith.integral_of_int_exn
+        Ctxt.Gas.Arith.integral_of_int_exn
           100 (* Constants.hard_gas_limit_per_operation ctxt *)
     in
     let*! () = Logs_lwt.debug (fun m -> m "setting gas limit") in
-    let ctxt = Gas.set_limit ctxt gas in
+    let ctxt = Ctxt.Gas.set_limit ctxt gas in
     let*! () = Logs_lwt.debug (fun m -> m "getting now timestamp") in
-    let now = match now with None -> Script_timestamp.now ctxt | Some t -> t in
+    let now = match now with None -> P.Script_timestamp.now ctxt | Some t -> t in
     let*! () = Logs_lwt.debug (fun m -> m "getting level") in
     let level =
       match level with
       | None ->
-        (Level.current ctxt).level |> Raw_level.to_int32 |> Script_int.of_int32
-        |> Script_int.abs
+        (Ctxt.Level.current ctxt).level |> Ctxt.Raw_level.to_int32 |> P.Script_int.of_int32
+        |> P.Script_int.abs
       | Some z -> z
     in
     let*! () = Logs_lwt.debug (fun m -> m "getting step constants") in
     let step_constants =
-      let open Script_interpreter in
+      let open P.Script_interpreter in
       {source; payer; self; amount; balance; chain_id; now; level}
     in
 
@@ -164,7 +165,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
     in
 
     let*! () = Logs_lwt.debug (fun m -> m "executed all of contract") in
-    let ( Script_interpreter.{
+    let ( P.Script_interpreter.{
             script = _;
             code_size = _;
             storage;
@@ -174,7 +175,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
           }, _ctxt ) = res
     in
 
-    let ops = Apply_internal_results.contents_of_packed_internal_operations operations in
+    let ops = P.Apply_internal_results.contents_of_packed_internal_operations operations in
 
     return (
       storage,
@@ -255,7 +256,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
     let*? storage = Mdb_typechecker.from_string storage in
     let*! () = Logs_lwt.debug (fun m -> m "parsing input") in
     let*? input = Mdb_typechecker.from_string input in
-    let*? entrypoint = Entrypoint.of_string_lax entrypoint |> Tezos_protocol_014_PtKathma.Environment.wrap_tzresult in
+    let*? entrypoint = Ctxt.Entrypoint.of_string_lax entrypoint |> Tezos_protocol_014_PtKathma.Environment.wrap_tzresult in
     return (script, storage, input, entrypoint)
 
 

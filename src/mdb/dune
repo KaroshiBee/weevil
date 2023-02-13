@@ -26,9 +26,8 @@
    -linkall
    -open
    Tezos_base.TzPervasives
-   ; -open
-   ; Tezos_protocol_014_PtKathma
  ))
+ (modules_without_implementation mdb_tezos)
  (preprocess (pps lwt_ppx ppx_deriving.show))
  (instrumentation (backend bisect_ppx))
 )
