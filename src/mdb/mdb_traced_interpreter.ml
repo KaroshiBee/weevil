@@ -1,5 +1,5 @@
-open Protocol
-open Environment.Error_monad
+open Tezos_protocol_014_PtKathma.Protocol
+open Tezos_protocol_014_PtKathma.Environment.Error_monad
 module Plugin = Tezos_protocol_plugin_014_PtKathma
 module Log_records = Mdb_log_records
 module PP = Tezos_client_014_PtKathma.Michelson_v1_printer
@@ -10,7 +10,7 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
 
   let log_element_to_json log_element =
     let open Lwt_result_syntax in
-    let module List = Environment.List in
+    let module List = Tezos_protocol_014_PtKathma.Environment.List in
     let* (loc, gas, exprs) =
       trace
         Plugin.Plugin_errors.Cannot_serialize_log

@@ -1,4 +1,4 @@
-open Protocol
+open Tezos_protocol_014_PtKathma.Protocol
 open Alpha_context
 module Plugin = Tezos_protocol_plugin_014_PtKathma
 module RPC = Tezos_rpc_http_client_unix.RPC_client_unix (* TODO use lib_mockup one? *)
@@ -26,10 +26,10 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
 
   let originate_dummy_contract ctxt script balance =
     let open Lwt_result_syntax in
-    let ctxt = Origination_nonce.init ctxt Environment.Operation_hash.zero in
+    let ctxt = Origination_nonce.init ctxt Tezos_protocol_014_PtKathma.Environment.Operation_hash.zero in
     let* (ctxt, dummy_contract_hash) =
       Lwt.return @@
-      Environment.wrap_tzresult @@
+      Tezos_protocol_014_PtKathma.Environment.wrap_tzresult @@
       Contract.fresh_contract_from_current_nonce ctxt
     in
     let dummy_contract = Contract.Originated dummy_contract_hash in
@@ -39,7 +39,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
         ~prepaid_bootstrap_storage:false
         dummy_contract_hash
         ~script:(script, None)
-      |> Lwt.map Environment.wrap_tzresult
+      |> Lwt.map Tezos_protocol_014_PtKathma.Environment.wrap_tzresult
     in
     let* (ctxt, _) =
       Token.transfer
@@ -48,7 +48,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
         `Minted
         (`Contract dummy_contract)
         balance
-      |> Lwt.map Environment.wrap_tzresult
+      |> Lwt.map Tezos_protocol_014_PtKathma.Environment.wrap_tzresult
     in
     return (ctxt, dummy_contract_hash)
 
@@ -70,7 +70,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
              ctxt
              (fun c -> Contract.get_balance c @@ Contract.Originated addr)
              balance
-           |> Lwt.map Environment.wrap_tzresult
+           |> Lwt.map Tezos_protocol_014_PtKathma.Environment.wrap_tzresult
          in
          return (ctxt, addr, bal))
     in
@@ -160,7 +160,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
       ~entrypoint
       ~parameter:input
       ~interp
-    |> Lwt.map Environment.wrap_tzresult
+    |> Lwt.map Tezos_protocol_014_PtKathma.Environment.wrap_tzresult
     in
 
     let*! () = Logs_lwt.debug (fun m -> m "executed all of contract") in
@@ -216,12 +216,12 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
     let timestamp = rpc_context.block_header.timestamp in
     let level = Int32.succ rpc_context.block_header.level in (* `Successor_level is safer? *)
     let* (alpha_context, _, _) =
-      Protocol.Alpha_context.prepare
+      Tezos_protocol_014_PtKathma.Protocol.Alpha_context.prepare
         ~level
         ~predecessor_timestamp:timestamp
         ~timestamp
         rpc_context.context
-      |> Lwt.map Environment.wrap_tzresult
+      |> Lwt.map Tezos_protocol_014_PtKathma.Environment.wrap_tzresult
     in
     (* let*! () = Logs_lwt.debug (fun m -> m "doing client config init mockup - ONLY NEEDED FOR DISK BASED MOCKS") *)
     (* let* () = Client_config.config_init_mockup *)
@@ -255,7 +255,7 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
     let*? storage = Mdb_typechecker.from_string storage in
     let*! () = Logs_lwt.debug (fun m -> m "parsing input") in
     let*? input = Mdb_typechecker.from_string input in
-    let*? entrypoint = Entrypoint.of_string_lax entrypoint |> Environment.wrap_tzresult in
+    let*? entrypoint = Entrypoint.of_string_lax entrypoint |> Tezos_protocol_014_PtKathma.Environment.wrap_tzresult in
     return (script, storage, input, entrypoint)
 
 

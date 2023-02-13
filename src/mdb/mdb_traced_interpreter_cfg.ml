@@ -1,4 +1,4 @@
-open Protocol
+open Tezos_protocol_014_PtKathma.Protocol
 open Alpha_context
 
 (* NOTE type unparsing_mode = Optimized | Readable | Optimized_legacy, could we phantom this into the logger type? *)
@@ -18,7 +18,7 @@ let unparsing_mode = Script_ir_translator.Readable
 
 let unparse_stack = function
   | Log (ctxt_in, _loc, stack, stack_ty) ->
-    let open Environment.Error_monad in
+    let open Tezos_protocol_014_PtKathma.Environment.Error_monad in
     let open Lwt_result_syntax in
     (* We drop the gas limit as this function is only used for debugging/errors. *)
     let ctxt = Gas.set_unlimited ctxt_in in
@@ -31,7 +31,7 @@ let unparse_stack = function
         let* (data, _ctxt) = Script_ir_translator.unparse_data ctxt unparsing_mode ty v in
         let+ rest = _unparse_stack (rest_ty, rest) in
         (* TODO do we need to strip locations? *)
-        let data = Environment.Micheline.strip_locations data in
+        let data = Tezos_protocol_014_PtKathma.Environment.Micheline.strip_locations data in
         (data, None, false) :: rest
     in
     _unparse_stack (stack_ty, stack)

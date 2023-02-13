@@ -3,7 +3,7 @@ module Client_context_unix = Tezos_client_base_unix.Client_context_unix
 
 type t = {
   chain_id:Chain_id.t;
-  rpc_context:Environment.Updater.rpc_context;
+  rpc_context:Tezos_protocol_014_PtKathma.Environment.Updater.rpc_context;
   unix_mockup:Client_context_unix.unix_mockup;
 }
 

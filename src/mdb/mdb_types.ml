@@ -1,4 +1,4 @@
-open Protocol
+open Tezos_protocol_014_PtKathma.Protocol
 open Alpha_context
 
 module Mich_config = struct
@@ -25,8 +25,8 @@ end
 
 
 module type INTERPRETER_CFG = sig
-  open Environment
-  open Environment.Error_monad
+  open Tezos_protocol_014_PtKathma.Environment
+  open Tezos_protocol_014_PtKathma.Environment.Error_monad
 
   type t
 
@@ -53,8 +53,8 @@ end
 
 module type INTERPRETER = sig
 
-  open Environment
-  open Environment.Error_monad
+  open Tezos_protocol_014_PtKathma.Environment
+  open Tezos_protocol_014_PtKathma.Environment.Error_monad
 
   type t
 
