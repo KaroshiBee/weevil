@@ -89,7 +89,7 @@ module type STEPPER = sig
       Ctxt.Lazy_storage.diffs option
     ) option
 
-  val chain_id : t -> Chain_id.t
+  val chain_id : t -> Tezos_crypto.Chain_id.t
   val alpha_context : t -> Ctxt.t
   val mock_context : t -> Tezos_client_base_unix.Client_context_unix.unix_mockup
 
