@@ -5,7 +5,7 @@ module Req = Dap.Request
 module Res = Dap.Response
 module Ev = Dap.Event
 module Model = Mdb.Mdb_model
-module Mich_config = Mdb.Mdb_types.Mich_config
+module Mich_config = Mdb.Mdb_config
 
 module T (S : Types.STATE_READONLY_T) = struct
 

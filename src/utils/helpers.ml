@@ -31,7 +31,7 @@ module StateMock = struct
     mutable seqr: Data.Seqr.t;
     mutable config : Config.t;
     mutable client_config : Data.InitializeRequestArguments.t option;
-    mutable mdb_config : Mdb.Mdb_types.Mich_config.t option;
+    mutable mdb_config : Mdb.Mdb_config.t option;
     mutable log_records : Model.Weevil_json.t list;
     mutable should_restart_on_terminate : bool option;
 
@@ -44,7 +44,7 @@ module StateMock = struct
     seqr = Data.Seqr.make ~seq:0 ();
     config=Config.make ();
     client_config=Option.some @@ Data.InitializeRequestArguments.make ~adapterID:"MOCK" ();
-    mdb_config=Option.some @@ Mdb.Mdb_types.Mich_config.make
+    mdb_config=Option.some @@ Mdb.Mdb_config.make
         ~script_filename:"/home/kbee/dev/weevil/example.tz"
         ~storage:"Unit"
         ~parameter:"Unit"

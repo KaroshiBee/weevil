@@ -5,7 +5,7 @@ module Req = Dap.Request
 module Res = Dap.Response
 module Ev = Dap.Event
 module Model = Mdb.Mdb_model
-module Mdb_cfg = Mdb.Mdb_types.Mich_config
+module Mdb_cfg = Mdb.Mdb_config
 
 module Mdb_ = struct
   (* need a way to break out of handle message *)

@@ -13,7 +13,7 @@ module T (Dap_state:Dap.STATE_T) = struct
     mutable launch_mode : Dap.Launch_mode.t option;
     mutable config : Dap.Config.t;
     mutable client_config : Dap.Data.InitializeRequestArguments.t option;
-    mutable mdb_config : Mdb.Mdb_types.Mich_config.t option;
+    mutable mdb_config : Mdb.Mdb_config.t option;
     mutable log_records : Model.Weevil_json.t list;
     mutable should_restart_on_terminate : bool option;
   }

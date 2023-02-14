@@ -4,7 +4,7 @@ module Dap_result = Dapper.Dap_result
 module Req = Dap.Request
 module Res = Dap.Response
 module Ev = Dap.Event
-module Mich_config = Mdb.Mdb_types.Mich_config
+module Mich_config = Mdb.Mdb_config
 
 (* The disconnect request asks the debug adapter to disconnect from the debuggee (thus ending the debug session)
    and then to shut down itself (the debug adapter).

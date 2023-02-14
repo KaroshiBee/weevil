@@ -29,7 +29,7 @@ module type STATE_READONLY_T = sig
   val client_config : t -> Dap.Data.InitializeRequestArguments.t option
 
   (* the mdb stuff - script, storage, parameter *)
-  val mdb_config : t -> Mdb.Mdb_types.Mich_config.t option
+  val mdb_config : t -> Mdb.Mdb_config.t option
 
 end
 
@@ -50,7 +50,7 @@ module type STATE_T = sig
 
   val set_client_config : t -> Dap.Data.InitializeRequestArguments.t -> unit
 
-  val set_mdb_config : t -> Mdb.Mdb_types.Mich_config.t -> unit
+  val set_mdb_config : t -> Mdb.Mdb_config.t -> unit
 
   val set_should_restart_on_terminate : t -> bool option -> unit
 

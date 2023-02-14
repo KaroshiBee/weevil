@@ -37,7 +37,7 @@ module T (S : Types.STATE_T) = struct
     let port = Dap.Config.backend_port dap_config in
     connect_background_svc state ip port
     |> Dap_result.bind ~f:(fun (_ic, oc) ->
-        let stepper_cmd = Mdb.Mdb_types.Mich_config.(
+        let stepper_cmd = Mdb.Mdb_config.(
             Dap.Config.stepper_cmd
               ~script_filename:mdb_config.script_filename
               ~storage:mdb_config.storage
