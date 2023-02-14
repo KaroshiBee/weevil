@@ -77,6 +77,7 @@ module type INTERPRETER = sig
 
 end
 
+module type CTXT = module type of Tezos_protocol_014_PtKathma.Protocol.Alpha_context
 
 module type STEPPER = sig
 

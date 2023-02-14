@@ -2,12 +2,12 @@ module RPC = Tezos_rpc_http_client_unix.RPC_client_unix (* TODO use lib_mockup o
 module Client_context_unix = Tezos_client_base_unix.Client_context_unix
 module Client_context = Tezos_client_base.Client_context
 
-
 module T (Interp : Mdb_types.INTERPRETER) = struct
 
   module Plugin = Tezos_protocol_plugin_014_PtKathma
   module P = Tezos_protocol_014_PtKathma.Protocol
   module Ctxt = P.Alpha_context
+  module Stepper_config = Mdb_stepper_config.T (Ctxt)
 
   type code_trace = (Ctxt.Script.expr * P.Apply_internal_results.packed_internal_contents trace * Ctxt.Lazy_storage.diffs option)
 
@@ -206,16 +206,16 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
     in
 
     let*! () = Logs_lwt.debug (fun m -> m "making client context unix mockup") in
-    let protocol_hash = Protocol_hash.of_b58check_opt protocol_str in
-    let* mock_rpc_context =
-      Mdb_stepper_config.setup_mockup_rpc_client_config
+    let   protocol_hash = Protocol_hash.of_b58check_opt protocol_str in
+    let*  mock_rpc_context =
+      Stepper_config.setup_mockup_rpc_client_config
         ~base_dir
         (cctxt :> Client_context.printer)
         protocol_hash
     in
-    let chain_id = Mdb_stepper_config.chain_id mock_rpc_context in
-    let mock_context = Mdb_stepper_config.mock_context mock_rpc_context in
-    let* alpha_context = Mdb_stepper_config.make_alpha_context mock_rpc_context in
+    let  chain_id = Stepper_config.chain_id mock_rpc_context in
+    let  mock_context = Stepper_config.mock_context mock_rpc_context in
+    let* alpha_context = Stepper_config.make_alpha_context mock_rpc_context in
 
     (* let*! () = Logs_lwt.debug (fun m -> m "doing client config init mockup - ONLY NEEDED FOR DISK BASED MOCKS") *)
     (* let* () = Client_config.config_init_mockup *)
