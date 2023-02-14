@@ -1,14 +1,11 @@
-module Client_context = Tezos_client_base.Client_context
-module Client_context_unix = Tezos_client_base_unix.Client_context_unix
-
-type t = {
-  chain_id:Chain_id.t;
-  rpc_context:Tezos_protocol_014_PtKathma.Environment.Updater.rpc_context;
-  unix_mockup:Client_context_unix.unix_mockup;
-}
+type t
 
 val setup_mockup_rpc_client_config :
-  Client_context.printer ->
-  Protocol_hash.t option ->
-  string ->
+  base_dir:string ->
+  Tezos_client_base.Client_context.printer ->
+  Tezos_crypto.Protocol_hash.t option ->
   t tzresult Lwt.t
+
+val chain_id : t -> Tezos_crypto.Chain_id.t
+val rpc_context : t -> Tezos_protocol_014_PtKathma.Environment.Updater.rpc_context
+val mock_context : t -> Tezos_client_base_unix.Client_context_unix.unix_mockup

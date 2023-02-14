@@ -207,13 +207,15 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
 
     let*! () = Logs_lwt.debug (fun m -> m "making client context unix mockup") in
     let protocol_hash = Protocol_hash.of_b58check_opt protocol_str in
-    let* {chain_id; rpc_context; unix_mockup=mock_context} = Mdb_stepper_config.setup_mockup_rpc_client_config
+    let* mock_rpc_context =
+      Mdb_stepper_config.setup_mockup_rpc_client_config
+        ~base_dir
         (cctxt :> Client_context.printer)
         protocol_hash
-        base_dir
     in
-
-
+    let chain_id = Mdb_stepper_config.chain_id mock_rpc_context in
+    let rpc_context = Mdb_stepper_config.rpc_context mock_rpc_context in
+    let mock_context = Mdb_stepper_config.mock_context mock_rpc_context in
     let timestamp = rpc_context.block_header.timestamp in
     let level = Int32.succ rpc_context.block_header.level in (* `Successor_level is safer? *)
     let* (alpha_context, _, _) =
