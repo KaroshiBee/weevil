@@ -79,8 +79,6 @@ module type STEPPER = sig
 
   module P = Tezos_protocol_014_PtKathma.Protocol
   module Ctxt = P.Alpha_context
-  module Env = Tezos_protocol_014_PtKathma.Environment
-  module Err = Tezos_protocol_014_PtKathma.Environment.Error_monad
 
   type t
   type interp
