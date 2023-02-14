@@ -22,6 +22,7 @@ end
 
 
 module type INTERPRETER_CFG = sig
+
   module P = Tezos_protocol_014_PtKathma.Protocol
   module Ctxt = P.Alpha_context
   module Env = Tezos_protocol_014_PtKathma.Environment
@@ -54,6 +55,8 @@ module type INTERPRETER = sig
 
   module P = Tezos_protocol_014_PtKathma.Protocol
   module Ctxt = P.Alpha_context
+  module Env = Tezos_protocol_014_PtKathma.Environment
+  module Err = Tezos_protocol_014_PtKathma.Environment.Error_monad
 
   type t
 
@@ -70,7 +73,7 @@ module type INTERPRETER = sig
     entrypoint:Ctxt.Entrypoint.t ->
     parameter:Ctxt.Script.expr ->
     interp:t ->
-    (P.Script_interpreter.execution_result * Ctxt.t) tzresult Lwt.t
+    (P.Script_interpreter.execution_result * Ctxt.t) Err.tzresult Lwt.t
 
 end
 

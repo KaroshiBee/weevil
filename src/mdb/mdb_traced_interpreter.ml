@@ -3,12 +3,12 @@ module Log_records = Mdb_log_records
 module Plugin = Tezos_protocol_plugin_014_PtKathma
 module PP = Tezos_client_014_PtKathma.Michelson_v1_printer
 
-module P = Tezos_protocol_014_PtKathma.Protocol
-module Ctxt = P.Alpha_context
-module Env = Tezos_protocol_014_PtKathma.Environment
-module Err = Tezos_protocol_014_PtKathma.Environment.Error_monad
-
 module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
+
+  module P = Tezos_protocol_014_PtKathma.Protocol
+  module Ctxt = P.Alpha_context
+  module Env = Tezos_protocol_014_PtKathma.Environment
+  module Err = Tezos_protocol_014_PtKathma.Environment.Error_monad
 
   type t = P.Script_typed_ir.logger
 
