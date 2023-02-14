@@ -31,11 +31,11 @@ module Protocol : sig
       val pp : Format.formatter -> t -> unit
     end
 
-  end (* alpha context *)
+    module Entrypoint : sig
+      type t
+    end
 
-  module Entrypoint : sig
-    type t
-  end
+  end (* alpha context *)
 
   module Script_repr : sig
     type expr
@@ -63,7 +63,7 @@ module Protocol : sig
       Script_ir_translator.unparsing_mode ->
       step_constants ->
       script:Alpha_context.Script.t ->
-      entrypoint:Entrypoint.t ->
+      entrypoint:Alpha_context.Entrypoint.t ->
       parameter:Alpha_context.Script.expr ->
       internal:bool ->
       (execution_result * Alpha_context.context) Environment.Error_monad.tzresult Lwt.t

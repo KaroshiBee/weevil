@@ -50,13 +50,10 @@ module type INTERPRETER_CFG = sig
 end
 
 
-open Tezos_protocol_014_PtKathma.Protocol
-open Alpha_context
-
 module type INTERPRETER = sig
 
-  open Tezos_protocol_014_PtKathma.Environment
-  open Tezos_protocol_014_PtKathma.Environment.Error_monad
+  module P = Tezos_protocol_014_PtKathma.Protocol
+  module Ctxt = P.Alpha_context
 
   type t
 
@@ -67,30 +64,35 @@ module type INTERPRETER = sig
     t
 
   val execute :
-    Alpha_context.t ->
-    Script_typed_ir.step_constants ->
-    script:Script.t ->
-    entrypoint:Entrypoint_repr.t ->
-    parameter:Script.expr ->
+    Ctxt.t ->
+    P.Script_typed_ir.step_constants ->
+    script:Ctxt.Script.t ->
+    entrypoint:Ctxt.Entrypoint.t ->
+    parameter:Ctxt.Script.expr ->
     interp:t ->
-    (Script_interpreter.execution_result * Alpha_context.t) tzresult Lwt.t
+    (P.Script_interpreter.execution_result * Ctxt.t) tzresult Lwt.t
 
 end
 
 
 module type STEPPER = sig
 
+  module P = Tezos_protocol_014_PtKathma.Protocol
+  module Ctxt = P.Alpha_context
+  module Env = Tezos_protocol_014_PtKathma.Environment
+  module Err = Tezos_protocol_014_PtKathma.Environment.Error_monad
+
   type t
   type interp
 
   val code_trace : t -> (
-      Script.expr *
-      Apply_internal_results.packed_internal_contents trace *
-      Lazy_storage.diffs option
+      Ctxt.Script.expr *
+      P.Apply_internal_results.packed_internal_contents trace *
+      Ctxt.Lazy_storage.diffs option
     ) option
 
   val chain_id : t -> Chain_id.t
-  val alpha_context : t ->  Alpha_context.t
+  val alpha_context : t -> Ctxt.t
   val mock_context : t -> Tezos_client_base_unix.Client_context_unix.unix_mockup
 
   val init :
@@ -105,14 +107,14 @@ module type STEPPER = sig
     input:string ->
     entrypoint:string ->
     t ->
-    (Mdb_typechecker.t * Mdb_typechecker.t * Mdb_typechecker.t * Entrypoint.t) tzresult Lwt.t
+    (Mdb_typechecker.t * Mdb_typechecker.t * Mdb_typechecker.t * Ctxt.Entrypoint.t) tzresult Lwt.t
 
   val step :
     make_interp:(Mdb_file_locations.t -> interp) ->
     script:Mdb_typechecker.t ->
     storage:Mdb_typechecker.t ->
     input:Mdb_typechecker.t ->
-    entrypoint:Entrypoint.t ->
+    entrypoint:Ctxt.Entrypoint.t ->
     t ->
     t tzresult Lwt.t
 
