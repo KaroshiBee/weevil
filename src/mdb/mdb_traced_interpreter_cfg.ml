@@ -32,7 +32,7 @@ let unparse_stack = function
         let* (data, _ctxt) = P.Script_ir_translator.unparse_data ctxt unparsing_mode ty v in
         let+ rest = _unparse_stack (rest_ty, rest) in
         (* TODO do we need to strip locations? *)
-        let data = Tezos_protocol_014_PtKathma.Environment.Micheline.strip_locations data in
+        let data = Tezos_micheline.Micheline.strip_locations data in
         (data, None, false) :: rest
     in
     _unparse_stack (stack_ty, stack)

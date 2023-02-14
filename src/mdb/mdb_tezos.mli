@@ -12,12 +12,6 @@ module Environment : sig
     val map : ('a -> 'b) -> 'a list -> 'b list
   end
 
-  module Micheline : sig
-    type t
-    (* val strip_locations : *)
-  end
-
-
 end (* environment *)
 
 module Protocol : sig
@@ -44,12 +38,12 @@ module Protocol : sig
       type t
     end
 
-  end (* alpha context *)
+    module Lazy_storage : sig
+      type diffs
+    end
 
-  (* module Script_repr : sig *)
-  (*   type expr *)
-  (*   type node *)
-  (* end *)
+
+  end (* alpha context *)
 
   module Script_typed_ir : sig
     type ('a, 's) stack_ty
@@ -58,7 +52,7 @@ module Protocol : sig
   end
 
   module Script_ir_translator : sig
-    type unparsing_mode
+    type unparsing_mode = Optimized | Readable | Optimized_legacy
     type ex_script
     val unparse_data :
       Alpha_context.context ->
@@ -85,6 +79,10 @@ module Protocol : sig
       parameter:Alpha_context.Script.expr ->
       internal:bool ->
       (execution_result * Alpha_context.context) Environment.Error_monad.tzresult Lwt.t
+  end
+
+  module Apply_internal_results : sig
+    type packed_internal_contents
   end
 
 end (* protocol *)
