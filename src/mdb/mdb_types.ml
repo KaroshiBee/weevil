@@ -1,3 +1,4 @@
+module type CTXT = module type of Tezos_protocol_014_PtKathma.Protocol.Alpha_context
 
 module type INTERPRETER_CFG = sig
 
@@ -54,8 +55,6 @@ module type INTERPRETER = sig
     (P.Script_interpreter.execution_result * Ctxt.t) Err.tzresult Lwt.t
 
 end
-
-module type CTXT = module type of Tezos_protocol_014_PtKathma.Protocol.Alpha_context
 
 module type STEPPER = sig
 
