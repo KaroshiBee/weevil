@@ -1,4 +1,6 @@
+module type PROT = module type of Tezos_protocol_014_PtKathma.Protocol
 module type CTXT = module type of Tezos_protocol_014_PtKathma.Protocol.Alpha_context
+module type ENV  = module type of Tezos_protocol_014_PtKathma.Environment
 
 module type INTERPRETER_CFG = sig
 
@@ -16,7 +18,8 @@ module type INTERPRETER_CFG = sig
     ('a, 's) P.Script_typed_ir.stack_ty ->
     t
 
-  val unparsing_mode : P.Script_ir_translator.unparsing_mode
+  val unparsing_mode :
+    P.Script_ir_translator.unparsing_mode
 
   val unparse_stack :
     t ->
@@ -27,8 +30,8 @@ module type INTERPRETER_CFG = sig
 
   val get_gas :
     t -> Ctxt.Gas.t
-end
 
+end
 
 module type INTERPRETER = sig
 

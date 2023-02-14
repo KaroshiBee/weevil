@@ -1,4 +1,4 @@
-module Interpreter = Mdb_traced_interpreter.T (Mdb_traced_interpreter_cfg)
+module Interpreter = Mdb_traced_interpreter.T (Mdb_traced_interpreter_config)
 module Stepper = Mdb_stepper.T (Interpreter)
 
 let file_arg = "FILE"
