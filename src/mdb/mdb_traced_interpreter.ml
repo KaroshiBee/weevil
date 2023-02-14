@@ -14,7 +14,7 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
 
   let log_element_to_json log_element =
     let open Lwt_result_syntax in
-    let module List = Tezos_protocol_014_PtKathma.Environment.List in
+    let module List = Env.List in
     let* (loc, gas, exprs) =
       Err.trace
         Plugin.Plugin_errors.Cannot_serialize_log
@@ -129,6 +129,7 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
 
     in
     let log_control _ =
+      (* i think this is for lambdas etc *)
       Logs.debug (fun m -> m "log_control");
     in
     let get_log () =
@@ -139,8 +140,7 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG) = struct
     P.Script_typed_ir.{log_exit; log_entry; log_interp; get_log; log_control}
 
   let execute ctxt step_constants ~script ~entrypoint ~parameter ~interp =
-    let open P.Script_interpreter in
-    execute
+    P.Script_interpreter.execute
       ~logger:interp
       ~cached_script:None
       ctxt
