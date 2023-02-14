@@ -214,18 +214,9 @@ module T (Interp : Mdb_types.INTERPRETER) = struct
         protocol_hash
     in
     let chain_id = Mdb_stepper_config.chain_id mock_rpc_context in
-    let rpc_context = Mdb_stepper_config.rpc_context mock_rpc_context in
     let mock_context = Mdb_stepper_config.mock_context mock_rpc_context in
-    let timestamp = rpc_context.block_header.timestamp in
-    let level = Int32.succ rpc_context.block_header.level in (* `Successor_level is safer? *)
-    let* (alpha_context, _, _) =
-      Tezos_protocol_014_PtKathma.Protocol.Alpha_context.prepare
-        ~level
-        ~predecessor_timestamp:timestamp
-        ~timestamp
-        rpc_context.context
-      |> Lwt.map Tezos_protocol_014_PtKathma.Environment.wrap_tzresult
-    in
+    let* alpha_context = Mdb_stepper_config.make_alpha_context mock_rpc_context in
+
     (* let*! () = Logs_lwt.debug (fun m -> m "doing client config init mockup - ONLY NEEDED FOR DISK BASED MOCKS") *)
     (* let* () = Client_config.config_init_mockup *)
     (*     unix_mockup *)
