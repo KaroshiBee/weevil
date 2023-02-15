@@ -1,4 +1,4 @@
-open Mdb.Mdb_tezos.Tez014
+open Mdb.Mdb_tezos.Tez
 
 module TI = Mdb.Mdb_traced_interpreter
 module Tbl = Mdb.Mdb_log_records

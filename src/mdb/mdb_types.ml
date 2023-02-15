@@ -1,4 +1,4 @@
-module Tez = Mdb_tezos.Tez014
+module Tez = Mdb_tezos.Tez
 
 module type INTERPRETER_CFG_T = sig
 
