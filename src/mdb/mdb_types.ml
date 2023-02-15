@@ -1,41 +1,25 @@
-module type PROT = module type of Tezos_protocol_014_PtKathma.Protocol
-module type CTXT = module type of Tezos_protocol_014_PtKathma.Protocol.Alpha_context
-module type ENV  = module type of Tezos_protocol_014_PtKathma.Environment
-module type ERR  = module type of Tezos_protocol_014_PtKathma.Environment.Error_monad
+module type PROT   = module type of Tezos_protocol_014_PtKathma.Protocol
+module type CTXT   = module type of Tezos_protocol_014_PtKathma.Protocol.Alpha_context
+module type ENV    = module type of Tezos_protocol_014_PtKathma.Environment
+module type ERR    = module type of Tezos_protocol_014_PtKathma.Environment.Error_monad
+module type PLUGIN = module type of Tezos_protocol_plugin_014_PtKathma
+module type CLIENT = module type of Tezos_client_014_PtKathma
 
-module MakeTezos (P:PROT) (Env:ENV) = struct
+module MakeTezos (P:PROT) (Env:ENV) (C:CLIENT) (Plugin:PLUGIN) = struct
   module Prot = P
   module Env = Env
   module Ctxt = P.Alpha_context
   module Err = Env.Error_monad
-
-  (* type 'a tzresult = 'a Err.tzresult *)
-
-  (* type ('a, 'b) ty = ('a, 'b) P.Script_typed_ir.ty *)
-  (* type ('a, 's) stack_ty = ('a, 's) P.Script_typed_ir.stack_ty *)
-  (* type step_constants = P.Script_typed_ir.step_constants *)
-  (* type execution_result = P.Script_interpreter.execution_result *)
-  (* type packed_internal_contents = P.Apply_internal_results.packed_internal_contents *)
-  (* type unparsing_mode = P.Script_ir_translator.unparsing_mode *)
-  (* let make_readable = P.Script_ir_translator.Readable *)
-
-  (* type context = Ctxt.context *)
-  (* let set_unlimited = Ctxt.Gas.set_unlimited *)
-
-  (* type expr = Ctxt.Script.expr *)
-  (* type gas = Ctxt.Gas.t *)
-  (* type entrypoint = Ctxt.Entrypoint.t *)
-  (* type script = Ctxt.Script.t *)
-  (* type diffs = Ctxt.Lazy_storage.diffs *)
-
-  (* let unparse_data = P.Script_ir_translator.unparse_data *)
-
-
+  module Plugin = Plugin
+  module Client = C
+  module PP = C.Michelson_v1_printer
 end
 
 module Tez014 = MakeTezos
     (Tezos_protocol_014_PtKathma.Protocol)
     (Tezos_protocol_014_PtKathma.Environment)
+    (Tezos_client_014_PtKathma)
+    (Tezos_protocol_plugin_014_PtKathma)
 
 module type INTERPRETER_CFG = sig
 
