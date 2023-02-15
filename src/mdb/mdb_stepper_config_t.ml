@@ -3,7 +3,7 @@ module Client_context_unix = Tezos_client_base_unix.Client_context_unix
 open Mdb_types.Tez014
 
 (* TODO make sure to link with correct protocol modules and mockup maker *)
-module T (Ctxt:Mdb_types.CTXT) = struct
+module T (Ctxt:Mdb_tezos.CTXT) = struct
 
   type t = {
     chain_id:Chain_id.t;

@@ -5,7 +5,7 @@ module P = Tezos_protocol_014_PtKathma.Protocol
 (* module Ctxt = P.Alpha_context *)
 module Env = Tezos_protocol_014_PtKathma.Environment
 
-module T (Ctxt:Mdb_types.CTXT) = struct
+module T (Ctxt:Mdb_tezos.CTXT) = struct
 
   type t = {
     chain_id:Chain_id.t;

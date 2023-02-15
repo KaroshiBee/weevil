@@ -1,4 +1,4 @@
-module T (Ctxt:Mdb_types.CTXT) : sig
+module T (Ctxt:Mdb_tezos.CTXT) : sig
 
   type t
 

@@ -1,4 +1,4 @@
-module Michelson_v1_parser = Tezos_client_014_PtKathma.Michelson_v1_parser
+module Michelson_v1_parser = Mdb_tezos.Tez014.Parser
 
 (* need to retain the trace of code locs of any michelson errors *)
 
