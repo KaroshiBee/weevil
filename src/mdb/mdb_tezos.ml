@@ -23,3 +23,4 @@ module Tez014 = MakeTezos
     (Tezos_client_014_PtKathma)
     (Tezos_protocol_plugin_014_PtKathma)
 
+module type TEZ = module type of Tez014
