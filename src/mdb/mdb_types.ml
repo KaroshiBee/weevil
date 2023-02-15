@@ -4,25 +4,33 @@ module type ENV  = module type of Tezos_protocol_014_PtKathma.Environment
 module type ERR  = module type of Tezos_protocol_014_PtKathma.Environment.Error_monad
 
 module MakeTezos (P:PROT) (Env:ENV) = struct
-
+  module Prot = P
+  module Env = Env
   module Ctxt = P.Alpha_context
   module Err = Env.Error_monad
 
-  type 'a tzresult = 'a Err.tzresult
+  (* type 'a tzresult = 'a Err.tzresult *)
 
-  type ('a, 'b) ty = ('a, 'b) P.Script_typed_ir.ty
-  type ('a, 's) stack_ty = ('a, 's) P.Script_typed_ir.stack_ty
-  type step_constants = P.Script_typed_ir.step_constants
-  type execution_result = P.Script_interpreter.execution_result
-  type packed_internal_contents = P.Apply_internal_results.packed_internal_contents
-  type unparsing_mode = P.Script_ir_translator.unparsing_mode
+  (* type ('a, 'b) ty = ('a, 'b) P.Script_typed_ir.ty *)
+  (* type ('a, 's) stack_ty = ('a, 's) P.Script_typed_ir.stack_ty *)
+  (* type step_constants = P.Script_typed_ir.step_constants *)
+  (* type execution_result = P.Script_interpreter.execution_result *)
+  (* type packed_internal_contents = P.Apply_internal_results.packed_internal_contents *)
+  (* type unparsing_mode = P.Script_ir_translator.unparsing_mode *)
+  (* let make_readable = P.Script_ir_translator.Readable *)
 
-  type context = Ctxt.context
-  type expr = Ctxt.Script.expr
-  type gas = Ctxt.Gas.t
-  type entrypoint = Ctxt.Entrypoint.t
-  type script = Ctxt.Script.t
-  type diffs = Ctxt.Lazy_storage.diffs
+  (* type context = Ctxt.context *)
+  (* let set_unlimited = Ctxt.Gas.set_unlimited *)
+
+  (* type expr = Ctxt.Script.expr *)
+  (* type gas = Ctxt.Gas.t *)
+  (* type entrypoint = Ctxt.Entrypoint.t *)
+  (* type script = Ctxt.Script.t *)
+  (* type diffs = Ctxt.Lazy_storage.diffs *)
+
+  (* let unparse_data = P.Script_ir_translator.unparse_data *)
+
+
 end
 
 module Tez014 = MakeTezos
@@ -65,23 +73,23 @@ module type INTERPRETER_CFG_T = sig
   type t
 
   val make_log :
-    Tez014.context ->
+    Tez014.Ctxt.context ->
     Tezos_micheline.Micheline_parser.location ->
     ('a * 's) ->
-    ('a, 's) Tez014.stack_ty ->
+    ('a, 's) Tez014.Prot.Script_typed_ir.stack_ty ->
     t
 
-  val unparsing_mode : Tez014.unparsing_mode
+  val unparsing_mode : Tez014.Prot.Script_ir_translator.unparsing_mode
 
   val unparse_stack :
     t ->
-    (Tez014.expr * string option * bool) list Tez014.tzresult Lwt.t
+    (Tez014.Ctxt.Script.expr * string option * bool) list Tez014.Err.tzresult Lwt.t
 
   val get_loc :
     t -> Tezos_micheline.Micheline_parser.location
 
   val get_gas :
-    t -> Tez014.gas
+    t -> Tez014.Ctxt.Gas.t
 
 end
 
@@ -122,13 +130,13 @@ module type INTERPRETER_T = sig
     t
 
   val execute :
-    Tez014.context ->
-    Tez014.step_constants ->
-    script:Tez014.script ->
-    entrypoint:Tez014.entrypoint ->
-    parameter:Tez014.expr ->
+    Tez014.Ctxt.context ->
+    Tez014.Prot.Script_typed_ir.step_constants ->
+    script:Tez014.Ctxt.Script.t ->
+    entrypoint:Tez014.Ctxt.Entrypoint.t ->
+    parameter:Tez014.Ctxt.Script.expr ->
     interp:t ->
-    (Tez014.execution_result * Tez014.context) Tez014.tzresult Lwt.t
+    (Tez014.Prot.Script_interpreter.execution_result * Tez014.Ctxt.context) Tez014.Err.tzresult Lwt.t
 
 end
 
@@ -182,20 +190,20 @@ module type STEPPER_T = sig
   type t
 
   val code_trace : t -> (
-      Tez014.expr *
-      Tez014.packed_internal_contents list *
-      Tez014.diffs option
+      Tez014.Ctxt.Script.expr *
+      Tez014.Prot.Apply_internal_results.packed_internal_contents Tez014.Err.trace *
+      Tez014.Ctxt.Lazy_storage.diffs option
     ) option
 
   val chain_id : t -> Tezos_crypto.Chain_id.t
-  val alpha_context : t -> Tez014.context
+  val alpha_context : t -> Tez014.Ctxt.context
   val mock_context : t -> Tezos_client_base_unix.Client_context_unix.unix_mockup
 
   val init :
     protocol_str:string ->
     base_dir:string ->
     unit ->
-    t Tez014.tzresult Lwt.t
+    t Tez014.Err.tzresult Lwt.t
 
   val typecheck :
     script_filename:string ->
@@ -203,15 +211,15 @@ module type STEPPER_T = sig
     input:string ->
     entrypoint:string ->
     t ->
-    (Mdb_typechecker.t * Mdb_typechecker.t * Mdb_typechecker.t * Tez014.entrypoint) Tez014.tzresult Lwt.t
+    (Mdb_typechecker.t * Mdb_typechecker.t * Mdb_typechecker.t * Tez014.Ctxt.Entrypoint.t) Tez014.Err.tzresult Lwt.t
 
   val step :
     make_interp:(Mdb_file_locations.t -> interp) ->
     script:Mdb_typechecker.t ->
     storage:Mdb_typechecker.t ->
     input:Mdb_typechecker.t ->
-    entrypoint:Tez014.entrypoint ->
+    entrypoint:Tez014.Ctxt.Entrypoint.t ->
     t ->
-    t Tez014.tzresult Lwt.t
+    t Tez014.Err.tzresult Lwt.t
 
 end
