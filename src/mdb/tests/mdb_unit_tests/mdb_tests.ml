@@ -3,7 +3,7 @@ open Environment
 open Alpha_context
 open Environment.Error_monad
 
-module TI = Mdb.Mdb_traced_interpreter
+module TI = Mdb.Mdb_traced_interpreter_t
 module Tbl = Mdb.Mdb_log_records
 
 module TestCfg = struct
