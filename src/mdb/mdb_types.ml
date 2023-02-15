@@ -175,7 +175,7 @@ module type STEPPER_T = sig
 
   val code_trace : t -> (
       Tez014.Ctxt.Script.expr *
-      Tez014.Prot.Apply_internal_results.packed_internal_contents Tez014.Err.trace *
+      Tez014.Prot.Apply_internal_results.packed_internal_contents list *
       Tez014.Ctxt.Lazy_storage.diffs option
     ) option
 
@@ -187,7 +187,7 @@ module type STEPPER_T = sig
     protocol_str:string ->
     base_dir:string ->
     unit ->
-    t Tez014.Err.tzresult Lwt.t
+    t tzresult Lwt.t
 
   val typecheck :
     script_filename:string ->
@@ -195,7 +195,7 @@ module type STEPPER_T = sig
     input:string ->
     entrypoint:string ->
     t ->
-    (Mdb_typechecker.t * Mdb_typechecker.t * Mdb_typechecker.t * Tez014.Ctxt.Entrypoint.t) Tez014.Err.tzresult Lwt.t
+    (Mdb_typechecker.t * Mdb_typechecker.t * Mdb_typechecker.t * Tez014.Ctxt.Entrypoint.t) tzresult Lwt.t
 
   val step :
     make_interp:(Mdb_file_locations.t -> interp) ->
@@ -204,6 +204,6 @@ module type STEPPER_T = sig
     input:Mdb_typechecker.t ->
     entrypoint:Tez014.Ctxt.Entrypoint.t ->
     t ->
-    t Tez014.Err.tzresult Lwt.t
+    t tzresult Lwt.t
 
 end
