@@ -13,6 +13,7 @@ module type INTERPRETER_CFG_T = sig
 
   val unparsing_mode : Tez.Prot.Script_ir_translator.unparsing_mode
 
+  (* TODO why Tez.err.tzresult? *)
   val unparse_stack :
     t ->
     (Tez.Ctxt.Script.expr * string option * bool) list Tez.Err.tzresult Lwt.t
@@ -36,6 +37,7 @@ module type INTERPRETER_T = sig
     Mdb_file_locations.t ->
     t
 
+  (* TODO why Tez.err.tzresult? *)
   val execute :
     Tez.Ctxt.context ->
     Tez.Prot.Script_typed_ir.step_constants ->

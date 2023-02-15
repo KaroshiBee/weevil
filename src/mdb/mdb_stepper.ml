@@ -1,7 +1,7 @@
 module RPC = Tezos_rpc_http_client_unix.RPC_client_unix (* TODO use lib_mockup one? *)
 module Client_context_unix = Tezos_client_base_unix.Client_context_unix
 module Client_context = Tezos_client_base.Client_context
-open Mdb_types.Tez014
+open Mdb_types.Tez
 
 module T (Interp : Mdb_types.INTERPRETER_T) = struct
 

@@ -1,5 +1,5 @@
 module Log_records = Mdb_log_records
-open Mdb_types.Tez014
+open Mdb_types.Tez
 
 module T (Cfg : Mdb_types.INTERPRETER_CFG_T) = struct
 

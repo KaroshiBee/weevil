@@ -1,4 +1,4 @@
-open Mdb_types.Tez014
+open Mdb_types.Tez
 
 type t =
   | Log :
