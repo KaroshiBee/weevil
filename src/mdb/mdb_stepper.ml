@@ -5,7 +5,7 @@ open Mdb_types.Tez014
 
 module T (Interp : Mdb_types.INTERPRETER_T) = struct
 
-  module Stepper_config = Mdb_stepper_config_t.T (Ctxt)
+  module Stepper_config = Mdb_stepper_config.T (Ctxt)
 
   type code_trace = (Ctxt.Script.expr * Prot.Apply_internal_results.packed_internal_contents trace * Ctxt.Lazy_storage.diffs option)
 

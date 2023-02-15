@@ -1,17 +1,9 @@
-open Protocol
-open Environment
-open Alpha_context
-open Environment.Error_monad
+open Mdb.Mdb_tezos.Tez014
 
-module TI = Mdb.Mdb_traced_interpreter_t
+module TI = Mdb.Mdb_traced_interpreter
 module Tbl = Mdb.Mdb_log_records
 
 module TestCfg = struct
-
-  module P = Protocol
-  module Ctxt = P.Alpha_context
-  module Env = Environment
-  module Err = Environment.Error_monad
 
   type t =
     | TestLog of int
@@ -19,10 +11,10 @@ module TestCfg = struct
   let make_log _ctxt _loc _stack _stack_ty =
     TestLog 1
 
-  let unparsing_mode = Script_ir_translator.Readable
+  let unparsing_mode = Prot.Script_ir_translator.Readable
 
   let unparse_stack = function
-    | TestLog _i -> Lwt_result_syntax.return []
+    | TestLog _i -> Err.Lwt_result_syntax.return []
 
   let get_loc _ = Tezos_micheline.Micheline_parser.{
       start={point=0; byte=0; line=100; column=2};
@@ -30,7 +22,7 @@ module TestCfg = struct
     }
 
   (* cant make Gas.t directly *)
-  let get_gas _ = Data_encoding.Json.(destruct Gas.encoding (`String "unaccounted"))
+  let get_gas _ = Data_encoding.Json.(destruct Ctxt.Gas.encoding (`String "unaccounted"))
 
 end
 
