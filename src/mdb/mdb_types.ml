@@ -13,7 +13,9 @@ module MakeTezos (P:PROT) (Env:ENV) (C:CLIENT) (Plugin:PLUGIN) = struct
   module Plugin = Plugin
   module Client = C
   module PP = C.Michelson_v1_printer
+  module Parser = C.Michelson_v1_parser
 end
+
 
 module Tez014 = MakeTezos
     (Tezos_protocol_014_PtKathma.Protocol)

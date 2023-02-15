@@ -1,10 +1,8 @@
 module Client_context = Tezos_client_base.Client_context
 module Client_context_unix = Tezos_client_base_unix.Client_context_unix
+open Mdb_types.Tez014
 
-module P = Tezos_protocol_014_PtKathma.Protocol
-(* module Ctxt = P.Alpha_context *)
-module Env = Tezos_protocol_014_PtKathma.Environment
-
+(* TODO make sure to link with correct protocol modules and mockup maker *)
 module T (Ctxt:Mdb_types.CTXT) = struct
 
   type t = {
