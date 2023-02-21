@@ -9,11 +9,11 @@ module Mdb_cfg = Mdb.Mdb_config
 
 module Mdb_ = struct
   (* need a way to break out of handle message *)
-  exception Get_records of Model.Weevil_json.t list
+  exception Get_records of Model.t list
 
   let get_recs ic oc =
     (* TODO is this a list or single? *)
-    let enc = Data_encoding.(option @@ list Model.Weevil_json.enc) in
+    let enc = Data_encoding.(option @@ list Model.enc) in
 
     let handle_message msg _ic _oc =
       let%lwt () = Logs_lwt.debug (fun m -> m "[DAP-stacktrace] got msg from subprocess '%s'" msg) in
@@ -70,7 +70,7 @@ module T (S : Types.STATE_T) = struct
               match (S.mdb_config state, List.nth_opt recs 0) with
               | (_, None) | (None, _) -> []
               | (Some Mdb_cfg.{script_filename; entrypoint; _}, Some wrec) ->
-                let loc = wrec.location in
+                let loc = Model.location wrec in
                 let source = D.Source.make
                     ~name:(Filename.basename script_filename)
                     ~path:script_filename

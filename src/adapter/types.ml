@@ -14,7 +14,7 @@ module type STATE_READONLY_T = sig
   val backend_ic : t -> Lwt_io.input_channel option
   val backend_oc : t -> Lwt_io.output_channel option
   (* the backend data that gets sent back up to the adapter *)
-  val log_records : t -> Model.Weevil_json.t list
+  val log_records : t -> Model.t list
 
   (* whether to restart when terminating  *)
   val should_restart_on_terminate : t -> bool option
@@ -42,7 +42,7 @@ module type STATE_T = sig
 
   val set_connect_backend : t -> Ipaddr.t -> int -> (Lwt_io.input_channel * Lwt_io.output_channel) Dap.Result.t
 
-  val set_new_log_records : t -> Model.Weevil_json.t list -> unit
+  val set_new_log_records : t -> Model.t list -> unit
 
   val set_launch_mode : t -> Dap.Launch_mode.t -> unit
 

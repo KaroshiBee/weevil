@@ -64,9 +64,9 @@ module T (Cfg : Mdb_types.INTERPRETER_CFG_T) = struct
         let () = Logs.debug (fun m -> m "pp stack") in
         let stack = pp_exprs exprs in
         let () = Logs.debug (fun m -> m "making weevil js record") in
-        let wrec_js = Mdb_model.Weevil_json.make ~location ~gas ~stack () in
+        let wrec_js = Mdb_model.make ~location ~gas ~stack () in
         let js = Data_encoding.Json.(
-            construct Mdb_model.Weevil_json.enc wrec_js
+            construct Mdb_model.enc wrec_js
             |> to_string
             |> Dapper.Dap.Header.wrap
           ) in

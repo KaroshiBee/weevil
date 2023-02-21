@@ -32,7 +32,7 @@ module T (S : Types.STATE_READONLY_T) = struct
           let gas_val, stack_val =
             match List.nth_opt recs 0 with
             | None -> "", []
-            | Some wrec -> Model.Weevil_json.(wrec.gas, wrec.stack)
+            | Some wrec -> Model.(gas wrec, stack wrec)
           in
           let variables =
             match Defaults.Vals.classify_vref_exn vref with

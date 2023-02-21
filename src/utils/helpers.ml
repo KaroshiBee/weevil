@@ -32,7 +32,7 @@ module StateMock = struct
     mutable config : Config.t;
     mutable client_config : Data.InitializeRequestArguments.t option;
     mutable mdb_config : Mdb.Mdb_config.t option;
-    mutable log_records : Model.Weevil_json.t list;
+    mutable log_records : Model.t list;
     mutable should_restart_on_terminate : bool option;
 
   }
@@ -50,10 +50,10 @@ module StateMock = struct
         ~parameter:"Unit"
         ~entrypoint:"default"
         ();
-    log_records=Model.Weevil_json.([
-        {location=PP.{start={point=1;byte=1;line=1;column=0}; stop={point=1;byte=1;line=1;column=3}}; gas="10"; stack=["1";"2";"3"]};
-        {location=PP.{start={point=2;byte=2;line=2;column=0}; stop={point=2;byte=2;line=2;column=3}}; gas="9"; stack=["1";"2";"3";"4"]};
-        {location=PP.{start={point=3;byte=3;line=3;column=0}; stop={point=3;byte=3;line=3;column=3}}; gas="8"; stack=["1";"2";"7"]};
+    log_records=Model.([
+        make ~location:PP.{start={point=1;byte=1;line=1;column=0}; stop={point=1;byte=1;line=1;column=3}} ~gas:"10" ~stack:["1";"2";"3"] ();
+        make ~location:PP.{start={point=2;byte=2;line=2;column=0}; stop={point=2;byte=2;line=2;column=3}} ~gas:"9"  ~stack:["1";"2";"3";"4"] ();
+        make ~location:PP.{start={point=3;byte=3;line=3;column=0}; stop={point=3;byte=3;line=3;column=3}} ~gas:"8"  ~stack:["1";"2";"7"] ();
         ]);
     should_restart_on_terminate = None;
   }

@@ -46,7 +46,7 @@ let read_weevil_recs ~enc = function
 
 let step_handler ~recs msg _ic _oc =
   let%lwt () = Logs_lwt.debug (fun m -> m "[STEPPER] got msg from subprocess '%s'" msg) in
-  match%lwt read_weevil_recs ~enc:Model.Weevil_json.enc msg with
+  match%lwt read_weevil_recs ~enc:Model.enc msg with
   | Some wrec ->
     let%lwt () = Logs_lwt.debug (fun m -> m "[STEPPER] got weevil log record from subprocess '%s'" msg) in
     Lwt.return @@ Tbl.add_new recs wrec
@@ -67,7 +67,7 @@ let rec main_handler ~recs msg ic oc =
 
   | Some MichEvent.GetRecords _, _ -> (
     let%lwt _ = Logs_lwt.debug (fun m -> m "[MICH] getting current records") in
-    let enc = Data_encoding.list Model.Weevil_json.enc in
+    let enc = Data_encoding.list Model.enc in
     let%lwt records =
       Tbl.to_list recs
       |> function
@@ -176,7 +176,7 @@ let on_exn exn =
 
 let on_connection _flow ic oc =
   let%lwt () = Logs_lwt.debug (fun m -> m "[MICH] got connection") in
-  let recs : Model.Weevil_json.t Tbl.t = Tbl.make () in
+  let recs : Model.t Tbl.t = Tbl.make () in
   Dap.content_length_message_handler
     ~name:_MDB_NAME
     ~handle_message:(main_handler ~recs)
