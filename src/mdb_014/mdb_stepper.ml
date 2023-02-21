@@ -2,7 +2,7 @@ module RPC = Tezos_rpc_http_client_unix.RPC_client_unix (* TODO use lib_mockup o
 module Client_context_unix = Tezos_client_base_unix.Client_context_unix
 module Client_context = Tezos_client_base.Client_context
 
-open Import.Tez
+open Mdb_import.Tez
 
 type code_trace = (Ctxt.Script.expr * Prot.Apply_internal_results.packed_internal_contents trace * Ctxt.Lazy_storage.diffs option)
 
@@ -13,13 +13,13 @@ type t = {
   code_trace:code_trace option;
 }
 
-type interp = Traced_interpreter.t
+type interp = Mdb_traced_interpreter.t
 
 type well_typed = {
-  script:Michelson.t;
-  storage:Michelson.t;
-  input:Michelson.t;
-  entrypoint:Michelson.entrypoint;
+  script:Mdb_michelson.t;
+  storage:Mdb_michelson.t;
+  input:Mdb_michelson.t;
+  entrypoint:Mdb_michelson.entrypoint;
 }
 
 let _code_trace t = t.code_trace
@@ -154,7 +154,7 @@ let trace_code
   let*! () = Logs_lwt.debug (fun m -> m "executing contract") in
 
   (* NOTE in the old code this was a Lwt_result.map - so wouldnt need the return() at end of code block *)
-  let* res = Traced_interpreter.execute
+  let* res = Mdb_traced_interpreter.execute
       ctxt
       step_constants
       ~script:{storage; code}
@@ -208,14 +208,14 @@ let init ~protocol_str ~base_dir () =
   let*! () = Logs_lwt.debug (fun m -> m "making client context unix mockup") in
   let   protocol_hash = Protocol_hash.of_b58check_opt protocol_str in
   let*  mock_rpc_context =
-    Stepper_config.setup_mockup_rpc_client_config
+    Mdb_stepper_config.setup_mockup_rpc_client_config
       ~base_dir
       (cctxt :> Client_context.printer)
       protocol_hash
   in
-  let  chain_id = Stepper_config.chain_id mock_rpc_context in
-  let  mock_context = Stepper_config.mock_context mock_rpc_context in
-  let* alpha_context = Stepper_config.make_alpha_context mock_rpc_context in
+  let  chain_id = Mdb_stepper_config.chain_id mock_rpc_context in
+  let  mock_context = Mdb_stepper_config.mock_context mock_rpc_context in
+  let* alpha_context = Mdb_stepper_config.make_alpha_context mock_rpc_context in
 
   (* let*! () = Logs_lwt.debug (fun m -> m "doing client config init mockup - ONLY NEEDED FOR DISK BASED MOCKS") *)
   (* let* () = Client_config.config_init_mockup *)
@@ -242,19 +242,19 @@ let typecheck ~script_filename ~storage ~input ~entrypoint t =
   let*! () = Logs_lwt.debug (fun m -> m "reading contract file") in
   let* source = t.mock_context#read_file script_filename in
   let*! () = Logs_lwt.debug (fun m -> m "parsing contract source") in
-  let*? script = Michelson.of_source source in
+  let*? script = Mdb_michelson.of_source source in
   let*! () = Logs_lwt.debug (fun m -> m "parsing storage") in
-  let*? storage = Michelson.from_string storage in
+  let*? storage = Mdb_michelson.from_string storage in
   let*! () = Logs_lwt.debug (fun m -> m "parsing input") in
-  let*? input = Michelson.from_string input in
+  let*? input = Mdb_michelson.from_string input in
   let*? entrypoint = Ctxt.Entrypoint.of_string_lax entrypoint
                      |> Env.wrap_tzresult in
   return {script; storage; input; entrypoint}
 
 let make_interp {script; _} =
   let open Lwt_result_syntax in
-  let file_locations = Michelson.File_locations.of_script script in
-  let interp = Traced_interpreter.make ~in_channel:stdin ~out_channel:stdout file_locations in
+  let file_locations = Mdb_michelson.File_locations.of_script script in
+  let interp = Mdb_traced_interpreter.make ~in_channel:stdin ~out_channel:stdout file_locations in
   return interp
 
 let step ~interp {script; storage; input; entrypoint} t =

@@ -9,4 +9,4 @@ val setup_mockup_rpc_client_config :
 
 val chain_id : t -> Tezos_crypto.Chain_id.t
 val mock_context : t -> Tezos_client_base_unix.Client_context_unix.unix_mockup
-val make_alpha_context : t -> Import.Tez.Ctxt.t tzresult Lwt.t
+val make_alpha_context : t -> Mdb_import.Tez.Ctxt.t tzresult Lwt.t

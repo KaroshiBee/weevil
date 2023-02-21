@@ -1,5 +1,5 @@
-module Parser = Import.Tez.Parser
-module Entrypoint = Import.Tez.Ctxt.Entrypoint
+module Parser = Mdb_import.Tez.Parser
+module Entrypoint = Mdb_import.Tez.Ctxt.Entrypoint
 
 (* need to retain the trace of code locs of any michelson errors *)
 

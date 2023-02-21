@@ -12,10 +12,10 @@
   mdb
  )
  (private_modules
-   import
-   michelson
-   stepper_config
-   traced_interpreter
+   mdb_import
+   mdb_michelson
+   mdb_stepper_config
+   mdb_traced_interpreter
  )
  (flags
   (:standard

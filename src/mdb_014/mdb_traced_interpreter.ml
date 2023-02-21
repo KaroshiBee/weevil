@@ -1,5 +1,5 @@
 module Log_records = Mdb_log_records
-open Import.Tez
+open Mdb_import.Tez
 
 type t = Prot.Script_typed_ir.logger
 
@@ -124,7 +124,7 @@ let make ~in_channel ~out_channel file_locations =
 
   let log_interp _ ctxt loc sty stack =
     Logs.debug (fun m -> m "log_interp @ location %d" loc);
-    let file_loc = Michelson.File_locations.get file_locations loc in
+    let file_loc = Mdb_michelson.File_locations.get file_locations loc in
 
     let () = file_loc
              |> Option.map (fun floc ->
@@ -144,7 +144,7 @@ let make ~in_channel ~out_channel file_locations =
   in
   let log_exit _ ctxt loc sty stack =
     Logs.debug (fun m -> m "log_exit @ location %d" loc);
-    let file_loc = Michelson.File_locations.get file_locations loc in
+    let file_loc = Mdb_michelson.File_locations.get file_locations loc in
 
     let () = file_loc
              |> Option.map (fun floc ->

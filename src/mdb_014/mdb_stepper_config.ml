@@ -1,6 +1,6 @@
 module Client_context = Tezos_client_base.Client_context
 module Client_context_unix = Tezos_client_base_unix.Client_context_unix
-open Import.Tez
+open Mdb_import.Tez
 
 (* TODO make sure to link with correct protocol modules and mockup maker *)
 
