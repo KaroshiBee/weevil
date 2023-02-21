@@ -27,9 +27,10 @@
    dune
    cmdliner
    tezos-base
+   tezos-client-base-unix
+   tezos-micheline
    tezos-stdlib-unix
    tezos-rpc-http-client-unix
-   weevil_014
    conduit-lwt-unix
    lwt_ppx
    ppx_expect

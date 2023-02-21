@@ -8,7 +8,6 @@
      tezos-protocol-environment
      tezos-stdlib-unix
      tezos-rpc-http-client-unix
-     weevil_014
      dapper
      lwt
      lwt.unix
