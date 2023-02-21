@@ -9,12 +9,13 @@
   tezos-protocol-014-PtKathma
   tezos-client-014-PtKathma
   tezos-protocol-plugin-014-PtKathma
+  mdb
  )
  (private_modules
-   mdb_import
-   mdb_michelson
-   mdb_stepper_config
-   mdb_traced_interpreter
+   import
+   michelson
+   stepper_config
+   traced_interpreter
  )
  (flags
   (:standard

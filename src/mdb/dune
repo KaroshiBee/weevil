@@ -1,6 +1,6 @@
 (library
  (name mdb)
- (virtual_modules mdb)
+ (virtual_modules mdb_stepper)
  (libraries
      tezos-base
      tezos-base.unix
