@@ -3,6 +3,7 @@
  (implements mdb)
  (libraries
    tezos-base
+   tezos-micheline
    tezos-protocol-014-PtKathma
    tezos-client-014-PtKathma
    tezos-protocol-plugin-014-PtKathma

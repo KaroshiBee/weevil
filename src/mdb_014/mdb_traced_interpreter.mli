@@ -34,7 +34,7 @@ val get_gas :
 val make :
   in_channel:in_channel ->
   out_channel:out_channel ->
-  Mdb_michelson.File_locations.t ->
+  Mdb_michelson.File_locations.locs ->
   t
 
 (* old interp.execute without interp ctor function *)

@@ -16,10 +16,10 @@ type t = {
 type interp = Mdb_traced_interpreter.t
 
 type well_typed = {
-  script:Mdb_michelson.t;
-  storage:Mdb_michelson.t;
-  input:Mdb_michelson.t;
-  entrypoint:Mdb_michelson.entrypoint;
+  script:Mdb_michelson.Script.t;
+  storage:Mdb_michelson.Expr.t;
+  input:Mdb_michelson.Expr.t;
+  entrypoint:Mdb_michelson.Entrypoint.t;
 }
 
 let _code_trace t = t.code_trace
@@ -242,13 +242,12 @@ let typecheck ~script_filename ~storage ~input ~entrypoint t =
   let*! () = Logs_lwt.debug (fun m -> m "reading contract file") in
   let* source = t.mock_context#read_file script_filename in
   let*! () = Logs_lwt.debug (fun m -> m "parsing contract source") in
-  let*? script = Mdb_michelson.of_source source in
+  let*? script = Mdb_michelson.Script.from_string source in
   let*! () = Logs_lwt.debug (fun m -> m "parsing storage") in
-  let*? storage = Mdb_michelson.from_string storage in
+  let*? storage = Mdb_michelson.Expr.from_string storage in
   let*! () = Logs_lwt.debug (fun m -> m "parsing input") in
-  let*? input = Mdb_michelson.from_string input in
-  let*? entrypoint = Ctxt.Entrypoint.of_string_lax entrypoint
-                     |> Env.wrap_tzresult in
+  let*? input = Mdb_michelson.Expr.from_string input in
+  let*? entrypoint = Mdb_michelson.Entrypoint.from_string entrypoint in
   return {script; storage; input; entrypoint}
 
 let make_interp {script; _} =
@@ -261,10 +260,10 @@ let step ~interp {script; storage; input; entrypoint} t =
   let open Lwt_result_syntax in
   let*! () = Logs_lwt.debug (fun m -> m "running contract code") in
   let* code_trace = trace_code
-      ~script:script.expanded
-      ~storage:storage.expanded
-      ~input:input.expanded
-      ~entrypoint
+      ~script:(Mdb_michelson.Script.expanded script)
+      ~storage:(Mdb_michelson.Expr.expanded storage)
+      ~input:(Mdb_michelson.Expr.expanded input)
+      ~entrypoint:(Mdb_michelson.Entrypoint.to_entrypoint entrypoint)
       ~interp
       t.alpha_context
   in
