@@ -15,7 +15,6 @@ depends: [
   "dune" {>= "3.0"}
   "cmdliner"
   "tezos-base"
-  "tezos-base.unix"
   "tezos-client-base-unix"
   "tezos-micheline"
   "tezos-stdlib-unix"
