@@ -1,0 +1,25 @@
+(library
+ (name mdb_014)
+ (implements mdb)
+ (libraries
+  tezos-base
+  tezos-base.unix
+  tezos-client-base-unix
+  tezos-rpc-http-client-unix
+  tezos-protocol-014-PtKathma
+  tezos-client-014-PtKathma
+  tezos-protocol-plugin-014-PtKathma
+ )
+ (private_modules
+   mdb_import
+   mdb_michelson
+   mdb_stepper_config
+   mdb_traced_interpreter
+ )
+ (flags
+  (:standard
+   -linkall
+   -open
+   Tezos_base.TzPervasives
+ ))
+)

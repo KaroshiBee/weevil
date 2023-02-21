@@ -1,5 +1,6 @@
 (library
  (name mdb)
+ (virtual_modules mdb)
  (libraries
      tezos-base
      tezos-base.unix

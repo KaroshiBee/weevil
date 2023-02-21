@@ -31,6 +31,9 @@
    tezos-micheline
    tezos-stdlib-unix
    tezos-rpc-http-client-unix
+   tezos-protocol-014-PtKathma
+   tezos-client-014-PtKathma
+   tezos-protocol-plugin-014-PtKathma
    conduit-lwt-unix
    lwt_ppx
    ppx_expect
