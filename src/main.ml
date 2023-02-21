@@ -9,7 +9,7 @@ let setup_log =
 
 (* group together all cmd lines *)
 let commands = [
-  (* Mdb.Mdb_stepper_cmdline.cmd setup_log; *)
+  Mdb.Mdb_stepper_cmdline.cmd setup_log;
   Mdb.Mdb_cmdline.cmd setup_log;
   Adapter.Service_cmdline.cmd setup_log;
   Dapper.Dap_cmdline.cmd setup_log;
