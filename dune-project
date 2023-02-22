@@ -34,6 +34,9 @@
    tezos-protocol-014-PtKathma
    tezos-client-014-PtKathma
    tezos-protocol-plugin-014-PtKathma
+   tezos-protocol-013-PtJakart
+   tezos-client-013-PtJakart
+   tezos-protocol-plugin-013-PtJakart
    conduit-lwt-unix
    lwt_ppx
    ppx_expect
