@@ -12,7 +12,7 @@ let%expect_test "Check sequencing etc for scopes" =
   let command = Dap.Commands.scopes in
   let req =
     Dap.Request.(
-      Dap.Utils.scopes_msg ~seq:20
+      Helpers.scopes_msg ~seq:20
       |> Js.construct (Message.enc command D.ScopesArguments.enc)
       |> Js.to_string)
   in

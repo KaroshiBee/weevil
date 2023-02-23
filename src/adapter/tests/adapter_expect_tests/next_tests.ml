@@ -23,7 +23,7 @@ let%expect_test "Check sequencing etc for next" =
       let command = Dap.Commands.next in
       let req =
         Dap.Request.(
-          Dap.Utils.next_msg ~seq:20
+          Helpers.next_msg ~seq:20
           |> Js.construct (Message.enc command D.NextArguments.enc)
           |> Js.to_string
         )

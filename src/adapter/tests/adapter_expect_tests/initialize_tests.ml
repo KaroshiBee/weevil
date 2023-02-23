@@ -27,7 +27,7 @@ let%expect_test "Check sequencing etc for init" =
   let command = Dap.Commands.initialize in
   let req =
     Dap.Request.(
-      Dap.Utils.initialize_msg ~seq:20
+      Helpers.initialize_msg ~seq:20
       |> Js.construct (Message.enc command D.InitializeRequestArguments.enc)
       |> Js.to_string
     )
@@ -91,7 +91,7 @@ let%expect_test "Check bad input for init" =
   (* unhappy path, f_resp is expecting an init request *)
   let req =
     Dap.Request.(
-      Dap.Utils.attach_msg ~seq:20 ~script_filename ~storage ~parameter ~entrypoint ()
+      Helpers.attach_msg ~seq:20 ~script_filename ~storage ~parameter ~entrypoint ()
       |> Js.construct (Message.enc command D.AttachRequestArguments.enc)
       |> Js.to_string
     )

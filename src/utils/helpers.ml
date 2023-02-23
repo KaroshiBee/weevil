@@ -1,3 +1,4 @@
+open Data_encoding
 open Dapper.Dap
 module Model = Mdb.Mdb_model
 module PP = Tezos_micheline.Micheline_parser
@@ -99,3 +100,127 @@ module StateMock = struct
   let set_should_restart_on_terminate t restart = t.should_restart_on_terminate <- restart
 
 end
+
+
+let initialize_msg ~seq =
+  let arguments = Data.InitializeRequestArguments.make ~adapterID:"weevil" ~clientID:"12345" () in
+  Request.Message.make ~seq ~command:Commands.initialize ~arguments ()
+
+let initialize_req ~seq = Request.initializeRequest @@ initialize_msg ~seq
+
+let launch_msg
+    ?(type_="tezos-weevil-tcp")
+    ?(request="launch")
+    ?(mode="launch")
+    ?(name="Tezos-Weevil::Launch<2>")
+    ?(host="localhost")
+    ?(debugServer=9000)
+    ~seq ~script_filename ~storage ~parameter ~entrypoint () =
+  let arguments = Data.LaunchRequestArguments.make ~type_ ~request ~mode ~name ~host ~debugServer ~script_filename ~storage ~parameter ~entrypoint () in
+  Request.Message.make ~seq ~command:Commands.launch ~arguments ()
+
+let launch_req ~seq ~script_filename ~storage ~parameter ~entrypoint =
+  Request.launchRequest @@ launch_msg ~seq ~script_filename ~storage ~parameter ~entrypoint ()
+
+let attach_msg
+    ?(type_="tezos-weevil-tcp")
+    ?(request="attach")
+    ?(mode="attach")
+    ?(name="Tezos-Weevil::Attach<2>")
+    ?(host="localhost")
+    ?(debugServer=9000)
+    ~seq ~script_filename ~storage ~parameter ~entrypoint () =
+  let arguments = Data.AttachRequestArguments.make ~type_ ~request ~mode ~name ~host ~debugServer ~script_filename ~storage ~parameter ~entrypoint () in
+  Request.Message.make ~seq ~command:Commands.attach ~arguments ()
+
+let attach_req ~seq ~script_filename ~storage ~parameter ~entrypoint =
+  Request.attachRequest @@ attach_msg ~seq ~script_filename ~storage ~parameter ~entrypoint ()
+
+let configurationDone_msg ~seq =
+  let arguments = Data.ConfigurationDoneArguments.make () in
+  Request.Message.make_opt ~seq ~command:Commands.configurationDone ~arguments ()
+
+let configurationDone_req ~seq = Request.configurationDoneRequest @@ configurationDone_msg ~seq
+
+let threads_msg ~seq =
+  let arguments = Data.EmptyObject.make () in
+  Request.Message.make_opt ~seq ~command:Commands.threads ~arguments ()
+
+let threads_req ~seq = Request.threadsRequest @@ threads_msg ~seq
+
+let stack_trace_msg ~seq =
+  let arguments = Data.StackTraceArguments.make ~threadId:1 () in
+  Request.Message.make ~seq ~command:Commands.stackTrace ~arguments ()
+
+let stack_trace_req ~seq = Request.stackTraceRequest @@ stack_trace_msg ~seq
+
+let scopes_msg ~seq =
+  let arguments = Data.ScopesArguments.make ~frameId:2 () in
+  Request.Message.make ~seq ~command:Commands.scopes ~arguments ()
+
+let scopes_req ~seq = Request.scopesRequest @@ scopes_msg ~seq
+
+let variables_msg ~seq ~vref =
+  let arguments = Data.VariablesArguments.make ~variablesReference:vref () in
+  Request.Message.make ~seq ~command:Commands.variables ~arguments ()
+
+let variables_req ~seq ~vref = Request.variablesRequest @@ variables_msg ~seq ~vref
+
+let next_msg ~seq =
+  let arguments = Data.NextArguments.make ~threadId:1 () in
+  Request.Message.make ~seq ~command:Commands.next ~arguments ()
+
+let next_req ~seq = Request.nextRequest @@ next_msg ~seq
+
+let to_msg (type cmd args presence) :
+    (cmd, args, presence) Request.Message.t Request.t -> string = function
+  | InitializeRequest req ->
+      let enc =
+        Request.Message.enc
+          Commands.initialize
+          Data.InitializeRequestArguments.enc
+      in
+      Json.(construct enc req |> to_string) |> Header.wrap
+  | ConfigurationDoneRequest req ->
+      let enc =
+        Request.Message.enc_opt
+          Commands.configurationDone
+          Data.ConfigurationDoneArguments.enc
+      in
+      Json.(construct enc req |> to_string) |> Header.wrap
+  | LaunchRequest req ->
+      let enc =
+        Request.Message.enc Commands.launch Data.LaunchRequestArguments.enc
+      in
+      Json.(construct enc req |> to_string) |> Header.wrap
+  | AttachRequest req ->
+      let enc =
+        Request.Message.enc Commands.attach Data.AttachRequestArguments.enc
+      in
+      Json.(construct enc req |> to_string) |> Header.wrap
+  | ThreadsRequest req ->
+      let enc =
+        Request.Message.enc_opt Commands.threads Data.EmptyObject.enc
+      in
+      Json.(construct enc req |> to_string) |> Header.wrap
+  | StackTraceRequest req ->
+      let enc =
+        Request.Message.enc Commands.stackTrace Data.StackTraceArguments.enc
+      in
+      Json.(construct enc req |> to_string) |> Header.wrap
+  | ScopesRequest req ->
+      let enc =
+        Request.Message.enc Commands.scopes Data.ScopesArguments.enc
+      in
+      Json.(construct enc req |> to_string) |> Header.wrap
+  | VariablesRequest req ->
+      let enc =
+        Request.Message.enc Commands.variables Data.VariablesArguments.enc
+      in
+      Json.(construct enc req |> to_string) |> Header.wrap
+  | NextRequest req ->
+      let enc =
+        Request.Message.enc Commands.next Data.NextArguments.enc
+      in
+      Json.(construct enc req |> to_string) |> Header.wrap
+  | _ -> assert false

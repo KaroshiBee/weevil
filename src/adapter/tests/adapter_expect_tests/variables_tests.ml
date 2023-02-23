@@ -12,7 +12,7 @@ let%expect_test "Check sequencing etc for variables" =
   let command = Dap.Commands.variables in
   let req =
     Dap.Request.(
-      Dap.Utils.variables_msg ~seq:20 ~vref:3
+      Helpers.variables_msg ~seq:20 ~vref:3
       |> Js.construct (Message.enc command D.VariablesArguments.enc)
       |> Js.to_string)
   in

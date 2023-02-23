@@ -12,7 +12,7 @@ let%expect_test "Check sequencing etc for configurationDone" =
   let command = Dap.Commands.configurationDone in
   let req =
     Dap.Request.(
-      Dap.Utils.configurationDone_msg ~seq:20
+      Helpers.configurationDone_msg ~seq:20
       |> Js.construct (Message.enc_opt command D.ConfigurationDoneArguments.enc)
       |> Js.to_string
     )

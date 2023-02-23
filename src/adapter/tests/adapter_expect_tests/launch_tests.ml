@@ -37,7 +37,7 @@ let%expect_test "Check sequencing etc for launch" =
       let command = Dap.Commands.launch in
       let req =
         Dap.Request.(
-          Dap.Utils.launch_msg ~seq:20 ~script_filename ~storage ~parameter ~entrypoint ()
+          Helpers.launch_msg ~seq:20 ~script_filename ~storage ~parameter ~entrypoint ()
           |> Js.construct (Message.enc command D.LaunchRequestArguments.enc)
           |> Js.to_string)
       in
@@ -124,7 +124,7 @@ let%expect_test "Check bad input for launch" =
       let command = Dap.Commands.attach in
       let req =
         Dap.Request.(
-          Dap.Utils.attach_msg ~seq:20 ~script_filename ~storage ~parameter ~entrypoint ()
+          Helpers.attach_msg ~seq:20 ~script_filename ~storage ~parameter ~entrypoint ()
           |> Js.construct (Message.enc command D.AttachRequestArguments.enc)
           |> Js.to_string)
       in
