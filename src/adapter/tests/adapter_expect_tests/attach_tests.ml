@@ -17,7 +17,7 @@ let%expect_test "Check sequencing etc for attach" =
   let command = Dap.Commands.attach in
   let req =
     Dap.Request.(
-      Helpers.attach_msg ~seq:20 ~script_filename ~storage ~parameter ~entrypoint ()
+      Dap.Utils.attach_msg ~seq:20 ~script_filename ~storage ~parameter ~entrypoint ()
       |> Js.construct (Message.enc command D.AttachRequestArguments.enc)
       |> Js.to_string
     )
@@ -87,7 +87,7 @@ let%expect_test "Check bad input for attach" =
   let command = Dap.Commands.launch in
   let req =
     Dap.Request.(
-      Helpers.launch_msg ~seq:20 ~script_filename ~storage ~parameter ~entrypoint ()
+      Dap.Utils.launch_msg ~seq:20 ~script_filename ~storage ~parameter ~entrypoint ()
       |> Js.construct (Message.enc command D.LaunchRequestArguments.enc)
       |> Js.to_string
     )

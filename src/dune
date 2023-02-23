@@ -5,8 +5,8 @@
   cmdliner
   logs
   logs.cli
-  dapper
-  mdb_014
+  weevil_dapper.dapper
+  weevil_mdb.mdb_014
   adapter
  )
  (instrumentation (backend bisect_ppx))

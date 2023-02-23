@@ -26,6 +26,8 @@ depends: [
   "tezos-client-013-PtJakart"
   "tezos-protocol-plugin-013-PtJakart"
   "conduit-lwt-unix"
+  "weevil_dapper"
+  "weevil_mdb"
   "lwt_ppx"
   "ppx_expect"
   "ppx_deriving_qcheck"

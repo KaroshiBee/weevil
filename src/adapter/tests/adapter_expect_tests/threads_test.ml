@@ -12,7 +12,7 @@ let%expect_test "Check sequencing etc for threads" =
   let command = Dap.Commands.threads in
   let req =
     Dap.Request.(
-      Helpers.threads_msg ~seq:20
+      Dap.Utils.threads_msg ~seq:20
       |> Js.construct (Message.enc_opt command D.EmptyObject.enc)
       |> Js.to_string)
   in

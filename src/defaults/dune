@@ -1,4 +1,0 @@
-(library
- (name defaults)
- (instrumentation (backend bisect_ppx))
-)

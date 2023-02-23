@@ -3,6 +3,7 @@ module Dap = Dapper.Dap
 module Helpers = Utils.Helpers
 module Model = Mdb.Mdb_model
 
+let loop_connect = Dap.Utils.loop_connect
 
 module T (Dap_state:Dap.STATE_T) = struct
   type t = {
@@ -88,7 +89,7 @@ module T (Dap_state:Dap.STATE_T) = struct
     let%lwt ctx = init () in
     let res =
       try%lwt
-        let%lwt (_flow, ic, oc) = Helpers.loop_connect ~ctx ~client ~port 5 in
+        let%lwt (_flow, ic, oc) = loop_connect ~ctx ~client ~port 5 in
         (ic, oc) |> Dap.Result.ok
       with _ as err ->
         let err_s = Printexc.to_string err in

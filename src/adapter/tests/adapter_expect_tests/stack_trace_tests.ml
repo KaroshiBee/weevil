@@ -26,7 +26,7 @@ let%expect_test "Check sequencing etc for stack trace" =
       let command = Dap.Commands.stackTrace in
       let req =
         Dap.Request.(
-          Helpers.stack_trace_msg ~seq:20
+          Dap.Utils.stack_trace_msg ~seq:20
           |> Js.construct (Message.enc command D.StackTraceArguments.enc)
           |> Js.to_string)
       in

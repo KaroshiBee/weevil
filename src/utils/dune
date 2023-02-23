@@ -1,9 +1,11 @@
 (library
  (name utils)
+ (public_name weevil.utils)
  (libraries
-     dapper
-     defaults
-     mdb
+     weevil_dapper.dapper
+     weevil_dapper.defaults
+     weevil_mdb.mdb
+     tezos-micheline
      lwt
      lwt.unix
      conduit-lwt-unix

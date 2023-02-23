@@ -2,10 +2,11 @@
  (name adapter_expect_tests)
  (libraries
    adapter
-   dapper
-   defaults
-   test_utils
    utils
+   weevil_dapper.dapper
+   weevil_dapper.defaults
+   weevil_dapper.test_utils
+   weevil_mdb.mdb_014
    lwt
    lwt.unix
    conduit-lwt-unix

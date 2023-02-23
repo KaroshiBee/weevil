@@ -1,10 +1,11 @@
 (library
  (name adapter)
+ (public_name weevil.adapter)
  (libraries
-   dapper
-   defaults
-   utils ; loop_connect
-   mdb ; MichEvent
+   utils
+   weevil_dapper.dapper
+   weevil_dapper.defaults
+   weevil_mdb.mdb ; MichEvent
    lwt
    lwt.unix
    conduit-lwt-unix
