@@ -39,7 +39,7 @@
    tezos-protocol-plugin-013-PtJakart
    conduit-lwt-unix
    weevil_dapper
-   weevil_mdb
+   weevil_mdb_014
    lwt_ppx
    ppx_expect
    ppx_deriving_qcheck
