@@ -4,7 +4,6 @@
  (libraries
    utils
    weevil_dapper.dapper
-   weevil_dapper.defaults
    weevil_mdb.mdb ; MichEvent
    lwt
    lwt.unix

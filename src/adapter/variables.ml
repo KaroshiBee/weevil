@@ -23,19 +23,19 @@ module T (S : Types.STATE_READONLY_T) = struct
 
         let resp =
           let command = Dap.Commands.variables in
-          let params_name, params_var = Defaults.Vals._THE_PARAMETERS_LOCAL in
-          let storage_name, storage_var = Defaults.Vals._THE_STORAGE_LOCAL in
+          let params_name, params_var = Dap.Defaults._THE_PARAMETERS_LOCAL in
+          let storage_name, storage_var = Dap.Defaults._THE_STORAGE_LOCAL in
           let params_val = S.mdb_config state |> Option.map (fun Mich_config.{parameter; _} -> parameter) |> Option.value ~default:"unknown" in
           let storage_val = S.mdb_config state |> Option.map (fun Mich_config.{storage; _} -> storage) |> Option.value ~default:"unknown" in
-          let gas_name, gas_var = Defaults.Vals._THE_GAS_LOCAL in
-          let stack_name, stack_var = Defaults.Vals._THE_MICHELSON_STACK_LOCAL in
+          let gas_name, gas_var = Dap.Defaults._THE_GAS_LOCAL in
+          let stack_name, stack_var = Dap.Defaults._THE_MICHELSON_STACK_LOCAL in
           let gas_val, stack_val =
             match List.nth_opt recs 0 with
             | None -> "", []
             | Some wrec -> Model.(gas wrec, stack wrec)
           in
           let variables =
-            match Defaults.Vals.classify_vref_exn vref with
+            match Dap.Defaults.classify_vref_exn vref with
             | `Args ->
               let () = Logs.debug (fun m -> m "requested Args %d" vref) in
               [

@@ -53,7 +53,7 @@ module T (S : Types.STATE_T) = struct
         | (Some ic, Some oc) ->
           let args = Req.Message.arguments @@ Req.extract req in
           let threadId = D.StackTraceArguments.threadId args in
-          assert (threadId = Defaults.Vals._THE_THREAD_ID);
+          assert (threadId = Dap.Defaults._THE_THREAD_ID);
 
           let mich_get_recs = Mdb.Mdb_event.(make ~event:(GetRecords {get_records=()}) ()) in
           let mich_msg = Data_encoding.Json.(construct Mdb.Mdb_event.enc mich_get_recs |> to_string |> Dap.Header.wrap) in
@@ -78,7 +78,7 @@ module T (S : Types.STATE_T) = struct
                     ()
                 in
                 [D.StackFrame.make
-                   ~id:Defaults.Vals._THE_FRAME_ID
+                   ~id:Dap.Defaults._THE_FRAME_ID
                    ~name:entrypoint
                    ~source
                    ~line:loc.start.line

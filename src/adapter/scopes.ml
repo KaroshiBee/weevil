@@ -12,10 +12,10 @@ module T (S : Types.STATE_READONLY_T) = struct
   let scopes_handler =
     On_request.make ~handler:(fun ~state:_ req ->
         let args = Req.Message.arguments @@ Req.extract req in
-        assert (Defaults.Vals._THE_FRAME_ID = D.ScopesArguments.frameId args);
+        assert (Dap.Defaults._THE_FRAME_ID = D.ScopesArguments.frameId args);
         let resp =
           let command = Dap.Commands.scopes in
-          let locals_name, locals_var = Defaults.Vals._THE_LOCALS_SCOPE in
+          let locals_name, locals_var = Dap.Defaults._THE_LOCALS_SCOPE in
           (* let args_name, args_var = Defaults.Vals._THE_ARGS_SCOPE in *)
           let scopes = [
             D.Scope.make

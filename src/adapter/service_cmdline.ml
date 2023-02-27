@@ -1,4 +1,4 @@
-module Defaults = Defaults.Vals
+module Defaults = Dapper.Dap.Defaults
 let default_port = Defaults._DEFAULT_ADAPTER_PORT
 
 (* NOTE type unparsing_mode = Optimized | Readable | Optimized_legacy, could we phantom this into the logger type? *)

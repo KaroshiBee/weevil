@@ -77,7 +77,7 @@ module T (S : Types.STATE_T) = struct
           let body =
             D.StoppedEvent_body.make
               ~reason
-              ~threadId:Defaults.Vals._THE_THREAD_ID
+              ~threadId:Dap.Defaults._THE_THREAD_ID
               ~preserveFocusHint:true
               ~allThreadsStopped:true
               ()

@@ -13,7 +13,7 @@ module T (S : Types.STATE_READONLY_T) = struct
     On_request.make ~handler:(fun ~state:_ _req ->
         let resp =
           let command = Dap.Commands.threads in
-          let id = Defaults.Vals._THE_THREAD_ID in
+          let id = Dap.Defaults._THE_THREAD_ID in
           let threads = [D.Thread.make ~id ~name:"main thread" ()] in
           let body = D.ThreadsResponse_body.make ~threads () in
           Dap.Response.default_response_req command body

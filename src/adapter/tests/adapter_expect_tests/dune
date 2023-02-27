@@ -4,8 +4,6 @@
    adapter
    utils
    weevil_dapper.dapper
-   weevil_dapper.defaults
-   weevil_dapper.test_utils
    weevil_mdb_014.mdb_014
    lwt
    lwt.unix
