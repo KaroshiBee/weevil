@@ -26,19 +26,9 @@
    ocaml
    dune
    cmdliner
-   tezos-base
-   tezos-client-base-unix
-   tezos-micheline
-   tezos-stdlib-unix
-   tezos-rpc-http-client-unix
-   tezos-protocol-014-PtKathma
-   tezos-client-014-PtKathma
-   tezos-protocol-plugin-014-PtKathma
-   tezos-protocol-013-PtJakart
-   tezos-client-013-PtJakart
-   tezos-protocol-plugin-013-PtJakart
    conduit-lwt-unix
    weevil_dapper
+   weevil_mdb
    weevil_mdb_014
    lwt_ppx
    ppx_expect
