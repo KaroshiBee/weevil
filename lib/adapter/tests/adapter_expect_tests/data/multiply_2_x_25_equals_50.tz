@@ -1,0 +1,11 @@
+{parameter unit;storage unit;
+code {
+DROP;
+PUSH mutez 25;
+PUSH nat 2;
+MUL;
+DROP;
+UNIT;
+NIL operation;
+PAIR
+}}

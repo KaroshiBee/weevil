@@ -1,0 +1,26 @@
+(library
+ (name adapter_expect_tests)
+ (libraries
+   adapter
+   utils
+   dapper
+   mdb_014
+   lwt
+   lwt.unix
+   conduit-lwt-unix
+   data-encoding
+   cmdliner
+   logs
+   logs.lwt
+   ppx_expect
+   str
+ )
+ (inline_tests (deps (glob_files data/*.tz)))
+ (preprocess (pps lwt_ppx ppx_expect))
+ (flags
+  (:standard
+   -linkall
+   -open
+   Adapter
+   ))
+)

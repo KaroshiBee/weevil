@@ -1,0 +1,14 @@
+(executables
+ (names main)
+ (public_names weevil)
+ (package weevil)
+ (libraries
+  cmdliner
+  logs
+  logs.cli
+  dapper
+  mdb_014
+  adapter
+ )
+ (instrumentation (backend bisect_ppx))
+)

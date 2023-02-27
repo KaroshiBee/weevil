@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Debug Adapter Protocol",
+  "description": "The Debug Adapter Protocol defines the protocol used between an editor or IDE and a debugger or runtime.",
+  "type": "object",
+
+  "definitions": {
+
+    "SomeExample": {
+      "type": "object",
+      "description": "A Source is a descriptor for source code.\nIt is returned from the debug adapter as part of a StackFrame and it is used by clients when specifying breakpoints.",
+      "properties": {
+        "moduleId": {
+          "type": ["integer", "string"],
+          "description": "The module associated with this frame, if any."
+        },
+        "adapterData": {
+          "type": [
+            "array",
+            "boolean",
+            "integer",
+            "null",
+            "number",
+            "object",
+            "string"
+          ],
+          "description": "Optional data that a debug adapter might want to loop through the client.\nThe client should leave the data intact and persist it across sessions. The client should not interpret the data."
+        }
+      }
+    }
+  }
+}

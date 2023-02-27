@@ -1,0 +1,11 @@
+(library
+ (name utilities)
+ (public_name weevil.utilities)
+ (libraries
+   lwt
+   lwt.unix
+   ppx_expect
+ )
+ (preprocess (pps lwt_ppx ppx_expect))
+ (instrumentation (backend bisect_ppx))
+)

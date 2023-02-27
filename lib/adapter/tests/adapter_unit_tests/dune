@@ -1,0 +1,22 @@
+(test
+ (name adapter_tests)
+ (libraries
+   adapter
+   dapper
+   mdb_014
+   lwt
+   lwt.unix
+   conduit-lwt-unix
+   data-encoding
+   cmdliner
+   logs
+   logs.lwt
+   str
+   alcotest)
+ (flags
+  (:standard
+   -linkall
+   -open
+   Adapter
+   ))
+)

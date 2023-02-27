@@ -1,0 +1,9 @@
+parameter (pair int int) ;
+storage int ;
+code { CAR ;
+       DUP ;
+       UNPAIR ;
+       COMPARE ;
+       GT ;
+       DIP { UNPAIR } ;
+       PUSH string "BOO"; FAILWITH }

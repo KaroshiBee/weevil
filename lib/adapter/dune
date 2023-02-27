@@ -1,0 +1,20 @@
+(library
+ (name adapter)
+ (public_name weevil.adapter)
+ (libraries
+   utils
+   dapper
+   mdb ; MichEvent
+   lwt
+   lwt.unix
+   conduit-lwt-unix
+   data-encoding
+   cmdliner
+   logs
+   logs.lwt
+   str
+   ppx_expect
+ )
+ (preprocess (pps lwt_ppx ppx_deriving.show ppx_expect))
+ (instrumentation (backend bisect_ppx))
+)
