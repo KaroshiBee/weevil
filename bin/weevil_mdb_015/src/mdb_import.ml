@@ -24,4 +24,4 @@ module Tez = MakeTezos
 
 module type TEZ = module type of Tez
 
-let protocol_str = "PtLimaPt"
+let protocol_str = "PtLimaPtLMwfNinJi9rCfDPWea8dFgTZ1MeJ9f1m2SRic6ayiwW"
