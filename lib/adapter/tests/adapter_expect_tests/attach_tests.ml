@@ -2,9 +2,8 @@ include Dapper.Dap.Testing_utils
 module Dap = Dapper.Dap
 module D = Dap.Data
 module Js = Data_encoding.Json
-module Helpers = Utils.Helpers
 
-module StateMock = Helpers.StateMock
+module StateMock = Utils.StateMock
 module Attach = Attach.T (StateMock)
 
 let script_filename = "data/multiply_2_x_25_equals_50.tz"
@@ -17,7 +16,7 @@ let%expect_test "Check sequencing etc for attach" =
   let command = Dap.Commands.attach in
   let req =
     Dap.Request.(
-      Helpers.attach_msg ~seq:20 ~script_filename ~storage ~parameter ~entrypoint ()
+      Utils.attach_msg ~seq:20 ~script_filename ~storage ~parameter ~entrypoint ()
       |> Js.construct (Message.enc command D.AttachRequestArguments.enc)
       |> Js.to_string
     )
@@ -87,7 +86,7 @@ let%expect_test "Check bad input for attach" =
   let command = Dap.Commands.launch in
   let req =
     Dap.Request.(
-      Helpers.launch_msg ~seq:20 ~script_filename ~storage ~parameter ~entrypoint ()
+      Utils.launch_msg ~seq:20 ~script_filename ~storage ~parameter ~entrypoint ()
       |> Js.construct (Message.enc command D.LaunchRequestArguments.enc)
       |> Js.to_string
     )

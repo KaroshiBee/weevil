@@ -1,6 +1,5 @@
 open Conduit_lwt_unix
 module Dap = Dapper.Dap
-module Helpers = Utils.Helpers
 module Model = Mdb.Mdb_model
 
 let loop_connect = Dap.Utils.loop_connect

@@ -2,9 +2,8 @@ include Dapper.Dap.Testing_utils
 module Dap = Dapper.Dap
 module D = Dap.Data
 module Js = Data_encoding.Json
-module Helpers = Utils.Helpers
 
-module StateMock = Helpers.StateMock
+module StateMock = Utils.StateMock
 module Scopes = Scopes.T (StateMock)
 
 let%expect_test "Check sequencing etc for scopes" =
@@ -12,7 +11,7 @@ let%expect_test "Check sequencing etc for scopes" =
   let command = Dap.Commands.scopes in
   let req =
     Dap.Request.(
-      Helpers.scopes_msg ~seq:20
+      Utils.scopes_msg ~seq:20
       |> Js.construct (Message.enc command D.ScopesArguments.enc)
       |> Js.to_string)
   in

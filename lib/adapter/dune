@@ -2,9 +2,8 @@
  (name adapter)
  (public_name weevil.adapter)
  (libraries
-   utils
    dapper
-   mdb ; MichEvent
+   mdb
    lwt
    lwt.unix
    conduit-lwt-unix

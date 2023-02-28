@@ -2,7 +2,6 @@
  (name adapter_expect_tests)
  (libraries
    adapter
-   utils
    dapper
    mdb_014
    lwt

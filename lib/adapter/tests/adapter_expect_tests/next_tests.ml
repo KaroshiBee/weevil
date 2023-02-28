@@ -2,10 +2,9 @@ include Dapper.Dap.Testing_utils
 module Dap = Dapper.Dap
 module D = Dap.Data
 module Js = Data_encoding.Json
-module Helpers = Utils.Helpers
 
 module StateMock = struct
-  include Helpers.StateMock
+  include Utils.StateMock
 
   let backend_oc t = t.oc
 
@@ -23,7 +22,7 @@ let%expect_test "Check sequencing etc for next" =
       let command = Dap.Commands.next in
       let req =
         Dap.Request.(
-          Helpers.next_msg ~seq:20
+          Utils.next_msg ~seq:20
           |> Js.construct (Message.enc command D.NextArguments.enc)
           |> Js.to_string
         )

@@ -2,9 +2,8 @@ include Dapper.Dap.Testing_utils
 module Dap = Dapper.Dap
 module D = Dap.Data
 module Js = Data_encoding.Json
-module Helpers = Utils.Helpers
 
-module StateMock = Helpers.StateMock
+module StateMock = Utils.StateMock
 module Variables = Variables.T (StateMock)
 
 let%expect_test "Check sequencing etc for variables" =
@@ -12,7 +11,7 @@ let%expect_test "Check sequencing etc for variables" =
   let command = Dap.Commands.variables in
   let req =
     Dap.Request.(
-      Helpers.variables_msg ~seq:20 ~vref:3
+      Utils.variables_msg ~seq:20 ~vref:3
       |> Js.construct (Message.enc command D.VariablesArguments.enc)
       |> Js.to_string)
   in

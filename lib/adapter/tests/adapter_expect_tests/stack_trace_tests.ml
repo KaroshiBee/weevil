@@ -2,10 +2,9 @@ include Dapper.Dap.Testing_utils
 module Dap = Dapper.Dap
 module D = Dap.Data
 module Js = Data_encoding.Json
-module Helpers = Utils.Helpers
 
 module StateMock = struct
-  include Helpers.StateMock
+  include Utils.StateMock
 
   let backend_ic t = t.ic
 
@@ -26,7 +25,7 @@ let%expect_test "Check sequencing etc for stack trace" =
       let command = Dap.Commands.stackTrace in
       let req =
         Dap.Request.(
-          Helpers.stack_trace_msg ~seq:20
+          Utils.stack_trace_msg ~seq:20
           |> Js.construct (Message.enc command D.StackTraceArguments.enc)
           |> Js.to_string)
       in

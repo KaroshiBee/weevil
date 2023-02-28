@@ -2,9 +2,8 @@ include Dapper.Dap.Testing_utils
 module Dap = Dapper.Dap
 module D = Dap.Data
 module Js = Data_encoding.Json
-module Helpers = Utils.Helpers
 
-module StateMock = Helpers.StateMock
+module StateMock = Utils.StateMock
 module Threads = Threads.T (StateMock)
 
 let%expect_test "Check sequencing etc for threads" =
@@ -12,7 +11,7 @@ let%expect_test "Check sequencing etc for threads" =
   let command = Dap.Commands.threads in
   let req =
     Dap.Request.(
-      Helpers.threads_msg ~seq:20
+      Utils.threads_msg ~seq:20
       |> Js.construct (Message.enc_opt command D.EmptyObject.enc)
       |> Js.to_string)
   in

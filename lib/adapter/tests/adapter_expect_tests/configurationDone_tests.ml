@@ -2,9 +2,8 @@ include Dapper.Dap.Testing_utils
 module Dap = Dapper.Dap
 module D = Dap.Data
 module Js = Data_encoding.Json
-module Helpers = Utils.Helpers
 
-module StateMock = Helpers.StateMock
+module StateMock = Utils.StateMock
 module ConfigDone = Configuration_done.T(StateMock)
 
 let%expect_test "Check sequencing etc for configurationDone" =
@@ -12,7 +11,7 @@ let%expect_test "Check sequencing etc for configurationDone" =
   let command = Dap.Commands.configurationDone in
   let req =
     Dap.Request.(
-      Helpers.configurationDone_msg ~seq:20
+      Utils.configurationDone_msg ~seq:20
       |> Js.construct (Message.enc_opt command D.ConfigurationDoneArguments.enc)
       |> Js.to_string
     )

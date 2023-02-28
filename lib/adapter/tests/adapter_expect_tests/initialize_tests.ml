@@ -2,10 +2,9 @@ include Dapper.Dap.Testing_utils
 module Dap = Dapper.Dap
 module D = Dap.Data
 module Js = Data_encoding.Json
-module Helpers = Utils.Helpers
 
 module StateMock = struct
-  include Helpers.StateMock
+  include Utils.StateMock
 
   let set_connect_backend _t _ip _port =
     Dap.Result.ok (Lwt_io.stdin, Lwt_io.stdout)
@@ -27,7 +26,7 @@ let%expect_test "Check sequencing etc for init" =
   let command = Dap.Commands.initialize in
   let req =
     Dap.Request.(
-      Helpers.initialize_msg ~seq:20
+      Utils.initialize_msg ~seq:20
       |> Js.construct (Message.enc command D.InitializeRequestArguments.enc)
       |> Js.to_string
     )
@@ -91,7 +90,7 @@ let%expect_test "Check bad input for init" =
   (* unhappy path, f_resp is expecting an init request *)
   let req =
     Dap.Request.(
-      Helpers.attach_msg ~seq:20 ~script_filename ~storage ~parameter ~entrypoint ()
+      Utils.attach_msg ~seq:20 ~script_filename ~storage ~parameter ~entrypoint ()
       |> Js.construct (Message.enc command D.AttachRequestArguments.enc)
       |> Js.to_string
     )

@@ -107,7 +107,7 @@ module T (S:Types.STATE_T) = struct
         in
         Lwt.return @@
         Option.map (fun xs_ ->
-            xs_ |> Result.map ( fun xs -> List.rev xs |> Utils.Helpers.deduplicate_stable )
+            xs_ |> Result.map ( fun xs -> List.rev xs |> Utils.deduplicate_stable )
           ) msgs
       )
 
