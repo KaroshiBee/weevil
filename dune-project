@@ -61,6 +61,30 @@
   (tezos octez weevil ocaml)))
 
 (package
+ (name weevil_mdb_015)
+ (synopsis "Tezos: `weevil_mdb_015` binary - a tool for debugging Michelson code")
+ (description "Supporting tool for the main Weevil debugger")
+ (depends
+   ocaml
+   dune
+   cmdliner
+   tezos-base
+   tezos-micheline
+   tezos-protocol-015-PtLimaPt
+   tezos-client-015-PtLimaPt
+   tezos-protocol-plugin-015-PtLimaPt
+   conduit-lwt-unix
+   weevil_dapper
+   weevil_mdb
+   lwt_ppx
+   ppx_expect
+   ppx_deriving_qcheck
+   qcheck-alcotest
+   bisect_ppx)
+ (tags
+  (tezos octez weevil ocaml)))
+
+(package
  (name weevil_mdb_014)
  (synopsis "Tezos: `weevil_mdb_014` binary - a tool for debugging Michelson code")
  (description "Supporting tool for the main Weevil debugger")

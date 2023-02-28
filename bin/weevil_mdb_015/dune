@@ -1,0 +1,12 @@
+(executables
+ (names main)
+ (public_names weevil_mdb_015)
+ (package weevil_mdb_015)
+ (libraries
+  cmdliner
+  logs
+  logs.cli
+  mdb_015
+ )
+ (instrumentation (backend bisect_ppx))
+)
