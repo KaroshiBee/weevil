@@ -30,6 +30,8 @@ let _chain_id t = t.chain_id
 let _alpha_context t = t.alpha_context
 let _mock_context t = t.mock_context
 
+
+(* taken from proto_XXX.../lib_plugin/RPC.ml  Scripts.register() *)
 let originate_dummy_contract ctxt script balance =
   let open Lwt_result_syntax in
   let ctxt = Ctxt.Origination_nonce.init ctxt Env.Operation_hash.zero in
