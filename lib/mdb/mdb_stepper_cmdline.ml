@@ -29,20 +29,22 @@ let process headless script_filename_opt storage_opt input_opt entrypoint_opt ()
   let post_process : Mdb_stepper.t tzresult Lwt.t -> unit Cmdliner.Term.ret Lwt.t = fun res ->
     let*! stepper_result = res in
     match stepper_result with
-    | Ok _ -> (* TODO dont ignore OK output *) Lwt.return @@ `Ok ()
+    | Ok _ -> (* TODO dont ignore OK output *)
+      Lwt.return @@ `Ok ()
     | Error _ as e when headless ->
       let*! () =
         let enc = result_encoding Data_encoding.unit in
         let err_msg = Data_encoding.Json.(construct enc e |> to_string) |> Dapper.Dap.Header.wrap in
-        Lwt_io.(write stderr err_msg)
+        Lwt_io.(write stderr @@ err_msg ^ "\n") in
+      let*! () = Lwt_io.(flush stderr)
       in
       (* if in headless mode then dont show --help if the cli has errors *)
       Lwt.return @@ `Error (false, "")
     | Error errs ->
       let ss =
-        Format.asprintf "Stepper error - %a" pp_print_trace errs
+        Format.asprintf "Stepper error - %a\n" pp_print_trace errs
       in
-      (* if in headless mode then dont show --help if the cli has errors *)
+      (* not in headless mode so show help when errored *)
       Lwt.return @@ `Error (not headless, ss)
   in
 
