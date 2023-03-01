@@ -3,7 +3,7 @@
 (wrapped_executables false)
 (name weevil_mdb)
 
-(version "0.1.2")
+(version "0.1.2") ; TODO should same as Utilities.Defaults._VERSION
 
 (generate_opam_files true)
 
