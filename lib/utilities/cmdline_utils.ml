@@ -9,7 +9,7 @@ let setup_log =
 
 
 let info ~doc name =
-  let version = "0.1.2" in (* Tezos_version.Bin_version.version_string in *)
+  let version = Defaults._VERSION in
   Cmdliner.Cmd.info
     ~doc
     ~version
