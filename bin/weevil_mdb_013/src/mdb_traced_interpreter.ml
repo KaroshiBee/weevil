@@ -110,6 +110,7 @@ let log_element_to_out log_element out_channel =
         ) in
       let () = Logs.debug (fun m -> m "writing back child process -> mdb backend") in
       let () = Printf.(fprintf out_channel "%s" js; flush out_channel) in
+      let () = Printf.(fprintf out_channel "\n"; flush out_channel) in
       to_out := None
 
     | true, _ | _, None ->
