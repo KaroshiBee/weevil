@@ -9,7 +9,7 @@ testing with no filename and not headless
   [124]
 
 testing with no filename in headless mode
-  $ weevil_mdb_013 stepper --headless >/dev/null
+  $ weevil_mdb_013 stepper --headless
   Content-Length: 133
   
   { "error":    [ { "kind": "temporary", "id": "failure",        "msg": "Invalid_argument(\"required argument FILE is missing\")" } ] }
@@ -17,7 +17,7 @@ testing with no filename in headless mode
   [124]
 
 testing with bad filename in headless mode
-  $ weevil_mdb_013 stepper -h notthere.tz >/dev/null
+  $ weevil_mdb_013 stepper -h notthere.tz
   Content-Length: 161
   
   { "error":    [ { "kind": "temporary", "id": "failure",        "msg":          "cannot read file (Unix.Unix_error(Unix.ENOENT, \"open\", \"notthere.tz\"))" } ] }
