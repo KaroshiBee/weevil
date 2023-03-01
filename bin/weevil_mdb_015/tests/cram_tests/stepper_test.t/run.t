@@ -24,7 +24,7 @@ I send in 10 newlines to check that its ok to send them when it is finished
   { "location":    { "start": { "line": 10, "column": 9, "point": 172, "byte": 172 },      "stop": { "line": 10, "column": 13, "point": 176, "byte": 176 } },  "gas": "92.495 units remaining", "stack": [ "(Pair {} Unit)" ] }
 
 testing a contract that has a failwith, it should incrementally step up to it and then fail
-  $ echo "\n \n \n \n \n \n \n \n \n \n" | weevil_mdb_015 stepper --headless --storage '0' --parameter '(Pair 7 5)' failwith.tz
+  $ echo "\n \n \n \n \n \n \n \n \n \n" | weevil_mdb_015 stepper --headless --storage '0' --parameter '(Pair 7 5)' failwith.tz 2>&1 | sed 's/weevil_mdb_015\://'
   Content-Length: 220
   
   { "location":    { "start": { "line": 3, "column": 7, "point": 48, "byte": 48 },      "stop": { "line": 3, "column": 10, "point": 51, "byte": 51 } },  "gas": "91.879 units remaining", "stack": [ "(Pair (Pair 7 5) 0)" ] }Content-Length: 211
@@ -45,11 +45,10 @@ testing a contract that has a failwith, it should incrementally step up to it an
   
   { "location":    { "start": { "line": 8, "column": 7, "point": 119, "byte": 119 },      "stop": { "line": 8, "column": 21, "point": 133, "byte": 133 } },  "gas": "91.769 units remaining", "stack": [ "True", "7", "5" ] }Content-Length: 230
   
-  { "location":    { "start": { "line": 9, "column": 7, "point": 143, "byte": 143 },      "stop": { "line": 9, "column": 24, "point": 160, "byte": 160 } },  "gas": "91.759 units remaining", "stack": [ "\"BOO\"", "True", "7", "5" ] }weevil_mdb_015: 
+  { "location":    { "start": { "line": 9, "column": 7, "point": 143, "byte": 143 },      "stop": { "line": 9, "column": 24, "point": 160, "byte": 160 } },  "gas": "91.759 units remaining", "stack": [ "\"BOO\"", "True", "7", "5" ] } 
   Content-Length: 368
   
   { "error":    [ { "kind": "temporary",        "id": "proto.015-PtLimaPt.michelson_v1.runtime_error",        "contract_handle": "KT1BEqzn5Wx8uJrZNvuS9DVHmLvG9td3fDLi",        "contract_code": "Deprecated" },      { "kind": "temporary",        "id": "proto.015-PtLimaPt.michelson_v1.script_rejected",        "location": 20, "with": { "string": "BOO" }, "trace": [] } ] }
-  [124]
 
 testing with no filename and not headless
   $ weevil_mdb_015 stepper 2>&1 | sed 's/weevil_mdb_015\://'
