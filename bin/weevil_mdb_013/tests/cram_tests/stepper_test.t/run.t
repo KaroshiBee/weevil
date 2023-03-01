@@ -52,36 +52,32 @@ testing a contract that has a failwith, it should incrementally step up to it an
   [124]
 
 testing with no filename and not headless
-  $ weevil_mdb_013 stepper
-  weevil_mdb_013: Stepper error - Error:
+  $ weevil_mdb_013 stepper 2>&1 | sed 's/weevil_mdb_013\://'
+   Stepper error - Error:
                                     Invalid_argument("required argument FILE is missing")
                   
   Usage: weevil_mdb_013 stepper [OPTION]… [FILE]
   Try 'weevil_mdb_013 stepper --help' or 'weevil_mdb_013 --help' for more information.
-  [124]
 
 testing with no filename in headless mode
-  $ weevil_mdb_013 stepper --headless
-  weevil_mdb_013: 
+  $ weevil_mdb_013 stepper --headless 2>&1 | sed 's/weevil_mdb_013\://'
+   
   Content-Length: 133
   
   { "error":    [ { "kind": "temporary", "id": "failure",        "msg": "Invalid_argument(\"required argument FILE is missing\")" } ] }
-  [124]
 
 testing with bad filename in headless mode
-  $ weevil_mdb_013 stepper -h notthere.tz
-  weevil_mdb_013: 
+  $ weevil_mdb_013 stepper -h notthere.tz 2>&1 | sed 's/weevil_mdb_013\://'
+   
   Content-Length: 161
   
   { "error":    [ { "kind": "temporary", "id": "failure",        "msg":          "cannot read file (Unix.Unix_error(Unix.ENOENT, \"open\", \"notthere.tz\"))" } ] }
-  [124]
 
 testing with bad michelson in headless mode
-  $ weevil_mdb_013 stepper -h bad_michelson.tz
-  weevil_mdb_013: 
+  $ weevil_mdb_013 stepper -h bad_michelson.tz 2>&1 | sed 's/weevil_mdb_013\://'
+   
   Content-Length: 573
   
   { "error":    [ { "kind": "permanent", "id": "micheline.parse_error.unclosed_token",        "location":          { "start": { "line": 2, "column": 7, "point": 39, "byte": 39 },            "stop": { "line": 2, "column": 8, "point": 40, "byte": 40 } },        "token": { "punctuation": "{" } },      { "kind": "permanent", "id": "micheline.parse_error.unclosed_token",        "location":          { "start": { "line": 1, "column": 0, "point": 0, "byte": 0 },            "stop": { "line": 1, "column": 1, "point": 1, "byte": 1 } },        "token": { "punctuation": "{" } } ] }
-  [124]
 
 
