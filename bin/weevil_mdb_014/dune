@@ -3,10 +3,8 @@
  (public_names weevil_mdb_014)
  (package weevil_mdb_014)
  (libraries
-  cmdliner
-  logs
-  logs.cli
-  mdb_014
+   utilities
+   mdb_014
  )
  (instrumentation (backend bisect_ppx))
 )

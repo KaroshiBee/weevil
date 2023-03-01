@@ -3,12 +3,10 @@
  (public_names weevil)
  (package weevil)
  (libraries
-  cmdliner
-  logs
-  logs.cli
-  dapper
-  mdb_014
-  adapter
+   utilities
+   dapper
+   mdb_015 ; we should default to the latest version to fullfill the virtual module
+   adapter
  )
  (instrumentation (backend bisect_ppx))
 )

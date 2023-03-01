@@ -1,23 +1,11 @@
-(* a generic setup for logging *)
-let setup_log =
-  let init style_renderer level =
-    Fmt_tty.setup_std_outputs ?style_renderer ();
-    Logs.set_level level;
-    Logs.set_reporter (Logs_fmt.reporter ())
-  in
-  Cmdliner.Term.(const init $ Fmt_cli.style_renderer () $ Logs_cli.level ())
+module U = Utilities.Cmdline_utils
 
 (* group together all cmd lines *)
 let commands = [
-  Mdb.Mdb_stepper_cmdline.cmd setup_log;
+  Mdb.Mdb_stepper_cmdline.cmd U.setup_log;
 ]
 
-let info =
-  let version = "0.1" in (* Tezos_version.Bin_version.version_string in *)
-  Cmdliner.Cmd.info
-    ~doc:"The Tezos Weevil mdb v015 tool"
-    ~version
-    "weevil_mdb_015"
+let info = U.info ~doc:"The Tezos Weevil mdb v015 tool" "weevil_mdb_015"
 
 let main_cmd =
   Cmdliner.Cmd.group info commands
