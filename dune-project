@@ -180,6 +180,11 @@
  (tags
   (tezos octez weevil ocaml)))
 
+;; NOTE we only go back as far as 011 because Tezos mockups are not registered in the codebase until 011.
+;; history, mockups were announced in Dec 2020, so the earliest version that *could* have them would be
+;; Florence - 009, however Florence and Granada - 010 do not register a mockup mode so they cannot be used
+;; in the Weevil
+
 (package
  (name weevil)
  (synopsis "Tezos: `weevil` binary - a tool for debugging Michelson code")
