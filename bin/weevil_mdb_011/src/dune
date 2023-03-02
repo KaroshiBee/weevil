@@ -1,0 +1,26 @@
+(library
+ (name mdb_011)
+ (public_name weevil_mdb_011.mdb_011)
+ (implements mdb)
+ (libraries
+   tezos-base
+   tezos-micheline
+   tezos-protocol-011-PtHangz2
+   tezos-client-011-PtHangz2
+   tezos-protocol-plugin-011-PtHangz2
+   mdb
+ )
+ (private_modules
+   mdb_import
+   mdb_michelson
+   mdb_stepper_config
+   mdb_traced_interpreter
+ )
+ (flags
+  (:standard
+   -linkall
+   -open
+   Tezos_base.TzPervasives
+ ))
+)
+

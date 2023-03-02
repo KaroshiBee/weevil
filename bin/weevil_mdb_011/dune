@@ -1,0 +1,10 @@
+(executables
+ (names main)
+ (public_names weevil_mdb_011)
+ (package weevil_mdb_011)
+ (libraries
+  utilities
+  mdb_011
+ )
+ (instrumentation (backend bisect_ppx))
+)

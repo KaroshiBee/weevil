@@ -1,5 +1,5 @@
 testing with no filename and not headless
-  $ for n in 015 014 013 012; do weevil_mdb_$n stepper; done
+  $ for n in 015 014 013 012 011; do weevil_mdb_$n stepper; done
   weevil_mdb_015: Stepper error - Error:
                                     Invalid_argument("required argument FILE is missing")
                   
@@ -24,10 +24,16 @@ testing with no filename and not headless
                   
   Usage: weevil_mdb_012 stepper [OPTION]… [FILE]
   Try 'weevil_mdb_012 stepper --help' or 'weevil_mdb_012 --help' for more information.
+  weevil_mdb_011: Stepper error - Error:
+                                    Invalid_argument("required argument FILE is missing")
+                  
+                  
+  Usage: weevil_mdb_011 stepper [OPTION]… [FILE]
+  Try 'weevil_mdb_011 stepper --help' or 'weevil_mdb_011 --help' for more information.
   [124]
 
 testing with no filename in headless mode
-  $ for n in 015 014 013 012; do weevil_mdb_$n stepper --headless; done
+  $ for n in 015 014 013 012 011; do weevil_mdb_$n stepper --headless; done
   Content-Length: 133
   
   { "error":    [ { "kind": "temporary", "id": "failure",        "msg": "Invalid_argument(\"required argument FILE is missing\")" } ] }
@@ -44,10 +50,14 @@ testing with no filename in headless mode
   
   { "error":    [ { "kind": "temporary", "id": "failure",        "msg": "Invalid_argument(\"required argument FILE is missing\")" } ] }
   weevil_mdb_012: 
+  Content-Length: 133
+  
+  { "error":    [ { "kind": "temporary", "id": "failure",        "msg": "Invalid_argument(\"required argument FILE is missing\")" } ] }
+  weevil_mdb_011: 
   [124]
 
 testing with bad filename in headless mode
-  $ for n in 015 014 013 012; do weevil_mdb_$n stepper -h notthere.tz; done
+  $ for n in 015 014 013 012 011; do weevil_mdb_$n stepper -h notthere.tz; done
   Content-Length: 161
   
   { "error":    [ { "kind": "temporary", "id": "failure",        "msg":          "cannot read file (Unix.Unix_error(Unix.ENOENT, \"open\", \"notthere.tz\"))" } ] }
@@ -64,4 +74,8 @@ testing with bad filename in headless mode
   
   { "error":    [ { "kind": "temporary", "id": "failure",        "msg":          "cannot read file (Unix.Unix_error(Unix.ENOENT, \"open\", \"notthere.tz\"))" } ] }
   weevil_mdb_012: 
+  Content-Length: 161
+  
+  { "error":    [ { "kind": "temporary", "id": "failure",        "msg":          "cannot read file (Unix.Unix_error(Unix.ENOENT, \"open\", \"notthere.tz\"))" } ] }
+  weevil_mdb_011: 
   [124]
