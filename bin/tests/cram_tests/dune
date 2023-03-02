@@ -3,5 +3,6 @@
     %{bin:weevil_mdb_015}
     %{bin:weevil_mdb_014}
     %{bin:weevil_mdb_013}
+    %{bin:weevil_mdb_012}
   )
 )
