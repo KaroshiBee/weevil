@@ -158,6 +158,7 @@ module Dfs = struct
     Logs.debug (fun m -> m "TODO not sure how to encode an object-as-dict");
     _set_field_type t "" ("Data_encoding.json", "json")
 
+  (* NOTE need a cps version of left fold to maintain the continuation inside the fold *)
   let rec _fold_left_cps f_cps acc k = function
     | [] -> k acc
     | hd :: tl -> f_cps acc hd (fun res -> _fold_left_cps f_cps res k tl)
