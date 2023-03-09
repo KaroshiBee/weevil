@@ -3,18 +3,24 @@ module Dap = Dapper.Dap
 module Model = Mdb.Mdb_model
 
 let loop_connect = Dap.Utils.loop_connect
-
+(* TODO want to pass in
+   * gas level
+   * stepper cmd - want to be able to use different protocol versions
+   * backend cmd
+   * mdb script entrypoint
+   * base directory
+*)
 module T (Dap_state:Dap.STATE_T) = struct
   type t = {
-    sequencing: Dap_state.t;
-    mutable process : Lwt_process.process_none option;
-    mutable ic : Lwt_io.input_channel option;
-    mutable oc : Lwt_io.output_channel option;
-    mutable launch_mode : Dap.Launch_mode.t option;
-    mutable config : Dap.Config.t;
-    mutable client_config : Dap.Data.InitializeRequestArguments.t option;
-    mutable mdb_config : Mdb.Mdb_config.t option;
-    mutable log_records : Model.t list;
+    sequencing: Dap_state.t; (* seq numbers *)
+    mutable process : Lwt_process.process_none option; (* backend svc process *)
+    mutable ic : Lwt_io.input_channel option; (* input channel for backend svc *)
+    mutable oc : Lwt_io.output_channel option; (* output channel for backend svc *)
+    mutable launch_mode : Dap.Launch_mode.t option; (* attach/launch/etc *)
+    mutable config : Dap.Config.t; (* config for dapper - backend ip, port, command and stepper command *)
+    mutable client_config : Dap.Data.InitializeRequestArguments.t option; (* from the dap schema, clientID, name, locale etc *)
+    mutable mdb_config : Mdb.Mdb_config.t option; (* stepper config script, storage, param, entrypoint *)
+    mutable log_records : Model.t list; (* michelson interpreter data TODO move to irmin*)
     mutable should_restart_on_terminate : bool option;
   }
 
