@@ -161,7 +161,7 @@ module Dfs = struct
   (* NOTE need a cps version of left fold to maintain the continuation inside the fold *)
   let rec _fold_left_cps f_cps acc k = function
     | [] -> k acc
-    | hd :: tl -> f_cps acc hd (fun res -> _fold_left_cps f_cps res k tl)
+    | hd :: tl -> f_cps acc hd (fun acc' -> _fold_left_cps f_cps acc' k tl)
 
   let rec process_definition t ~path ~k =
     (* this will be a *Request/*Response/*Event/Object top level definition
