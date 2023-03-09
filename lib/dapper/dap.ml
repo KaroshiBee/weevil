@@ -9,7 +9,7 @@ module Data = Dap_messages.Data
 module Request = Dap_request
 module Response = Dap_response
 module Event = Dap_event
-module Result = Dap_result (* TODO use tezos error plumbing *)
+module Result = Dap_result (* TODO use tezos error plumbing? *)
 module Defaults = Utilities.Defaults
 module Utils = Dap_utils
 
