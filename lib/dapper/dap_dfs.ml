@@ -163,7 +163,7 @@ module Dfs = struct
     | [] -> k acc
     | hd :: tl -> f_cps acc hd (fun acc' -> _fold_left_cps f_cps acc' k tl)
 
-  let rec process_definition t ~path ~k =
+  let rec process_definition t ~path ~kont =
     (* this will be a *Request/*Response/*Event/Object top level definition
        will want to ignore base class ProtocolMessage, Request, Response, Event types
        as they are handled with the functors in Dap_t
@@ -177,10 +177,10 @@ module Dfs = struct
     Logs.debug (fun m -> m "process dfn start: '%s', '%s'" dfn module_name) ;
     if Sp.is_special_definition ~path then (
       Logs.debug (fun m -> m "special case: '%s'" dfn) ;
-      k t)
+      kont t)
     else if RestartArgumentsHelper.is_special_definition path then (
       Logs.debug (fun m -> m "special case restart: '%s'" dfn) ;
-      k t)
+      kont t)
     else (
       (* check is valid name by finding the definition *)
       let schema = Json_schema.of_json t.schema_js in
@@ -190,7 +190,7 @@ module Dfs = struct
       if (not has_visited) then (
         Logs.debug (fun m -> m "visiting: '%s'" dfn) ;
         Hashtbl.add t.visited dfn Started;
-        process_element t element ~path ~k:(fun t ->
+        process_element t element ~path ~kont:(fun t ->
             Hashtbl.replace t.visited dfn Finished;
             Logs.debug (fun m -> m "finished: '%s'" dfn) ;
             match t.nodes with
@@ -201,17 +201,17 @@ module Dfs = struct
               Logs.debug (fun m -> m "adding definition '%s' to finished pile with module name '%s'" dfn module_name) ;
               let ordering = module_name :: t.ordering in
               Hashtbl.add t.finished module_name spec;
-              k {t with nodes; ordering}
-            | _ -> k t
+              kont {t with nodes; ordering}
+            | _ -> kont t
           )
       )
       else (
         Logs.debug (fun m -> m "already visiting/visited: '%s'" dfn) ;
-        k t
+        kont t
       )
     )
 
-  and process_enums t ~path ~k =
+  and process_enums t ~path ~kont =
     let dfn = Q.json_pointer_of_path path in
     let module_name = Sp.make_module_name path in
     let _aux dirty_names =
@@ -230,21 +230,21 @@ module Dfs = struct
       | (true, false) ->
         Logs.debug (fun m -> m "element under '%s' has command enum [%s]" dfn dirty_name);
         let command_enum = t.command_enum |> Sp.Enum_spec.append_enum ~dirty_name in
-        k {t with command_enum}
+        kont {t with command_enum}
       | (false, true) ->
         Logs.debug (fun m -> m "element under '%s' has event enum [%s]" dfn dirty_name);
         let event_enum = t.event_enum |> Sp.Enum_spec.append_enum ~dirty_name in
-        k {t with event_enum}
+        kont {t with event_enum}
       | (_, _) ->
         Logs.debug (fun m -> m "element under '%s' has single enum field [%s]" dfn dirty_name);
-        k @@ _aux dirty_names
+        kont @@ _aux dirty_names
     )
     | (_ :: _rest) as dirty_names ->
       Logs.debug (fun m -> m "element under '%s' has enum [%s]" dfn (dirty_names |> String.concat ", ")) ;
-      k @@ _aux dirty_names
-    | _ -> k t
+      kont @@ _aux dirty_names
+    | _ -> kont t
 
-  and process_element t ~path ~k el =
+  and process_element t ~path ~kont el =
     (* can get proper enums here, still need to qry for _enums c.f. string handler below *)
     let dfn = Q.json_pointer_of_path path in
     Logs.debug (fun m -> m "process element under '%s'" dfn);
@@ -257,13 +257,13 @@ module Dfs = struct
     (* it is an enum of some sort *)
     if n > 0 then (
       Logs.debug (fun m -> m "element enum element under '%s'" dfn);
-      process_enums t enums ~path ~k:(fun t -> k  t)
+      process_enums t enums ~path ~kont:(fun t -> kont t)
     ) else (
       Logs.debug (fun m -> m "process element kind under '%s'" dfn) ;
-      process_kind t el.kind ~path ~k:(fun t -> k t)
+      process_kind t el.kind ~path ~kont:(fun t -> kont t)
     )
 
-  and process_properties t ~path ~k properties =
+  and process_properties t ~path ~kont properties =
     let n = List.length properties in
     let dfn = Q.json_pointer_of_path path in
     Logs.debug (fun m -> m "process object with %d properties under '%s'" n dfn);
@@ -284,21 +284,21 @@ module Dfs = struct
                                     ()
                                  ) in
          let new_nodes =  new_spec :: t_acc.nodes in
-         process_element {t_acc with nodes=new_nodes} el ~path:new_path ~k:(fun t' ->
+         process_element {t_acc with nodes=new_nodes} el ~path:new_path ~kont:(fun t' ->
              Hashtbl.replace_seq t_acc.visited (Hashtbl.to_seq t'.visited) ;
              kont {t' with visited = t_acc.visited}
            )
-      ) t k properties
+      ) t kont properties
 
-  and process_empty_object t ~path ~k =
+  and process_empty_object t ~path ~kont =
     let dfn = Q.json_pointer_of_path path in
     let module_name = Sp.make_module_name path in
     Logs.debug (fun m -> m "process empty object with no additionalProperties under '%s' and module name '%s'" dfn module_name);
     let o = Sp.Object (Sp.Obj_spec.of_path ~dirty_name:module_name ~path ()) in
     let nodes = o :: t.nodes in
-    k {t with nodes}
+    kont {t with nodes}
 
-  and process_kind t ~path ~k = function
+  and process_kind t ~path ~kont = function
     | Object o when (List.length o.properties) = 0 -> (
         let dfn = Q.json_pointer_of_path path in
         Logs.debug (fun m -> m "process object with 0 properties under '%s'" dfn);
@@ -313,15 +313,15 @@ module Dfs = struct
               match Q.query type_path t.schema_js with
               | `A [`String "string";
                     `String "null"] ->
-                k @@ _set_nullable_field_dict_type t "" ("string", "string")
+                kont @@ _set_nullable_field_dict_type t "" ("string", "string")
               | `String "string" ->
-                k @@ _set_field_dict_type t "" ("string", "string")
+                kont @@ _set_field_dict_type t "" ("string", "string")
               | _ -> failwith "TODO more general additionalProperties"
             with Not_found ->
-              process_empty_object t ~path ~k:(fun t -> k t)
+              process_empty_object t ~path ~kont:(fun t -> kont t)
           )
         | None ->
-            process_empty_object t ~path ~k:(fun t -> k t)
+            process_empty_object t ~path ~kont:(fun t -> kont t)
       )
     | Object
         {
@@ -347,7 +347,7 @@ module Dfs = struct
             Logs.debug (fun m -> m "got spec for %s with %s" dfn (Sp.show spec)) ;
             let nodes = spec :: t.nodes in
             let t = {t with nodes} in
-            process_properties t properties ~path ~k:(fun t' ->
+            process_properties t properties ~path ~kont:(fun t' ->
                 assert (List.length t'.nodes >= m+n) ;
                 (* TODO need to filter out all initial objects, these are objects that have been inline-defined,
                    all other finished items have already been put on the finished pile because they can be
@@ -378,11 +378,11 @@ module Dfs = struct
                   Logs.debug (fun m -> m "adding %d fields to object at '%s'" n @@ Q.json_pointer_of_path path) ;
                   let is_cyclic = List.exists (fun (f:Sp.Field_spec.t) -> f.cyclic) fields in
                   let nodes = Sp.(Object Obj_spec.{spec with fields; is_cyclic} ) :: nodes' in
-                  k {t' with nodes; }
-                | _ -> Logs.warn (fun m -> m "Couldnt find final object spec from path '%s'" @@ Q.json_pointer_of_path path); k t'
+                  kont {t' with nodes; }
+                | _ -> Logs.warn (fun m -> m "Couldnt find final object spec from path '%s'" @@ Q.json_pointer_of_path path); kont t'
               )
           )
-        | None -> Logs.warn (fun m -> m "Couldnt make dirty name from path '%s'" @@ Q.json_pointer_of_path path); k t
+        | None -> Logs.warn (fun m -> m "Couldnt make dirty name from path '%s'" @@ Q.json_pointer_of_path path); kont t
       )
     | Object _ -> failwith "TODO object"
     | Array (_, _) -> failwith "TODO array"
@@ -394,8 +394,8 @@ module Dfs = struct
         let dfn = Q.json_pointer_of_path path in
         Logs.debug (fun m -> m "process mono-morphic array under '%s'" dfn) ;
         let new_path = path @ [`Field "items"] in
-        process_element t element ~path:new_path ~k:(fun t ->
-            k @@ _set_seq t
+        process_element t element ~path:new_path ~kont:(fun t ->
+            kont @@ _set_seq t
           )
     | Monomorphic_array _ -> failwith "TODO marray"
 
@@ -404,13 +404,13 @@ module Dfs = struct
         when dref.kind = Def_ref [`Field "definitions"; `Field "Request"] -> (
         Logs.debug (fun m -> m "process request under '%s'" (Q.json_pointer_of_path ~wildcards:true path)) ;
         let new_path = path @ [`Field "allOf"; `Index 1] in
-        process_element t el ~path:new_path ~k:(fun t' ->
+        process_element t el ~path:new_path ~kont:(fun t' ->
             Hashtbl.replace_seq t.visited (Hashtbl.to_seq t'.visited) ;
             match t'.nodes with
             | Sp.Object specs :: rest ->
               let nodes = Sp.Request specs :: rest in
-              k {t' with nodes}
-            | _ -> k t'
+              kont {t' with nodes}
+            | _ -> kont t'
           )
       )
     | Combine (All_of, [dref; el])
@@ -418,27 +418,27 @@ module Dfs = struct
         Logs.debug (fun m -> m "process event under '%s'" (Q.json_pointer_of_path ~wildcards:true path)) ;
         Logs.debug (fun m -> m "all_of event BEFORE %s" @@ show t);
         let new_path = path @ [`Field "allOf"; `Index 1] in
-        process_element t el ~path:new_path ~k:(fun t' ->
+        process_element t el ~path:new_path ~kont:(fun t' ->
             Hashtbl.replace_seq t.visited (Hashtbl.to_seq t'.visited) ;
             Logs.debug (fun m -> m "all_of event AFTER %s" @@ show t');
             match t'.nodes with
             | Sp.Object specs :: rest ->
               let nodes = Sp.Event specs :: rest in
-              k {t' with nodes}
-            | _ -> k t'
+              kont {t' with nodes}
+            | _ -> kont t'
           )
       )
     | Combine (All_of, [dref; el])
         when dref.kind = Def_ref [`Field "definitions"; `Field "Response"] -> (
         Logs.debug (fun m -> m "process response under '%s'" (Q.json_pointer_of_path ~wildcards:true path)) ;
         let new_path = path @ [`Field "allOf"; `Index 1] in
-        process_element t el ~path:new_path ~k:(fun t' ->
+        process_element t el ~path:new_path ~kont:(fun t' ->
             Hashtbl.replace_seq t.visited (Hashtbl.to_seq t'.visited) ;
             match t'.nodes with
             | Sp.Object specs :: rest ->
               let nodes = Sp.Response specs :: rest in
-              k {t' with nodes}
-            | _ -> k t'
+              kont {t' with nodes}
+            | _ -> kont t'
           )
       )
     | Combine (All_of, [dref; el])
@@ -446,17 +446,17 @@ module Dfs = struct
         let dfn = Q.json_pointer_of_path path in
         Logs.debug (fun m -> m "process allOf for 'ValueFormat' under '%s'" dfn);
         let new_path = path @ [`Field "allOf"; `Index 0] in
-        process_element t dref ~path:new_path ~k:(fun t' ->
+        process_element t dref ~path:new_path ~kont:(fun t' ->
             Hashtbl.replace_seq t.visited (Hashtbl.to_seq t'.visited) ;
             let new_path = path @ [`Field "allOf"; `Index 1] in
-            process_element t' el ~path:new_path ~k:(fun t'' ->
+            process_element t' el ~path:new_path ~kont:(fun t'' ->
                 Hashtbl.replace_seq t'.visited (Hashtbl.to_seq t''.visited) ;
                 match t''.nodes with
                 | Sp.Object specs :: rest ->
                   let vspecs = match Hashtbl.find t''.finished "ValueFormat" with | Sp.Object vspecs -> vspecs | _ -> assert false in
                   let nodes = Sp.Object (Sp.Obj_spec.append_fields_front specs vspecs) :: rest in
-                  k {t'' with nodes}
-                | _ -> k t''
+                  kont {t'' with nodes}
+                | _ -> kont t''
               )
           )
       )
@@ -481,13 +481,13 @@ module Dfs = struct
              `String "number";
              `String "object";
              `String "string"] ->
-          k @@ _set_field_type t "" ("Data_encoding.json", "json")
+          kont @@ _set_field_type t "" ("Data_encoding.json", "json")
         | `A [`String "string";
               `String "null"] ->
-          k @@ _set_nullable_field_type t "" ("string", "string")
+          kont @@ _set_nullable_field_type t "" ("string", "string")
         | `A [`String "integer";
               `String "string"] ->
-          k @@ _set_variant_field_type t "" [("int", "int31"); ("string", "string")]
+          kont @@ _set_variant_field_type t "" [("int", "int31"); ("string", "string")]
         | _ -> failwith "TODO more general Any_of"
       )
 
@@ -509,13 +509,13 @@ module Dfs = struct
         in
 
         if is_cyclic then (
-          k @@ _set_cyclic t
+          kont @@ _set_cyclic t
         )
         else (
-          process_definition t ~path:ref_path ~k:(fun t' ->
+          process_definition t ~path:ref_path ~kont:(fun t' ->
               (* get typename from ref_path *)
               let ref_type_name = Sp.make_module_name ref_path in
-              k @@ _set_field_type t' ref_type_name (ref_type_name^".t", ref_type_name^".enc")
+              kont @@ _set_field_type t' ref_type_name (ref_type_name^".t", ref_type_name^".enc")
             )
         )
     | Id_ref _ -> failwith "TODO Id_ref"
@@ -544,20 +544,20 @@ module Dfs = struct
         Logs.debug (fun m -> m "inlined Enum");
         Hashtbl.add t.finished module_name (Sp.Enum enum);
         let ordering = module_name :: t.ordering in
-        k @@ _set_field_type {t with ordering} module_name (module_name^".t", module_name^".enc")
+        kont @@ _set_field_type {t with ordering} module_name (module_name^".t", module_name^".enc")
       | None ->
         Logs.debug (fun m -> m "String");
-        k @@ _set_field_type t "" ("string", "string")
+        kont @@ _set_field_type t "" ("string", "string")
     )
     | Integer _ ->
       Logs.debug (fun m -> m "Int");
-      k @@ _set_field_type t "" ("int", "int31")
+      kont @@ _set_field_type t "" ("int", "int31")
     | Number _ ->
       Logs.debug (fun m -> m "Number");
-      k @@ _set_field_type t "" ("int", "int31")
+      kont @@ _set_field_type t "" ("int", "int31")
     | Boolean ->
       Logs.debug (fun m -> m "Bool");
-      k @@ _set_field_type t "" ("bool", "bool")
+      kont @@ _set_field_type t "" ("bool", "bool")
     | Null -> failwith "TODO Null"
     | Any -> failwith @@ Printf.sprintf "TODO Any '%s'" @@ Q.json_pointer_of_path path
     | Dummy -> failwith "TODO Dummy"
@@ -594,8 +594,8 @@ module Dfs = struct
     |> List.fold_left
          (fun t_acc nm ->
            let path = [`Field "definitions"; `Field nm] in
-           let k = fun v -> v in
-           let t = process_definition t_acc ~path ~k in
+           let kont = fun v -> v in
+           let t = process_definition t_acc ~path ~kont in
            Hashtbl.replace_seq t_acc.visited (Hashtbl.to_seq t.visited) ;
            {t with visited = t_acc.visited})
          empty
