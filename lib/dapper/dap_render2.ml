@@ -48,13 +48,6 @@ module RenderEnum = struct (* : (RenderT with type spec := Sp.Enum_spec.t) = str
         Format.fprintf ppf "@[ | %s@]@." name
       ) names
 
-  let%expect_test "Check RenderEnum.pp_names" =
-    print_endline @@ Format.asprintf "%a" pp_names ["enum1"; "enum2"; "enum3"];
-    [%expect {|
-      | enum1
-      | enum2
-      | enum3|}]
-
   let pp_t ppf (t:t) =
     let names =
       List.map (fun (e:Sp.Enum_spec.enum_val) -> e.safe_name) t.enums
@@ -83,19 +76,57 @@ module RenderEnum = struct (* : (RenderT with type spec := Sp.Enum_spec.t) = str
        | Other of string
        [@deriving qcheck, eq]|}]
 
+  let pp_safe_dirty ppf names =
+    List.iter (function
+        | (safe_name, `Str dirty_name) ->
+          Format.fprintf ppf " | %s -> \"%s\"" safe_name dirty_name
+        | (safe_name, `Raw dirty_name) ->
+          Format.fprintf ppf " | %s -> %s" safe_name dirty_name
+        ) names
+
+  let pp_enc_2_str ppf (t:t) =
+    let names =
+      List.map (fun (e:Sp.Enum_spec.enum_val) -> (e.safe_name, `Str e.dirty_name)) t.enums
+    in
+    let names =
+      if t.suggested then
+        names @ [("Other s", `Raw "s")]
+      else
+        names
+    in
+    Format.fprintf ppf "%a" pp_safe_dirty names
+
+  let%expect_test "Check RenderEnum.pp_enc" =
+    let spec = Sp.Enum_spec.of_path
+        ~dirty_name:"Bad name"
+        ~path:[`Field "/definitions"; `Field "something"]
+        ~dirty_names:["enum1"; "Enum2"; "enUM 3"]
+        ~suggested:true
+        () in
+    let t = of_spec spec in
+    print_endline @@ Format.asprintf "%a" pp_enc_2_str t;
+    [%expect {|
+       | Enum1 -> "enum1" | Enum2 -> "Enum2" | EnUM_3 -> "enUM 3" | Other s -> s|}]
+
+  let pp_dirty_safe ppf names =
+    List.iter (function
+        | (safe_name, `Str dirty_name) ->
+          Format.fprintf ppf " | \"%s\" -> Ok %s" dirty_name safe_name
+        | (safe_name, `Raw dirty_name) ->
+          Format.fprintf ppf " | _ as %s -> Ok (Other %s)" dirty_name safe_name
+
+        ) names
+
+    let enc_s_t =
+      let lns = t.enums |> List.map (fun (e:Sp.Enum_spec.enum_val) -> Printf.sprintf "\"%s\" -> Ok %s" e.dirty_name e.safe_name) in
+      let lns = if t.suggested then lns @ ["_ as s -> Ok (Other s)"] else lns @ [Printf.sprintf "_ -> Error \"%s\"" name] in
+      String.concat " | " lns
+
 end
 (*   let render (t:t) ~name ~internal_with_sig:_ = *)
 (*     in *)
 
-(*     let enc_t_s = *)
-(*       let lns = t.enums |> List.map (fun (e:Sp.Enum_spec.enum_val) -> Printf.sprintf "%s -> \"%s\"" e.safe_name e.dirty_name) in *)
-(*       let lns = if t.suggested then lns @ ["Other s -> s"] else lns in *)
-(*       String.concat " | " lns *)
 (*     in *)
-(*     let enc_s_t = *)
-(*       let lns = t.enums |> List.map (fun (e:Sp.Enum_spec.enum_val) -> Printf.sprintf "\"%s\" -> Ok %s" e.dirty_name e.safe_name) in *)
-(*       let lns = if t.suggested then lns @ ["_ as s -> Ok (Other s)"] else lns @ [Printf.sprintf "_ -> Error \"%s\"" name] in *)
-(*       String.concat " | " lns *)
 (*     in *)
 (*     let enc_str = Printf.sprintf *)
 (*         "let enc = \n \ *)
