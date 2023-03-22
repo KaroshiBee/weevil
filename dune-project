@@ -3,7 +3,7 @@
 (wrapped_executables false)
 (name weevil_mdb)
 
-(version "0.1.2") ; TODO should same as Utilities.Defaults._VERSION
+(version "0.1.3") ; TODO should same as Utilities.Defaults._VERSION
 
 (generate_opam_files true)
 
@@ -52,6 +52,30 @@
    tezos-rpc-http-client-unix
    conduit-lwt-unix
    weevil_dapper
+   lwt_ppx
+   ppx_expect
+   ppx_deriving_qcheck
+   qcheck-alcotest
+   bisect_ppx)
+ (tags
+  (tezos octez weevil ocaml)))
+
+(package
+ (name weevil_mdb_016)
+ (synopsis "Tezos: `weevil_mdb_016` binary - a tool for debugging Michelson code")
+ (description "Supporting tool for the main Weevil debugger")
+ (depends
+   ocaml
+   dune
+   cmdliner
+   tezos-base
+   tezos-micheline
+   tezos-protocol-016-PtMumbai
+   tezos-client-016-PtMumbai
+   tezos-protocol-plugin-016-PtMumbai
+   conduit-lwt-unix
+   weevil_dapper
+   weevil_mdb
    lwt_ppx
    ppx_expect
    ppx_deriving_qcheck
