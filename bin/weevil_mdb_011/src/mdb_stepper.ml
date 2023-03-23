@@ -8,7 +8,7 @@ module Plugin = Plugin.Plugin
 type code_trace = (Ctxt.Script.expr * Ctxt.packed_internal_operation trace * Ctxt.Lazy_storage.diffs option)
 
 type t = {
-  chain_id:Tezos_crypto.Chain_id.t;
+  chain_id:Tezos_crypto.Hashed.Chain_id.t;
   alpha_context:Ctxt.t;
   mock_context:Client_context_unix.unix_mockup;
   code_trace:code_trace option;

@@ -119,55 +119,83 @@ let log_element_to_out log_element out_channel =
   in
   aux ()
 
+    (* let trace_logger ctxt : Script_typed_ir.logger = *)
+    (*   Script_interpreter_logging.make *)
+    (*     (module struct *)
+    (*       let log : log_element list ref = ref [] *)
+
+    (*       let log_interp _ ctxt loc sty stack = *)
+    (*         log := Log (ctxt, loc, stack, sty) :: !log *)
+
+    (*       let log_entry _ _ctxt _loc _sty _stack = () *)
+
+    (*       let log_exit _ ctxt loc sty stack = *)
+    (*         log := Log (ctxt, loc, stack, sty) :: !log *)
+
+    (*       let log_control _ = () *)
+
+    (*       let get_log () = *)
+    (*         List.fold_left_es *)
+    (*           (fun (old_ctxt, l) (Log (ctxt, loc, stack, stack_ty)) -> *)
+    (*             let consumed_gas = Gas.consumed ~since:old_ctxt ~until:ctxt in *)
+    (*             trace *)
+    (*               Plugin_errors.Cannot_serialize_log *)
+    (*               (unparse_stack ctxt (stack, stack_ty)) *)
+    (*             >>=? fun stack -> return (ctxt, (loc, consumed_gas, stack) :: l)) *)
+    (*           (ctxt, []) *)
+    (*           (List.rev !log) *)
+    (*         >>=? fun (_ctxt, res) -> return (Some (List.rev res)) *)
+    (*     end) *)
+
+
 let make ~in_channel ~out_channel file_locations =
 
-  let log_interp _ ctxt loc sty stack =
-    Logs.debug (fun m -> m "log_interp @ location %d" loc);
-    let file_loc = Mdb_michelson.File_locations.get file_locations loc in
+  Plugin.Script_interpreter_logging.make
+    (module struct
+      let log_interp _ ctxt loc sty stack =
+        Logs.debug (fun m -> m "log_interp @ location %d" loc);
+        let file_loc = Mdb_michelson.File_locations.get file_locations loc in
 
-    let () = file_loc
-             |> Option.map (fun floc ->
-                 let log_element = make_log ctxt floc stack sty in
-                 log_element_to_out log_element out_channel
-               )
-             |> Option.value ~default:()
-    in
+        let () = file_loc
+                 |> Option.map (fun floc ->
+                     let log_element = make_log ctxt floc stack sty in
+                     log_element_to_out log_element out_channel
+                   )
+                 |> Option.value ~default:()
+        in
 
-    (* block waiting for a \n on in_channel *)
-    let msg = input_line in_channel in
-    Logs.debug (fun m -> m "got msg '%s'" msg)
+        (* block waiting for a \n on in_channel *)
+        let msg = input_line in_channel in
+        Logs.debug (fun m -> m "got msg '%s'" msg)
 
-  in
-  let log_entry _ _ctxt loc _sty _stack =
-    Logs.debug (fun m -> m "log_entry @ location %d" loc);
-  in
-  let log_exit _ ctxt loc sty stack =
-    Logs.debug (fun m -> m "log_exit @ location %d" loc);
-    let file_loc = Mdb_michelson.File_locations.get file_locations loc in
+      let log_entry _ _ctxt loc _sty _stack =
+        Logs.debug (fun m -> m "log_entry @ location %d" loc)
 
-    let () = file_loc
-             |> Option.map (fun floc ->
-                 let log_element = make_log ctxt floc stack sty in
-                 log_element_to_out log_element out_channel
-               )
-             |> Option.value ~default:()
-    in
+      let log_exit _ ctxt loc sty stack =
+        Logs.debug (fun m -> m "log_exit @ location %d" loc);
+        let file_loc = Mdb_michelson.File_locations.get file_locations loc in
 
-    (* block waiting for a \n on in_channel *)
-    let msg = input_line in_channel in
-    Logs.debug (fun m -> m "got msg '%s'" msg)
+        let () = file_loc
+                 |> Option.map (fun floc ->
+                     let log_element = make_log ctxt floc stack sty in
+                     log_element_to_out log_element out_channel
+                   )
+                 |> Option.value ~default:()
+        in
 
-  in
-  let log_control _ =
-    (* i think this is for lambdas etc *)
-    Logs.debug (fun m -> m "log_control");
-  in
-  let get_log () =
-    (* NOTE we dont need to use get_log anymore *)
-    let open Lwt_result_syntax in
-    return @@ Some []
-  in
-  Prot.Script_typed_ir.{log_exit; log_entry; log_interp; get_log; log_control}
+        (* block waiting for a \n on in_channel *)
+        let msg = input_line in_channel in
+        Logs.debug (fun m -> m "got msg '%s'" msg)
+
+      let log_control _ =
+        (* i think this is for lambdas etc *)
+        Logs.debug (fun m -> m "log_control")
+
+      let get_log () =
+        (* NOTE we dont need to use get_log anymore *)
+        let open Lwt_result_syntax in
+        return @@ Some []
+    end)
 
 let execute ctxt step_constants ~script ~entrypoint ~parameter ~interp =
   Prot.Script_interpreter.execute

@@ -7,7 +7,7 @@ open Mdb_import.Tez
 type code_trace = (Ctxt.Script.expr * Prot.Apply_internal_results.packed_internal_contents trace * Ctxt.Lazy_storage.diffs option)
 
 type t = {
-  chain_id:Tezos_crypto.Chain_id.t;
+  chain_id:Tezos_crypto.Hashed.Chain_id.t;
   alpha_context:Ctxt.t;
   mock_context:Client_context_unix.unix_mockup;
   code_trace:code_trace option;

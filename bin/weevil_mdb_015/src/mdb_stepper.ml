@@ -7,7 +7,7 @@ open Mdb_import.Tez
 type code_trace = (Ctxt.Script.expr * Prot.Apply_internal_results.packed_internal_operation trace * Ctxt.Lazy_storage.diffs option)
 
 type t = {
-  chain_id:Tezos_crypto.Chain_id.t;
+  chain_id:Tezos_crypto.Hashed.Chain_id.t;
   alpha_context:Ctxt.t;
   mock_context:Client_context_unix.unix_mockup;
   code_trace:code_trace option;
@@ -80,16 +80,17 @@ let configure_contracts ctxt script balance ~src_opt ~pay_opt ~self_opt =
        in
        return (ctxt, addr, bal))
   in
-  let (source, payer) =
+  let (source, payer) : Ctxt.Contract.t * Ctxt.public_key_hash =
     match (src_opt, pay_opt) with
     | (None, None) ->
       let self = Ctxt.Contract.Originated self in
-      (self, Signature.Public_key_hash.zero)
-    | (Some c, None) -> (c, Signature.Public_key_hash.zero)
+      (self, Env.Signature.Public_key_hash.zero)
+    | (Some c, None) -> (c, Env.Signature.Public_key_hash.zero)
     | (None, Some c) -> (Ctxt.Contract.Implicit c, c)
     | (Some src, Some pay) -> (src, pay)
   in
-  let run_code_config = Plugin.RPC.Scripts.{self; source; payer; balance} in
+  let run_code_config : Plugin.RPC.Scripts.run_code_config =
+    Plugin.RPC.Scripts.{self; source; payer; balance} in
   return (ctxt, run_code_config)
 
 
