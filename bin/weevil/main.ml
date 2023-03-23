@@ -2,9 +2,9 @@ module U = Utilities.Cmdline_utils
 
 (* group together all cmd lines *)
 let commands = [
-  Mdb.Mdb_cmdline.cmd U.setup_log;
-  Adapter.Service_cmdline.cmd U.setup_log;
-  Dapper.Dap_cmdline.cmd U.setup_log;
+  Mdb.Mdb_cmdline.cmd U.setup_log; (* backend subcmd *)
+  Adapter.Service_cmdline.cmd U.setup_log; (* adapter subcmd *)
+  Dapper.Dap_cmdline.cmd U.setup_log; (* dap-gen subcmd *)
 ]
 
 let info = U.info ~doc:"The Tezos Weevil tool" "weevil"
