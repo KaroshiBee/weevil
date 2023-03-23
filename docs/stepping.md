@@ -16,7 +16,7 @@ It is also a mode of execution supported by the [octez-client](https://tezos.git
 
 ### Second pass 
 
-However we felt that requiring users to run the entirity of any contracts that need to be debugged would not offer a good user experience.  What if you just want to examine the first few lines of execution?  What if you do not want to create a large trace file on disk?  Is there a middle ground where one can step in an incremental fashion whilst also recording the trace but only if requested, say to allow for backwards stepping?
+However we felt that requiring users to run the entirety of any contracts that need to be debugged would not offer a good user experience.  What if you just want to examine the first few lines of execution?  What if you do not want to create a large trace file on disk?  Is there a middle ground where one can step in an incremental fashion whilst also recording the trace but only if requested, say to allow for backwards stepping?
 
 Fortunately the traced interpreter can be parameterised by a user-defined [logger](https://gitlab.com/tezos/tezos/-/blob/master/src/proto_014_PtKathma/lib_protocol/script_typed_ir.mli#L1280) and so one can arrange matters such that execution can pause on exit from each Michelson expression whilst also recording the state of the program at each pause. 
 
