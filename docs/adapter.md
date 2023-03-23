@@ -10,7 +10,7 @@ In this document we describe how the ```weevil``` [adapter](../src/adapter/) use
 
 ## Messaging invariants
 
-The [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/overview) (henceforth DAP) specifies certain 'invariants' for the messages passed back and forth between a front-end client and a DAP service.  The two main ones are 
+The [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/overview) (henceforth DAP) specifies certain ```invariants``` for the messages passed back and forth between a front-end client and a DAP service.  The two main ones are 
 
 * all incoming requests from the client have a corresponding response message from the DAP service (or a general error message response if something went wrong).  For example the ```threads``` request should be answered with a ```threads``` response etc. 
 
