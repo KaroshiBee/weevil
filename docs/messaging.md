@@ -52,7 +52,7 @@ where-as
 ```
 is an ```initialize``` response message that has optional content data of type ```Capabilities.t```.
 
-Editor tooling like [Merlin](https://github.com/ocaml/merlin) and [Tuareg](https://github.com/ocaml/tuareg) also helps tremdously as each OCaml message type knows what innards it needs. 
+Editor tooling like [Merlin](https://github.com/ocaml/merlin) and [Tuareg](https://github.com/ocaml/tuareg) also helps tremendously as each OCaml message type knows what contents it needs. 
 
 ## The ```dap-gen``` tool
 
