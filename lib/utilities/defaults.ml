@@ -11,7 +11,7 @@ let _DEFAULT_BACKEND_CMD =
   Printf.sprintf "dune exec -- weevil backend -v -v %d >%s 2>&1" _DEFAULT_BACKEND_PORT _DEFAULT_MDB_LOG_FILE
 
 let _DEFAULT_STEPPER_CMD ~script_filename ~storage ~parameter ~entrypoint
-  = Printf.sprintf "dune exec -- weevil stepper -v -v --headless --storage \'%s\' --parameter \'%s\' --entrypoint \'%s\' %s"
+  = Printf.sprintf "dune exec -- weevil_mdb_016 stepper -v -v --headless --storage \'%s\' --parameter \'%s\' --entrypoint \'%s\' %s"
     storage parameter entrypoint script_filename
 
 (* theres only one (dummy) thread, it is the first thing requested for the waterfall *)
