@@ -1,7 +1,7 @@
 (lang dune 3.0)
 (formatting (enabled_for ocaml))
 (wrapped_executables false)
-(name weevil_mdb)
+(name weevil)
 
 (version "0.1.3") ; TODO should same as Utilities.Defaults._VERSION
 

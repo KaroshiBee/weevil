@@ -1,4 +1,4 @@
-let _VERSION = "0.1.2" (* TODO should be the same as (version XXX) in dune-project *)
+let _VERSION = "0.1.3" (* TODO should be the same as (version XXX) in dune-project *)
 
 let _DEFAULT_STEPPER_LOG_FILE = "weevil_stepper.log"
 let _DEFAULT_MDB_LOG_FILE = "weevil_mdb.log"
