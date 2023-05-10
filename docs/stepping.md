@@ -69,7 +69,7 @@ ARGUMENTS
 Its job is to mediate between the debug adapter service and the stepper.  The backend service can
 
 * spawn the Michelson stepper as a child process, 
-* step it forward one executable epression at a time
+* step it forward one executable expression at a time
 * retrieve log records of the state of the Michelson stack and gas levels at each Michelson code location,
 * terminate the child process
 
@@ -107,7 +107,7 @@ It's debatable whether we would want to support stepping in or over things at th
 
 ### Other ideas
 
-* Support multiple Tezos protocol versions c.f. dune [virtual-libraries](https://dune.readthedocs.io/en/stable/variants.html)
-* Debug adapter/backend state management with [Irmin](https://irmin.org/)
-* [DWARF](https://en.wikipedia.org/wiki/DWARF) file writer for e.g. [Ligo](https://ligolang.org/), [DWARF](https://en.wikipedia.org/wiki/DWARF) file reader for the ```weevil```
+* ~~Support multiple Tezos protocol versions c.f. dune [virtual-libraries](https://dune.readthedocs.io/en/stable/variants.html)~~ DONE
+* Debug adapter/backend state management with [Irmin](https://irmin.org/) - IN PROGRESS
+* [DWARF](https://en.wikipedia.org/wiki/DWARF) file writer for e.g. [Ligo](https://ligolang.org/), [DWARF](https://en.wikipedia.org/wiki/DWARF) file reader for the ```weevil``` - FIGURING OUT
 
