@@ -23,7 +23,7 @@ As noted above, there are three message types: ```Request```, ```Response``` and
 
 The command and event values are basically enumerations and the data content types are typically JSON objects that themselves contain other objects/lists/enums etc.
 
-This leads to the following OCaml representation (c.f. [requests](../src/dapper/dap_request_message.ml) & [responses](../src/dapper/dap_response_message.ml) & [events](../src/dapper/dap_event_message.ml) ):
+This leads to the following OCaml representation (c.f. [requests](../lib/dapper/dap_request_message.ml) & [responses](../lib/dapper/dap_response_message.ml) & [events](../lib/dapper/dap_event_message.ml) ):
 
 ``` ocaml
 
@@ -56,7 +56,7 @@ Editor tooling like [Merlin](https://github.com/ocaml/merlin) and [Tuareg](https
 
 ## The ```dap-gen``` tool
 
-The ```dap-gen``` tool will generate the command and event enumerations (c.f. [commands](../src/dapper/dap_commands.mli)/[impl](../src/dapper/dap_commands.ml) and [events](../src/dapper/dap_events.mli)/[impl](../src/dapper/dap_events.ml) and also the [message types](../src/dapper/dap_messages.ml) with supporting objects).
+The ```dap-gen``` tool will generate the command and event enumerations (c.f. [commands](../lib/dapper/dap_commands.mli)/[impl](../lib/dapper/dap_commands.ml) and [events](../lib/dapper/dap_events.mli)/[impl](../lib/dapper/dap_events.ml) and also the [message types](../lib/dapper/dap_messages.ml) with supporting objects).
 
 Simply run it with the required output type, JSON schema and filename:
 
@@ -77,7 +77,7 @@ will generate dap_events.ml and dap_events.mli in $HOME.
 If you are happy with the generated code files then move/copy the files into the dapper library
 
 ``` sh
-$ cp dap_*.ml* ./src/dapper/
+$ cp dap_*.ml* ./lib/dapper/
 ```
 
 NOTE The dapper library is expecting these files to be named as above.
