@@ -2,7 +2,7 @@
 
 ## Introduction
 
-In this document we describe how the ```weevil``` [adapter](../src/adapter/) uses the [dapper](../src/dapper/) library to 
+In this document we describe how the ```weevil``` [adapter](../lib/adapter/) uses the [dapper](../lib/dapper/) library to 
 
 * correctly read the incoming request messages
 * construct the correct response and any event messages
@@ -22,7 +22,7 @@ As described in the main [README.md](../README.md#aside---dap-message-structure)
 
 ## Handlers
 
-The main logic for stating what the DAP service should do when it receives each request message are implemented as [handlers](../src/dapper/dap_types.ml)
+The main logic for stating what the DAP service should do when it receives each request message are implemented as [handlers](../lib/dapper/dap_types.ml)
 
 ```ocaml
 (* output sig for linking an input to an output e.g. request -> response *)
@@ -57,7 +57,7 @@ The ```in_t``` and ```out_t``` types are the incoming and outgoing message types
     (Dap_commands.next, EmptyObject.t option, Presence.opt) ResponseMessage.t Response.t
 ```                                                                                                                                                      
 
-The ```dapper``` library provides a few different [implementations](../src/dapper/dap_handlers.ml) of this ```LINK_T``` signature:
+The ```dapper``` library provides a few different [implementations](../lib/dapper/dap_handlers.ml) of this ```LINK_T``` signature:
 
 * Request_response - linking a response message to a request message both of which have the same ```command``` enum and with the correct ```seq``` number (as shown in the ```next``` example above),
 
@@ -72,7 +72,7 @@ This all means that in the ```adapter``` library one only has to worry about imp
 
 In particular, at this point one does not have to worry about ```seq``` numbers or string handling.  All considerations are from within the well-typed world of OCaml and what ```state``` changes you wish to make.  
 
-To continue the ```next``` example shown above please consider the full ```next``` adapter [implementation](../src/adapter/next.ml).  The DAP specifies that on receipt of a [next request](https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Next) the backend should move the debugger forward one step, respond with the ```next response``` and also raise the [stopped event](https://microsoft.github.io/debug-adapter-protocol/specification#Events_Stopped).  The code is detailed below:
+To continue the ```next``` example shown above please consider the full ```next``` adapter [implementation](../lib/adapter/next.ml).  The DAP specifies that on receipt of a [next request](https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Next) the backend should move the debugger forward one step, respond with the ```next response``` and also raise the [stopped event](https://microsoft.github.io/debug-adapter-protocol/specification#Events_Stopped).  The code is detailed below:
 
 ```ocaml
 
@@ -121,7 +121,7 @@ Notes
      (Dap_commands.next, NextArguments.t, Presence.req) RequestMessage.t Request.t
      ``` 
 
-     The well-typed ```NextArguments.t``` value can be accessed with ```Request GADT``` machinery like [extract](../src/dapper/dap_request.ml)
+     The well-typed ```NextArguments.t``` value can be accessed with ```Request GADT``` machinery like [extract](../lib/dapper/dap_request.ml)
   
   2. The underlying functor type constraints ensure that the only thing that can be returned is a 
 
