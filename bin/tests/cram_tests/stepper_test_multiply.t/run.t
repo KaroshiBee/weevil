@@ -1,5 +1,5 @@
 testing the backend with an example.tz michelson script, needs to step 8 times
-multiplies 2 * 250, can run with $ cd ~/tezos && dune exec -- tezos-client --mode mockup run script ../dev/weevil/src/backend/tests/backend_cram_tests/stepper_test.t/multiply_2_x_250_equals_500.tz on storage 'Unit' and input 'Unit' --trace-stack
+multiplies 2 * 250, can run with $ cd ~/tezos && dune exec -- tezos-client --mode mockup run script ../dev/weevil/lib/backend/tests/backend_cram_tests/stepper_test.t/multiply_2_x_250_equals_500.tz on storage 'Unit' and input 'Unit' --trace-stack
 I send in 10 newlines to check that its ok to send them when it is finished
 
   $ for n in 016 015 014 013 012 011; do echo "weevil_mdb_$n" && echo "\n \n \n \n \n \n \n \n \n \n" | weevil_mdb_$n stepper --headless multiply_2_x_250_equals_500.tz; done
