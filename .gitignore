@@ -3,7 +3,7 @@
 /dapper/_opam/
 
 *.log
-/src/dapper_gen/test.ml
+/lib/dapper_gen/test.ml
 /_coverage/
 /README.html
 /_bisect/
