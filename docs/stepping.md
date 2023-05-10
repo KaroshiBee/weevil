@@ -4,7 +4,7 @@
 
 In this document we describe the approach taken to allow the ```weevil``` debug adapter to step through Michelson code one executable expression at a time.
 
-The code for this implementation is found in the [mdb](../src/mdb) submodule of the ```weevil``` tool.
+The code for this implementation is found in the [mdb](../lib/mdb) submodule of the ```weevil``` tool with Tezos protocol-specific executables in the [bin](../bin) directory.
 
 ### First pass
 
@@ -41,10 +41,10 @@ The metaphor then is Michelson instead of machine code, blocking the child proce
 
 ## The MDB backend service
 
-The ```weevil``` provides a backend [conduit](https://github.com/mirage/ocaml-conduit) TCP service:
+The ```weevil``` provides a backend [conduit](https://github.com/mirage/ocaml-conduit) TCP service for each supported version of the Tezos protocol:
 
 ```sh
-$ weevil backend --help 
+$ weevil_mdb_016 backend --help 
 
 WEEVIL-BACKEND(1)                Weevil Manual               WEEVIL-BACKEND(1)
 
@@ -87,9 +87,9 @@ TODO clean up of child process when it reaches the end of the contract
 
 ## Interacting with Octez 
 
-The ```weevil``` tool directly reuses the Octez Michelson interpreter in OCaml.  We do this to give users confidence that the debugger output is as close to 'real-life' execution as possible.  It should also make it easier to keep up with the fast pace of Tezos protocol development.
+The ```weevil_mdb_XXX``` tool directly reuses the Octez Michelson interpreter in OCaml.  We do this to give users confidence that the debugger output is as close to 'real-life' execution as possible.  It should also make it easier to keep up with the fast pace of Tezos protocol development.
 
-All of the Octez interactions are kept inside the stepper child process.  The stepper uses the [mockup](https://tezos.gitlab.io/user/mockup.html) mode to allow for fully-local execution of contracts.  This mode of operation is augmented too with a special implementation of the [traced interpreter](https://gitlab.com/tezos/tezos/-/blob/master/src/proto_014_PtKathma/lib_plugin/RPC.ml#L468) that can pause execution of Michelson at each code location (c.f. the ```mdb``` [traced interpreter](../src/mdb/mdb_traced_interpreter.ml)). 
+All of the Octez interactions are kept inside the stepper child process.  The stepper uses the [mockup](https://tezos.gitlab.io/user/mockup.html) mode to allow for fully-local execution of contracts.  This mode of operation is augmented too with a special implementation of the [traced interpreter](https://gitlab.com/tezos/tezos/-/blob/master/src/proto_014_PtKathma/lib_plugin/RPC.ml#L468) that can pause execution of Michelson at each code location (c.f. the ```mdb``` [traced interpreter](../bin/weevil_mdb_016/src/mdb_traced_interpreter.mli)). 
 
 TODO move to using the file backed mockup mode.
 
