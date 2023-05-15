@@ -109,5 +109,5 @@ It's debatable whether we would want to support stepping in or over things at th
 
 * ~~Support multiple Tezos protocol versions c.f. dune [virtual-libraries](https://dune.readthedocs.io/en/stable/variants.html)~~ DONE
 * Debug adapter/backend state management with [Irmin](https://irmin.org/) - IN PROGRESS
-* [DWARF](https://en.wikipedia.org/wiki/DWARF) file writer for e.g. [Ligo](https://ligolang.org/), [DWARF](https://en.wikipedia.org/wiki/DWARF) file reader for the ```weevil``` - FIGURING OUT
+* [DWARF](https://en.wikipedia.org/wiki/DWARF) file writer for e.g. [Smartpy](https://smartpy.io/) or [Ligo](https://ligolang.org/), [DWARF](https://en.wikipedia.org/wiki/DWARF) file reader for the ```weevil``` - FIGURING OUT
 
