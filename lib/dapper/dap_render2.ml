@@ -3,6 +3,8 @@ module CommandHelper = Dap_dfs.CommandHelper
 module EventHelper = Dap_dfs.EventHelper
 module Dfs = Dap_dfs.Dfs
 
+(* want to be able to easily add new derivings *)
+
 module Render_output = struct
   type msg = {
         modstr: string;

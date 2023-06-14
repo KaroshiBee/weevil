@@ -469,7 +469,8 @@ module Dfs = struct
            Otherwise only have instances of [string, null] and [integer, string],
            can add generalities later if nec *)
         let path_field = "type" in
-        Logs.debug (fun m -> m "process combination '%s' with %d elements under '%s'" path_field (List.length elements) (Q.json_pointer_of_path ~wildcards:true path)) ;
+        Logs.debug (fun m -> m "process combination '%s' with %d elements under '%s'"
+              path_field (List.length elements) (Q.json_pointer_of_path ~wildcards:true path)) ;
         let type_path = path @ [`Field path_field] in
         (* type path should be present *)
         match Q.query type_path t.schema_js with
