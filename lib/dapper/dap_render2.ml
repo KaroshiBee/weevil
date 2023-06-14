@@ -117,7 +117,7 @@ module RenderEnum = struct (* : (RenderT with type spec := Sp.Enum_spec.t) = str
 
         ) names
 
-    let enc_s_t =
+    let enc_s_t (t:t) name =
       let lns = t.enums |> List.map (fun (e:Sp.Enum_spec.enum_val) -> Printf.sprintf "\"%s\" -> Ok %s" e.dirty_name e.safe_name) in
       let lns = if t.suggested then lns @ ["_ as s -> Ok (Other s)"] else lns @ [Printf.sprintf "_ -> Error \"%s\"" name] in
       String.concat " | " lns
