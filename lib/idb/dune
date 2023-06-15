@@ -1,0 +1,20 @@
+(library
+ (name idb)
+ (public_name weevil.idb)
+ (libraries
+   dapper
+   irmin
+   utilities
+   lwt
+   data-encoding
+   cmdliner
+   logs
+   logs.lwt
+   str
+   conduit-lwt-unix
+   ppx_expect
+ )
+ (inline_tests)
+ (preprocess (pps lwt_ppx ppx_deriving.show ppx_deriving.eq ppx_expect ppx_irmin))
+ (instrumentation (backend bisect_ppx))
+)

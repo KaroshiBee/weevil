@@ -37,6 +37,25 @@
   (tezos octez weevil ocaml)))
 
 (package
+ (name weevil_idb)
+ (synopsis "Tezos: `weevil dapper` binary - an implementation of the Debug Adapter Protocol in OCaml")
+ (description "Supporting tooling for the Tezos weevil.")
+ (allow_empty)
+ (depends
+   ocaml
+   dune
+   cmdliner
+   conduit-lwt-unix
+   lwt_ppx
+   ppx_irmin
+   ppx_expect
+   ppx_deriving_qcheck
+   qcheck-alcotest
+   bisect_ppx)
+ (tags
+  (tezos octez weevil ocaml)))
+
+(package
  (name weevil_mdb)
  (synopsis "Tezos: `weevil_mdb` binary - a tool for debugging Michelson code")
  (description "Supporting tool for the main Weevil debugger")
