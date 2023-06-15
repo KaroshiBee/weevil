@@ -60,7 +60,7 @@ module RenderEnum = struct (* : (RenderT with type spec := Sp.Enum_spec.t) = str
       else
         names
     in
-    Format.fprintf ppf "type t = %a [@@deriving qcheck, eq]" pp_names names
+    Format.fprintf ppf "type %s = %a [@@deriving qcheck, eq]" "t" pp_names names
 
   let%expect_test "Check RenderEnum.pp_t" =
     let spec = Sp.Enum_spec.of_path
