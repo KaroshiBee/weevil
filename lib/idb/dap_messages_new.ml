@@ -12,9 +12,11 @@ module Data = struct
   module Message : sig
     type t [@@deriving irmin]
 
-    (* val equal : t -> t -> bool *)
+    val equal : t -> t -> bool
 
     (* val enc : t Data_encoding.t *)
+
+    val merge : t option Irmin.Merge.t
 
     val make :
       id:int ->
@@ -68,6 +70,9 @@ module Data = struct
     (*        (opt "showUser" bool) *)
     (*        (opt "url" string) *)
     (*        (opt "urlLabel" string)) *)
+
+    let equal = Irmin.Type.(unstage (equal t))
+    let merge = Irmin.Merge.(option (idempotent t))
 
     let make ~id ~format ?variables ?sendTelemetry ?showUser ?url ?urlLabel () =
       {id; format; variables; sendTelemetry; showUser; url; urlLabel}
