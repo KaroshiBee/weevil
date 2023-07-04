@@ -1,9 +1,245 @@
+
 module Sp = Dap_specs
 module CommandHelper = Dap_dfs.CommandHelper
 module EventHelper = Dap_dfs.EventHelper
 module Dfs = Dap_dfs.Dfs
 
 (* want to be able to easily add new derivings *)
+
+type field = {
+  field_name : string
+; field_dirty_name : string
+; field_type : [ `Builtin of builtin | `Struct of struct_ ]
+; field_presence : [`Opt | `Req ]
+; field_index : int
+} [@@deriving show, eq]
+
+and struct_ = {
+  struct_name : string (* what the struct would be called ie Thing *)
+; struct_t : string (* what 't' would be called i.e. for Thing.t *)
+; struct_fields : field list
+} [@@deriving show, eq ]
+
+and builtin = {
+  builtin_name : string
+} [@@deriving show, eq ]
+
+let test_data () =
+  let struct_name = "Thing" in
+  let struct_t = "t" in
+  let struct_fields = [
+    { field_name="variables";
+      field_dirty_name="_variables_";
+      field_type=`Struct {struct_name="Irmin.Contents.Json_value";
+                          struct_t="t";
+                          struct_fields=[]};
+      field_presence=`Opt;
+      field_index=2 };
+    { field_name="format";
+      field_dirty_name="format_";
+      field_type=`Builtin {builtin_name="string"};
+      field_presence=`Req;
+      field_index=1 };
+    { field_name="sendTelemetry";
+      field_dirty_name="sendTelemetry_";
+      field_type=`Builtin {builtin_name="bool"};
+      field_presence=`Opt;
+      field_index=3 };
+  ]
+  in
+  {struct_name; struct_t; struct_fields}
+
+module Stanza_make_sig = struct
+(*
+   e.g.
+     val make :
+      id:int ->
+      format:string ->
+      ?variables:Irmin.Contents.Json_value.t ->
+      ?sendTelemetry:bool ->
+      ?showUser:bool ->
+      ?url:string ->
+      ?urlLabel:string ->
+      unit ->
+      t
+*)
+  let rec make_field {field_name; field_type; field_presence; _} =
+    let presence = match field_presence with | `Opt -> "?" | `Req -> "" in
+    match field_type with
+    | `Builtin {builtin_name} ->
+      Fmt.str "%s%s : %s" presence field_name builtin_name
+    | `Struct {struct_name; struct_t; _} ->
+      Fmt.str "%s%s : %s.%s" presence field_name struct_name struct_t
+
+  and make_field_group {struct_fields; struct_t; _} =
+    let fields =
+      struct_fields
+      |> List.sort (fun x y -> compare x.field_index y.field_index)
+      |> List.map make_field
+    in
+    let all_fields = fields @ ["unit"; struct_t] in
+    Fmt.str "val make : \n%s" @@ String.concat " -> \n" all_fields
+
+  let%expect_test "Check Stanza_make_sig" =
+    let grp = test_data () in
+    print_endline @@ Format.sprintf "%s" @@ make_field_group grp;
+    [%expect {|
+      val make :
+      format : string ->
+      ?variables : Irmin.Contents.Json_value.t ->
+      ?sendTelemetry : bool ->
+      unit ->
+      t |}]
+
+end
+
+module Stanza_make_struct = struct
+(*
+   e.g.
+    let make ~id ~format ?variables ?sendTelemetry ?showUser ?url ?urlLabel () =
+      {id; format; variables; sendTelemetry; showUser; url; urlLabel}
+*)
+  let rec make_field {field_name; field_presence; _} =
+    let presence = match field_presence with | `Opt -> "?" | `Req -> "~" in
+    (Fmt.str "%s%s" presence field_name, field_name)
+
+  and make_field_group {struct_fields; _} =
+    let all_fields =
+      struct_fields
+      |> List.sort (fun x y -> compare x.field_index y.field_index)
+      |> List.map make_field
+    in
+    let upper = String.concat " " @@ List.map fst all_fields in
+    let lower = String.concat "; " @@ List.map snd all_fields in
+    Fmt.str "let make %s () =\n{%s}\n" upper lower
+
+  let%expect_test "Check Stanza_make_struct" =
+    let grp = test_data () in
+    print_endline @@ Format.sprintf "%s" @@ make_field_group grp;
+    [%expect {|
+      let make ~format ?variables ?sendTelemetry () =
+      {format; variables; sendTelemetry} |}]
+
+end
+
+module Stanza_getters_sig = struct
+(*
+   e.g.
+    val id : t -> int
+
+    val format : t -> string
+
+    val variables : t -> Irmin.Contents.Json_value.t option
+*)
+  let rec make_field {field_name; field_type; field_presence; _} ~my_t =
+    let presence = match field_presence with | `Opt -> "option" | `Req -> "" in
+    match field_type with
+    | `Builtin {builtin_name} ->
+      Fmt.str "val %s : %s -> %s %s" field_name my_t builtin_name presence
+    | `Struct {struct_name; struct_t; _} ->
+      Fmt.str "val %s : %s -> %s.%s %s" field_name my_t struct_name struct_t presence
+
+  and make_field_group {struct_fields; struct_t; _} =
+    let all_fields =
+      struct_fields
+      |> List.sort (fun x y -> compare x.field_index y.field_index)
+      |> List.map (make_field ~my_t:struct_t)
+    in
+    String.concat "\n\n" all_fields
+
+  let%expect_test "Check Stanza_getter_sig" =
+    let grp = test_data () in
+    print_endline @@ Format.sprintf "%s" @@ make_field_group grp;
+    [%expect {|
+      val format : t -> string
+
+      val variables : t -> Irmin.Contents.Json_value.t option
+
+      val sendTelemetry : t -> bool option |}]
+
+end
+
+module Stanza_getter_struct = struct
+(*
+   e.g.
+    let id t = t.id
+
+    let format t = t.format
+
+    let variables t = t.variables
+*)
+  let rec make_field {field_name; _} ~my_t =
+    Fmt.str "let %s %s = %s.%s" field_name my_t my_t field_name
+
+  and make_field_group {struct_fields; struct_t; _} =
+    let all_fields =
+      struct_fields
+      |> List.sort (fun x y -> compare x.field_index y.field_index)
+      |> List.map (make_field ~my_t:struct_t)
+    in
+    String.concat "\n\n" all_fields
+
+  let%expect_test "Check Stanza_getter_struct" =
+    let grp = test_data () in
+    print_endline @@ Format.sprintf "%s" @@ make_field_group grp;
+    [%expect {|
+      let format t = t.format
+
+      let variables t = t.variables
+
+      let sendTelemetry t = t.sendTelemetry |}]
+
+end
+
+  (* Stanza.t represents the stanzas for
+   part of a type t, part of an encoding,
+   part of a make func, part of the getter.
+
+   These stanzas can be for the sig decl or the struct decl
+   The pps dont have to do anything if they dont need to
+*)
+module type Stanza = sig
+  type t
+  type struct_ (* something that represents another json object *)
+
+  type presence = Opt | Req
+  val name : t -> string
+  val dirty_name : t -> string
+  val type_ : t -> struct_
+
+  (* pp the part that will be in the type t decl *)
+  val pp_t : Format.formatter -> t -> unit
+  (* pp the part that will go in the enc objN decl *)
+  val pp_enc : Format.formatter -> t -> unit
+  (* the bit in the make func *)
+  val pp_make : Format.formatter -> t -> unit
+  (* pp the part that will give you access func *)
+  val pp_getter : Format.formatter -> t -> unit
+
+end
+
+module type Object = sig
+  type t
+  type context (* other modules by name *)
+  type deriving (* something to describe a deriving clause e.g. irmin, show, eq etc *)
+  type stanza (* something describing a field { name, type, 'Req|'Opt } *)
+
+  val add_deriving : t -> context:context -> deriving -> t
+  val add_required : t -> context:context -> stanza -> t
+  val add_optional : t -> context:context -> stanza -> t
+
+  (* pp the whole type t decl *)
+  val pp_t : Format.formatter -> t -> unit
+  (* pp the whole enc objN decl *)
+  val pp_enc : Format.formatter -> t -> unit
+  (* the make func *)
+  val pp_make : Format.formatter -> t -> unit
+  (* pp the access funcs *)
+  val pp_getter : Format.formatter -> t -> unit
+
+  val pp : Format.formatter -> t -> unit
+
+end
 
 module Render_output = struct
   type msg = {
