@@ -10,16 +10,16 @@ module Data = struct
 
   (* supporting data modules *)
   module Message : sig
-
+    (* DONE *)
     type t [@@deriving irmin]
 
-    (* TODO *)
+    (* DONE *)
     val equal : t -> t -> bool
 
     (* TODO *)
     val enc : t Data_encoding.t
 
-    (* TODO with irmin *)
+    (* DONE *)
     val merge : t option Irmin.Merge.t
 
     (* DONE *)
@@ -49,7 +49,7 @@ module Data = struct
 
     val urlLabel : t -> string option
   end = struct
-    (* TODO with irmin *)
+    (* DONE *)
     type t = {
       id : int;
       format : string;
@@ -79,9 +79,9 @@ module Data = struct
            (opt "url" string)
            (opt "urlLabel" string))
 
-    (* TODO with irmin *)
+    (* DONE *)
     let equal = Irmin.Type.(unstage (equal t))
-    (* TODO with irmin *)
+    (* DONE *)
     let merge = Irmin.Merge.(option (idempotent t))
 
     (* DONE *)

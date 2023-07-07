@@ -65,13 +65,23 @@ module Stanza_t_sig : PP_struct = struct
   (* TODO compose in the deriving irmin *)
   let pp =
     Fmt.of_to_string (function {struct_t; _} ->
-        Fmt.str "type %s [%s irmin]" struct_t deriving_str
+        let ss = [
+          Fmt.str "type %s [%s irmin]" struct_t deriving_str;
+          Fmt.str "val equal : %s -> %s -> bool" struct_t struct_t;
+          Fmt.str "val merge : %s option Irmin.Merge.t" struct_t;
+        ] in
+        String.concat "\n\n" ss
       )
 
   let%expect_test "Check Stanza_t_sig" =
     let grp = test_data () in
     print_endline @@ Format.asprintf "%a" pp grp;
-    [%expect {|type t [@@deriving irmin] |}]
+    [%expect {|
+      type t [@@deriving irmin]
+
+      val equal : t -> t -> bool
+
+      val merge : t option Irmin.Merge.t |}]
 
 end
 
@@ -87,6 +97,9 @@ module Stanza_t_struct : PP_struct = struct
   (*   urlLabel : string option; *)
   (* } *)
   (* [@@deriving irmin] *)
+  (* let equal = Irmin.Type.(unstage (equal t)) *)
+  (* let merge = Irmin.Merge.(option (idempotent t)) *)
+
 
   let pp_field =
     Fmt.of_to_string (function {field_name; field_type; field_presence; _} ->
@@ -105,7 +118,12 @@ module Stanza_t_struct : PP_struct = struct
           |> List.sort (fun x y -> compare x.field_index y.field_index)
         in
         let pp_fields = Fmt.list ~sep:(Fmt.any ";\n") pp_field in
-        Fmt.str "type %s = {\n%a\n}\n[%s irmin]" struct_t pp_fields fields deriving_str
+        let ss = [
+          Fmt.str "type %s = {\n%a\n}\n[%s irmin]" struct_t pp_fields fields deriving_str;
+          Fmt.str "let equal = Irmin.Type.(unstage (equal %s))" struct_t;
+          Fmt.str "let merge = Irmin.Merge.(option (idempotent %s))" struct_t;
+        ] in
+        String.concat "\n\n" ss
       )
 
   let%expect_test "Check Stanza_struct" =
@@ -117,7 +135,11 @@ module Stanza_t_struct : PP_struct = struct
       variables : Irmin.Contents.Json_value.t option;
       sendTelemetry : bool option
       }
-      [@@deriving irmin] |}]
+      [@@deriving irmin]
+
+      let equal = Irmin.Type.(unstage (equal t))
+
+      let merge = Irmin.Merge.(option (idempotent t)) |}]
 
 end
 
