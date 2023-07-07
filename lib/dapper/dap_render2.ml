@@ -57,6 +57,70 @@ module type PP_struct = sig
   val pp : Format.formatter -> struct_ -> unit
 end
 
+(* NOTE these @@ are awkard when used directly in format string *)
+let deriving_str = "@@deriving"
+
+module Stanza_t_sig : PP_struct = struct
+
+  (* TODO compose in the deriving irmin *)
+  let pp =
+    Fmt.of_to_string (function {struct_t; _} ->
+        Fmt.str "type %s [%s irmin]" struct_t deriving_str
+      )
+
+  let%expect_test "Check Stanza_t_sig" =
+    let grp = test_data () in
+    print_endline @@ Format.asprintf "%a" pp grp;
+    [%expect {|type t [@@deriving irmin] |}]
+
+end
+
+module Stanza_t_struct : PP_struct = struct
+
+  (* type t = { *)
+  (*   id : int; *)
+  (*   format : string; *)
+  (*   variables : Irmin.Contents.Json_value.t option; *)
+  (*   sendTelemetry : bool option; *)
+  (*   showUser : bool option; *)
+  (*   url : string option; *)
+  (*   urlLabel : string option; *)
+  (* } *)
+  (* [@@deriving irmin] *)
+
+  let pp_field =
+    Fmt.of_to_string (function {field_name; field_type; field_presence; _} ->
+      let presence = match field_presence with | `Opt -> "option" | `Req -> "" in
+      match field_type with
+      | `Builtin {builtin_name} ->
+        Fmt.str "%s : %s %s" field_name builtin_name presence
+      | `Struct {struct_name; struct_t; _} ->
+        Fmt.str "%s : %s.%s %s" field_name struct_name struct_t presence
+      )
+
+  let pp =
+    Fmt.of_to_string (function {struct_fields; struct_t; _} ->
+        let fields =
+          struct_fields
+          |> List.sort (fun x y -> compare x.field_index y.field_index)
+        in
+        let pp_fields = Fmt.list ~sep:(Fmt.any ";\n") pp_field in
+        Fmt.str "type %s = {\n%a\n}\n[%s irmin]" struct_t pp_fields fields deriving_str
+      )
+
+  let%expect_test "Check Stanza_struct" =
+    let grp = test_data () in
+    print_endline @@ Format.asprintf "%a" pp grp;
+    [%expect {|
+      type t = {
+      format : string ;
+      variables : Irmin.Contents.Json_value.t option;
+      sendTelemetry : bool option
+      }
+      [@@deriving irmin] |}]
+
+end
+
 module Stanza_make_sig : PP_struct = struct
 (*
    e.g.

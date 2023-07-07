@@ -10,7 +10,7 @@ module Data = struct
 
   (* supporting data modules *)
   module Message : sig
-    (* TODO *)
+
     type t [@@deriving irmin]
 
     (* TODO *)
