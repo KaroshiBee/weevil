@@ -10,14 +10,19 @@ module Data = struct
 
   (* supporting data modules *)
   module Message : sig
+    (* TODO *)
     type t [@@deriving irmin]
 
+    (* TODO *)
     val equal : t -> t -> bool
 
-    (* val enc : t Data_encoding.t *)
+    (* TODO *)
+    val enc : t Data_encoding.t
 
+    (* TODO with irmin *)
     val merge : t option Irmin.Merge.t
 
+    (* DONE *)
     val make :
       id:int ->
       format:string ->
@@ -29,6 +34,7 @@ module Data = struct
       unit ->
       t
 
+    (* DONE *)
     val id : t -> int
 
     val format : t -> string
@@ -43,6 +49,7 @@ module Data = struct
 
     val urlLabel : t -> string option
   end = struct
+    (* TODO with irmin *)
     type t = {
       id : int;
       format : string;
@@ -54,29 +61,34 @@ module Data = struct
     }
     [@@deriving irmin]
 
-    (* let enc = *)
-    (*   let open Data_encoding in *)
-    (*   (\* Message.t *\) *)
-    (*   conv *)
-    (*     (fun {id; format; variables; sendTelemetry; showUser; url; urlLabel} -> *)
-    (*       (id, format, variables, sendTelemetry, showUser, url, urlLabel)) *)
-    (*     (fun (id, format, variables, sendTelemetry, showUser, url, urlLabel) -> *)
-    (*       {id; format; variables; sendTelemetry; showUser; url; urlLabel}) *)
-    (*     (obj7 *)
-    (*        (req "id" int31) *)
-    (*        (req "format" string) *)
-    (*        (opt "variables" json) *)
-    (*        (opt "sendTelemetry" bool) *)
-    (*        (opt "showUser" bool) *)
-    (*        (opt "url" string) *)
-    (*        (opt "urlLabel" string)) *)
+    (* TODO with irmin *)
+    let enc =
+      let open Data_encoding in
+      (* Message.t *)
+      conv
+        (fun {id; format; variables; sendTelemetry; showUser; url; urlLabel} ->
+          (id, format, variables, sendTelemetry, showUser, url, urlLabel))
+        (fun (id, format, variables, sendTelemetry, showUser, url, urlLabel) ->
+          {id; format; variables; sendTelemetry; showUser; url; urlLabel})
+        (obj7
+           (req "id" int31)
+           (req "format" string)
+           (opt "variables" json)
+           (opt "sendTelemetry" bool)
+           (opt "showUser" bool)
+           (opt "url" string)
+           (opt "urlLabel" string))
 
+    (* TODO with irmin *)
     let equal = Irmin.Type.(unstage (equal t))
+    (* TODO with irmin *)
     let merge = Irmin.Merge.(option (idempotent t))
 
+    (* DONE *)
     let make ~id ~format ?variables ?sendTelemetry ?showUser ?url ?urlLabel () =
       {id; format; variables; sendTelemetry; showUser; url; urlLabel}
 
+    (* DONE *)
     let id t = t.id
 
     let format t = t.format

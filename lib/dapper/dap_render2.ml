@@ -24,6 +24,10 @@ and builtin = {
   builtin_name : string
 } [@@deriving show, eq ]
 
+let unit_ = {
+  builtin_name="unit"
+}
+
 let test_data () =
   let struct_name = "Thing" in
   let struct_t = "t" in
@@ -49,7 +53,11 @@ let test_data () =
   in
   {struct_name; struct_t; struct_fields}
 
-module Stanza_make_sig = struct
+module type PP_struct = sig
+  val pp : Format.formatter -> struct_ -> unit
+end
+
+module Stanza_make_sig : PP_struct = struct
 (*
    e.g.
      val make :
@@ -63,26 +71,29 @@ module Stanza_make_sig = struct
       unit ->
       t
 *)
-  let rec make_field {field_name; field_type; field_presence; _} =
-    let presence = match field_presence with | `Opt -> "?" | `Req -> "" in
-    match field_type with
-    | `Builtin {builtin_name} ->
-      Fmt.str "%s%s : %s" presence field_name builtin_name
-    | `Struct {struct_name; struct_t; _} ->
-      Fmt.str "%s%s : %s.%s" presence field_name struct_name struct_t
+  let pp_field =
+    Fmt.of_to_string (function {field_name; field_type; field_presence; _} ->
+      let presence = match field_presence with | `Opt -> "?" | `Req -> "" in
+      match field_type with
+      | `Builtin {builtin_name} ->
+        Fmt.str "%s%s : %s" presence field_name builtin_name
+      | `Struct {struct_name; struct_t; _} ->
+        Fmt.str "%s%s : %s.%s" presence field_name struct_name struct_t
+      )
 
-  and make_field_group {struct_fields; struct_t; _} =
-    let fields =
-      struct_fields
-      |> List.sort (fun x y -> compare x.field_index y.field_index)
-      |> List.map make_field
-    in
-    let all_fields = fields @ ["unit"; struct_t] in
-    Fmt.str "val make : \n%s" @@ String.concat " -> \n" all_fields
+  let pp =
+    Fmt.of_to_string (function {struct_fields; struct_t; _} ->
+        let fields =
+          struct_fields
+          |> List.sort (fun x y -> compare x.field_index y.field_index)
+        in
+        let pp_fields = Fmt.list ~sep:(Fmt.any " -> \n") pp_field in
+        Fmt.str "val make : \n%a -> \nunit -> \n%s" pp_fields fields struct_t
+      )
 
   let%expect_test "Check Stanza_make_sig" =
     let grp = test_data () in
-    print_endline @@ Format.sprintf "%s" @@ make_field_group grp;
+    print_endline @@ Format.asprintf "%a" pp grp;
     [%expect {|
       val make :
       format : string ->
@@ -93,36 +104,44 @@ module Stanza_make_sig = struct
 
 end
 
-module Stanza_make_struct = struct
+module Stanza_make_struct : PP_struct = struct
 (*
    e.g.
     let make ~id ~format ?variables ?sendTelemetry ?showUser ?url ?urlLabel () =
       {id; format; variables; sendTelemetry; showUser; url; urlLabel}
 *)
-  let rec make_field {field_name; field_presence; _} =
-    let presence = match field_presence with | `Opt -> "?" | `Req -> "~" in
-    (Fmt.str "%s%s" presence field_name, field_name)
+  let pp_field_upper =
+    Fmt.of_to_string (function {field_name; field_presence; _} ->
+        let presence = match field_presence with | `Opt -> "?" | `Req -> "~" in
+        Fmt.str "%s%s" presence field_name
+      )
 
-  and make_field_group {struct_fields; _} =
-    let all_fields =
-      struct_fields
-      |> List.sort (fun x y -> compare x.field_index y.field_index)
-      |> List.map make_field
-    in
-    let upper = String.concat " " @@ List.map fst all_fields in
-    let lower = String.concat "; " @@ List.map snd all_fields in
-    Fmt.str "let make %s () =\n{%s}\n" upper lower
+  let pp_field_lower =
+    Fmt.of_to_string (function {field_name; _} ->
+        Fmt.str "%s" field_name
+      )
+
+  let pp =
+    Fmt.of_to_string (function {struct_fields; _} ->
+        let all_fields =
+          struct_fields
+          |> List.sort (fun x y -> compare x.field_index y.field_index)
+        in
+        let pp_upper = Fmt.list ~sep:(Fmt.any " ") pp_field_upper in
+        let pp_lower = Fmt.list ~sep:(Fmt.any "; ") pp_field_lower in
+        Fmt.str "let make %a () =\n{%a}\n" pp_upper all_fields pp_lower all_fields
+      )
 
   let%expect_test "Check Stanza_make_struct" =
     let grp = test_data () in
-    print_endline @@ Format.sprintf "%s" @@ make_field_group grp;
+    print_endline @@ Format.asprintf "%a" pp grp;
     [%expect {|
       let make ~format ?variables ?sendTelemetry () =
       {format; variables; sendTelemetry} |}]
 
 end
 
-module Stanza_getters_sig = struct
+module Stanza_getters_sig : PP_struct = struct
 (*
    e.g.
     val id : t -> int
@@ -131,25 +150,29 @@ module Stanza_getters_sig = struct
 
     val variables : t -> Irmin.Contents.Json_value.t option
 *)
-  let rec make_field {field_name; field_type; field_presence; _} ~my_t =
-    let presence = match field_presence with | `Opt -> "option" | `Req -> "" in
-    match field_type with
-    | `Builtin {builtin_name} ->
-      Fmt.str "val %s : %s -> %s %s" field_name my_t builtin_name presence
-    | `Struct {struct_name; struct_t; _} ->
-      Fmt.str "val %s : %s -> %s.%s %s" field_name my_t struct_name struct_t presence
+  let pp_field ~struct_t =
+    Fmt.of_to_string (function {field_name; field_type; field_presence; _} ->
+        let presence = match field_presence with | `Opt -> "option" | `Req -> "" in
+        match field_type with
+        | `Builtin {builtin_name} ->
+          Fmt.str "val %s : %s -> %s %s" field_name struct_t builtin_name presence
+        | `Struct {struct_name; struct_t; _} ->
+          Fmt.str "val %s : %s -> %s.%s %s" field_name struct_t struct_name struct_t presence
+      )
 
-  and make_field_group {struct_fields; struct_t; _} =
-    let all_fields =
-      struct_fields
-      |> List.sort (fun x y -> compare x.field_index y.field_index)
-      |> List.map (make_field ~my_t:struct_t)
-    in
-    String.concat "\n\n" all_fields
+  let pp =
+    Fmt.of_to_string (function {struct_fields; struct_t; _} ->
+        let all_fields =
+          struct_fields
+          |> List.sort (fun x y -> compare x.field_index y.field_index)
+        in
+        let pp_fields = Fmt.list ~sep:(Fmt.any "\n\n") (pp_field ~struct_t) in
+        Fmt.str "%a" pp_fields all_fields
+      )
 
   let%expect_test "Check Stanza_getter_sig" =
     let grp = test_data () in
-    print_endline @@ Format.sprintf "%s" @@ make_field_group grp;
+    print_endline @@ Format.asprintf "%a" pp grp;
     [%expect {|
       val format : t -> string
 
@@ -159,7 +182,7 @@ module Stanza_getters_sig = struct
 
 end
 
-module Stanza_getter_struct = struct
+module Stanza_getter_struct : PP_struct = struct
 (*
    e.g.
     let id t = t.id
@@ -168,20 +191,24 @@ module Stanza_getter_struct = struct
 
     let variables t = t.variables
 *)
-  let rec make_field {field_name; _} ~my_t =
-    Fmt.str "let %s %s = %s.%s" field_name my_t my_t field_name
+  let pp_field ~struct_t =
+    Fmt.of_to_string (function {field_name; _} ->
+        Fmt.str "let %s %s = %s.%s" field_name struct_t struct_t field_name
+      )
 
-  and make_field_group {struct_fields; struct_t; _} =
-    let all_fields =
-      struct_fields
-      |> List.sort (fun x y -> compare x.field_index y.field_index)
-      |> List.map (make_field ~my_t:struct_t)
-    in
-    String.concat "\n\n" all_fields
+  let pp =
+    Fmt.of_to_string (function {struct_fields; struct_t; _} ->
+        let all_fields =
+          struct_fields
+          |> List.sort (fun x y -> compare x.field_index y.field_index)
+        in
+        let pp_fields = Fmt.list ~sep:(Fmt.any "\n\n") (pp_field ~struct_t) in
+        Fmt.str "%a" pp_fields all_fields
+      )
 
   let%expect_test "Check Stanza_getter_struct" =
     let grp = test_data () in
-    print_endline @@ Format.sprintf "%s" @@ make_field_group grp;
+    print_endline @@ Format.asprintf "%a" pp grp;
     [%expect {|
       let format t = t.format
 
