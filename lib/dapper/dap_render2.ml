@@ -310,6 +310,24 @@ end
 
 module Stanza_enc_struct : PP_struct = struct
 
+  (* e.g. *)
+  (* let enc = *)
+  (*   let open Data_encoding in *)
+  (*   (\* Message.t *\) *)
+  (*   conv *)
+  (*     (fun {id; format; variables; sendTelemetry; showUser; url; urlLabel} -> *)
+  (*       (id, format, variables, sendTelemetry, showUser, url, urlLabel)) *)
+  (*     (fun (id, format, variables, sendTelemetry, showUser, url, urlLabel) -> *)
+  (*       {id; format; variables; sendTelemetry; showUser; url; urlLabel}) *)
+  (*     (obj7 *)
+  (*        (req "id" int31) *)
+  (*        (req "format" string) *)
+  (*        (opt "variables" json) *)
+  (*        (opt "sendTelemetry" bool) *)
+  (*        (opt "showUser" bool) *)
+  (*        (opt "url" string) *)
+  (*        (opt "urlLabel" string)) *)
+
   let pp_obj =
     let pp_field =
       Fmt.of_to_string (function Field.{field_enc_name; field_presence; field_dirty_name; _} ->
