@@ -5,6 +5,9 @@ module RequestMessage = Dap_request_message
 module ResponseMessage = Dap_response_message
 module EventMessage = Dap_event_message
 
+(* TODO enc for objects with >10 fields *)
+(* TODO enc with fixpoint  *)
+(* TODO quickcheck generators *)
 module Data = struct
   include Dap_base
 
@@ -16,7 +19,7 @@ module Data = struct
     (* DONE *)
     val equal : t -> t -> bool
 
-    (* TODO *)
+    (* DONE *)
     val enc : t Data_encoding.t
 
     (* DONE *)
@@ -61,7 +64,7 @@ module Data = struct
     }
     [@@deriving irmin]
 
-    (* TODO with irmin *)
+    (* DONE *)
     let enc =
       let open Data_encoding in
       (* Message.t *)

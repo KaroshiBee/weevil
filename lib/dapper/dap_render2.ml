@@ -10,6 +10,7 @@ module Field = struct
   type t = {
     field_name : string
   ; field_dirty_name : string
+  ; field_enc_name : string
   ; field_type : [ `Builtin of builtin | `Struct of struct_ ]
   ; field_presence : [`Opt | `Req ]
   ; field_index : int
@@ -25,10 +26,6 @@ module Field = struct
     builtin_name : string
   } [@@deriving show, eq ]
 
-  let unit_ = {
-    builtin_name="unit"
-  }
-
   let ordered_fields fields =
     fields
     |> List.sort (fun x y -> compare x.field_index y.field_index)
@@ -39,6 +36,7 @@ module Field = struct
     let struct_fields = [
       { field_name="variables";
         field_dirty_name="_variables_";
+        field_enc_name="json";
         field_type=`Struct {struct_name="Irmin.Contents.Json_value";
                             struct_t="t";
                             struct_fields=[]};
@@ -46,11 +44,13 @@ module Field = struct
         field_index=2 };
       { field_name="format";
         field_dirty_name="format_";
+        field_enc_name="string";
         field_type=`Builtin {builtin_name="string"};
         field_presence=`Req;
         field_index=1 };
       { field_name="sendTelemetry";
         field_dirty_name="sendTelemetry_";
+        field_enc_name="bool";
         field_type=`Builtin {builtin_name="bool"};
         field_presence=`Opt;
         field_index=3 };
@@ -294,6 +294,74 @@ module Stanza_getter_struct : PP_struct = struct
       let sendTelemetry t = t.sendTelemetry |}]
 
 end
+
+module Stanza_enc_sig : PP_struct = struct
+
+  let pp =
+    Fmt.of_to_string (function Field.{struct_t; _} ->
+        Fmt.str "val enc : %s Data_encoding.t" struct_t
+      )
+
+  let%expect_test "Check Stanza_enc_sig" =
+    let grp = Field.test_data () in
+    print_endline @@ Format.asprintf "%a" pp grp;
+    [%expect {| val enc : t Data_encoding.t |}]
+end
+
+module Stanza_enc_struct : PP_struct = struct
+
+  let pp_obj =
+    let pp_field =
+      Fmt.of_to_string (function Field.{field_enc_name; field_presence; field_dirty_name; _} ->
+          let presence = match field_presence with | `Opt -> "opt" | `Req -> "req" in
+          Fmt.str "(%s \"%s\" %s)" presence field_dirty_name field_enc_name
+        )
+    in
+    Fmt.of_to_string (function Field.{struct_fields; _} ->
+        let n = List.length struct_fields in
+        let pp_fields = Fmt.list ~sep:(Fmt.any "\n") pp_field in
+        Fmt.str "(obj%d\n%a)" n pp_fields @@ Field.ordered_fields struct_fields
+      )
+
+  let pp_fields ~sep ~enclosing =
+    Fmt.of_to_string (function Field.{struct_fields; _} ->
+        let pp_list = Fmt.list ~sep:(Fmt.any sep) Fmt.string in
+        let fs = List.map (function Field.{field_name; _} -> field_name)
+            @@ Field.ordered_fields struct_fields in
+        Fmt.str "%s%a%s" (fst enclosing) pp_list fs (snd enclosing)
+      )
+
+  let pp =
+    let pp_record = pp_fields ~sep:"; " ~enclosing:("{", "}") in
+    let pp_tuple = pp_fields ~sep:", " ~enclosing:("(",")") in
+    Fmt.of_to_string (fun st ->
+        String.concat "\n" [
+          "let enc =";
+          "let open Data_encoding in";
+          "conv";
+          Fmt.str "(fun %a -> \n %a)" pp_record st pp_tuple st;
+          Fmt.str "(fun %a -> \n %a)" pp_tuple st pp_record st;
+          Fmt.str "%a" pp_obj st
+        ]
+      )
+
+  let%expect_test "Check Stanza_enc_struct" =
+    let grp = Field.test_data () in
+    print_endline @@ Format.asprintf "%a" pp grp;
+    [%expect {|
+      let enc =
+      let open Data_encoding in
+      conv
+      (fun {format; variables; sendTelemetry} ->
+       (format, variables, sendTelemetry))
+      (fun (format, variables, sendTelemetry) ->
+       {format; variables; sendTelemetry})
+      (obj3
+      (req "format_" string)
+      (opt "_variables_" json)
+      (opt "sendTelemetry_" bool)) |}]
+end
+
 
   (* Stanza.t represents the stanzas for
    part of a type t, part of an encoding,
