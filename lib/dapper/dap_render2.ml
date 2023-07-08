@@ -11,15 +11,15 @@ module Field = struct
     field_name : string
   ; field_dirty_name : string
   ; field_enc_name : string
-  ; field_type : [ `Builtin of builtin | `Struct of struct_ ]
+  ; field_type : [ `Builtin of builtin | `Struct of object_ ]
   ; field_presence : [`Opt | `Req ]
   ; field_index : int
   } [@@deriving show, eq]
 
-  and struct_ = {
-    struct_name : string (* what the struct would be called ie Thing *)
-  ; struct_t : string (* what 't' would be called i.e. for Thing.t *)
-  ; struct_fields : t list
+  and object_ = {
+    object_name : string (* what the struct would be called ie Thing *)
+  ; object_t : string (* what 't' would be called i.e. for Thing.t *)
+  ; object_fields : t list
   } [@@deriving show, eq ]
 
   and builtin = {
@@ -31,15 +31,15 @@ module Field = struct
     |> List.sort (fun x y -> compare x.field_index y.field_index)
 
   let test_data () =
-    let struct_name = "Thing" in
-    let struct_t = "t" in
-    let struct_fields = [
+    let object_name = "Thing" in
+    let object_t = "t" in
+    let object_fields = [
       { field_name="variables";
         field_dirty_name="_variables_";
         field_enc_name="json";
-        field_type=`Struct {struct_name="Irmin.Contents.Json_value";
-                            struct_t="t";
-                            struct_fields=[]};
+        field_type=`Struct {object_name="Irmin.Contents.Json_value";
+                            object_t="t";
+                            object_fields=[]};
         field_presence=`Opt;
         field_index=2 };
       { field_name="format";
@@ -56,11 +56,11 @@ module Field = struct
         field_index=3 };
     ]
     in
-    {struct_name; struct_t; struct_fields}
+    {object_name; object_t; object_fields}
 end
 
 module type PP_struct = sig
-  val pp : Format.formatter -> Field.struct_ -> unit
+  val pp : Format.formatter -> Field.object_ -> unit
 end
 
 (* NOTE these @@ are awkard when used directly in format string *)
@@ -70,11 +70,11 @@ module Stanza_t_sig : PP_struct = struct
 
   (* TODO compose in the deriving irmin *)
   let pp =
-    Fmt.of_to_string (function Field.{struct_t; _} ->
+    Fmt.of_to_string (function Field.{object_t; _} ->
         let ss = [
-          Fmt.str "type %s [%s irmin]" struct_t deriving_str;
-          Fmt.str "val equal : %s -> %s -> bool" struct_t struct_t;
-          Fmt.str "val merge : %s option Irmin.Merge.t" struct_t;
+          Fmt.str "type %s [%s irmin]" object_t deriving_str;
+          Fmt.str "val equal : %s -> %s -> bool" object_t object_t;
+          Fmt.str "val merge : %s option Irmin.Merge.t" object_t;
         ] in
         String.concat "\n\n" ss
       )
@@ -113,18 +113,18 @@ module Stanza_t_struct : PP_struct = struct
       match field_type with
       | `Builtin {builtin_name} ->
         Fmt.str "%s : %s %s" field_name builtin_name presence
-      | `Struct {struct_name; struct_t; _} ->
-        Fmt.str "%s : %s.%s %s" field_name struct_name struct_t presence
+      | `Struct {object_name; object_t; _} ->
+        Fmt.str "%s : %s.%s %s" field_name object_name object_t presence
       )
 
   let pp =
-    Fmt.of_to_string (function Field.{struct_fields; struct_t; _} ->
-        let fields = Field.ordered_fields struct_fields in
+    Fmt.of_to_string (function Field.{object_fields; object_t; _} ->
+        let fields = Field.ordered_fields object_fields in
         let pp_fields = Fmt.list ~sep:(Fmt.any ";\n") pp_field in
         let ss = [
-          Fmt.str "type %s = {\n%a\n}\n[%s irmin]" struct_t pp_fields fields deriving_str;
-          Fmt.str "let equal = Irmin.Type.(unstage (equal %s))" struct_t;
-          Fmt.str "let merge = Irmin.Merge.(option (idempotent %s))" struct_t;
+          Fmt.str "type %s = {\n%a\n}\n[%s irmin]" object_t pp_fields fields deriving_str;
+          Fmt.str "let equal = Irmin.Type.(unstage (equal %s))" object_t;
+          Fmt.str "let merge = Irmin.Merge.(option (idempotent %s))" object_t;
         ] in
         String.concat "\n\n" ss
       )
@@ -166,15 +166,15 @@ module Stanza_make_sig : PP_struct = struct
       match field_type with
       | `Builtin {builtin_name} ->
         Fmt.str "%s%s : %s" presence field_name builtin_name
-      | `Struct {struct_name; struct_t; _} ->
-        Fmt.str "%s%s : %s.%s" presence field_name struct_name struct_t
+      | `Struct {object_name; object_t; _} ->
+        Fmt.str "%s%s : %s.%s" presence field_name object_name object_t
       )
 
   let pp =
-    Fmt.of_to_string (function Field.{struct_fields; struct_t; _} ->
-        let fields = Field.ordered_fields struct_fields in
+    Fmt.of_to_string (function Field.{object_fields; object_t; _} ->
+        let fields = Field.ordered_fields object_fields in
         let pp_fields = Fmt.list ~sep:(Fmt.any " -> \n") pp_field in
-        Fmt.str "val make : \n%a -> \nunit -> \n%s" pp_fields fields struct_t
+        Fmt.str "val make : \n%a -> \nunit -> \n%s" pp_fields fields object_t
       )
 
   let%expect_test "Check Stanza_make_sig" =
@@ -208,8 +208,8 @@ module Stanza_make_struct : PP_struct = struct
       )
 
   let pp =
-    Fmt.of_to_string (function Field.{struct_fields; _} ->
-        let all_fields = Field.ordered_fields struct_fields in
+    Fmt.of_to_string (function Field.{object_fields; _} ->
+        let all_fields = Field.ordered_fields object_fields in
         let pp_upper = Fmt.list ~sep:(Fmt.any " ") pp_field_upper in
         let pp_lower = Fmt.list ~sep:(Fmt.any "; ") pp_field_lower in
         Fmt.str "let make %a () =\n{%a}\n" pp_upper all_fields pp_lower all_fields
@@ -233,20 +233,20 @@ module Stanza_getters_sig : PP_struct = struct
 
     val variables : t -> Irmin.Contents.Json_value.t option
 *)
-  let pp_field ~struct_t =
+  let pp_field ~object_t =
     Fmt.of_to_string (function Field.{field_name; field_type; field_presence; _} ->
         let presence = match field_presence with | `Opt -> "option" | `Req -> "" in
         match field_type with
         | `Builtin {builtin_name} ->
-          Fmt.str "val %s : %s -> %s %s" field_name struct_t builtin_name presence
-        | `Struct {struct_name; struct_t; _} ->
-          Fmt.str "val %s : %s -> %s.%s %s" field_name struct_t struct_name struct_t presence
+          Fmt.str "val %s : %s -> %s %s" field_name object_t builtin_name presence
+        | `Struct {object_name; object_t; _} ->
+          Fmt.str "val %s : %s -> %s.%s %s" field_name object_t object_name object_t presence
       )
 
   let pp =
-    Fmt.of_to_string (function Field.{struct_fields; struct_t; _} ->
-        let all_fields = Field.ordered_fields struct_fields in
-        let pp_fields = Fmt.list ~sep:(Fmt.any "\n\n") (pp_field ~struct_t) in
+    Fmt.of_to_string (function Field.{object_fields; object_t; _} ->
+        let all_fields = Field.ordered_fields object_fields in
+        let pp_fields = Fmt.list ~sep:(Fmt.any "\n\n") (pp_field ~object_t) in
         Fmt.str "%a" pp_fields all_fields
       )
 
@@ -271,15 +271,15 @@ module Stanza_getter_struct : PP_struct = struct
 
     let variables t = t.variables
 *)
-  let pp_field ~struct_t =
+  let pp_field ~object_t =
     Fmt.of_to_string (function Field.{field_name; _} ->
-        Fmt.str "let %s %s = %s.%s" field_name struct_t struct_t field_name
+        Fmt.str "let %s %s = %s.%s" field_name object_t object_t field_name
       )
 
   let pp =
-    Fmt.of_to_string (function Field.{struct_fields; struct_t; _} ->
-        let all_fields = Field.ordered_fields struct_fields in
-        let pp_fields = Fmt.list ~sep:(Fmt.any "\n\n") (pp_field ~struct_t) in
+    Fmt.of_to_string (function Field.{object_fields; object_t; _} ->
+        let all_fields = Field.ordered_fields object_fields in
+        let pp_fields = Fmt.list ~sep:(Fmt.any "\n\n") (pp_field ~object_t) in
         Fmt.str "%a" pp_fields all_fields
       )
 
@@ -298,8 +298,8 @@ end
 module Stanza_enc_sig : PP_struct = struct
 
   let pp =
-    Fmt.of_to_string (function Field.{struct_t; _} ->
-        Fmt.str "val enc : %s Data_encoding.t" struct_t
+    Fmt.of_to_string (function Field.{object_t; _} ->
+        Fmt.str "val enc : %s Data_encoding.t" object_t
       )
 
   let%expect_test "Check Stanza_enc_sig" =
@@ -317,17 +317,17 @@ module Stanza_enc_struct : PP_struct = struct
           Fmt.str "(%s \"%s\" %s)" presence field_dirty_name field_enc_name
         )
     in
-    Fmt.of_to_string (function Field.{struct_fields; _} ->
-        let n = List.length struct_fields in
+    Fmt.of_to_string (function Field.{object_fields; _} ->
+        let n = List.length object_fields in
         let pp_fields = Fmt.list ~sep:(Fmt.any "\n") pp_field in
-        Fmt.str "(obj%d\n%a)" n pp_fields @@ Field.ordered_fields struct_fields
+        Fmt.str "(obj%d\n%a)" n pp_fields @@ Field.ordered_fields object_fields
       )
 
   let pp_fields ~sep ~enclosing =
-    Fmt.of_to_string (function Field.{struct_fields; _} ->
+    Fmt.of_to_string (function Field.{object_fields; _} ->
         let pp_list = Fmt.list ~sep:(Fmt.any sep) Fmt.string in
         let fs = List.map (function Field.{field_name; _} -> field_name)
-            @@ Field.ordered_fields struct_fields in
+            @@ Field.ordered_fields object_fields in
         Fmt.str "%s%a%s" (fst enclosing) pp_list fs (snd enclosing)
       )
 
@@ -372,12 +372,12 @@ end
 *)
 module type Stanza = sig
   type t
-  type struct_ (* something that represents another json object *)
+  type object_ (* something that represents another json object *)
 
   type presence = Opt | Req
   val name : t -> string
   val dirty_name : t -> string
-  val type_ : t -> struct_
+  val type_ : t -> object_
 
   (* pp the part that will be in the type t decl *)
   val pp_t : Format.formatter -> t -> unit
