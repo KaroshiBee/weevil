@@ -114,16 +114,13 @@ module Field = struct
 end
 
 module type PP_struct = sig
-  type t
-  val pp : Format.formatter -> t -> unit
+  val pp : Format.formatter -> 'a -> unit
 end
 
 (* NOTE these @@ are awkard when used directly in format string *)
 let deriving_str = "@@deriving"
 
-module Stanza_t_sig : PP_struct = struct
-
-  type t = Field.object_
+module Stanza_t_sig = struct
 
   (* TODO compose in the deriving irmin *)
   let pp =
@@ -148,7 +145,7 @@ module Stanza_t_sig : PP_struct = struct
 
 end
 
-module Stanza_t_struct : PP_struct = struct
+module Stanza_t_struct = struct
 
   (* type t = { *)
   (*   id : int; *)
@@ -162,8 +159,6 @@ module Stanza_t_struct : PP_struct = struct
   (* [@@deriving irmin] *)
   (* let equal = Irmin.Type.(unstage (equal t)) *)
   (* let merge = Irmin.Merge.(option (idempotent t)) *)
-
-  type t = Field.object_
 
   let pp_field =
     Fmt.of_to_string (function Field.{field_name; field_type; field_presence; _} ->
@@ -207,7 +202,7 @@ module Stanza_t_struct : PP_struct = struct
 
 end
 
-module Stanza_make_sig : PP_struct = struct
+module Stanza_make_sig = struct
 (*
    e.g.
      val make :
@@ -221,8 +216,6 @@ module Stanza_make_sig : PP_struct = struct
       unit ->
       t
 *)
-
-  type t = Field.object_
 
   let pp_field =
     Fmt.of_to_string (function Field.{field_name; field_type; field_presence; _} ->
@@ -257,14 +250,12 @@ module Stanza_make_sig : PP_struct = struct
 
 end
 
-module Stanza_make_struct : PP_struct = struct
+module Stanza_make_struct = struct
 (*
    e.g.
     let make ~id ~format ?variables ?sendTelemetry ?showUser ?url ?urlLabel () =
       {id; format; variables; sendTelemetry; showUser; url; urlLabel}
 *)
-
-  type t = Field.object_
 
   let pp_field_upper =
     Fmt.of_to_string (function Field.{field_name; field_presence; _} ->
@@ -294,7 +285,7 @@ module Stanza_make_struct : PP_struct = struct
 
 end
 
-module Stanza_getters_sig : PP_struct = struct
+module Stanza_getters_sig = struct
 (*
    e.g.
     val id : t -> int
@@ -303,8 +294,6 @@ module Stanza_getters_sig : PP_struct = struct
 
     val variables : t -> Irmin.Contents.Json_value.t option
 *)
-
-  type t = Field.object_
 
   let pp_field ~object_t =
     Fmt.of_to_string (function Field.{field_name; field_type; field_presence; _} ->
@@ -339,7 +328,7 @@ module Stanza_getters_sig : PP_struct = struct
 
 end
 
-module Stanza_getter_struct : PP_struct = struct
+module Stanza_getters_struct = struct
 (*
    e.g.
     let id t = t.id
@@ -348,8 +337,6 @@ module Stanza_getter_struct : PP_struct = struct
 
     let variables t = t.variables
 *)
-
-  type t = Field.object_
 
   let pp_field ~object_t =
     Fmt.of_to_string (function Field.{field_name; _} ->
@@ -377,9 +364,7 @@ module Stanza_getter_struct : PP_struct = struct
 
 end
 
-module Stanza_enc_sig : PP_struct = struct
-
-  type t = Field.object_
+module Stanza_enc_sig = struct
 
   let pp =
     Fmt.of_to_string (function Field.{object_t; _} ->
@@ -392,7 +377,7 @@ module Stanza_enc_sig : PP_struct = struct
     [%expect {| val enc : t Data_encoding.t |}]
 end
 
-module Stanza_enc_struct : PP_struct = struct
+module Stanza_enc_struct = struct
 
   (* e.g. *)
   (* let enc = *)
@@ -411,8 +396,6 @@ module Stanza_enc_struct : PP_struct = struct
   (*        (opt "showUser" bool) *)
   (*        (opt "url" string) *)
   (*        (opt "urlLabel" string)) *)
-
-  type t = Field.object_
 
   let mu_arg = "e"
 
@@ -475,7 +458,8 @@ module Stanza_enc_struct : PP_struct = struct
           String.concat "\n" [
             "let enc =";
             "let open Data_encoding in";
-            Fmt.str "mu \"%s.%s\" (fun e -> \n%a)" st.object_name st.object_t pp_body st
+            Fmt.str "mu \"%s.%s\" (fun %s -> \n%a)"
+                  st.object_name st.object_t mu_arg pp_body st
           ]
         | st ->
           String.concat "\n" [
@@ -484,7 +468,6 @@ module Stanza_enc_struct : PP_struct = struct
             Fmt.str "%a" pp_body st
           ]
     )
-
 
   let%expect_test "Check Stanza_enc_struct" =
     let grp = Field.test_data () in
@@ -507,9 +490,7 @@ end
 
 
 (* NOTE dont need a sig for the enum types, inferred one is fine *)
-module Stanza_enum_t_struct : PP_struct = struct
-
-  type t = Enum.enum
+module Stanza_enum_t_struct = struct
 
   let pp =
     Fmt.of_to_string (function Enum.{enum_t; enum_elements; enum_type; _} ->
@@ -522,15 +503,16 @@ module Stanza_enum_t_struct : PP_struct = struct
           Fmt.list ~sep:(Fmt.any "\n") pp_element
         in
         let elements = Enum.ordered_elements enum_elements in
-        let deriving = Fmt.str "[%s eq]" deriving_str in
+        let deriving = Fmt.str "[%s irmin]" deriving_str in
         let last = function
           | `Open -> ["| Other of string"; deriving]
           | `Closed -> [deriving]
         in
         String.concat "\n" @@ List.concat [
-          [Fmt.str "type %s =" enum_t;
-           Fmt.str "%a" pp_elements elements];
-          last enum_type
+          [Fmt.str "type %s =\n%a" enum_t pp_elements elements];
+          last enum_type;
+          [Fmt.str "let equal = Irmin.Type.(unstage (equal %s))" enum_t;
+           Fmt.str "let merge = Irmin.Merge.(option (idempotent %s))" enum_t];
         ]
       )
 
@@ -543,7 +525,9 @@ module Stanza_enum_t_struct : PP_struct = struct
       | Breakpoint
       | Exception
       | Other of string
-      [@@deriving eq] |}]
+      [@@deriving irmin]
+      let equal = Irmin.Type.(unstage (equal t))
+      let merge = Irmin.Merge.(option (idempotent t)) |}]
 
   let%expect_test "Check Stanza_enum_t_struct Closed" =
     let grp = Enum.test_data ~enum_type:`Closed () in
@@ -553,13 +537,13 @@ module Stanza_enum_t_struct : PP_struct = struct
       | Step
       | Breakpoint
       | Exception
-      [@@deriving eq] |}]
+      [@@deriving irmin]
+      let equal = Irmin.Type.(unstage (equal t))
+      let merge = Irmin.Merge.(option (idempotent t)) |}]
 
 end
 
-module Stanza_enum_enc_struct : PP_struct = struct
-
-  type t = Enum.enum
+module Stanza_enum_enc_struct = struct
 
   let pp =
     Fmt.of_to_string (function Enum.{enum_name; enum_enc; enum_elements; enum_type; _} ->
@@ -635,6 +619,186 @@ module Stanza_enum_enc_struct : PP_struct = struct
       string |}]
 
 end
+
+
+module Printer_object = struct
+
+  let pp_sig =
+    Fmt.of_to_string (function o ->
+        String.concat "\n\n" [
+          Fmt.str "%a" Stanza_t_sig.pp o;
+          Fmt.str "%a" Stanza_make_sig.pp o;
+          Fmt.str "%a" Stanza_enc_sig.pp o;
+          Fmt.str "%a" Stanza_getters_sig.pp o;
+        ]
+      )
+
+  let pp_struct =
+    Fmt.of_to_string (function o ->
+        String.concat "\n\n" [
+          Fmt.str "%a" Stanza_t_struct.pp o;
+          Fmt.str "%a" Stanza_make_struct.pp o;
+          Fmt.str "%a" Stanza_enc_struct.pp o;
+          Fmt.str "%a" Stanza_getters_struct.pp o;
+        ]
+      )
+
+  let pp =
+    Fmt.of_to_string (function o ->
+        Fmt.str "module %s : sig\n%a\nend = struct\n%a\nend"
+          o.Field.object_name pp_sig o pp_struct o
+      )
+
+  let%expect_test "Check Printer_object" =
+    let grp = Field.test_data () in
+    print_endline @@ Format.asprintf "%a" pp grp;
+    [%expect {|
+      module Thing : sig
+      type t [@@deriving irmin]
+
+      val equal : t -> t -> bool
+
+      val merge : t option Irmin.Merge.t
+
+      val make :
+      format : string ->
+      ?variables : Irmin.Contents.Json_value.t ->
+      ?sendTelemetry : bool ->
+      ?things : t list ->
+      unit ->
+      t
+
+      val enc : t Data_encoding.t
+
+      val format : t -> string
+
+      val variables : t -> Irmin.Contents.Json_value.t option
+
+      val sendTelemetry : t -> bool option
+
+      val things : t -> t list option
+      end = struct
+      type t = {
+      format : string ;
+      variables : Irmin.Contents.Json_value.t option;
+      sendTelemetry : bool option;
+      things : t list option
+      }
+      [@@deriving irmin]
+
+      let equal = Irmin.Type.(unstage (equal t))
+
+      let merge = Irmin.Merge.(option (idempotent t))
+
+      let make ~format ?variables ?sendTelemetry ?things () =
+      {format; variables; sendTelemetry; things}
+
+
+      let enc =
+      let open Data_encoding in
+      mu "Thing.t" (fun e ->
+      conv
+      (fun {format; variables; sendTelemetry; things} ->
+       (format, variables, sendTelemetry, things))
+      (fun (format, variables, sendTelemetry, things) ->
+       {format; variables; sendTelemetry; things})
+      (obj4
+      (req "format_" string)
+      (opt "_variables_" Irmin.Contents.Json_value.json)
+      (opt "sendTelemetry_" bool)
+      (opt "things in a list" (list e))))
+
+      let format t = t.format
+
+      let variables t = t.variables
+
+      let sendTelemetry t = t.sendTelemetry
+
+      let things t = t.things
+      end |}]
+
+end
+
+
+module Printer_enum = struct
+
+  let pp_struct =
+    Fmt.of_to_string (function e ->
+        String.concat "\n\n" [
+          Fmt.str "%a" Stanza_enum_t_struct.pp e;
+          Fmt.str "%a" Stanza_enum_enc_struct.pp e;
+        ]
+      )
+
+  let pp =
+    Fmt.of_to_string (function e ->
+        Fmt.str "module %s = struct\n%a\nend"
+          e.Enum.enum_name pp_struct e
+      )
+
+  let%expect_test "Check Printer_enum open" =
+    let grp = Enum.test_data ~enum_type:`Open () in
+    print_endline @@ Format.asprintf "%a" pp grp;
+    [%expect {|
+      module Stopped_event_enum = struct
+      type t =
+      | Step
+      | Breakpoint
+      | Exception
+      | Other of string
+      [@@deriving irmin]
+      let equal = Irmin.Type.(unstage (equal t))
+      let merge = Irmin.Merge.(option (idempotent t))
+
+      let enc =
+      let open Data_encoding in
+      conv_with_guard
+      (function
+      | Step -> "step"
+      | Breakpoint -> "breakpoint"
+      | Exception -> "exception"
+      | Other s -> s)
+      (function
+      | "step" -> Ok Step
+      | "breakpoint" -> Ok Breakpoint
+      | "exception" -> Ok Exception
+      | _ as s -> Ok (Other s))
+      string
+      end |}]
+
+  let%expect_test "Check Printer_enum closed" =
+    let grp = Enum.test_data ~enum_type:`Closed () in
+    print_endline @@ Format.asprintf "%a" pp grp;
+    [%expect {|
+      module Stopped_event_enum = struct
+      type t =
+      | Step
+      | Breakpoint
+      | Exception
+      [@@deriving irmin]
+      let equal = Irmin.Type.(unstage (equal t))
+      let merge = Irmin.Merge.(option (idempotent t))
+
+      let enc =
+      let open Data_encoding in
+      conv_with_guard
+      (function
+      | Step -> "step"
+      | Breakpoint -> "breakpoint"
+      | Exception -> "exception"
+      )
+      (function
+      | "step" -> Ok Step
+      | "breakpoint" -> Ok Breakpoint
+      | "exception" -> Ok Exception
+      | _ -> Error "Stopped_event_enum")
+      string
+      end |}]
+
+end
+
+
+
   (* Stanza.t represents the stanzas for
    part of a type t, part of an encoding,
    part of a make func, part of the getter.
