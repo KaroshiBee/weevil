@@ -344,8 +344,11 @@ module Stanza_enc_struct : PP_struct = struct
     in
     Fmt.of_to_string (function Field.{object_fields; _} ->
         let n = List.length object_fields in
-        let pp_fields = Fmt.list ~sep:(Fmt.any "\n") pp_field in
-        Fmt.str "(obj%d\n%a)" n pp_fields @@ Field.ordered_fields object_fields
+        if n > 10 then
+          raise @@ Invalid_argument (Fmt.str "pp_obj too many fields %d.  Please use pp_objn" n)
+        else
+          let pp_fields = Fmt.list ~sep:(Fmt.any "\n") pp_field in
+          Fmt.str "(obj%d\n%a)" n pp_fields @@ Field.ordered_fields object_fields
       )
 
   let pp_fields ~sep ~enclosing =
