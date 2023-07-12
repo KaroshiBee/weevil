@@ -475,7 +475,7 @@ module Stanza_enc_struct : PP_struct = struct
           String.concat "\n" [
             "let enc =";
             "let open Data_encoding in";
-            Fmt.str "mu \"%s.%s\" (fun e -> %a)" st.object_name st.object_t pp_body st
+            Fmt.str "mu \"%s.%s\" (fun e -> \n%a)" st.object_name st.object_t pp_body st
           ]
         | st ->
           String.concat "\n" [
@@ -492,7 +492,8 @@ module Stanza_enc_struct : PP_struct = struct
     [%expect {|
       let enc =
       let open Data_encoding in
-      mu "Thing.t" (fun e -> conv
+      mu "Thing.t" (fun e ->
+      conv
       (fun {format; variables; sendTelemetry; things} ->
        (format, variables, sendTelemetry, things))
       (fun (format, variables, sendTelemetry, things) ->
