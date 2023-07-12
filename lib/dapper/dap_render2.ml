@@ -50,7 +50,7 @@ module Field = struct
   type t = {
     field_name : string
   ; field_dirty_name : string
-  ; field_type : [ `Builtin of builtin | `Struct of object_ ]
+  ; field_type : [ `Builtin of builtin | `Struct of object_ | `Enum of Enum.enum ]
   ; field_presence : [`Opt | `Req ]
   ; field_index : int
   } [@@deriving show, eq]
@@ -108,6 +108,11 @@ module Field = struct
                             object_fields=[]};
         field_presence=`Opt;
         field_index=4 };
+      { field_name="stuff";
+        field_dirty_name="stuff";
+        field_type=`Enum (Enum.test_data ~enum_type:`Closed ());
+        field_presence=`Opt;
+        field_index=5 };
     ]
     in
     {object_name; object_t; object_container; object_enc; object_fields}
@@ -170,6 +175,8 @@ module Stanza_t_struct = struct
         Fmt.str "%s : %s %s %s" field_name object_t c presence
       | `Struct {object_container=None; object_name; object_t; _} ->
         Fmt.str "%s : %s.%s %s" field_name object_name object_t presence
+      | `Enum Enum.{enum_name; enum_t; _} ->
+        Fmt.str "%s : %s.%s %s" field_name enum_name enum_t presence
       )
 
   let pp =
@@ -192,7 +199,8 @@ module Stanza_t_struct = struct
       format : string ;
       variables : Irmin.Contents.Json_value.t option;
       sendTelemetry : bool option;
-      things : t list option
+      things : t list option;
+      stuff : Stopped_event_enum.t option
       }
       [@@deriving irmin]
 
@@ -227,6 +235,8 @@ module Stanza_make_sig = struct
         Fmt.str "%s%s : %s %s" presence field_name object_t c
       | `Struct {object_container=None; object_name; object_t; _} ->
         Fmt.str "%s%s : %s.%s" presence field_name object_name object_t
+      | `Enum Enum.{enum_name; enum_t; _} ->
+        Fmt.str "%s%s : %s.%s" presence field_name enum_name enum_t
       )
 
   let pp =
@@ -245,6 +255,7 @@ module Stanza_make_sig = struct
       ?variables : Irmin.Contents.Json_value.t ->
       ?sendTelemetry : bool ->
       ?things : t list ->
+      ?stuff : Stopped_event_enum.t ->
       unit ->
       t |}]
 
@@ -280,8 +291,8 @@ module Stanza_make_struct = struct
     let grp = Field.test_data () in
     print_endline @@ Format.asprintf "%a" pp grp;
     [%expect {|
-      let make ~format ?variables ?sendTelemetry ?things () =
-      {format; variables; sendTelemetry; things} |}]
+      let make ~format ?variables ?sendTelemetry ?things ?stuff () =
+      {format; variables; sendTelemetry; things; stuff} |}]
 
 end
 
@@ -305,6 +316,8 @@ module Stanza_getters_sig = struct
           Fmt.str "val %s : %s -> %s %s %s" field_name object_t object_t c presence
         | `Struct {object_container=None; object_t; object_name; _} ->
           Fmt.str "val %s : %s -> %s.%s %s" field_name object_t object_name object_t presence
+        | `Enum Enum.{enum_name; enum_t; _} ->
+          Fmt.str "val %s : %s -> %s.%s %s" field_name object_t enum_name enum_t presence
       )
 
   let pp =
@@ -324,7 +337,9 @@ module Stanza_getters_sig = struct
 
       val sendTelemetry : t -> bool option
 
-      val things : t -> t list option |}]
+      val things : t -> t list option
+
+      val stuff : t -> Stopped_event_enum.t option |}]
 
 end
 
@@ -360,7 +375,9 @@ module Stanza_getters_struct = struct
 
       let sendTelemetry t = t.sendTelemetry
 
-      let things t = t.things |}]
+      let things t = t.things
+
+      let stuff t = t.stuff |}]
 
 end
 
@@ -411,6 +428,8 @@ module Stanza_enc_struct = struct
             Fmt.str "(%s \"%s\" %s.%s)" (presence field_presence) field_dirty_name object_name enc
           | Field.{field_presence; field_dirty_name; field_type=`Struct {object_enc=`Cyclic enc; _}; _} ->
             Fmt.str "(%s \"%s\" (%s %s))" (presence field_presence) field_dirty_name enc mu_arg
+          | Field.{field_presence; field_dirty_name; field_type=`Enum {enum_name; enum_enc; _}; _} ->
+            Fmt.str "(%s \"%s\" %s.%s)" (presence field_presence) field_dirty_name enum_name enum_enc
         )
     in
     Fmt.of_to_string (function Field.{object_fields; _} ->
@@ -477,15 +496,16 @@ module Stanza_enc_struct = struct
       let open Data_encoding in
       mu "Thing.t" (fun e ->
       conv
-      (fun {format; variables; sendTelemetry; things} ->
-       (format, variables, sendTelemetry, things))
-      (fun (format, variables, sendTelemetry, things) ->
-       {format; variables; sendTelemetry; things})
-      (obj4
+      (fun {format; variables; sendTelemetry; things; stuff} ->
+       (format, variables, sendTelemetry, things, stuff))
+      (fun (format, variables, sendTelemetry, things, stuff) ->
+       {format; variables; sendTelemetry; things; stuff})
+      (obj5
       (req "format_" string)
       (opt "_variables_" Irmin.Contents.Json_value.json)
       (opt "sendTelemetry_" bool)
-      (opt "things in a list" (list e)))) |}]
+      (opt "things in a list" (list e))
+      (opt "stuff" Stopped_event_enum.enc))) |}]
 end
 
 
@@ -665,6 +685,7 @@ module Printer_object = struct
       ?variables : Irmin.Contents.Json_value.t ->
       ?sendTelemetry : bool ->
       ?things : t list ->
+      ?stuff : Stopped_event_enum.t ->
       unit ->
       t
 
@@ -677,12 +698,15 @@ module Printer_object = struct
       val sendTelemetry : t -> bool option
 
       val things : t -> t list option
+
+      val stuff : t -> Stopped_event_enum.t option
       end = struct
       type t = {
       format : string ;
       variables : Irmin.Contents.Json_value.t option;
       sendTelemetry : bool option;
-      things : t list option
+      things : t list option;
+      stuff : Stopped_event_enum.t option
       }
       [@@deriving irmin]
 
@@ -690,23 +714,24 @@ module Printer_object = struct
 
       let merge = Irmin.Merge.(option (idempotent t))
 
-      let make ~format ?variables ?sendTelemetry ?things () =
-      {format; variables; sendTelemetry; things}
+      let make ~format ?variables ?sendTelemetry ?things ?stuff () =
+      {format; variables; sendTelemetry; things; stuff}
 
 
       let enc =
       let open Data_encoding in
       mu "Thing.t" (fun e ->
       conv
-      (fun {format; variables; sendTelemetry; things} ->
-       (format, variables, sendTelemetry, things))
-      (fun (format, variables, sendTelemetry, things) ->
-       {format; variables; sendTelemetry; things})
-      (obj4
+      (fun {format; variables; sendTelemetry; things; stuff} ->
+       (format, variables, sendTelemetry, things, stuff))
+      (fun (format, variables, sendTelemetry, things, stuff) ->
+       {format; variables; sendTelemetry; things; stuff})
+      (obj5
       (req "format_" string)
       (opt "_variables_" Irmin.Contents.Json_value.json)
       (opt "sendTelemetry_" bool)
-      (opt "things in a list" (list e))))
+      (opt "things in a list" (list e))
+      (opt "stuff" Stopped_event_enum.enc)))
 
       let format t = t.format
 
@@ -715,9 +740,12 @@ module Printer_object = struct
       let sendTelemetry t = t.sendTelemetry
 
       let things t = t.things
+
+      let stuff t = t.stuff
       end |}]
 
 end
+
 
 
 module Printer_enum = struct
