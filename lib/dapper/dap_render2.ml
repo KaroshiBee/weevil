@@ -4,13 +4,12 @@ module CommandHelper = Dap_dfs.CommandHelper
 module EventHelper = Dap_dfs.EventHelper
 module Dfs = Dap_dfs.Dfs
 
-(* want to be able to easily add new derivings *)
+(* TODO want to be able to easily add new derivings *)
 module Field = struct
 
   type t = {
     field_name : string
   ; field_dirty_name : string
-  ; field_enc_name : string
   ; field_type : [ `Builtin of builtin | `Struct of object_ ]
   ; field_presence : [`Opt | `Req ]
   ; field_index : int
@@ -19,11 +18,13 @@ module Field = struct
   and object_ = {
     object_name : string (* what the struct would be called ie Thing *)
   ; object_t : string (* what 't' would be called i.e. for Thing.t *)
+  ; object_enc : [ `Raw of string | `Qualified of string ] (* what 'enc' would be called *)
   ; object_fields : t list
   } [@@deriving show, eq ]
 
   and builtin = {
     builtin_name : string
+  ; builtin_enc : string
   } [@@deriving show, eq ]
 
   let ordered_fields fields =
@@ -33,30 +34,31 @@ module Field = struct
   let test_data () =
     let object_name = "Thing" in
     let object_t = "t" in
+    let object_enc = `Qualified "enc" in
     let object_fields = [
       { field_name="variables";
         field_dirty_name="_variables_";
-        field_enc_name="json";
         field_type=`Struct {object_name="Irmin.Contents.Json_value";
                             object_t="t";
+                            object_enc = `Qualified "json";
                             object_fields=[]};
         field_presence=`Opt;
         field_index=2 };
       { field_name="format";
         field_dirty_name="format_";
-        field_enc_name="string";
-        field_type=`Builtin {builtin_name="string"};
+        field_type=`Builtin {builtin_name="string";
+                             builtin_enc="string"};
         field_presence=`Req;
         field_index=1 };
       { field_name="sendTelemetry";
         field_dirty_name="sendTelemetry_";
-        field_enc_name="bool";
-        field_type=`Builtin {builtin_name="bool"};
+        field_type=`Builtin {builtin_name="bool";
+                             builtin_enc="bool"};
         field_presence=`Opt;
         field_index=3 };
     ]
     in
-    {object_name; object_t; object_fields}
+    {object_name; object_t; object_enc; object_fields}
 end
 
 module type PP_struct = sig
@@ -111,7 +113,7 @@ module Stanza_t_struct : PP_struct = struct
     Fmt.of_to_string (function Field.{field_name; field_type; field_presence; _} ->
       let presence = match field_presence with | `Opt -> "option" | `Req -> "" in
       match field_type with
-      | `Builtin {builtin_name} ->
+      | `Builtin {builtin_name; _} ->
         Fmt.str "%s : %s %s" field_name builtin_name presence
       | `Struct {object_name; object_t; _} ->
         Fmt.str "%s : %s.%s %s" field_name object_name object_t presence
@@ -164,7 +166,7 @@ module Stanza_make_sig : PP_struct = struct
     Fmt.of_to_string (function Field.{field_name; field_type; field_presence; _} ->
       let presence = match field_presence with | `Opt -> "?" | `Req -> "" in
       match field_type with
-      | `Builtin {builtin_name} ->
+      | `Builtin {builtin_name; _} ->
         Fmt.str "%s%s : %s" presence field_name builtin_name
       | `Struct {object_name; object_t; _} ->
         Fmt.str "%s%s : %s.%s" presence field_name object_name object_t
@@ -237,7 +239,7 @@ module Stanza_getters_sig : PP_struct = struct
     Fmt.of_to_string (function Field.{field_name; field_type; field_presence; _} ->
         let presence = match field_presence with | `Opt -> "option" | `Req -> "" in
         match field_type with
-        | `Builtin {builtin_name} ->
+        | `Builtin {builtin_name; _} ->
           Fmt.str "val %s : %s -> %s %s" field_name object_t builtin_name presence
         | `Struct {object_name; object_t; _} ->
           Fmt.str "val %s : %s -> %s.%s %s" field_name object_t object_name object_t presence
@@ -322,7 +324,7 @@ module Stanza_enc_struct : PP_struct = struct
   (*     (obj7 *)
   (*        (req "id" int31) *)
   (*        (req "format" string) *)
-  (*        (opt "variables" json) *)
+  (*        (opt "variables" Irmin.Contents.Json_value.json) *)
   (*        (opt "sendTelemetry" bool) *)
   (*        (opt "showUser" bool) *)
   (*        (opt "url" string) *)
@@ -330,9 +332,14 @@ module Stanza_enc_struct : PP_struct = struct
 
   let pp_obj =
     let pp_field =
-      Fmt.of_to_string (function Field.{field_enc_name; field_presence; field_dirty_name; _} ->
-          let presence = match field_presence with | `Opt -> "opt" | `Req -> "req" in
-          Fmt.str "(%s \"%s\" %s)" presence field_dirty_name field_enc_name
+      let presence = function `Opt -> "opt" | `Req -> "req" in
+      Fmt.of_to_string (function
+          | Field.{field_presence; field_dirty_name; field_type=`Builtin {builtin_enc; _}; _} ->
+            Fmt.str "(%s \"%s\" %s)" (presence field_presence) field_dirty_name builtin_enc
+          | Field.{field_presence; field_dirty_name; field_type=`Struct {object_enc=`Raw enc; _}; _} ->
+            Fmt.str "(%s \"%s\" %s)" (presence field_presence) field_dirty_name enc
+          | Field.{field_presence; field_dirty_name; field_type=`Struct {object_name; object_enc=`Qualified enc; _}; _} ->
+            Fmt.str "(%s \"%s\" %s.%s)" (presence field_presence) field_dirty_name object_name enc
         )
     in
     Fmt.of_to_string (function Field.{object_fields; _} ->
@@ -376,7 +383,7 @@ module Stanza_enc_struct : PP_struct = struct
        {format; variables; sendTelemetry})
       (obj3
       (req "format_" string)
-      (opt "_variables_" json)
+      (opt "_variables_" Irmin.Contents.Json_value.json)
       (opt "sendTelemetry_" bool)) |}]
 end
 
