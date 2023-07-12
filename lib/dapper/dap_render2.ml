@@ -58,7 +58,8 @@ module Field = struct
   and object_ = {
     object_name : string (* what the struct would be called ie Thing *)
   ; object_t : string (* what 't' would be called i.e. for Thing.t *)
-  ; object_enc : [ `Raw of string | `Qualified of string ] (* what 'enc' would be called *)
+  ; object_container : string option (* we only deal with one container: t list  *)
+  ; object_enc : [ `Cyclic of string | `Raw of string | `Qualified of string ] (* what 'enc' would be called *)
   ; object_fields : t list
   } [@@deriving show, eq ]
 
@@ -74,12 +75,14 @@ module Field = struct
   let test_data () =
     let object_name = "Thing" in
     let object_t = "t" in
+    let object_container = None in
     let object_enc = `Qualified "enc" in
     let object_fields = [
       { field_name="variables";
         field_dirty_name="_variables_";
         field_type=`Struct {object_name="Irmin.Contents.Json_value";
                             object_t="t";
+                            object_container=None;
                             object_enc = `Qualified "json";
                             object_fields=[]};
         field_presence=`Opt;
@@ -96,9 +99,18 @@ module Field = struct
                              builtin_enc="bool"};
         field_presence=`Opt;
         field_index=3 };
+      { field_name="things";
+        field_dirty_name="things in a list";
+        field_type=`Struct {object_name="Thing";
+                            object_t="t";
+                            object_container=Some "list";
+                            object_enc = `Cyclic "list";
+                            object_fields=[]};
+        field_presence=`Opt;
+        field_index=4 };
     ]
     in
-    {object_name; object_t; object_enc; object_fields}
+    {object_name; object_t; object_container; object_enc; object_fields}
 end
 
 module type PP_struct = sig
@@ -159,7 +171,9 @@ module Stanza_t_struct : PP_struct = struct
       match field_type with
       | `Builtin {builtin_name; _} ->
         Fmt.str "%s : %s %s" field_name builtin_name presence
-      | `Struct {object_name; object_t; _} ->
+      | `Struct {object_container=Some c; object_t; _} ->
+        Fmt.str "%s : %s %s %s" field_name object_t c presence
+      | `Struct {object_container=None; object_name; object_t; _} ->
         Fmt.str "%s : %s.%s %s" field_name object_name object_t presence
       )
 
@@ -182,7 +196,8 @@ module Stanza_t_struct : PP_struct = struct
       type t = {
       format : string ;
       variables : Irmin.Contents.Json_value.t option;
-      sendTelemetry : bool option
+      sendTelemetry : bool option;
+      things : t list option
       }
       [@@deriving irmin]
 
@@ -215,7 +230,9 @@ module Stanza_make_sig : PP_struct = struct
       match field_type with
       | `Builtin {builtin_name; _} ->
         Fmt.str "%s%s : %s" presence field_name builtin_name
-      | `Struct {object_name; object_t; _} ->
+      | `Struct {object_container=Some c; object_t; _} ->
+        Fmt.str "%s%s : %s %s" presence field_name object_t c
+      | `Struct {object_container=None; object_name; object_t; _} ->
         Fmt.str "%s%s : %s.%s" presence field_name object_name object_t
       )
 
@@ -234,6 +251,7 @@ module Stanza_make_sig : PP_struct = struct
       format : string ->
       ?variables : Irmin.Contents.Json_value.t ->
       ?sendTelemetry : bool ->
+      ?things : t list ->
       unit ->
       t |}]
 
@@ -271,8 +289,8 @@ module Stanza_make_struct : PP_struct = struct
     let grp = Field.test_data () in
     print_endline @@ Format.asprintf "%a" pp grp;
     [%expect {|
-      let make ~format ?variables ?sendTelemetry () =
-      {format; variables; sendTelemetry} |}]
+      let make ~format ?variables ?sendTelemetry ?things () =
+      {format; variables; sendTelemetry; things} |}]
 
 end
 
@@ -294,7 +312,9 @@ module Stanza_getters_sig : PP_struct = struct
         match field_type with
         | `Builtin {builtin_name; _} ->
           Fmt.str "val %s : %s -> %s %s" field_name object_t builtin_name presence
-        | `Struct {object_name; object_t; _} ->
+        | `Struct {object_container=Some c; object_t; _} ->
+          Fmt.str "val %s : %s -> %s %s %s" field_name object_t object_t c presence
+        | `Struct {object_container=None; object_t; object_name; _} ->
           Fmt.str "val %s : %s -> %s.%s %s" field_name object_t object_name object_t presence
       )
 
@@ -313,7 +333,9 @@ module Stanza_getters_sig : PP_struct = struct
 
       val variables : t -> Irmin.Contents.Json_value.t option
 
-      val sendTelemetry : t -> bool option |}]
+      val sendTelemetry : t -> bool option
+
+      val things : t -> t list option |}]
 
 end
 
@@ -349,7 +371,9 @@ module Stanza_getter_struct : PP_struct = struct
 
       let variables t = t.variables
 
-      let sendTelemetry t = t.sendTelemetry |}]
+      let sendTelemetry t = t.sendTelemetry
+
+      let things t = t.things |}]
 
 end
 
@@ -390,6 +414,8 @@ module Stanza_enc_struct : PP_struct = struct
 
   type t = Field.object_
 
+  let mu_arg = "e"
+
   let pp_obj =
     let pp_field =
       let presence = function `Opt -> "opt" | `Req -> "req" in
@@ -400,6 +426,8 @@ module Stanza_enc_struct : PP_struct = struct
             Fmt.str "(%s \"%s\" %s)" (presence field_presence) field_dirty_name enc
           | Field.{field_presence; field_dirty_name; field_type=`Struct {object_name; object_enc=`Qualified enc; _}; _} ->
             Fmt.str "(%s \"%s\" %s.%s)" (presence field_presence) field_dirty_name object_name enc
+          | Field.{field_presence; field_dirty_name; field_type=`Struct {object_enc=`Cyclic enc; _}; _} ->
+            Fmt.str "(%s \"%s\" (%s %s))" (presence field_presence) field_dirty_name enc mu_arg
         )
     in
     Fmt.of_to_string (function Field.{object_fields; _} ->
@@ -419,19 +447,44 @@ module Stanza_enc_struct : PP_struct = struct
         Fmt.str "%s%a%s" (fst enclosing) pp_list fs (snd enclosing)
       )
 
+  (* NOTE only go one level deep *)
+  let has_cycle =
+    function Field.{object_fields; _} ->
+      List.exists
+        (function
+          | Field.{field_type=`Struct {object_enc=`Cyclic _; _}; _} -> true
+          | _ -> false
+        ) object_fields
+
   let pp =
     let pp_record = pp_fields ~sep:"; " ~enclosing:("{", "}") in
     let pp_tuple = pp_fields ~sep:", " ~enclosing:("(",")") in
-    Fmt.of_to_string (fun st ->
-        String.concat "\n" [
-          "let enc =";
-          "let open Data_encoding in";
-          "conv";
-          Fmt.str "(fun %a -> \n %a)" pp_record st pp_tuple st;
-          Fmt.str "(fun %a -> \n %a)" pp_tuple st pp_record st;
-          Fmt.str "%a" pp_obj st
-        ]
-      )
+    let pp_body =
+      Fmt.of_to_string (fun st ->
+          String.concat "\n" [
+            "conv";
+            Fmt.str "(fun %a -> \n %a)" pp_record st pp_tuple st;
+            Fmt.str "(fun %a -> \n %a)" pp_tuple st pp_record st;
+            Fmt.str "%a" pp_obj st;
+          ]
+        )
+    in
+    Fmt.of_to_string (
+      function
+        | st when has_cycle st ->
+          String.concat "\n" [
+            "let enc =";
+            "let open Data_encoding in";
+            Fmt.str "mu \"%s.%s\" (fun e -> %a)" st.object_name st.object_t pp_body st
+          ]
+        | st ->
+          String.concat "\n" [
+            "let enc =";
+            "let open Data_encoding in";
+            Fmt.str "%a" pp_body st
+          ]
+    )
+
 
   let%expect_test "Check Stanza_enc_struct" =
     let grp = Field.test_data () in
@@ -439,15 +492,16 @@ module Stanza_enc_struct : PP_struct = struct
     [%expect {|
       let enc =
       let open Data_encoding in
-      conv
-      (fun {format; variables; sendTelemetry} ->
-       (format, variables, sendTelemetry))
-      (fun (format, variables, sendTelemetry) ->
-       {format; variables; sendTelemetry})
-      (obj3
+      mu "Thing.t" (fun e -> conv
+      (fun {format; variables; sendTelemetry; things} ->
+       (format, variables, sendTelemetry, things))
+      (fun (format, variables, sendTelemetry, things) ->
+       {format; variables; sendTelemetry; things})
+      (obj4
       (req "format_" string)
       (opt "_variables_" Irmin.Contents.Json_value.json)
-      (opt "sendTelemetry_" bool)) |}]
+      (opt "sendTelemetry_" bool)
+      (opt "things in a list" (list e)))) |}]
 end
 
 
