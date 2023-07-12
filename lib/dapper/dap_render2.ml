@@ -5,6 +5,46 @@ module EventHelper = Dap_dfs.EventHelper
 module Dfs = Dap_dfs.Dfs
 
 (* TODO want to be able to easily add new derivings *)
+
+module Enum = struct
+
+  type t = {
+    element_name : string
+  ; element_dirty_name : string
+  ; element_index : int
+  } [@@deriving show, eq]
+
+  and enum = {
+    enum_name : string
+  ; enum_t : string
+  ; enum_enc : string
+  ; enum_type : [ `Open | `Closed ] (* whether it allows for `| Other of string` *)
+  ; enum_elements : t list
+  }
+
+  let ordered_elements els =
+    els
+    |> List.sort (fun x y -> compare x.element_index y.element_index)
+
+  let test_data ~enum_type () =
+    let enum_name = "Stopped_event_enum" in
+    let enum_t = "t" in
+    let enum_enc = "enc" in
+    let enum_elements = [
+      {element_name="Breakpoint";
+       element_dirty_name="breakpoint";
+       element_index=1};
+      {element_name="Step";
+       element_dirty_name="step";
+       element_index=0};
+      {element_name="Exception";
+       element_dirty_name="exception";
+       element_index=2};
+      ] in
+    {enum_name; enum_t; enum_enc; enum_type; enum_elements}
+
+end
+
 module Field = struct
 
   type t = {
@@ -62,13 +102,16 @@ module Field = struct
 end
 
 module type PP_struct = sig
-  val pp : Format.formatter -> Field.object_ -> unit
+  type t
+  val pp : Format.formatter -> t -> unit
 end
 
 (* NOTE these @@ are awkard when used directly in format string *)
 let deriving_str = "@@deriving"
 
 module Stanza_t_sig : PP_struct = struct
+
+  type t = Field.object_
 
   (* TODO compose in the deriving irmin *)
   let pp =
@@ -108,6 +151,7 @@ module Stanza_t_struct : PP_struct = struct
   (* let equal = Irmin.Type.(unstage (equal t)) *)
   (* let merge = Irmin.Merge.(option (idempotent t)) *)
 
+  type t = Field.object_
 
   let pp_field =
     Fmt.of_to_string (function Field.{field_name; field_type; field_presence; _} ->
@@ -162,6 +206,9 @@ module Stanza_make_sig : PP_struct = struct
       unit ->
       t
 *)
+
+  type t = Field.object_
+
   let pp_field =
     Fmt.of_to_string (function Field.{field_name; field_type; field_presence; _} ->
       let presence = match field_presence with | `Opt -> "?" | `Req -> "" in
@@ -198,6 +245,9 @@ module Stanza_make_struct : PP_struct = struct
     let make ~id ~format ?variables ?sendTelemetry ?showUser ?url ?urlLabel () =
       {id; format; variables; sendTelemetry; showUser; url; urlLabel}
 *)
+
+  type t = Field.object_
+
   let pp_field_upper =
     Fmt.of_to_string (function Field.{field_name; field_presence; _} ->
         let presence = match field_presence with | `Opt -> "?" | `Req -> "~" in
@@ -235,6 +285,9 @@ module Stanza_getters_sig : PP_struct = struct
 
     val variables : t -> Irmin.Contents.Json_value.t option
 *)
+
+  type t = Field.object_
+
   let pp_field ~object_t =
     Fmt.of_to_string (function Field.{field_name; field_type; field_presence; _} ->
         let presence = match field_presence with | `Opt -> "option" | `Req -> "" in
@@ -273,6 +326,9 @@ module Stanza_getter_struct : PP_struct = struct
 
     let variables t = t.variables
 *)
+
+  type t = Field.object_
+
   let pp_field ~object_t =
     Fmt.of_to_string (function Field.{field_name; _} ->
         Fmt.str "let %s %s = %s.%s" field_name object_t object_t field_name
@@ -298,6 +354,8 @@ module Stanza_getter_struct : PP_struct = struct
 end
 
 module Stanza_enc_sig : PP_struct = struct
+
+  type t = Field.object_
 
   let pp =
     Fmt.of_to_string (function Field.{object_t; _} ->
@@ -329,6 +387,8 @@ module Stanza_enc_struct : PP_struct = struct
   (*        (opt "showUser" bool) *)
   (*        (opt "url" string) *)
   (*        (opt "urlLabel" string)) *)
+
+  type t = Field.object_
 
   let pp_obj =
     let pp_field =
@@ -391,6 +451,135 @@ module Stanza_enc_struct : PP_struct = struct
 end
 
 
+(* NOTE dont need a sig for the enum types, inferred one is fine *)
+module Stanza_enum_t_struct : PP_struct = struct
+
+  type t = Enum.enum
+
+  let pp =
+    Fmt.of_to_string (function Enum.{enum_t; enum_elements; enum_type; _} ->
+        let pp_element =
+          Fmt.of_to_string (function Enum.{element_name; _} ->
+              Fmt.str "| %s" element_name
+            )
+        in
+        let pp_elements =
+          Fmt.list ~sep:(Fmt.any "\n") pp_element
+        in
+        let elements = Enum.ordered_elements enum_elements in
+        let deriving = Fmt.str "[%s eq]" deriving_str in
+        let last = function
+          | `Open -> ["| Other of string"; deriving]
+          | `Closed -> [deriving]
+        in
+        String.concat "\n" @@ List.concat [
+          [Fmt.str "type %s =" enum_t;
+           Fmt.str "%a" pp_elements elements];
+          last enum_type
+        ]
+      )
+
+  let%expect_test "Check Stanza_enum_t_struct Open" =
+    let grp = Enum.test_data ~enum_type:`Open () in
+    print_endline @@ Format.asprintf "%a" pp grp;
+    [%expect {|
+      type t =
+      | Step
+      | Breakpoint
+      | Exception
+      | Other of string
+      [@@deriving eq] |}]
+
+  let%expect_test "Check Stanza_enum_t_struct Closed" =
+    let grp = Enum.test_data ~enum_type:`Closed () in
+    print_endline @@ Format.asprintf "%a" pp grp;
+    [%expect {|
+      type t =
+      | Step
+      | Breakpoint
+      | Exception
+      [@@deriving eq] |}]
+
+end
+
+module Stanza_enum_enc_struct : PP_struct = struct
+
+  type t = Enum.enum
+
+  let pp =
+    Fmt.of_to_string (function Enum.{enum_name; enum_enc; enum_elements; enum_type; _} ->
+        let pp_name_to_dirty =
+          Fmt.of_to_string (function Enum.{element_name; element_dirty_name; _} ->
+              Fmt.str "| %s -> \"%s\"" element_name element_dirty_name
+            )
+        in
+        let last1 = function
+          | `Open -> "| Other s -> s"
+          | `Closed -> ""
+        in
+        let pp_dirty_to_name =
+          Fmt.of_to_string (function Enum.{element_name; element_dirty_name; _} ->
+              Fmt.str "| \"%s\" -> Ok %s" element_dirty_name element_name
+            )
+        in
+        let last2 = function
+          | `Open -> "| _ as s -> Ok (Other s)"
+          | `Closed -> Fmt.str "| _ -> Error \"%s\"" enum_name
+        in
+        let pp_elements pp_ =
+          Fmt.list ~sep:(Fmt.any "\n") pp_
+        in
+
+        let elements = Enum.ordered_elements enum_elements in
+        String.concat "\n" [
+          Fmt.str "let %s =" enum_enc;
+          "let open Data_encoding in ";
+          "conv_with_guard";
+          Fmt.str "(function\n%a\n%s)" (pp_elements pp_name_to_dirty) elements (last1 enum_type);
+          Fmt.str "(function\n%a\n%s)" (pp_elements pp_dirty_to_name) elements (last2 enum_type);
+          "string"
+        ]
+      )
+
+  let%expect_test "Check Stanza_enum_enc_struct Open" =
+    let grp = Enum.test_data ~enum_type:`Open () in
+    print_endline @@ Format.asprintf "%a" pp grp;
+    [%expect {|
+      let enc =
+      let open Data_encoding in
+      conv_with_guard
+      (function
+      | Step -> "step"
+      | Breakpoint -> "breakpoint"
+      | Exception -> "exception"
+      | Other s -> s)
+      (function
+      | "step" -> Ok Step
+      | "breakpoint" -> Ok Breakpoint
+      | "exception" -> Ok Exception
+      | _ as s -> Ok (Other s))
+      string |}]
+
+  let%expect_test "Check Stanza_enum_enc_struct Closed" =
+    let grp = Enum.test_data ~enum_type:`Closed () in
+    print_endline @@ Format.asprintf "%a" pp grp;
+    [%expect {|
+      let enc =
+      let open Data_encoding in
+      conv_with_guard
+      (function
+      | Step -> "step"
+      | Breakpoint -> "breakpoint"
+      | Exception -> "exception"
+      )
+      (function
+      | "step" -> Ok Step
+      | "breakpoint" -> Ok Breakpoint
+      | "exception" -> Ok Exception
+      | _ -> Error "Stopped_event_enum")
+      string |}]
+
+end
   (* Stanza.t represents the stanzas for
    part of a type t, part of an encoding,
    part of a make func, part of the getter.
