@@ -937,16 +937,22 @@ module Printer_object_big = struct
         pp_ts objs
       )
 
-  let pp ~max_fields =
-    Fmt.of_to_string (function o ->
-        Fmt.str
-          "module %s : sig\n%a\nend = struct\n%a\n%a\n\n%a\n\n%a\nend"
-          o.Field.object_name
-          pp_sig o
+  let pp_struct ~max_fields =
+    Fmt.of_to_string (fun o ->
+        Fmt.str "%a\n%a\n\n%a\n\n%a"
           (pp_inner_structs ~max_fields) o
           (pp_ts ~max_fields) o
           (pp_encs ~max_fields) o
           (pp_makes ~max_fields) o
+      )
+
+  let pp ~max_fields =
+    Fmt.of_to_string (function o ->
+        Fmt.str
+          "module %s : sig\n%a\nend = struct\n%a\nend"
+          o.Field.object_name
+          pp_sig o
+          (pp_struct ~max_fields) o
       )
 
   let%expect_test "Check Printer_object_big" =
