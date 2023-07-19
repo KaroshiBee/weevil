@@ -940,13 +940,43 @@ module Printer_object_big = struct
         pp_ts objs
       )
 
+  let pp_getters ~max_fields = Fmt.of_to_string (function o ->
+    let objs = grouping max_fields o in
+
+    let pp_t = Fmt.of_to_string (fun Field.{object_name; _} ->
+        Fmt.str "_t_%s" object_name
+      )
+    in
+    let pp_ts = Fmt.of_to_string (aux_brkts ~sep:"," ~pp:pp_t) in
+
+    let pp_field ~obj=
+      Fmt.of_to_string (function Field.{field_name; _} ->
+          Fmt.str "let %s %a =\n  %s.%s %a"
+            field_name
+            pp_ts objs
+            obj.Field.object_name
+            field_name
+            pp_t obj
+        )
+    in
+
+    let pp_fields =
+      Fmt.of_to_string (function Field.{object_fields; _} as o ->
+          Fmt.str "%a" (Fmt.list ~sep:(Fmt.any "\n\n") @@ pp_field ~obj:o) object_fields
+        )
+    in
+
+    Fmt.str "%a" (Fmt.list ~sep:(Fmt.any "\n\n") pp_fields) objs
+    )
+
   let pp_struct ~max_fields =
     Fmt.of_to_string (fun o ->
-        Fmt.str "%a\n%a\n\n%a\n\n%a"
+        Fmt.str "%a\n%a\n\n%a\n\n%a\n\n%a"
           (pp_inner_structs ~max_fields) o
           (pp_ts ~max_fields) o
           (pp_encs ~max_fields) o
           (pp_makes ~max_fields) o
+          (pp_getters ~max_fields) o
       )
 
   let pp ~max_fields =
@@ -1207,6 +1237,30 @@ module Printer_object_big = struct
        in
 
       (t_Big_thing_0, (t_Big_thing_3, t_Big_thing_6))
+
+      let format0 (_t_Big_thing_0, (_t_Big_thing_3, _t_Big_thing_6)) =
+        Big_thing_0.format0 _t_Big_thing_0
+
+      let format1 (_t_Big_thing_0, (_t_Big_thing_3, _t_Big_thing_6)) =
+        Big_thing_0.format1 _t_Big_thing_0
+
+      let format2 (_t_Big_thing_0, (_t_Big_thing_3, _t_Big_thing_6)) =
+        Big_thing_0.format2 _t_Big_thing_0
+
+      let format3 (_t_Big_thing_0, (_t_Big_thing_3, _t_Big_thing_6)) =
+        Big_thing_3.format3 _t_Big_thing_3
+
+      let format4 (_t_Big_thing_0, (_t_Big_thing_3, _t_Big_thing_6)) =
+        Big_thing_3.format4 _t_Big_thing_3
+
+      let format5 (_t_Big_thing_0, (_t_Big_thing_3, _t_Big_thing_6)) =
+        Big_thing_3.format5 _t_Big_thing_3
+
+      let format6 (_t_Big_thing_0, (_t_Big_thing_3, _t_Big_thing_6)) =
+        Big_thing_6.format6 _t_Big_thing_6
+
+      let format7 (_t_Big_thing_0, (_t_Big_thing_3, _t_Big_thing_6)) =
+        Big_thing_6.format7 _t_Big_thing_6
       end |}]
 
 end
