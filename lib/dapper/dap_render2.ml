@@ -409,17 +409,22 @@ module Stanza_enc_struct = struct
   let pp_obj =
     let pp_field =
       let presence = function `Opt -> "opt" | `Req -> "req" in
+      let container field_container = match field_container with None -> "" | Some l -> l in
       Fmt.of_to_string (function
-          | Field.{field_presence; field_dirty_name; field_type=`Builtin {builtin_enc; _}; _} ->
-            Fmt.str "(%s \"%s\" %s)" (presence field_presence) field_dirty_name builtin_enc
-          | Field.{field_presence; field_dirty_name; field_type=`Struct {object_enc=`Raw enc; _}; _} ->
-            Fmt.str "(%s \"%s\" %s)" (presence field_presence) field_dirty_name enc
-          | Field.{field_presence; field_dirty_name; field_type=`Struct {object_name; object_enc=`Qualified enc; _}; _} ->
-            Fmt.str "(%s \"%s\" %s.%s)" (presence field_presence) field_dirty_name object_name enc
+          | Field.{field_presence; field_container; field_dirty_name; field_type=`Builtin {builtin_enc; _}; _} ->
+            Fmt.str "(%s \"%s\" (%s %s))" (presence field_presence) field_dirty_name (container field_container) builtin_enc
+
+          | Field.{field_presence; field_container; field_dirty_name; field_type=`Struct {object_enc=`Raw enc; _}; _} ->
+            Fmt.str "(%s \"%s\" (%s %s))" (presence field_presence) field_dirty_name (container field_container) enc
+
+          | Field.{field_presence; field_container; field_dirty_name; field_type=`Struct {object_name; object_enc=`Qualified enc; _}; _} ->
+            Fmt.str "(%s \"%s\" (%s %s.%s))" (presence field_presence) field_dirty_name (container field_container) object_name enc
+
           | Field.{field_presence; field_dirty_name; field_type=`Struct {object_enc=`Cyclic enc; _}; _} ->
             Fmt.str "(%s \"%s\" (%s %s))" (presence field_presence) field_dirty_name enc mu_arg
-          | Field.{field_presence; field_dirty_name; field_type=`Enum {enum_name; enum_enc; _}; _} ->
-            Fmt.str "(%s \"%s\" %s.%s)" (presence field_presence) field_dirty_name enum_name enum_enc
+
+          | Field.{field_presence; field_container; field_dirty_name; field_type=`Enum {enum_name; enum_enc; _}; _} ->
+            Fmt.str "(%s \"%s\" (%s %s.%s))" (presence field_presence) field_dirty_name (container field_container) enum_name enum_enc
         )
     in
     Fmt.of_to_string (function Field.{object_fields; _} ->
@@ -482,11 +487,11 @@ module Stanza_enc_struct = struct
       (fun (format, variables, sendTelemetry, things, stuff) ->
        {format; variables; sendTelemetry; things; stuff})
       (obj5
-      (req "format_" string)
-      (opt "_variables_" Irmin.Contents.Json_value.json)
-      (opt "sendTelemetry_" bool)
+      (req "format_" (list string))
+      (opt "_variables_" ( Irmin.Contents.Json_value.json))
+      (opt "sendTelemetry_" ( bool))
       (opt "things in a list" (list e))
-      (opt "stuff" Stopped_event_enum.enc))) |}]
+      (opt "stuff" ( Stopped_event_enum.enc)))) |}]
 end
 
 
@@ -786,11 +791,11 @@ module Printer_object = struct
       (fun (format, variables, sendTelemetry, things, stuff) ->
        {format; variables; sendTelemetry; things; stuff})
       (obj5
-      (req "format_" string)
-      (opt "_variables_" Irmin.Contents.Json_value.json)
-      (opt "sendTelemetry_" bool)
+      (req "format_" (list string))
+      (opt "_variables_" ( Irmin.Contents.Json_value.json))
+      (opt "sendTelemetry_" ( bool))
       (opt "things in a list" (list e))
-      (opt "stuff" Stopped_event_enum.enc)))
+      (opt "stuff" ( Stopped_event_enum.enc))))
 
       let format t = t.format
 
@@ -979,7 +984,7 @@ module Printer_object_big = struct
           (pp_getters ~max_fields) o
       )
 
-  let pp ~max_fields =
+  let pp_module ~max_fields =
     Fmt.of_to_string (function o ->
         Fmt.str
           "module %s : sig\n%a\nend = struct\n%a\nend"
@@ -987,6 +992,8 @@ module Printer_object_big = struct
           pp_sig o
           (pp_struct ~max_fields) o
       )
+
+  let pp = pp_module ~max_fields:10
 
   let%expect_test "Check Printer_object_big" =
     let test_data () = Field.(
@@ -1009,7 +1016,7 @@ module Printer_object_big = struct
     in
 
     let grp = test_data () in
-    print_endline @@ Format.asprintf "%a" (pp ~max_fields:3) grp;
+    print_endline @@ Format.asprintf "%a" (pp_module ~max_fields:3) grp;
     [%expect {|
       module Big_thing : sig
       type t [@@deriving irmin]
@@ -1093,9 +1100,9 @@ module Printer_object_big = struct
       (fun (format0, format1, format2) ->
        {format0; format1; format2})
       (obj3
-      (req "format_0" string)
-      (req "format_1" string)
-      (req "format_2" string))
+      (req "format_0" (list string))
+      (req "format_1" (list string))
+      (req "format_2" (list string)))
 
       let format0 t = t.format0
 
@@ -1149,9 +1156,9 @@ module Printer_object_big = struct
       (fun (format3, format4, format5) ->
        {format3; format4; format5})
       (obj3
-      (req "format_3" string)
-      (req "format_4" string)
-      (req "format_5" string))
+      (req "format_3" (list string))
+      (req "format_4" (list string))
+      (req "format_5" (list string)))
 
       let format3 t = t.format3
 
@@ -1201,8 +1208,8 @@ module Printer_object_big = struct
       (fun (format6, format7) ->
        {format6; format7})
       (obj2
-      (req "format_6" string)
-      (req "format_7" string))
+      (req "format_6" (list string))
+      (req "format_7" (list string)))
 
       let format6 t = t.format6
 
