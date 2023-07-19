@@ -189,21 +189,24 @@ module Stanza_t_struct = struct
           Fmt.str "%s : %s.%s %s %s" field_name enum_name enum_t container presence
       )
 
-  let pp =
+  let pp ~with_irmin =
     Fmt.of_to_string (function Field.{object_fields; object_t; _} ->
         let fields = Field.ordered_fields object_fields in
         let pp_fields = Fmt.list ~sep:(Fmt.any ";\n") pp_field in
-        let ss = [
-          Fmt.str "type %s = {\n%a\n}\n[%s irmin]" object_t pp_fields fields deriving_str;
-          Fmt.str "let equal = Irmin.Type.(unstage (equal %s))" object_t;
-          Fmt.str "let merge = Irmin.Merge.(option (idempotent %s))" object_t;
-        ] in
+        let ss = if with_irmin then [
+            Fmt.str "type %s = {\n%a\n}\n[%s irmin]" object_t pp_fields fields deriving_str;
+            Fmt.str "let equal = Irmin.Type.(unstage (equal %s))" object_t;
+            Fmt.str "let merge = Irmin.Merge.(option (idempotent %s))" object_t;
+          ] else
+            [
+              Fmt.str "type %s = {\n%a\n}\n" object_t pp_fields fields;
+            ]            in
         String.concat "\n\n" ss
       )
 
   let%expect_test "Check Stanza_struct" =
     let grp = Field.test_data () in
-    print_endline @@ Format.asprintf "%a" pp grp;
+    print_endline @@ Format.asprintf "%a" (pp ~with_irmin:true) grp;
     [%expect {|
       type t = {
       format : string list ;
@@ -717,25 +720,29 @@ module Printer_object = struct
         ]
       )
 
-  let pp_struct =
+  let pp_struct ~with_irmin =
     Fmt.of_to_string (function o ->
         String.concat "\n\n" [
-          Fmt.str "%a" Stanza_t_struct.pp o;
+          Fmt.str "%a" (Stanza_t_struct.pp ~with_irmin) o;
           Fmt.str "%a" Stanza_make_struct.pp o;
           Fmt.str "%a" Stanza_enc_struct.pp o;
           Fmt.str "%a" Stanza_getters_struct.pp o;
         ]
       )
 
-  let pp =
+  let pp ~with_irmin =
     Fmt.of_to_string (function o ->
-        Fmt.str "module %s : sig\n%a\nend = struct\n%a\nend"
-          o.Field.object_name pp_sig o pp_struct o
+        if with_irmin then
+          Fmt.str "module %s : sig\n%a\nend = struct\n%a\nend"
+            o.Field.object_name pp_sig o (pp_struct ~with_irmin) o
+        else
+          Fmt.str "module %s = struct\n%a\nend"
+            o.Field.object_name (pp_struct ~with_irmin) o
       )
 
   let%expect_test "Check Printer_object" =
     let grp = Field.test_data () in
-    print_endline @@ Format.asprintf "%a" pp grp;
+    print_endline @@ Format.asprintf "%a" (pp ~with_irmin:true) grp;
     [%expect {|
       module Thing : sig
       type t [@@deriving irmin]
@@ -860,20 +867,49 @@ module Printer_object_big = struct
 
   let pp_inner_structs ~max_fields fmt o =
     let objs = grouping max_fields o in
-    Fmt.list ~sep:(Fmt.any "\n\n") Printer_object.pp fmt objs
+    Fmt.list ~sep:(Fmt.any "\n\n") (Printer_object.pp ~with_irmin:true) fmt objs
 
   let pp_ts ~max_fields =
     let pp_t =
-      Fmt.of_to_string (function Field.{object_name; object_t; _} ->
-          Fmt.str "%s.%s" object_name object_t
+      let pp =
+        Fmt.of_to_string (function Field.{object_name; object_t; _} ->
+            Fmt.str "%s.%s" object_name object_t
+          )
+      in
+      Fmt.of_to_string (aux_brkts ~sep:" *" ~pp)
+    in
+    let pp_arg ~tok =
+      let pp =
+        Fmt.of_to_string (function Field.{object_name; _} ->
+            Fmt.str "%s_%s" tok object_name
+          )
+      in
+      Fmt.of_to_string (aux_brkts ~sep:"," ~pp)
+    in
+(* -      let equal (s0, (s3, s6)) (t0, (t3, t6)) = *)
+(* -      Big_thing_0.equal s0 t0 *)
+(* -      && Big_thing_3.equal s3 t3 *)
+(* -      && Big_thing_6.equal s6 t6 *)
+
+    let pp_line ~tok1 ~tok2 =
+      let pp ~tok =
+        Fmt.of_to_string (function Field.{object_name; _} ->
+            Fmt.str "%s_%s" tok object_name
+          )
+      in
+      Fmt.of_to_string (function Field.{object_name; _} as o->
+          Fmt.str "%s.equal %a %a" object_name (pp ~tok:tok1) o (pp ~tok:tok2) o
         )
     in
-    let pp = Fmt.of_to_string (aux_brkts ~sep:" *" ~pp:pp_t) in
+
     Fmt.of_to_string (fun o ->
         let objs = grouping max_fields o in
         let ss = [
-          Fmt.str "type %s = %a\n[%s irmin]" o.object_t pp objs deriving_str;
-          Fmt.str "let equal = Irmin.Type.(unstage (equal %s))" o.object_t;
+          Fmt.str "type %s = %a\n[%s irmin]" o.object_t pp_t objs deriving_str;
+          Fmt.str "let equal\n%a\n%a = \n%a"
+            (pp_arg ~tok:"s") objs
+            (pp_arg ~tok:"t") objs
+            (Fmt.list ~sep:(Fmt.any "\n && ") (pp_line ~tok1:"s" ~tok2:"t")) objs;
           Fmt.str "let merge = Irmin.Merge.(option (idempotent %s))" o.object_t;
         ] in
         String.concat "\n\n" ss
@@ -883,14 +919,15 @@ module Printer_object_big = struct
     let pp_enc =
       Fmt.of_to_string (function Field.{object_name; _} ->
           Fmt.str "%s.enc" object_name
-        ) in
+        )
+    in
     let rec aux =
-      let atat = "@@" in
+      let sep = "@@" in
       function
       | x :: [y] -> Fmt.str "merge_objs %a %a" pp_enc x pp_enc y
       | ln :: rest ->
         let lns = aux rest in
-        Fmt.str "merge_objs %a \n%s %s" pp_enc ln atat lns
+        Fmt.str "merge_objs %a \n%s %s" pp_enc ln sep lns
       | [] -> ""
     in
     let pp = Fmt.of_to_string aux in
@@ -1218,7 +1255,12 @@ module Printer_object_big = struct
       type t = (Big_thing_0.t * (Big_thing_3.t * Big_thing_6.t))
       [@@deriving irmin]
 
-      let equal = Irmin.Type.(unstage (equal t))
+      let equal
+      (s_Big_thing_0, (s_Big_thing_3, s_Big_thing_6))
+      (t_Big_thing_0, (t_Big_thing_3, t_Big_thing_6)) =
+      Big_thing_0.equal s_Big_thing_0 t_Big_thing_0
+       && Big_thing_3.equal s_Big_thing_3 t_Big_thing_3
+       && Big_thing_6.equal s_Big_thing_6 t_Big_thing_6
 
       let merge = Irmin.Merge.(option (idempotent t))
 
