@@ -395,24 +395,6 @@ end
 
 module Stanza_enc_struct = struct
 
-  (* e.g. *)
-  (* let enc = *)
-  (*   let open Data_encoding in *)
-  (*   (\* Message.t *\) *)
-  (*   conv *)
-  (*     (fun {id; format; variables; sendTelemetry; showUser; url; urlLabel} -> *)
-  (*       (id, format, variables, sendTelemetry, showUser, url, urlLabel)) *)
-  (*     (fun (id, format, variables, sendTelemetry, showUser, url, urlLabel) -> *)
-  (*       {id; format; variables; sendTelemetry; showUser; url; urlLabel}) *)
-  (*     (obj7 *)
-  (*        (req "id" int31) *)
-  (*        (req "format" string) *)
-  (*        (opt "variables" Irmin.Contents.Json_value.json) *)
-  (*        (opt "sendTelemetry" bool) *)
-  (*        (opt "showUser" bool) *)
-  (*        (opt "url" string) *)
-  (*        (opt "urlLabel" string)) *)
-
   let mu_arg = "e"
 
   let pp_obj =
@@ -822,3 +804,399 @@ module Printer_object = struct
       end |}]
 
 end
+
+
+module Printer_object_big = struct
+  (* for when there are more than 10 fields
+     Data_encoding only deals with encoders of max 10 fields,
+     so need to work around that with inner modules *)
+
+  (* NOTE the sig is the same as for small objects *)
+  let pp_sig =
+    Fmt.of_to_string (function o ->
+        String.concat "\n\n" [
+          Fmt.str "%a" Stanza_t_sig.pp o;
+          Fmt.str "%a" Stanza_make_sig.pp o;
+          Fmt.str "%a" Stanza_enc_sig.pp o;
+          Fmt.str "%a" Stanza_getters_sig.pp o;
+        ]
+      )
+
+  let grouping max_fields =
+    function Field.{object_name; object_fields; _} as o ->
+      let n = List.length object_fields in
+      let ngroups = 1 + (n / max_fields) in
+      let prs = List.init ngroups (fun i -> (i*max_fields, max_fields)) in
+      let objs =
+        prs
+        |> List.map (fun (start_i, length) ->
+            let n = min length @@ List.length object_fields - start_i in
+            let object_fields = Array.(
+                let arr = of_list object_fields in
+                sub arr start_i n |> to_list
+              )
+            in
+            let object_name = Fmt.str "%s_%d" object_name start_i in
+            {o with object_name; object_fields}
+          )
+      in
+      objs
+
+  (* need to group into bracketed pairs *)
+  let rec aux_brkts ~sep ~pp = function
+    | x :: [y] -> Fmt.str "(%a%s %a)" pp x sep pp y
+    | ln :: rest ->
+      let lns = aux_brkts ~sep ~pp rest in
+      Fmt.str "(%a%s %s)" pp ln sep lns
+    | [] -> ""
+
+  let pp_inner_structs ~max_fields fmt o =
+    let objs = grouping max_fields o in
+    Fmt.list ~sep:(Fmt.any "\n\n") Printer_object.pp fmt objs
+
+  let pp_ts ~max_fields =
+    let pp_t =
+      Fmt.of_to_string (function Field.{object_name; object_t; _} ->
+          Fmt.str "%s.%s" object_name object_t
+        )
+    in
+    let pp = Fmt.of_to_string (aux_brkts ~sep:" *" ~pp:pp_t) in
+    Fmt.of_to_string (fun o ->
+        let objs = grouping max_fields o in
+        let ss = [
+          Fmt.str "type %s = %a\n[%s irmin]" o.object_t pp objs deriving_str;
+          Fmt.str "let equal = Irmin.Type.(unstage (equal %s))" o.object_t;
+          Fmt.str "let merge = Irmin.Merge.(option (idempotent %s))" o.object_t;
+        ] in
+        String.concat "\n\n" ss
+      )
+
+  let pp_encs ~max_fields =
+    let pp_enc =
+      Fmt.of_to_string (function Field.{object_name; _} ->
+          Fmt.str "%s.enc" object_name
+        ) in
+    let rec aux =
+      let atat = "@@" in
+      function
+      | x :: [y] -> Fmt.str "merge_objs %a %a" pp_enc x pp_enc y
+      | ln :: rest ->
+        let lns = aux rest in
+        Fmt.str "merge_objs %a \n%s %s" pp_enc ln atat lns
+      | [] -> ""
+    in
+    let pp = Fmt.of_to_string aux in
+    Fmt.of_to_string (fun o ->
+        let objs = grouping max_fields o in
+        let ss = [
+          Fmt.str "let enc = ";
+          Fmt.str "let open Data_encoding in ";
+          Fmt.str "%a" pp objs;
+        ] in
+        String.concat "\n" ss
+      )
+
+  let pp_makes ~max_fields =
+    let pp_args =
+      Fmt.list ~sep:(Fmt.any " ") Stanza_make_struct.pp_field_upper
+    in
+
+    let pp_make =
+      Fmt.of_to_string (fun o ->
+          let all_fields = Field.ordered_fields o.Field.object_fields in
+          Fmt.str "let make %a () = " pp_args all_fields
+        )
+    in
+
+    let pp_t =
+      Fmt.of_to_string (
+        function Field.{object_name; _} ->
+          Fmt.str "t_%s" object_name
+      )
+    in
+
+    let pp_ts =
+      Fmt.of_to_string (aux_brkts ~sep:"," ~pp:pp_t)
+    in
+
+    let pp_inner =
+      Fmt.of_to_string (function Field.{object_name; object_fields; _} as o ->
+          let all_fields = Field.ordered_fields object_fields in
+          Fmt.str "let %a =\n%s.make \n%a ()\n in" pp_t o object_name pp_args all_fields
+        )
+    in
+
+    Fmt.of_to_string (fun o ->
+      let objs = grouping max_fields o in
+      Fmt.str "%a\n%a\n\n%a"
+        pp_make o
+        (Fmt.list ~sep:(Fmt.any "\n\n") pp_inner) objs
+        pp_ts objs
+      )
+
+  let pp ~max_fields =
+    Fmt.of_to_string (function o ->
+        Fmt.str
+          "module %s : sig\n%a\nend = struct\n%a\n%a\n\n%a\n\n%a\nend"
+          o.Field.object_name
+          pp_sig o
+          (pp_inner_structs ~max_fields) o
+          (pp_ts ~max_fields) o
+          (pp_encs ~max_fields) o
+          (pp_makes ~max_fields) o
+      )
+
+  let%expect_test "Check Printer_object_big" =
+    let test_data () = Field.(
+        let object_name = "Big_thing" in
+        let object_t = "t" in
+        let object_enc = `Qualified "enc" in
+        let object_fields =
+          List.init 8 (fun i ->
+              { field_name=Fmt.str "format%d" i;
+                field_dirty_name=Fmt.str "format_%d" i;
+                field_type=`Builtin {builtin_name="string";
+                                     builtin_enc="string"};
+                field_presence=`Req;
+                field_container=Some "list";
+                field_index=i };
+            )
+        in
+        {object_name; object_t; object_enc; object_fields}
+      )
+    in
+
+    let grp = test_data () in
+    print_endline @@ Format.asprintf "%a" (pp ~max_fields:3) grp;
+    [%expect {|
+      module Big_thing : sig
+      type t [@@deriving irmin]
+
+      val equal : t -> t -> bool
+
+      val merge : t option Irmin.Merge.t
+
+      val make :
+      format0 : string list ->
+      format1 : string list ->
+      format2 : string list ->
+      format3 : string list ->
+      format4 : string list ->
+      format5 : string list ->
+      format6 : string list ->
+      format7 : string list ->
+      unit ->
+      t
+
+      val enc : t Data_encoding.t
+
+      val format0 : t -> string list
+
+      val format1 : t -> string list
+
+      val format2 : t -> string list
+
+      val format3 : t -> string list
+
+      val format4 : t -> string list
+
+      val format5 : t -> string list
+
+      val format6 : t -> string list
+
+      val format7 : t -> string list
+      end = struct
+      module Big_thing_0 : sig
+      type t [@@deriving irmin]
+
+      val equal : t -> t -> bool
+
+      val merge : t option Irmin.Merge.t
+
+      val make :
+      format0 : string list ->
+      format1 : string list ->
+      format2 : string list ->
+      unit ->
+      t
+
+      val enc : t Data_encoding.t
+
+      val format0 : t -> string list
+
+      val format1 : t -> string list
+
+      val format2 : t -> string list
+      end = struct
+      type t = {
+      format0 : string list ;
+      format1 : string list ;
+      format2 : string list
+      }
+      [@@deriving irmin]
+
+      let equal = Irmin.Type.(unstage (equal t))
+
+      let merge = Irmin.Merge.(option (idempotent t))
+
+      let make ~format0 ~format1 ~format2 () =
+      {format0; format1; format2}
+
+
+      let enc =
+      let open Data_encoding in
+      conv
+      (fun {format0; format1; format2} ->
+       (format0, format1, format2))
+      (fun (format0, format1, format2) ->
+       {format0; format1; format2})
+      (obj3
+      (req "format_0" string)
+      (req "format_1" string)
+      (req "format_2" string))
+
+      let format0 t = t.format0
+
+      let format1 t = t.format1
+
+      let format2 t = t.format2
+      end
+
+      module Big_thing_3 : sig
+      type t [@@deriving irmin]
+
+      val equal : t -> t -> bool
+
+      val merge : t option Irmin.Merge.t
+
+      val make :
+      format3 : string list ->
+      format4 : string list ->
+      format5 : string list ->
+      unit ->
+      t
+
+      val enc : t Data_encoding.t
+
+      val format3 : t -> string list
+
+      val format4 : t -> string list
+
+      val format5 : t -> string list
+      end = struct
+      type t = {
+      format3 : string list ;
+      format4 : string list ;
+      format5 : string list
+      }
+      [@@deriving irmin]
+
+      let equal = Irmin.Type.(unstage (equal t))
+
+      let merge = Irmin.Merge.(option (idempotent t))
+
+      let make ~format3 ~format4 ~format5 () =
+      {format3; format4; format5}
+
+
+      let enc =
+      let open Data_encoding in
+      conv
+      (fun {format3; format4; format5} ->
+       (format3, format4, format5))
+      (fun (format3, format4, format5) ->
+       {format3; format4; format5})
+      (obj3
+      (req "format_3" string)
+      (req "format_4" string)
+      (req "format_5" string))
+
+      let format3 t = t.format3
+
+      let format4 t = t.format4
+
+      let format5 t = t.format5
+      end
+
+      module Big_thing_6 : sig
+      type t [@@deriving irmin]
+
+      val equal : t -> t -> bool
+
+      val merge : t option Irmin.Merge.t
+
+      val make :
+      format6 : string list ->
+      format7 : string list ->
+      unit ->
+      t
+
+      val enc : t Data_encoding.t
+
+      val format6 : t -> string list
+
+      val format7 : t -> string list
+      end = struct
+      type t = {
+      format6 : string list ;
+      format7 : string list
+      }
+      [@@deriving irmin]
+
+      let equal = Irmin.Type.(unstage (equal t))
+
+      let merge = Irmin.Merge.(option (idempotent t))
+
+      let make ~format6 ~format7 () =
+      {format6; format7}
+
+
+      let enc =
+      let open Data_encoding in
+      conv
+      (fun {format6; format7} ->
+       (format6, format7))
+      (fun (format6, format7) ->
+       {format6; format7})
+      (obj2
+      (req "format_6" string)
+      (req "format_7" string))
+
+      let format6 t = t.format6
+
+      let format7 t = t.format7
+      end
+      type t = (Big_thing_0.t * (Big_thing_3.t * Big_thing_6.t))
+      [@@deriving irmin]
+
+      let equal = Irmin.Type.(unstage (equal t))
+
+      let merge = Irmin.Merge.(option (idempotent t))
+
+      let enc =
+      let open Data_encoding in
+      merge_objs Big_thing_0.enc
+      @@ merge_objs Big_thing_3.enc Big_thing_6.enc
+
+      let make ~format0 ~format1 ~format2 ~format3 ~format4 ~format5 ~format6 ~format7 () =
+      let t_Big_thing_0 =
+      Big_thing_0.make
+      ~format0 ~format1 ~format2 ()
+       in
+
+      let t_Big_thing_3 =
+      Big_thing_3.make
+      ~format3 ~format4 ~format5 ()
+       in
+
+      let t_Big_thing_6 =
+      Big_thing_6.make
+      ~format6 ~format7 ()
+       in
+
+      (t_Big_thing_0, (t_Big_thing_3, t_Big_thing_6))
+      end |}]
+
+end
+
+
