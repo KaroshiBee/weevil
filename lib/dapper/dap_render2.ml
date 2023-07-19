@@ -919,18 +919,21 @@ module Printer_object_big = struct
       Fmt.of_to_string (aux_brkts ~sep:"," ~pp:pp_t)
     in
 
-    let pp_inner =
-      Fmt.of_to_string (function Field.{object_name; object_fields; _} as o ->
+    let pp_inners =
+      let pp_inner =
+        Fmt.of_to_string (function Field.{object_name; object_fields; _} as o ->
           let all_fields = Field.ordered_fields object_fields in
           Fmt.str "let %a =\n%s.make \n%a ()\n in" pp_t o object_name pp_args all_fields
-        )
+          )
+      in
+      Fmt.list ~sep:(Fmt.any "\n\n") pp_inner
     in
 
     Fmt.of_to_string (fun o ->
       let objs = grouping max_fields o in
       Fmt.str "%a\n%a\n\n%a"
         pp_make o
-        (Fmt.list ~sep:(Fmt.any "\n\n") pp_inner) objs
+        pp_inners objs
         pp_ts objs
       )
 
