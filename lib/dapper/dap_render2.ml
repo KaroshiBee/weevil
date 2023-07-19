@@ -72,6 +72,15 @@ module Field = struct
     fields
     |> List.sort (fun x y -> compare x.field_index y.field_index)
 
+  (* NOTE only go one level deep *)
+  let has_cycle =
+    function {object_fields; _} ->
+      List.exists
+        (function
+          | {field_type=`Struct {object_enc=`Cyclic _; _}; _} -> true
+          | _ -> false
+        ) object_fields
+
   let test_data () =
     let object_name = "Thing" in
     let object_t = "t" in
@@ -430,15 +439,6 @@ module Stanza_enc_struct = struct
         Fmt.str "%s%a%s" (fst enclosing) pp_list fs (snd enclosing)
       )
 
-  (* NOTE only go one level deep *)
-  let has_cycle =
-    function Field.{object_fields; _} ->
-      List.exists
-        (function
-          | Field.{field_type=`Struct {object_enc=`Cyclic _; _}; _} -> true
-          | _ -> false
-        ) object_fields
-
   let pp =
     let pp_record = pp_fields ~sep:"; " ~enclosing:("{", "}") in
     let pp_tuple = pp_fields ~sep:", " ~enclosing:("(",")") in
@@ -454,7 +454,7 @@ module Stanza_enc_struct = struct
     in
     Fmt.of_to_string (
       function
-        | st when has_cycle st ->
+        | st when Field.has_cycle st ->
           String.concat "\n" [
             "let enc =";
             "let open Data_encoding in";
@@ -824,6 +824,9 @@ module Printer_object_big = struct
 
   let grouping max_fields =
     function Field.{object_name; object_fields; _} as o ->
+      (* TODO deal with cyclic big objects *)
+      assert (not @@ Field.has_cycle o);
+
       let n = List.length object_fields in
       let ngroups = 1 + (n / max_fields) in
       let prs = List.init ngroups (fun i -> (i*max_fields, max_fields)) in
