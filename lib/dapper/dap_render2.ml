@@ -144,7 +144,7 @@ module Stanza_t_sig = struct
         let ss = [
           Fmt.str "type %s [%s irmin]" object_t deriving_str;
           Fmt.str "val equal : %s -> %s -> bool" object_t object_t;
-          Fmt.str "val merge : %s option Irmin.Merge.t" object_t;
+          Fmt.str "val merge : %s Irmin.Merge.t" object_t;
         ] in
         String.concat "\n\n" ss
       )
@@ -157,7 +157,7 @@ module Stanza_t_sig = struct
 
       val equal : t -> t -> bool
 
-      val merge : t option Irmin.Merge.t |}]
+      val merge : t Irmin.Merge.t |}]
 
 end
 
@@ -196,7 +196,7 @@ module Stanza_t_struct = struct
         let ss = if with_irmin then [
             Fmt.str "type %s = {\n%a\n}\n[%s irmin]" object_t pp_fields fields deriving_str;
             Fmt.str "let equal = Irmin.Type.(unstage (equal %s))" object_t;
-            Fmt.str "let merge = Irmin.Merge.(option (idempotent %s))" object_t;
+            Fmt.str "let merge = Irmin.Merge.idempotent %s" object_t;
           ] else
             [
               Fmt.str "type %s = {\n%a\n}\n" object_t pp_fields fields;
@@ -219,7 +219,7 @@ module Stanza_t_struct = struct
 
       let equal = Irmin.Type.(unstage (equal t))
 
-      let merge = Irmin.Merge.(option (idempotent t)) |}]
+      let merge = Irmin.Merge.idempotent t |}]
 
 end
 
@@ -749,7 +749,7 @@ module Printer_object = struct
 
       val equal : t -> t -> bool
 
-      val merge : t option Irmin.Merge.t
+      val merge : t Irmin.Merge.t
 
       val make :
       format : string list ->
@@ -783,7 +783,7 @@ module Printer_object = struct
 
       let equal = Irmin.Type.(unstage (equal t))
 
-      let merge = Irmin.Merge.(option (idempotent t))
+      let merge = Irmin.Merge.idempotent t
 
       let make ~format ?variables ?sendTelemetry ?things ?stuff () =
       {format; variables; sendTelemetry; things; stuff}
@@ -865,6 +865,15 @@ module Printer_object_big = struct
       Fmt.str "(%a%s %s)" pp ln sep lns
     | [] -> ""
 
+  let rec aux ~pp ~fname =
+    let sep = "@@" in
+    function
+    | x :: [y] -> Fmt.str "%s %a %a" fname pp x pp y
+    | ln :: rest ->
+      let lns = aux ~pp ~fname rest in
+      Fmt.str "%s %a \n%s %s" fname pp ln sep lns
+    | [] -> ""
+
   let pp_inner_structs ~max_fields fmt o =
     let objs = grouping max_fields o in
     Fmt.list ~sep:(Fmt.any "\n\n") (Printer_object.pp ~with_irmin:true) fmt objs
@@ -886,12 +895,8 @@ module Printer_object_big = struct
       in
       Fmt.of_to_string (aux_brkts ~sep:"," ~pp)
     in
-(* -      let equal (s0, (s3, s6)) (t0, (t3, t6)) = *)
-(* -      Big_thing_0.equal s0 t0 *)
-(* -      && Big_thing_3.equal s3 t3 *)
-(* -      && Big_thing_6.equal s6 t6 *)
 
-    let pp_line ~tok1 ~tok2 =
+    let pp_equal ~tok1 ~tok2 =
       let pp ~tok =
         Fmt.of_to_string (function Field.{object_name; _} ->
             Fmt.str "%s_%s" tok object_name
@@ -902,6 +907,14 @@ module Printer_object_big = struct
         )
     in
 
+    let pp_merge =
+      let pp =
+        Fmt.of_to_string (function Field.{object_name; _} ->
+            Fmt.str "%s.merge" object_name
+          )
+      in
+      Fmt.of_to_string (aux ~pp ~fname:"pair") in
+
     Fmt.of_to_string (fun o ->
         let objs = grouping max_fields o in
         let ss = [
@@ -909,34 +922,28 @@ module Printer_object_big = struct
           Fmt.str "let equal\n%a\n%a = \n%a"
             (pp_arg ~tok:"s") objs
             (pp_arg ~tok:"t") objs
-            (Fmt.list ~sep:(Fmt.any "\n && ") (pp_line ~tok1:"s" ~tok2:"t")) objs;
-          Fmt.str "let merge = Irmin.Merge.(option (idempotent %s))" o.object_t;
+            (Fmt.list ~sep:(Fmt.any "\n && ") (pp_equal ~tok1:"s" ~tok2:"t")) objs;
+          Fmt.str "let merge = Irmin.Merge.(\n%a\n)" pp_merge objs;
         ] in
         String.concat "\n\n" ss
       )
 
   let pp_encs ~max_fields =
-    let pp_enc =
-      Fmt.of_to_string (function Field.{object_name; _} ->
-          Fmt.str "%s.enc" object_name
-        )
+    let pp_encs =
+      let pp =
+        Fmt.of_to_string (function Field.{object_name; _} ->
+            Fmt.str "%s.enc" object_name
+          )
+      in
+      Fmt.of_to_string (aux ~pp ~fname:"merge_objs")
     in
-    let rec aux =
-      let sep = "@@" in
-      function
-      | x :: [y] -> Fmt.str "merge_objs %a %a" pp_enc x pp_enc y
-      | ln :: rest ->
-        let lns = aux rest in
-        Fmt.str "merge_objs %a \n%s %s" pp_enc ln sep lns
-      | [] -> ""
-    in
-    let pp = Fmt.of_to_string aux in
+
     Fmt.of_to_string (fun o ->
         let objs = grouping max_fields o in
         let ss = [
           Fmt.str "let enc = ";
           Fmt.str "let open Data_encoding in ";
-          Fmt.str "%a" pp objs;
+          Fmt.str "%a" pp_encs objs;
         ] in
         String.concat "\n" ss
       )
@@ -1060,7 +1067,7 @@ module Printer_object_big = struct
 
       val equal : t -> t -> bool
 
-      val merge : t option Irmin.Merge.t
+      val merge : t Irmin.Merge.t
 
       val make :
       format0 : string list ->
@@ -1097,7 +1104,7 @@ module Printer_object_big = struct
 
       val equal : t -> t -> bool
 
-      val merge : t option Irmin.Merge.t
+      val merge : t Irmin.Merge.t
 
       val make :
       format0 : string list ->
@@ -1123,7 +1130,7 @@ module Printer_object_big = struct
 
       let equal = Irmin.Type.(unstage (equal t))
 
-      let merge = Irmin.Merge.(option (idempotent t))
+      let merge = Irmin.Merge.idempotent t
 
       let make ~format0 ~format1 ~format2 () =
       {format0; format1; format2}
@@ -1153,7 +1160,7 @@ module Printer_object_big = struct
 
       val equal : t -> t -> bool
 
-      val merge : t option Irmin.Merge.t
+      val merge : t Irmin.Merge.t
 
       val make :
       format3 : string list ->
@@ -1179,7 +1186,7 @@ module Printer_object_big = struct
 
       let equal = Irmin.Type.(unstage (equal t))
 
-      let merge = Irmin.Merge.(option (idempotent t))
+      let merge = Irmin.Merge.idempotent t
 
       let make ~format3 ~format4 ~format5 () =
       {format3; format4; format5}
@@ -1209,7 +1216,7 @@ module Printer_object_big = struct
 
       val equal : t -> t -> bool
 
-      val merge : t option Irmin.Merge.t
+      val merge : t Irmin.Merge.t
 
       val make :
       format6 : string list ->
@@ -1231,7 +1238,7 @@ module Printer_object_big = struct
 
       let equal = Irmin.Type.(unstage (equal t))
 
-      let merge = Irmin.Merge.(option (idempotent t))
+      let merge = Irmin.Merge.idempotent t
 
       let make ~format6 ~format7 () =
       {format6; format7}
@@ -1262,7 +1269,10 @@ module Printer_object_big = struct
        && Big_thing_3.equal s_Big_thing_3 t_Big_thing_3
        && Big_thing_6.equal s_Big_thing_6 t_Big_thing_6
 
-      let merge = Irmin.Merge.(option (idempotent t))
+      let merge = Irmin.Merge.(
+      pair Big_thing_0.merge
+      @@ pair Big_thing_3.merge Big_thing_6.merge
+      )
 
       let enc =
       let open Data_encoding in
