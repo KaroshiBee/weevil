@@ -50,9 +50,13 @@ module Field = struct
   type t = {
     field_name : string
   ; field_dirty_name : string
-  ; field_type : [ `Builtin of builtin | `Struct of object_ | `Enum of Enum.enum ]
+  ; field_type : [
+      `Builtin of builtin
+    | `Struct of object_
+    | `Enum of Enum.enum
+    ]
   ; field_presence : [`Opt | `Req ]
-  ; field_container : string option (* we only deal with one container: t list  *)
+  ; field_container : container option (* we only deal with one container: t list  *)
   ; field_index : int
   } [@@deriving show, eq]
 
@@ -67,6 +71,12 @@ module Field = struct
     builtin_name : string
   ; builtin_enc : string
   } [@@deriving show, eq ]
+
+  and container = {
+    container_name : string
+  ; container_enc : string
+
+  }
 
   let ordered_fields fields =
     fields
@@ -100,7 +110,8 @@ module Field = struct
         field_type=`Builtin {builtin_name="string";
                              builtin_enc="string"};
         field_presence=`Req;
-        field_container=Some "list";
+        field_container=Some {container_name="list";
+                              container_enc="list"};
         field_index=1 };
       { field_name="sendTelemetry";
         field_dirty_name="sendTelemetry_";
@@ -116,7 +127,8 @@ module Field = struct
                             object_enc = `Cyclic "list";
                             object_fields=[]};
         field_presence=`Opt;
-        field_container=Some "list";
+        field_container=Some {container_name="list";
+                              container_enc="list"};
         field_index=4 };
       { field_name="stuff";
         field_dirty_name="stuff";
@@ -163,23 +175,10 @@ end
 
 module Stanza_t_struct = struct
 
-  (* type t = { *)
-  (*   id : int; *)
-  (*   format : string; *)
-  (*   variables : Irmin.Contents.Json_value.t option; *)
-  (*   sendTelemetry : bool option; *)
-  (*   showUser : bool option; *)
-  (*   url : string option; *)
-  (*   urlLabel : string option; *)
-  (* } *)
-  (* [@@deriving irmin] *)
-  (* let equal = Irmin.Type.(unstage (equal t)) *)
-  (* let merge = Irmin.Merge.(option (idempotent t)) *)
-
   let pp_field =
     Fmt.of_to_string (function Field.{field_name; field_type; field_presence; field_container; _} ->
         let presence = match field_presence with | `Opt -> "option" | `Req -> "" in
-        let container = match field_container with None -> "" | Some l -> l in
+        let container = match field_container with None -> "" | Some {container_name; _} -> container_name in
         match field_type with
         | `Builtin {builtin_name; _} ->
           Fmt.str "%s : %s %s %s" field_name builtin_name container presence
@@ -224,24 +223,11 @@ module Stanza_t_struct = struct
 end
 
 module Stanza_make_sig = struct
-(*
-   e.g.
-     val make :
-      id:int ->
-      format:string ->
-      ?variables:Irmin.Contents.Json_value.t ->
-      ?sendTelemetry:bool ->
-      ?showUser:bool ->
-      ?url:string ->
-      ?urlLabel:string ->
-      unit ->
-      t
-*)
 
   let pp_field =
     Fmt.of_to_string (function Field.{field_name; field_type; field_presence; field_container; _} ->
         let presence = match field_presence with | `Opt -> "?" | `Req -> "" in
-        let container = match field_container with None -> "" | Some l -> l in
+        let container = match field_container with None -> "" | Some {container_enc; _} -> container_enc in
         match field_type with
         | `Builtin {builtin_name; _} ->
           Fmt.str "%s%s : %s %s" presence field_name builtin_name container
@@ -274,11 +260,6 @@ module Stanza_make_sig = struct
 end
 
 module Stanza_make_struct = struct
-(*
-   e.g.
-    let make ~id ~format ?variables ?sendTelemetry ?showUser ?url ?urlLabel () =
-      {id; format; variables; sendTelemetry; showUser; url; urlLabel}
-*)
 
   let pp_field_upper =
     Fmt.of_to_string (function Field.{field_name; field_presence; _} ->
@@ -309,19 +290,11 @@ module Stanza_make_struct = struct
 end
 
 module Stanza_getters_sig = struct
-(*
-   e.g.
-    val id : t -> int
-
-    val format : t -> string
-
-    val variables : t -> Irmin.Contents.Json_value.t option
-*)
 
   let pp_field ~object_t =
     Fmt.of_to_string (function Field.{field_name; field_type; field_presence; field_container; _} ->
         let presence = match field_presence with | `Opt -> "option" | `Req -> "" in
-        let container = match field_container with None -> "" | Some l -> l in
+        let container = match field_container with None -> "" | Some {container_name; _} -> container_name in
         match field_type with
         | `Builtin {builtin_name; _} ->
           Fmt.str "val %s : %s -> %s %s %s" field_name object_t builtin_name container presence
@@ -355,14 +328,6 @@ module Stanza_getters_sig = struct
 end
 
 module Stanza_getters_struct = struct
-(*
-   e.g.
-    let id t = t.id
-
-    let format t = t.format
-
-    let variables t = t.variables
-*)
 
   let pp_field ~object_t =
     Fmt.of_to_string (function Field.{field_name; _} ->
@@ -412,7 +377,7 @@ module Stanza_enc_struct = struct
   let pp_obj =
     let pp_field =
       let presence = function `Opt -> "opt" | `Req -> "req" in
-      let container field_container = match field_container with None -> "" | Some l -> l in
+      let container field_container = match field_container with None -> "" | Some Field.{container_enc; _} -> container_enc in
       Fmt.of_to_string (function
           | Field.{field_presence; field_container; field_dirty_name; field_type=`Builtin {builtin_enc; _}; _} ->
             Fmt.str "(%s \"%s\" (%s %s))" (presence field_presence) field_dirty_name (container field_container) builtin_enc
@@ -1051,7 +1016,8 @@ module Printer_object_big = struct
                 field_type=`Builtin {builtin_name="string";
                                      builtin_enc="string"};
                 field_presence=`Req;
-                field_container=Some "list";
+                field_container=Some {container_name="list";
+                                      container_enc="list"};
                 field_index=i };
             )
         in
