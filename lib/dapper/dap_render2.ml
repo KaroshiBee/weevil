@@ -227,7 +227,7 @@ module Stanza_make_sig = struct
   let pp_field =
     Fmt.of_to_string (function Field.{field_name; field_type; field_presence; field_container; _} ->
         let presence = match field_presence with | `Opt -> "?" | `Req -> "" in
-        let container = match field_container with None -> "" | Some {container_enc; _} -> container_enc in
+        let container = match field_container with None -> "" | Some {container_name; _} -> container_name in
         match field_type with
         | `Builtin {builtin_name; _} ->
           Fmt.str "%s%s : %s %s" presence field_name builtin_name container
