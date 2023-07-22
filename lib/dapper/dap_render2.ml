@@ -63,7 +63,7 @@ module Field = struct
   and object_ = {
     object_name : string (* what the struct would be called ie Thing *)
   ; object_t : string (* what 't' would be called i.e. for Thing.t *)
-  ; object_enc : [ `Cyclic of string | `Raw of string | `Qualified of string ] (* what 'enc' would be called *)
+  ; object_enc : [ `Cyclic | `Raw of string | `Qualified of string ] (* what 'enc' would be called *)
   ; object_fields : t list
   } [@@deriving show, eq ]
 
@@ -87,7 +87,7 @@ module Field = struct
     function {object_fields; _} ->
       List.exists
         (function
-          | {field_type=`Struct {object_enc=`Cyclic _; _}; _} -> true
+          | {field_type=`Struct {object_enc=`Cyclic; _}; _} -> true
           | _ -> false
         ) object_fields
 
@@ -121,14 +121,14 @@ module Field = struct
         field_container=None;
         field_index=3 };
       { field_name="things";
-        field_dirty_name="things in a list";
+        field_dirty_name="things in a container";
         field_type=`Struct {object_name="Thing";
                             object_t="t";
-                            object_enc = `Cyclic "list";
+                            object_enc = `Cyclic;
                             object_fields=[]};
         field_presence=`Opt;
-        field_container=Some {container_name="list";
-                              container_enc="list"};
+        field_container=Some {container_name="tree";
+                              container_enc="tree_enc"};
         field_index=4 };
       { field_name="stuff";
         field_dirty_name="stuff";
@@ -211,7 +211,7 @@ module Stanza_t_struct = struct
       format : string list ;
       variables : t  option;
       sendTelemetry : bool  option;
-      things : t list option;
+      things : t tree option;
       stuff : Stopped_event_enum.t  option
       }
       [@@deriving irmin]
@@ -252,7 +252,7 @@ module Stanza_make_sig = struct
       format : string list ->
       ?variables : t  ->
       ?sendTelemetry : bool  ->
-      ?things : t list ->
+      ?things : t tree ->
       ?stuff : Stopped_event_enum.t  ->
       unit ->
       t |}]
@@ -321,7 +321,7 @@ module Stanza_getters_sig = struct
 
       val sendTelemetry : t -> bool  option
 
-      val things : t -> t list option
+      val things : t -> t tree option
 
       val stuff : t -> Stopped_event_enum.t  option |}]
 
@@ -388,8 +388,8 @@ module Stanza_enc_struct = struct
           | Field.{field_presence; field_container; field_dirty_name; field_type=`Struct {object_name; object_enc=`Qualified enc; _}; _} ->
             Fmt.str "(%s \"%s\" (%s %s.%s))" (presence field_presence) field_dirty_name (container field_container) object_name enc
 
-          | Field.{field_presence; field_dirty_name; field_type=`Struct {object_enc=`Cyclic enc; _}; _} ->
-            Fmt.str "(%s \"%s\" (%s %s))" (presence field_presence) field_dirty_name enc mu_arg
+          | Field.{field_presence; field_container; field_dirty_name; field_type=`Struct {object_enc=`Cyclic; _}; _} ->
+            Fmt.str "(%s \"%s\" (%s %s))" (presence field_presence) field_dirty_name (container field_container) mu_arg
 
           | Field.{field_presence; field_container; field_dirty_name; field_type=`Enum {enum_name; enum_enc; _}; _} ->
             Fmt.str "(%s \"%s\" (%s %s.%s))" (presence field_presence) field_dirty_name (container field_container) enum_name enum_enc
@@ -458,7 +458,7 @@ module Stanza_enc_struct = struct
       (req "format_" (list string))
       (opt "_variables_" ( Irmin.Contents.Json_value.json))
       (opt "sendTelemetry_" ( bool))
-      (opt "things in a list" (list e))
+      (opt "things in a container" (tree_enc e))
       (opt "stuff" ( Stopped_event_enum.enc)))) |}]
 end
 
@@ -720,7 +720,7 @@ module Printer_object = struct
       format : string list ->
       ?variables : t  ->
       ?sendTelemetry : bool  ->
-      ?things : t list ->
+      ?things : t tree ->
       ?stuff : Stopped_event_enum.t  ->
       unit ->
       t
@@ -733,7 +733,7 @@ module Printer_object = struct
 
       val sendTelemetry : t -> bool  option
 
-      val things : t -> t list option
+      val things : t -> t tree option
 
       val stuff : t -> Stopped_event_enum.t  option
       end = struct
@@ -741,7 +741,7 @@ module Printer_object = struct
       format : string list ;
       variables : t  option;
       sendTelemetry : bool  option;
-      things : t list option;
+      things : t tree option;
       stuff : Stopped_event_enum.t  option
       }
       [@@deriving irmin]
@@ -766,7 +766,7 @@ module Printer_object = struct
       (req "format_" (list string))
       (opt "_variables_" ( Irmin.Contents.Json_value.json))
       (opt "sendTelemetry_" ( bool))
-      (opt "things in a list" (list e))
+      (opt "things in a container" (tree_enc e))
       (opt "stuff" ( Stopped_event_enum.enc))))
 
       let format t = t.format
