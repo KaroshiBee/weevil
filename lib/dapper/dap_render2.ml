@@ -306,10 +306,28 @@ module Field = struct
   and container = {
     container_name : string
   ; container_enc : string
-  }
+  } [@@deriving show, eq ]
+
   and gen_container = {
     gen_name : string
-  }
+  } [@@deriving show, eq ]
+
+
+  let of_obj_spec Sp.Obj_spec.{safe_name; fields; is_cyclic; _} =
+    let object_name = safe_name in
+    let object_t = "t" in
+    let object_enc = if is_cyclic then `Cyclic else `Raw "enc" in
+    let object_fields = List.mapi (fun field_index (f:Sp.Field_spec.t) ->
+        let field_name = f.safe_name in
+        let field_dirty_name = f.dirty_name in
+        let field_type = failwith "TODO" in
+        let field_presence = if f.required then `Req else `Opt in
+        let field_container = if f.seq then Some {container_name="list"; container_enc="enc"} else None in
+        let field_gen_container = None in
+        {field_name; field_dirty_name; field_type; field_presence; field_container; field_gen_container; field_index}
+      ) fields
+    in
+    {object_name; object_t; object_enc; object_fields}
 
 
   let ordered_fields fields =
