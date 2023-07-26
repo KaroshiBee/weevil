@@ -11,11 +11,6 @@ module Dfs = Dap_dfs.Dfs
 module Consts = struct
   let atat = "@@"
   let deriving_str = Fmt.str "%sderiving" atat
-  let type_t = "t"
-  let val_enc = "enc"
-  let val_make = "make"
-  let val_gen = "gen"
-  let val_arb = "arb"
 end
 
 
@@ -29,8 +24,6 @@ module Enum = struct
 
   and enum = {
     enum_name : string
-  ; enum_t : string
-  ; enum_enc : string
   ; enum_type : [ `Open | `Closed ] (* whether it allows for `| Other of string` *)
   ; enum_elements : t list
   }
@@ -41,8 +34,6 @@ module Enum = struct
 
   let test_data ~enum_type () =
     let enum_name = "Stopped_event_enum" in
-    let enum_t = Consts.type_t in
-    let enum_enc = Consts.val_enc in
     let enum_elements = [
       {element_name="Breakpoint";
        element_dirty_name="breakpoint";
@@ -54,7 +45,7 @@ module Enum = struct
        element_dirty_name="exception";
        element_index=2};
       ] in
-    {enum_name; enum_t; enum_enc; enum_type; enum_elements}
+    {enum_name; enum_type; enum_elements}
 
 end
 
@@ -64,7 +55,7 @@ end
 module Stanza_enum_t_struct = struct
 
   let pp =
-    Fmt.of_to_string (function Enum.{enum_t; enum_elements; enum_type; _} ->
+    Fmt.of_to_string (function Enum.{enum_elements; enum_type; _} ->
         let pp_element =
           Fmt.of_to_string (function Enum.{element_name; _} ->
               Fmt.str "| %s" element_name
@@ -82,8 +73,8 @@ module Stanza_enum_t_struct = struct
         String.concat "\n" @@ List.concat [
           [Fmt.str "type t =\n%a" pp_elements elements];
           last enum_type;
-          [Fmt.str "let equal = Irmin.Type.(unstage (equal %s))" enum_t;
-           Fmt.str "let merge = Irmin.Merge.idempotent %s" enum_t];
+          [Fmt.str "let equal = Irmin.Type.(unstage (equal t))";
+           Fmt.str "let merge = Irmin.Merge.idempotent t"];
         ]
       )
 
@@ -443,8 +434,8 @@ module Stanza_t_struct = struct
           Fmt.str "%s : (%s %s %s %s)" field_name object_t container presence gen_name
         | `Struct {object_name; object_t; _} ->
           Fmt.str "%s : (%s.%s %s %s %s)" field_name object_name object_t container presence gen_name
-        | `Enum Enum.{enum_name; enum_t; _} ->
-          Fmt.str "%s : (%s.%s %s %s %s)" field_name enum_name enum_t container presence gen_name
+        | `Enum Enum.{enum_name; _} ->
+          Fmt.str "%s : (%s.t %s %s %s)" field_name enum_name container presence gen_name
       )
 
   let pp =
@@ -493,15 +484,20 @@ module Stanza_gen_struct = struct
   let pp_names ~tok = Fmt.list ~sep:(Fmt.any tok) pp_field_name
 
   let pp_gen ~cyclic_field =
-    let gen_name_str gen_name = function `Opt -> Fmt.str "Gen.%s_opt" gen_name | `Req -> Fmt.str "Gen.%s" gen_name in
+    let gen_name_str gen_name container =
+      let s = match container with None -> gen_name | Some Field.{container_name; _} -> Fmt.str "%s_%s)" gen_name container_name in
+      function
+      | `Opt -> Fmt.str "Gen.%s_opt" s
+      | `Req -> Fmt.str "Gen.%s" s
+    in
     let name_str name container =
       let s = match container with None -> name | Some Field.{container_name; _} -> Fmt.str "(%s %s)" container_name name in
       function `Opt -> Fmt.str "(option %s)" s | `Req -> Fmt.str "(%s)" s
     in
     Fmt.of_to_string (function
-      | f when f = cyclic_field -> "t" (* TODO should get off object *)
-      | Field.{field_gen_container=Some {gen_name; _}; field_presence; _} ->
-        gen_name_str gen_name field_presence
+      | f when f = cyclic_field -> "t"
+      | Field.{field_gen_container=Some {gen_name; _}; field_container; field_presence; _} ->
+        gen_name_str gen_name field_container field_presence
       | Field.{field_gen_container=None; field_container; field_presence; field_type=`Builtin {builtin_name; _}; _} ->
         name_str builtin_name field_container field_presence
       | Field.{field_gen_container=None; field_container; field_presence; field_type=`Enum {enum_name; _}; _} ->
@@ -550,7 +546,7 @@ module Stanza_gen_struct = struct
       let _gen_t =
       fun t ->
       let gg = tup5
-      Gen.gen_utf8_str
+      Gen.gen_utf8_str_list)
       Gen.gen_json_opt
       (option bool)
       t
@@ -578,15 +574,15 @@ module Stanza_make_sig = struct
           Fmt.str "%s%s : %s %s" presence field_name builtin_name container
         | `Struct {object_t; _} ->
           Fmt.str "%s%s : %s %s" presence field_name object_t container
-        | `Enum Enum.{enum_name; enum_t; _} ->
-          Fmt.str "%s%s : %s.%s %s" presence field_name enum_name enum_t container
+        | `Enum Enum.{enum_name; _} ->
+          Fmt.str "%s%s : %s.t %s" presence field_name enum_name container
       )
 
   let pp =
-    Fmt.of_to_string (function Field.{object_fields; object_t; _} ->
+    Fmt.of_to_string (function Field.{object_fields; _} ->
         let fields = Field.ordered_fields object_fields in
         let pp_fields = Fmt.list ~sep:(Fmt.any " -> \n") pp_field in
-        Fmt.str "val make : \n%a -> \nunit -> \n%s" pp_fields fields object_t
+        Fmt.str "val make : \n%a -> \nunit -> \nt" pp_fields fields
       )
 
   let%expect_test "Check Stanza_make_sig" =
@@ -645,8 +641,8 @@ module Stanza_getters_sig = struct
           Fmt.str "val %s : t -> %s %s %s" field_name builtin_name container presence
         | `Struct {object_t; _} ->
           Fmt.str "val %s : t -> %s %s %s" field_name object_t container presence
-        | `Enum Enum.{enum_name; enum_t; _} ->
-          Fmt.str "val %s : t -> %s.%s %s %s" field_name enum_name enum_t container presence
+        | `Enum Enum.{enum_name; _} ->
+          Fmt.str "val %s : t -> %s.t %s %s" field_name enum_name container presence
       )
 
   let pp =
@@ -736,8 +732,8 @@ module Stanza_enc_struct = struct
           | Field.{field_presence; field_container; field_dirty_name; field_type=`Struct {object_enc=`Cyclic; _}; _} ->
             Fmt.str "(%s \"%s\" (%s %s))" (presence field_presence) field_dirty_name (container field_container) mu_arg
 
-          | Field.{field_presence; field_container; field_dirty_name; field_type=`Enum {enum_name; enum_enc; _}; _} ->
-            Fmt.str "(%s \"%s\" (%s %s.%s))" (presence field_presence) field_dirty_name (container field_container) enum_name enum_enc
+          | Field.{field_presence; field_container; field_dirty_name; field_type=`Enum {enum_name; _}; _} ->
+            Fmt.str "(%s \"%s\" (%s %s.enc))" (presence field_presence) field_dirty_name (container field_container) enum_name
         )
     in
     Fmt.of_to_string (function Field.{object_fields; _} ->
@@ -864,7 +860,7 @@ module Printer_object = struct
       let _gen_t =
       fun t ->
       let gg = tup5
-      Gen.gen_utf8_str
+      Gen.gen_utf8_str_list)
       Gen.gen_json_opt
       (option bool)
       t
@@ -963,7 +959,7 @@ module Printer_object = struct
       let _gen_t =
       fun t ->
       let gg = tup5
-      Gen.gen_utf8_str
+      Gen.gen_utf8_str_list)
       Gen.gen_json_opt
       (option bool)
       t
