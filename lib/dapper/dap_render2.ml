@@ -35,10 +35,10 @@ module Enum = struct
     let enum_type = if suggested then `Open else `Closed in
     let enum_elements =
       List.mapi (fun element_index (e:Sp.Enum_spec.enum_val) -> {
-          element_name=e.safe_name;
-          element_dirty_name=e.dirty_name;
-          element_index
-        }) enums
+            element_name=e.safe_name;
+            element_dirty_name=e.dirty_name;
+            element_index
+          }) enums
     in
     {enum_name=safe_name; enum_type; enum_elements}
 
@@ -54,7 +54,7 @@ module Enum = struct
       {element_name="Exception";
        element_dirty_name="exception";
        element_index=2};
-      ] in
+    ] in
     {enum_name; enum_type; enum_elements}
 
 end
@@ -278,8 +278,7 @@ module Obj = struct
   ; field_dirty_name : string
   ; field_type : [
       `Builtin of builtin
-    | `Struct of t
-    | `Enum of Enum.t
+    | `User_defined of t
     ]
   ; field_presence : [`Opt | `Req ]
   ; field_container : container option (* we only deal with containers of one type e.g. 'a list *)
@@ -288,17 +287,18 @@ module Obj = struct
   } [@@deriving show, eq]
 
   and t = {
-  (* what the struct would be called ie Thing *)
+    (* what the struct would be called ie Thing *)
     object_name : string
   (* what 't' would be called i.e. for Thing.t *)
   ; object_t : string
-  (* what 'enc' would be called, cyclic is special case (needs mu encoder), raw is just as is, qualified needs to be combined with object_name *)
+  (* what 'enc' would be called, cyclic is special case (needs mu encoder),
+     raw is just as is, qualified needs to be combined with object_name *)
   ; object_enc : [ `Cyclic | `Raw of string | `Qualified of string ]
   ; object_fields : field list
   } [@@deriving show, eq ]
 
   and builtin = {
-    builtin_name : string
+    builtin_type : string
   ; builtin_enc : string
   } [@@deriving show, eq ]
 
@@ -338,7 +338,7 @@ module Obj = struct
     function {object_fields; _} ->
       List.exists
         (function
-          | {field_type=`Struct {object_enc=`Cyclic; _}; _} -> true
+          | {field_type=`User_defined {object_enc=`Cyclic; _}; _} -> true
           | _ -> false
         ) object_fields
 
@@ -347,7 +347,7 @@ module Obj = struct
     function {object_fields; _} ->
       List.filter
         (function
-          | {field_type=`Struct {object_enc=`Cyclic; _}; _} -> true
+          | {field_type=`User_defined {object_enc=`Cyclic; _}; _} -> true
           | _ -> false
         ) object_fields
 
@@ -358,17 +358,17 @@ module Obj = struct
     let object_fields = [
       { field_name="variables";
         field_dirty_name="_variables_";
-        field_type=`Struct {object_name="Irmin.Contents.Json_value";
-                            object_t="t";
-                            object_enc = `Raw "Data_encoding.json";
-                            object_fields=[]};
+        field_type=`User_defined {object_name="Irmin.Contents.Json_value";
+                                  object_t="t";
+                                  object_enc = `Raw "Data_encoding.json";
+                                  object_fields=[]};
         field_presence=`Opt;
         field_container=None;
         field_gen_container=Some {gen_name="gen_json"};
         field_index=2 };
       { field_name="format";
         field_dirty_name="format_";
-        field_type=`Builtin {builtin_name="string";
+        field_type=`Builtin {builtin_type="string";
                              builtin_enc="string"};
         field_presence=`Req;
         field_container=Some {container_name="list";
@@ -377,7 +377,7 @@ module Obj = struct
         field_index=1 };
       { field_name="sendTelemetry";
         field_dirty_name="sendTelemetry_";
-        field_type=`Builtin {builtin_name="bool";
+        field_type=`Builtin {builtin_type="bool";
                              builtin_enc="bool"};
         field_presence=`Opt;
         field_container=None;
@@ -385,10 +385,10 @@ module Obj = struct
         field_index=3 };
       { field_name="things";
         field_dirty_name="things in a container";
-        field_type=`Struct {object_name="Thing";
-                            object_t="t";
-                            object_enc = `Cyclic;
-                            object_fields=[]};
+        field_type=`User_defined {object_name="Thing";
+                                  object_t="t";
+                                  object_enc = `Cyclic;
+                                  object_fields=[]};
         field_presence=`Opt;
         field_container=Some {container_name="tree";
                               container_enc="tree_enc"};
@@ -396,7 +396,10 @@ module Obj = struct
         field_index=4 };
       { field_name="stuff";
         field_dirty_name="stuff";
-        field_type=`Enum (Enum.test_data ~enum_type:`Closed ());
+        field_type=`User_defined {object_name="Stopped_event_enum";
+                                  object_t="t";
+                                  object_enc=`Qualified "enc";
+                                  object_fields=[]};
         field_presence=`Opt;
         field_container=None;
         field_gen_container=None;
@@ -456,14 +459,12 @@ module Stanza_t_struct = struct
             | `Req, Some {container_name; _} -> Fmt.str "[@gen Gen.%s_%s]" gen_name container_name
         in
         match field_type with
-        | `Builtin {builtin_name; _} ->
-          Fmt.str "%s : (%s %s %s %s)" field_name builtin_name container presence gen_name
-        | `Struct {object_t; _} when cyclic_field = Some f ->
+        | `Builtin {builtin_type; _} ->
+          Fmt.str "%s : (%s %s %s %s)" field_name builtin_type container presence gen_name
+        | `User_defined {object_t; _} when cyclic_field = Some f ->
           Fmt.str "%s : (%s %s %s %s)" field_name object_t container presence gen_name
-        | `Struct {object_name; object_t; _} ->
+        | `User_defined {object_name; object_t; _} ->
           Fmt.str "%s : (%s.%s %s %s %s)" field_name object_name object_t container presence gen_name
-        | `Enum Enum.{enum_name; _} ->
-          Fmt.str "%s : (%s.t %s %s %s)" field_name enum_name container presence gen_name
       )
 
   let pp =
@@ -480,9 +481,9 @@ module Stanza_t_struct = struct
             pp_fields fields
             Consts.deriving_str
             (if cyclic then "" else ", qcheck");
-            Fmt.str "let equal = Irmin.Type.(unstage (equal %s))" object_t;
-            Fmt.str "let merge = Irmin.Merge.idempotent %s" object_t;
-          ] in
+          Fmt.str "let equal = Irmin.Type.(unstage (equal %s))" object_t;
+          Fmt.str "let merge = Irmin.Merge.idempotent %s" object_t;
+        ] in
         String.concat "\n\n" ss
       )
 
@@ -523,16 +524,14 @@ module Stanza_gen_struct = struct
       function `Opt -> Fmt.str "(option %s)" s | `Req -> Fmt.str "(%s)" s
     in
     Fmt.of_to_string (function
-      | f when f = cyclic_field -> "t"
-      | Obj.{field_gen_container=Some {gen_name; _}; field_container; field_presence; _} ->
-        gen_name_str gen_name field_container field_presence
-      | Obj.{field_gen_container=None; field_container; field_presence; field_type=`Builtin {builtin_name; _}; _} ->
-        name_str builtin_name field_container field_presence
-      | Obj.{field_gen_container=None; field_container; field_presence; field_type=`Enum {enum_name; _}; _} ->
-        name_str (enum_name^".gen") field_container field_presence
-      | Obj.{field_gen_container=None; field_container; field_presence; field_type=`Struct {object_name; _}; _} ->
-        name_str (object_name^".gen") field_container field_presence
-    )
+        | f when f = cyclic_field -> "t"
+        | Obj.{field_gen_container=Some {gen_name; _}; field_container; field_presence; _} ->
+          gen_name_str gen_name field_container field_presence
+        | Obj.{field_gen_container=None; field_container; field_presence; field_type=`Builtin {builtin_type; _}; _} ->
+          name_str builtin_type field_container field_presence
+        | Obj.{field_gen_container=None; field_container; field_presence; field_type=`User_defined {object_name; _}; _} ->
+          name_str (object_name^".gen") field_container field_presence
+      )
 
   let pp_gens ~cyclic_field = Fmt.list ~sep:(Fmt.any "\n") (pp_gen ~cyclic_field)
 
@@ -563,7 +562,7 @@ module Stanza_gen_struct = struct
           in
           String.concat "\n" ss
         | _st -> ""
-        )
+      )
 
   let%expect_test "Check Stanza_gen_struct" =
     let grp = Obj.test_data () in
@@ -598,14 +597,12 @@ module Stanza_make_sig = struct
         let presence = match field_presence with | `Opt -> "?" | `Req -> "" in
         let container = match field_container with None -> "" | Some {container_name; _} -> container_name in
         match field_type with
-        | `Builtin {builtin_name; _} ->
-          Fmt.str "%s%s : %s %s" presence field_name builtin_name container
-        | `Struct {object_t; _} when cyclic_field = Some f ->
+        | `Builtin {builtin_type; _} ->
+          Fmt.str "%s%s : %s %s" presence field_name builtin_type container
+        | `User_defined {object_t; _} when cyclic_field = Some f ->
           Fmt.str "%s%s : %s %s" presence field_name object_t container
-        | `Struct {object_t; object_name; _} ->
+        | `User_defined {object_t; object_name; _} ->
           Fmt.str "%s%s : %s.%s %s" presence field_name object_name object_t container
-        | `Enum Enum.{enum_name; _} ->
-          Fmt.str "%s%s : %s.t %s" presence field_name enum_name container
       )
 
   let pp =
@@ -671,14 +668,12 @@ module Stanza_getters_sig = struct
         let presence = match field_presence with | `Opt -> "option" | `Req -> "" in
         let container = match field_container with None -> "" | Some {container_name; _} -> container_name in
         match field_type with
-        | `Builtin {builtin_name; _} ->
-          Fmt.str "val %s : t -> %s %s %s" field_name builtin_name container presence
-        | `Struct {object_t; _} when cyclic_field = Some f ->
+        | `Builtin {builtin_type; _} ->
+          Fmt.str "val %s : t -> %s %s %s" field_name builtin_type container presence
+        | `User_defined {object_t; _} when cyclic_field = Some f ->
           Fmt.str "val %s : t -> %s %s %s" field_name object_t container presence
-        | `Struct {object_t; object_name; _} ->
+        | `User_defined {object_t; object_name; _} ->
           Fmt.str "val %s : t -> %s.%s %s %s" field_name object_name object_t container presence
-        | `Enum Enum.{enum_name; _} ->
-          Fmt.str "val %s : t -> %s.t %s %s" field_name enum_name container presence
       )
 
   let pp =
@@ -763,17 +758,15 @@ module Stanza_enc_struct = struct
           | Obj.{field_presence; field_container; field_dirty_name; field_type=`Builtin {builtin_enc; _}; _} ->
             Fmt.str "(%s \"%s\" (%s %s))" (presence field_presence) field_dirty_name (container field_container) builtin_enc
 
-          | Obj.{field_presence; field_container; field_dirty_name; field_type=`Struct {object_enc=`Raw enc; _}; _} ->
+          | Obj.{field_presence; field_container; field_dirty_name; field_type=`User_defined {object_enc=`Raw enc; _}; _} ->
             Fmt.str "(%s \"%s\" (%s %s))" (presence field_presence) field_dirty_name (container field_container) enc
 
-          | Obj.{field_presence; field_container; field_dirty_name; field_type=`Struct {object_name; object_enc=`Qualified enc; _}; _} ->
+          | Obj.{field_presence; field_container; field_dirty_name; field_type=`User_defined {object_name; object_enc=`Qualified enc; _}; _} ->
             Fmt.str "(%s \"%s\" (%s %s.%s))" (presence field_presence) field_dirty_name (container field_container) object_name enc
 
-          | Obj.{field_presence; field_container; field_dirty_name; field_type=`Struct {object_enc=`Cyclic; _}; _} ->
+          | Obj.{field_presence; field_container; field_dirty_name; field_type=`User_defined {object_enc=`Cyclic; _}; _} ->
             Fmt.str "(%s \"%s\" (%s %s))" (presence field_presence) field_dirty_name (container field_container) mu_arg
 
-          | Obj.{field_presence; field_container; field_dirty_name; field_type=`Enum {enum_name; _}; _} ->
-            Fmt.str "(%s \"%s\" (%s %s.enc))" (presence field_presence) field_dirty_name (container field_container) enum_name
         )
     in
     Fmt.of_to_string (function Obj.{object_fields; _} ->
@@ -789,7 +782,7 @@ module Stanza_enc_struct = struct
     Fmt.of_to_string (function Obj.{object_fields; _} ->
         let pp_list = Fmt.list ~sep:(Fmt.any sep) Fmt.string in
         let fs = List.map (function Obj.{field_name; _} -> field_name)
-            @@ Obj.ordered_fields object_fields in
+          @@ Obj.ordered_fields object_fields in
         Fmt.str "%s%a%s" (fst enclosing) pp_list fs (snd enclosing)
       )
 
@@ -808,19 +801,19 @@ module Stanza_enc_struct = struct
     in
     Fmt.of_to_string (
       function
-        | st when Obj.has_cycle st ->
-          String.concat "\n" [
-            "let enc =";
-            "let open Data_encoding in";
-            Fmt.str "mu \"%s.%s\" (fun %s -> \n%a)"
-                  st.object_name st.object_t mu_arg pp_body st
-          ]
-        | st ->
-          String.concat "\n" [
-            "let enc =";
-            "let open Data_encoding in";
-            Fmt.str "%a" pp_body st
-          ]
+      | st when Obj.has_cycle st ->
+        String.concat "\n" [
+          "let enc =";
+          "let open Data_encoding in";
+          Fmt.str "mu \"%s.%s\" (fun %s -> \n%a)"
+            st.object_name st.object_t mu_arg pp_body st
+        ]
+      | st ->
+        String.concat "\n" [
+          "let enc =";
+          "let open Data_encoding in";
+          Fmt.str "%a" pp_body st
+        ]
     )
 
   let%expect_test "Check Stanza_enc_struct" =
@@ -1203,48 +1196,48 @@ module Printer_object_big = struct
     let pp_inners =
       let pp_inner =
         Fmt.of_to_string (function Obj.{object_name; object_fields; _} as o ->
-          let all_fields = Obj.ordered_fields object_fields in
-          Fmt.str "let %a =\n%s.make \n%a ()\n in" pp_t o object_name pp_args all_fields
+            let all_fields = Obj.ordered_fields object_fields in
+            Fmt.str "let %a =\n%s.make \n%a ()\n in" pp_t o object_name pp_args all_fields
           )
       in
       Fmt.list ~sep:(Fmt.any "\n\n") pp_inner
     in
 
     Fmt.of_to_string (fun o ->
-      let objs = grouping max_fields o in
-      Fmt.str "%a\n%a\n\n%a"
-        pp_make o
-        pp_inners objs
-        pp_ts objs
+        let objs = grouping max_fields o in
+        Fmt.str "%a\n%a\n\n%a"
+          pp_make o
+          pp_inners objs
+          pp_ts objs
       )
 
   let pp_getters ~max_fields = Fmt.of_to_string (function o ->
-    let objs = grouping max_fields o in
+      let objs = grouping max_fields o in
 
-    let pp_t = Fmt.of_to_string (fun Obj.{object_name; _} ->
-        Fmt.str "_t_%s" object_name
-      )
-    in
-    let pp_ts = Fmt.of_to_string (aux_brkts ~sep:"," ~pp:pp_t) in
-
-    let pp_field ~obj=
-      Fmt.of_to_string (function Obj.{field_name; _} ->
-          Fmt.str "let %s %a =\n  %s.%s %a"
-            field_name
-            pp_ts objs
-            obj.Obj.object_name
-            field_name
-            pp_t obj
+      let pp_t = Fmt.of_to_string (fun Obj.{object_name; _} ->
+          Fmt.str "_t_%s" object_name
         )
-    in
+      in
+      let pp_ts = Fmt.of_to_string (aux_brkts ~sep:"," ~pp:pp_t) in
 
-    let pp_fields =
-      Fmt.of_to_string (function Obj.{object_fields; _} as o ->
-          Fmt.str "%a" (Fmt.list ~sep:(Fmt.any "\n\n") @@ pp_field ~obj:o) object_fields
-        )
-    in
+      let pp_field ~obj=
+        Fmt.of_to_string (function Obj.{field_name; _} ->
+            Fmt.str "let %s %a =\n  %s.%s %a"
+              field_name
+              pp_ts objs
+              obj.Obj.object_name
+              field_name
+              pp_t obj
+          )
+      in
 
-    Fmt.str "%a" (Fmt.list ~sep:(Fmt.any "\n\n") pp_fields) objs
+      let pp_fields =
+        Fmt.of_to_string (function Obj.{object_fields; _} as o ->
+            Fmt.str "%a" (Fmt.list ~sep:(Fmt.any "\n\n") @@ pp_field ~obj:o) object_fields
+          )
+      in
+
+      Fmt.str "%a" (Fmt.list ~sep:(Fmt.any "\n\n") pp_fields) objs
     )
 
   let pp_struct ~max_fields =
@@ -1277,7 +1270,7 @@ module Printer_object_big = struct
           List.init 8 (fun i ->
               { field_name=Fmt.str "format%d" i;
                 field_dirty_name=Fmt.str "format_%d" i;
-                field_type=`Builtin {builtin_name="string";
+                field_type=`Builtin {builtin_type="string";
                                      builtin_enc="string"};
                 field_presence=`Req;
                 field_container=Some {container_name="list";
