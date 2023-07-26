@@ -45,8 +45,8 @@ module Enum = struct
   let test_data ~enum_type () =
     let enum_name = "Stopped_event_enum" in
     let enum_elements = [
-      {element_name="Breakpoint";
-       element_dirty_name="breakpoint";
+      {element_name="BreakPoint";
+       element_dirty_name="break-point";
        element_index=1};
       {element_name="Step";
        element_dirty_name="step";
@@ -94,7 +94,7 @@ module Stanza_enum_t_struct = struct
     [%expect {|
       type t =
       | Step
-      | Breakpoint
+      | BreakPoint
       | Exception
       | Other of string
       [@@deriving irmin, qcheck]
@@ -107,7 +107,7 @@ module Stanza_enum_t_struct = struct
     [%expect {|
       type t =
       | Step
-      | Breakpoint
+      | BreakPoint
       | Exception
       [@@deriving irmin, qcheck]
       let equal = Irmin.Type.(unstage (equal t))
@@ -161,12 +161,12 @@ module Stanza_enum_enc_struct = struct
       conv_with_guard
       (function
       | Step -> "step"
-      | Breakpoint -> "breakpoint"
+      | BreakPoint -> "break-point"
       | Exception -> "exception"
       | Other s -> s)
       (function
       | "step" -> Ok Step
-      | "breakpoint" -> Ok Breakpoint
+      | "break-point" -> Ok BreakPoint
       | "exception" -> Ok Exception
       | _ as s -> Ok (Other s))
       string |}]
@@ -180,12 +180,12 @@ module Stanza_enum_enc_struct = struct
       conv_with_guard
       (function
       | Step -> "step"
-      | Breakpoint -> "breakpoint"
+      | BreakPoint -> "break-point"
       | Exception -> "exception"
       )
       (function
       | "step" -> Ok Step
-      | "breakpoint" -> Ok Breakpoint
+      | "break-point" -> Ok BreakPoint
       | "exception" -> Ok Exception
       | _ -> Error "Stopped_event_enum")
       string |}]
@@ -216,7 +216,7 @@ module Printer_enum = struct
       module Stopped_event_enum = struct
       type t =
       | Step
-      | Breakpoint
+      | BreakPoint
       | Exception
       | Other of string
       [@@deriving irmin, qcheck]
@@ -228,12 +228,12 @@ module Printer_enum = struct
       conv_with_guard
       (function
       | Step -> "step"
-      | Breakpoint -> "breakpoint"
+      | BreakPoint -> "break-point"
       | Exception -> "exception"
       | Other s -> s)
       (function
       | "step" -> Ok Step
-      | "breakpoint" -> Ok Breakpoint
+      | "break-point" -> Ok BreakPoint
       | "exception" -> Ok Exception
       | _ as s -> Ok (Other s))
       string
@@ -246,7 +246,7 @@ module Printer_enum = struct
       module Stopped_event_enum = struct
       type t =
       | Step
-      | Breakpoint
+      | BreakPoint
       | Exception
       [@@deriving irmin, qcheck]
       let equal = Irmin.Type.(unstage (equal t))
@@ -257,12 +257,12 @@ module Printer_enum = struct
       conv_with_guard
       (function
       | Step -> "step"
-      | Breakpoint -> "breakpoint"
+      | BreakPoint -> "break-point"
       | Exception -> "exception"
       )
       (function
       | "step" -> Ok Step
-      | "breakpoint" -> Ok Breakpoint
+      | "break-point" -> Ok BreakPoint
       | "exception" -> Ok Exception
       | _ -> Error "Stopped_event_enum")
       string
@@ -270,6 +270,34 @@ module Printer_enum = struct
 
 end
 
+
+module Stanza_enum_complex_t_sig = struct
+
+  (* the Command and Event enums are special *)
+  let pp =
+    Fmt.of_to_string (function Enum.{enum_elements; _} ->
+        let pp_element =
+          Fmt.of_to_string (function Enum.{element_name; _} ->
+              Fmt.str "type %s" @@ String.uncapitalize_ascii element_name
+            )
+        in
+        let pp_elements =
+          Fmt.list ~sep:(Fmt.any "\n") pp_element
+        in
+        let elements = Enum.ordered_elements enum_elements in
+        Fmt.str "type 'a t\n%a" pp_elements elements
+      )
+
+  let%expect_test "Check Stanza_enum_complex_t_sig" =
+    let grp = Enum.test_data ~enum_type:`Closed () in
+    print_endline @@ Format.asprintf "%a" pp grp;
+    [%expect {|
+      type 'a t
+      type step
+      type breakPoint
+      type exception |}]
+
+end
 
 module Obj = struct
 
