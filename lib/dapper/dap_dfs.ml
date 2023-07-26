@@ -92,11 +92,11 @@ module Dfs = struct
 
   let ordering t = CommandHelper.module_name :: EventHelper.module_name :: (t.ordering |> List.rev)
 
-  let _set_field_type t module_name = function
+  let _set_field_type t module_name kind = function
     | (type_, enc_) ->
       match t.nodes with
       | Sp.Field field_spec :: nodes ->
-        let field = Sp.Field_spec.{field_spec with module_name; type_; enc_} in
+        let field = Sp.Field_spec.{field_spec with module_name; type_; enc_; kind} in
         let nodes = (Sp.Field field) :: nodes in
         {t with nodes}
       | _ -> t
@@ -132,17 +132,17 @@ module Dfs = struct
   let _set_variant_field_type t module_name = function
     | [("int", "int31"); ("string", "string")] ->
         let nm = Dap_base.IntString.module_name in
-        _set_field_type t module_name (nm^".t", nm^".enc")
+        _set_field_type t module_name `Other (nm^".t", nm^".enc")
     | _ ->
       failwith "TODO _set_variant_field_type"
 
   let _set_nullable_field_dict_type t _module_name _type_encs =
     Logs.debug (fun m -> m "TODO not sure how to encode an object-as-dict");
-    _set_field_type t "" ("Data_encoding.json", "json")
+    _set_field_type t "" `Jsonish ("Data_encoding.json", "json")
 
   let _set_field_dict_type t _module_name _type_encs =
     Logs.debug (fun m -> m "TODO not sure how to encode an object-as-dict");
-    _set_field_type t "" ("Data_encoding.json", "json")
+    _set_field_type t "" `Jsonish ("Data_encoding.json", "json")
 
   (* NOTE need a cps version of left fold to maintain the continuation inside the fold *)
   let rec _fold_left_cps f_cps acc k = function
@@ -267,6 +267,7 @@ module Dfs = struct
                                     ~module_name
                                     ~type_:(module_name^".t")
                                     ~enc_:(module_name^".enc")
+                                    ~kind:`Other
                                     ()
                                  ) in
          let new_nodes =  new_spec :: t_acc.nodes in
@@ -468,7 +469,7 @@ module Dfs = struct
              `String "number";
              `String "object";
              `String "string"] ->
-          kont @@ _set_field_type t "" ("Data_encoding.json", "json")
+          kont @@ _set_field_type t "" `Jsonish ("Data_encoding.json", "json")
         | `A [`String "string";
               `String "null"] ->
           kont @@ _set_nullable_field_type t "" ("string", "string")
@@ -502,7 +503,7 @@ module Dfs = struct
           process_definition t ~path:ref_path ~kont:(fun t' ->
               (* get typename from ref_path *)
               let ref_type_name = Sp.make_module_name ref_path in
-              kont @@ _set_field_type t' ref_type_name (ref_type_name^".t", ref_type_name^".enc")
+              kont @@ _set_field_type t' ref_type_name `Other (ref_type_name^".t", ref_type_name^".enc")
             )
         )
     | Id_ref _ -> failwith "TODO Id_ref"
@@ -531,20 +532,20 @@ module Dfs = struct
         Logs.debug (fun m -> m "inlined Enum");
         Hashtbl.add t.finished module_name (Sp.Enum enum);
         let ordering = module_name :: t.ordering in
-        kont @@ _set_field_type {t with ordering} module_name (module_name^".t", module_name^".enc")
+        kont @@ _set_field_type {t with ordering} module_name `Other (module_name^".t", module_name^".enc")
       | None ->
         Logs.debug (fun m -> m "String");
-        kont @@ _set_field_type t "" ("string", "string")
+        kont @@ _set_field_type t "" `Builtin ("string", "string")
     )
     | Integer _ ->
       Logs.debug (fun m -> m "Int");
-      kont @@ _set_field_type t "" ("int", "int31")
+      kont @@ _set_field_type t "" `Builtin ("int", "int31")
     | Number _ ->
       Logs.debug (fun m -> m "Number");
-      kont @@ _set_field_type t "" ("int", "int31")
+      kont @@ _set_field_type t "" `Builtin ("int", "int31")
     | Boolean ->
       Logs.debug (fun m -> m "Bool");
-      kont @@ _set_field_type t "" ("bool", "bool")
+      kont @@ _set_field_type t "" `Builtin ("bool", "bool")
     | Null -> failwith "TODO Null"
     | Any -> failwith @@ Printf.sprintf "TODO Any '%s'" @@ Q.json_pointer_of_path path
     | Dummy -> failwith "TODO Dummy"

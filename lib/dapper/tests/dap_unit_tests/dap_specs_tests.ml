@@ -13,13 +13,13 @@ end
 module ObjectSpecTests = struct
   let path = Q.path_of_json_pointer "/definitions/ErrorResponse/allOf/0"
   let fields = [
-    Field_spec.make ~path:(Q.path_of_json_pointer "/definitions/capabilities") ~dirty_name:"type" ~required:true () ;
+    Field_spec.make ~path:(Q.path_of_json_pointer "/definitions/capabilities") ~dirty_name:"type" ~required:true ~kind:`Other () ;
   ]
   let x = Obj_spec.of_path ~dirty_name:"ErrorResponse" ~path ~fields ~is_cyclic:true ()
 
   let test_pprint () =
     let actual = Printf.sprintf "%s" @@ Obj_spec.show x in
-    let expected = "{ Dap_specs.Obj_spec.safe_name = \"ErrorResponse\";\n  dirty_name = \"ErrorResponse\"; path = /definitions/ErrorResponse/allOf/0;\n  fields =\n  [{ Dap_specs.Field_spec.safe_name = \"type_\"; dirty_name = \"type\";\n     path = /definitions/capabilities; module_name = \"\"; type_ = \"\";\n     enc_ = \"\"; required = true; cyclic = false; seq = false }\n    ];\n  is_cyclic = true }" in
+    let expected = "{ Dap_specs.Obj_spec.safe_name = \"ErrorResponse\";\n  dirty_name = \"ErrorResponse\"; path = /definitions/ErrorResponse/allOf/0;\n  fields =\n  [{ Dap_specs.Field_spec.safe_name = \"type_\"; dirty_name = \"type\";\n     path = /definitions/capabilities; module_name = \"\"; type_ = \"\";\n     enc_ = \"\"; required = true; cyclic = false; seq = false; kind = `Other }\n    ];\n  is_cyclic = true }" in
     check string "pprint obj spec" expected actual
 
   let test_path () =

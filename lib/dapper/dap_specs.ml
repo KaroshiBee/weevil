@@ -41,9 +41,10 @@ module Field_spec = struct
     required:bool;
     cyclic: bool;
     seq: bool;
+    kind: [ `Builtin | `Jsonish | `Other ];
   } [@@deriving show]
 
-  let make ~path ~dirty_name ~required ?(module_name="") ?(type_="") ?(enc_="") ?(cyclic=false) ?(seq=false) () =
+  let make ~path ~dirty_name ~required ~kind ?(module_name="") ?(type_="") ?(enc_="") ?(cyclic=false) ?(seq=false) () =
     let safe_name = unweird_name dirty_name in
     let module_name = unweird_name module_name in
     {
@@ -56,6 +57,7 @@ module Field_spec = struct
       required;
       cyclic;
       seq;
+      kind;
     }
 end
 
