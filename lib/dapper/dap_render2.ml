@@ -303,7 +303,7 @@ module Obj = struct
   } [@@deriving show, eq ]
 
   and container = {
-    container_name : string
+    container_type : string
   ; container_enc : string
   } [@@deriving show, eq ]
 
@@ -311,20 +311,43 @@ module Obj = struct
     gen_name : string
   } [@@deriving show, eq ]
 
+  let of_field_spec field_index Sp.Field_spec.{
+      safe_name=field_name;
+      dirty_name=field_dirty_name;
+      module_name;
+      type_;
+      enc_;
+      required;
+      seq;
+      kind;
+      _} =
+    let field_type = match kind with
+      | `Builtin -> `Builtin {builtin_type=type_;
+                              builtin_enc=enc_}
+      | `Jsonish -> `User_defined {object_name="Irmin.Contents.Json_value";
+                                   object_t="t";
+                                   object_enc=`Raw "json";
+                                   object_fields=[]}
+      | `Other   -> `User_defined {object_name=module_name;
+                                   object_t="t";
+                                   object_enc=`Raw enc_;
+                                   object_fields=[]}
+    in
+    let field_presence = if required then `Req else `Opt in
+    let field_container = if seq then Some {container_type="list"; container_enc="enc"} else None in
+    let field_gen_container = match enc_ with
+      | "int31" -> Some {gen_name="gen_int31"}
+      | "string" -> Some {gen_name="gen_utf8_str"}
+      | "json" -> Some {gen_name="gen_json"}
+      | _ -> None
+    in
+    {field_name; field_dirty_name; field_type; field_presence; field_container; field_gen_container; field_index}
 
   let of_obj_spec Sp.Obj_spec.{safe_name; fields; is_cyclic; _} =
     let object_name = safe_name in
     let object_t = "t" in
     let object_enc = if is_cyclic then `Cyclic else `Raw "enc" in
-    let object_fields = List.mapi (fun field_index (f:Sp.Field_spec.t) ->
-        let field_name = f.safe_name in
-        let field_dirty_name = f.dirty_name in
-        let field_type = failwith "TODO" in
-        let field_presence = if f.required then `Req else `Opt in
-        let field_container = if f.seq then Some {container_name="list"; container_enc="enc"} else None in
-        let field_gen_container = None in
-        {field_name; field_dirty_name; field_type; field_presence; field_container; field_gen_container; field_index}
-      ) fields
+    let object_fields = List.mapi of_field_spec fields
     in
     {object_name; object_t; object_enc; object_fields}
 
@@ -371,7 +394,7 @@ module Obj = struct
         field_type=`Builtin {builtin_type="string";
                              builtin_enc="string"};
         field_presence=`Req;
-        field_container=Some {container_name="list";
+        field_container=Some {container_type="list";
                               container_enc="list"};
         field_gen_container=Some {gen_name="gen_utf8_str"};
         field_index=1 };
@@ -390,7 +413,7 @@ module Obj = struct
                                   object_enc = `Cyclic;
                                   object_fields=[]};
         field_presence=`Opt;
-        field_container=Some {container_name="tree";
+        field_container=Some {container_type="tree";
                               container_enc="tree_enc"};
         field_gen_container=None;
         field_index=4 };
@@ -449,14 +472,14 @@ module Stanza_t_struct = struct
   let pp_field ~cyclic_field =
     Fmt.of_to_string (function Obj.{field_name; field_type; field_presence; field_container; field_gen_container; _} as f ->
         let presence = match field_presence with | `Opt -> "option" | `Req -> "" in
-        let container = match field_container with None -> "" | Some {container_name; _} -> container_name in
+        let container = match field_container with None -> "" | Some {container_type; _} -> container_type in
         let gen_name = match field_gen_container with
           | None -> ""
           | Some {gen_name; _} -> match (field_presence, field_container) with
             | `Opt, None -> Fmt.str "[@gen Gen.%s_opt]" gen_name
-            | `Opt, Some {container_name; _} -> Fmt.str "[@gen Gen.%s_%s_opt]" gen_name container_name
+            | `Opt, Some {container_type; _} -> Fmt.str "[@gen Gen.%s_%s_opt]" gen_name container_type
             | `Req, None -> Fmt.str "[@gen Gen.%s]" gen_name
-            | `Req, Some {container_name; _} -> Fmt.str "[@gen Gen.%s_%s]" gen_name container_name
+            | `Req, Some {container_type; _} -> Fmt.str "[@gen Gen.%s_%s]" gen_name container_type
         in
         match field_type with
         | `Builtin {builtin_type; _} ->
@@ -514,13 +537,13 @@ module Stanza_gen_struct = struct
 
   let pp_gen ~cyclic_field =
     let gen_name_str gen_name container =
-      let s = match container with None -> gen_name | Some Obj.{container_name; _} -> Fmt.str "%s_%s" gen_name container_name in
+      let s = match container with None -> gen_name | Some Obj.{container_type; _} -> Fmt.str "%s_%s" gen_name container_type in
       function
       | `Opt -> Fmt.str "Gen.%s_opt" s
       | `Req -> Fmt.str "Gen.%s" s
     in
     let name_str name container =
-      let s = match container with None -> name | Some Obj.{container_name; _} -> Fmt.str "(%s %s)" container_name name in
+      let s = match container with None -> name | Some Obj.{container_type; _} -> Fmt.str "(%s %s)" container_type name in
       function `Opt -> Fmt.str "(option %s)" s | `Req -> Fmt.str "(%s)" s
     in
     Fmt.of_to_string (function
@@ -595,7 +618,7 @@ module Stanza_make_sig = struct
   let pp_field ~cyclic_field =
     Fmt.of_to_string (function Obj.{field_name; field_type; field_presence; field_container; _} as f ->
         let presence = match field_presence with | `Opt -> "?" | `Req -> "" in
-        let container = match field_container with None -> "" | Some {container_name; _} -> container_name in
+        let container = match field_container with None -> "" | Some {container_type; _} -> container_type in
         match field_type with
         | `Builtin {builtin_type; _} ->
           Fmt.str "%s%s : %s %s" presence field_name builtin_type container
@@ -666,7 +689,7 @@ module Stanza_getters_sig = struct
   let pp_field ~cyclic_field =
     Fmt.of_to_string (function Obj.{field_name; field_type; field_presence; field_container; _} as f ->
         let presence = match field_presence with | `Opt -> "option" | `Req -> "" in
-        let container = match field_container with None -> "" | Some {container_name; _} -> container_name in
+        let container = match field_container with None -> "" | Some {container_type; _} -> container_type in
         match field_type with
         | `Builtin {builtin_type; _} ->
           Fmt.str "val %s : t -> %s %s %s" field_name builtin_type container presence
@@ -1273,7 +1296,7 @@ module Printer_object_big = struct
                 field_type=`Builtin {builtin_type="string";
                                      builtin_enc="string"};
                 field_presence=`Req;
-                field_container=Some {container_name="list";
+                field_container=Some {container_type="list";
                                       container_enc="list"};
                 field_gen_container=None;
                 field_index=i };
