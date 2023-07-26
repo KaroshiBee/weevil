@@ -351,7 +351,7 @@ module Stanza_enum_complex_getters_sig = struct
         let pp_element =
           Fmt.of_to_string (function Enum.{element_name; _} ->
               let uname = String.uncapitalize_ascii element_name in
-              Fmt.str "let %s : %s t = %s" uname uname @@ String.capitalize_ascii element_name
+              Fmt.str "val %s : %s t" uname uname
             )
         in
         let pp_elements =
@@ -362,6 +362,35 @@ module Stanza_enum_complex_getters_sig = struct
       )
 
   let%expect_test "Check Stanza_enum_complex_getters_sig" =
+    let grp = Enum.test_data ~enum_type:`Closed () in
+    print_endline @@ Format.asprintf "%a" pp grp;
+    [%expect {|
+      val step : step t
+      val breakPoint : breakPoint t
+      val exception_ : exception_ t |}]
+
+end
+
+
+module Stanza_enum_complex_getters_struct = struct
+
+  (* the Command and Event enums are special *)
+  let pp =
+    Fmt.of_to_string (function Enum.{enum_elements; _} ->
+        let pp_element =
+          Fmt.of_to_string (function Enum.{element_name; _} ->
+              let uname = String.uncapitalize_ascii element_name in
+              Fmt.str "let %s : %s t = %s" uname uname @@ String.capitalize_ascii element_name
+            )
+        in
+        let pp_elements =
+          Fmt.list ~sep:(Fmt.any "\n") pp_element
+        in
+        let elements = Enum.ordered_elements enum_elements in
+        Fmt.str "%a" pp_elements elements
+      )
+
+  let%expect_test "Check Stanza_enum_complex_getters_struct" =
     let grp = Enum.test_data ~enum_type:`Closed () in
     print_endline @@ Format.asprintf "%a" pp grp;
     [%expect {|
