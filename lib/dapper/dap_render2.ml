@@ -273,7 +273,7 @@ module Field = struct
     ]
   ; field_presence : [`Opt | `Req ]
   ; field_container : container option (* we only deal with containers of one type e.g. 'a list *)
-  ; field_gen_container : gen_container option (* individual generators for fields e.g. [@gen Gen.gen_utf8_str_opt] *)
+  ; field_gen_container : gen_container option (* individual generator decorators for fields e.g. [@gen Gen.gen_utf8_str_opt] *)
   ; field_index : int
   } [@@deriving show, eq]
 
@@ -309,6 +309,15 @@ module Field = struct
   let has_cycle =
     function {object_fields; _} ->
       List.exists
+        (function
+          | {field_type=`Struct {object_enc=`Cyclic; _}; _} -> true
+          | _ -> false
+        ) object_fields
+
+  (* NOTE only go one level deep *)
+  let cyclic_fields =
+    function {object_fields; _} ->
+      List.filter
         (function
           | {field_type=`Struct {object_enc=`Cyclic; _}; _} -> true
           | _ -> false
@@ -412,9 +421,11 @@ module Stanza_t_struct = struct
         let container = match field_container with None -> "" | Some {container_name; _} -> container_name in
         let gen_name = match field_gen_container with
           | None -> ""
-          | Some {gen_name; _} -> match field_presence with
-            | `Opt -> Fmt.str "[@gen Gen.%s_opt]" gen_name
-            | `Req -> Fmt.str "[@gen Gen.%s]" gen_name
+          | Some {gen_name; _} -> match (field_presence, field_container) with
+            | `Opt, None -> Fmt.str "[@gen Gen.%s_opt]" gen_name
+            | `Opt, Some {container_name; _} -> Fmt.str "[@gen Gen.%s_%s_opt]" gen_name container_name
+            | `Req, None -> Fmt.str "[@gen Gen.%s]" gen_name
+            | `Req, Some {container_name; _} -> Fmt.str "[@gen Gen.%s_%s]" gen_name container_name
         in
         match field_type with
         | `Builtin {builtin_name; _} ->
@@ -426,11 +437,11 @@ module Stanza_t_struct = struct
       )
 
   let pp =
-    Fmt.of_to_string (function Field.{object_fields; object_t; _} ->
+    Fmt.of_to_string (function Field.{object_fields; object_t; _} as o ->
         let fields = Field.ordered_fields object_fields in
         let pp_fields = Fmt.list ~sep:(Fmt.any ";\n") pp_field in
         let ss = [
-            Fmt.str "type %s = {\n%a\n}\n[%s irmin, qcheck]" object_t pp_fields fields deriving_str;
+            Fmt.str "type %s = {\n%a\n}\n[%s irmin%s]" object_t pp_fields fields deriving_str (if Field.has_cycle o then "" else ", qcheck");
             Fmt.str "let equal = Irmin.Type.(unstage (equal %s))" object_t;
             Fmt.str "let merge = Irmin.Merge.idempotent %s" object_t;
           ] in
@@ -442,17 +453,99 @@ module Stanza_t_struct = struct
     print_endline @@ Format.asprintf "%a" pp grp;
     [%expect {|
       type t = {
-      format : (string list  [@gen Gen.gen_utf8_str]);
+      format : (string list  [@gen Gen.gen_utf8_str_list]);
       variables : (t  option [@gen Gen.gen_json_opt]);
       sendTelemetry : (bool  option );
       things : (t tree option );
       stuff : (Stopped_event_enum.t  option )
       }
-      [@@deriving irmin, qcheck]
+      [@@deriving irmin]
 
       let equal = Irmin.Type.(unstage (equal t))
 
       let merge = Irmin.Merge.idempotent t |}]
+
+end
+
+module Stanza_gen_struct = struct
+
+  let pp_field_name = Fmt.of_to_string (function Field.{field_name; _} -> field_name)
+
+  let pp_names ~tok = Fmt.list ~sep:(Fmt.any tok) pp_field_name
+
+  let pp_gen ~cyclic_field =
+    let gen_name_str gen_name = function `Opt -> Fmt.str "Gen.%s_opt" gen_name | `Req -> Fmt.str "Gen.%s" gen_name in
+    let name_str name container =
+      let s = match container with None -> name | Some Field.{container_name; _} -> Fmt.str "(%s %s)" container_name name in
+      function `Opt -> Fmt.str "(option %s)" s | `Req -> Fmt.str "(%s)" s
+    in
+    Fmt.of_to_string (function
+      | f when f = cyclic_field -> "t" (* TODO should get off object *)
+      | Field.{field_gen_container=Some {gen_name; _}; field_presence; _} ->
+        gen_name_str gen_name field_presence
+      | Field.{field_gen_container=None; field_container; field_presence; field_type=`Builtin {builtin_name; _}; _} ->
+        name_str builtin_name field_container field_presence
+      | Field.{field_gen_container=None; field_container; field_presence; field_type=`Enum {enum_name; _}; _} ->
+        name_str (enum_name^".gen") field_container field_presence
+      | Field.{field_gen_container=None; field_container; field_presence; field_type=`Struct {object_name; _}; _} ->
+        name_str (object_name^".gen") field_container field_presence
+    )
+
+  let pp_gens ~cyclic_field = Fmt.list ~sep:(Fmt.any "\n") (pp_gen ~cyclic_field)
+
+  let pp =
+    Fmt.of_to_string (function
+        | Field.{object_fields; _} as st when Field.has_cycle st ->
+          let fields = Field.ordered_fields object_fields in
+          let cyclic_fields = Field.cyclic_fields st in
+          assert (1 = List.length cyclic_fields);
+          let cyclic_field = List.nth cyclic_fields 0 in
+          let atat = "@@" in
+          let ss = [
+            Fmt.str "let gen = QCheck.Gen.(sized %s fix (fun self n -> " atat;
+            Fmt.str "let basecase = oneofl [None; Some []] in ";
+            Fmt.str "let _gen_t = ";
+            Fmt.str "fun t -> ";
+            Fmt.str "let gg = tup%d\n%a in" (List.length fields) (pp_gens ~cyclic_field) fields;
+            Fmt.str "map (fun ( %a ) -> { %a }) gg" (pp_names ~tok:",") fields (pp_names ~tok:";") fields;
+            Fmt.str "in match n with";
+            Fmt.str "| 0 -> _gen_t basecase";
+            Fmt.str "| n -> frequency";
+            Fmt.str "[(1, _gen_t basecase);\n(1, let t = map (fun {%a; _} -> %a) %s self (n / 2) in _gen_t t)]"
+              pp_field_name cyclic_field
+              pp_field_name cyclic_field
+              atat;
+            Fmt.str "))\n";
+            Fmt.str "let arb = QCheck.make gen";
+          ]
+          in
+          String.concat "\n" ss
+        | _st -> ""
+        )
+
+  let%expect_test "Check Stanza_gen_struct" =
+    let grp = Field.test_data () in
+    print_endline @@ Format.asprintf "%a" pp grp;
+    [%expect {|
+      let gen = QCheck.Gen.(sized @@ fix (fun self n ->
+      let basecase = oneofl [None; Some []] in
+      let _gen_t =
+      fun t ->
+      let gg = tup5
+      Gen.gen_utf8_str
+      Gen.gen_json_opt
+      (option bool)
+      t
+      (option Stopped_event_enum.gen) in
+      map (fun ( format,variables,sendTelemetry,things,stuff ) -> { format;variables;sendTelemetry;things;stuff }) gg
+      in match n with
+      | 0 -> _gen_t basecase
+      | n -> frequency
+      [(1, _gen_t basecase);
+      (1, let t = map (fun {things; _} -> things) @@ self (n / 2) in _gen_t t)]
+      ))
+
+      let arb = QCheck.make gen |}]
 
 end
 
@@ -713,6 +806,7 @@ module Printer_object = struct
     Fmt.of_to_string (function o ->
         String.concat "\n\n" [
           Fmt.str "%a" Stanza_t_struct.pp o;
+          Fmt.str "%a" Stanza_gen_struct.pp o;
           Fmt.str "%a" Stanza_make_struct.pp o;
           Fmt.str "%a" Stanza_enc_struct.pp o;
           Fmt.str "%a" Stanza_getters_struct.pp o;
@@ -735,17 +829,37 @@ module Printer_object = struct
     [%expect {|
       module Thing = struct
       type t = {
-      format : (string list  [@gen Gen.gen_utf8_str]);
+      format : (string list  [@gen Gen.gen_utf8_str_list]);
       variables : (t  option [@gen Gen.gen_json_opt]);
       sendTelemetry : (bool  option );
       things : (t tree option );
       stuff : (Stopped_event_enum.t  option )
       }
-      [@@deriving irmin, qcheck]
+      [@@deriving irmin]
 
       let equal = Irmin.Type.(unstage (equal t))
 
       let merge = Irmin.Merge.idempotent t
+
+      let gen = QCheck.Gen.(sized @@ fix (fun self n ->
+      let basecase = oneofl [None; Some []] in
+      let _gen_t =
+      fun t ->
+      let gg = tup5
+      Gen.gen_utf8_str
+      Gen.gen_json_opt
+      (option bool)
+      t
+      (option Stopped_event_enum.gen) in
+      map (fun ( format,variables,sendTelemetry,things,stuff ) -> { format;variables;sendTelemetry;things;stuff }) gg
+      in match n with
+      | 0 -> _gen_t basecase
+      | n -> frequency
+      [(1, _gen_t basecase);
+      (1, let t = map (fun {things; _} -> things) @@ self (n / 2) in _gen_t t)]
+      ))
+
+      let arb = QCheck.make gen
 
       let make ~format ?variables ?sendTelemetry ?things ?stuff () =
       {format; variables; sendTelemetry; things; stuff}
@@ -814,17 +928,37 @@ module Printer_object = struct
       val stuff : t -> Stopped_event_enum.t  option
       end = struct
       type t = {
-      format : (string list  [@gen Gen.gen_utf8_str]);
+      format : (string list  [@gen Gen.gen_utf8_str_list]);
       variables : (t  option [@gen Gen.gen_json_opt]);
       sendTelemetry : (bool  option );
       things : (t tree option );
       stuff : (Stopped_event_enum.t  option )
       }
-      [@@deriving irmin, qcheck]
+      [@@deriving irmin]
 
       let equal = Irmin.Type.(unstage (equal t))
 
       let merge = Irmin.Merge.idempotent t
+
+      let gen = QCheck.Gen.(sized @@ fix (fun self n ->
+      let basecase = oneofl [None; Some []] in
+      let _gen_t =
+      fun t ->
+      let gg = tup5
+      Gen.gen_utf8_str
+      Gen.gen_json_opt
+      (option bool)
+      t
+      (option Stopped_event_enum.gen) in
+      map (fun ( format,variables,sendTelemetry,things,stuff ) -> { format;variables;sendTelemetry;things;stuff }) gg
+      in match n with
+      | 0 -> _gen_t basecase
+      | n -> frequency
+      [(1, _gen_t basecase);
+      (1, let t = map (fun {things; _} -> things) @@ self (n / 2) in _gen_t t)]
+      ))
+
+      let arb = QCheck.make gen
 
       let make ~format ?variables ?sendTelemetry ?things ?stuff () =
       {format; variables; sendTelemetry; things; stuff}
@@ -1158,6 +1292,8 @@ module Printer_object_big = struct
 
       let merge = Irmin.Merge.idempotent t
 
+
+
       let make ~format0 ~format1 ~format2 () =
       {format0; format1; format2}
 
@@ -1193,6 +1329,8 @@ module Printer_object_big = struct
 
       let merge = Irmin.Merge.idempotent t
 
+
+
       let make ~format3 ~format4 ~format5 () =
       {format3; format4; format5}
 
@@ -1226,6 +1364,8 @@ module Printer_object_big = struct
       let equal = Irmin.Type.(unstage (equal t))
 
       let merge = Irmin.Merge.idempotent t
+
+
 
       let make ~format6 ~format7 () =
       {format6; format7}
