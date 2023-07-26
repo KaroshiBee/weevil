@@ -917,7 +917,7 @@ module Printer_object_big = struct
 
   let pp_inner_structs ~max_fields fmt o =
     let objs = grouping max_fields o in
-    Fmt.list ~sep:(Fmt.any "\n\n") (Printer_object.pp ~with_sig:true) fmt objs
+    Fmt.list ~sep:(Fmt.any "\n\n") (Printer_object.pp ~with_sig:false) fmt objs
 
   let pp_ts ~max_fields =
     let pp_t =
@@ -1146,32 +1146,7 @@ module Printer_object_big = struct
 
       val format7 : t -> string list
       end = struct
-      module Big_thing_0 : sig
-      type t [@@deriving irmin]
-
-      val equal : t -> t -> bool
-
-      val merge : t Irmin.Merge.t
-
-      val gen : t QCheck.Gen.t
-
-      val arb : t QCheck.arbitrary
-
-      val make :
-      format0 : string list ->
-      format1 : string list ->
-      format2 : string list ->
-      unit ->
-      t
-
-      val enc : t Data_encoding.t
-
-      val format0 : t -> string list
-
-      val format1 : t -> string list
-
-      val format2 : t -> string list
-      end = struct
+      module Big_thing_0 = struct
       type t = {
       format0 : (string list  );
       format1 : (string list  );
@@ -1206,32 +1181,7 @@ module Printer_object_big = struct
       let format2 t = t.format2
       end
 
-      module Big_thing_3 : sig
-      type t [@@deriving irmin]
-
-      val equal : t -> t -> bool
-
-      val merge : t Irmin.Merge.t
-
-      val gen : t QCheck.Gen.t
-
-      val arb : t QCheck.arbitrary
-
-      val make :
-      format3 : string list ->
-      format4 : string list ->
-      format5 : string list ->
-      unit ->
-      t
-
-      val enc : t Data_encoding.t
-
-      val format3 : t -> string list
-
-      val format4 : t -> string list
-
-      val format5 : t -> string list
-      end = struct
+      module Big_thing_3 = struct
       type t = {
       format3 : (string list  );
       format4 : (string list  );
@@ -1266,29 +1216,7 @@ module Printer_object_big = struct
       let format5 t = t.format5
       end
 
-      module Big_thing_6 : sig
-      type t [@@deriving irmin]
-
-      val equal : t -> t -> bool
-
-      val merge : t Irmin.Merge.t
-
-      val gen : t QCheck.Gen.t
-
-      val arb : t QCheck.arbitrary
-
-      val make :
-      format6 : string list ->
-      format7 : string list ->
-      unit ->
-      t
-
-      val enc : t Data_encoding.t
-
-      val format6 : t -> string list
-
-      val format7 : t -> string list
-      end = struct
+      module Big_thing_6 = struct
       type t = {
       format6 : (string list  );
       format7 : (string list  )
