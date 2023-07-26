@@ -65,7 +65,7 @@ module Stanza_enum_t_struct = struct
           Fmt.list ~sep:(Fmt.any "\n") pp_element
         in
         let elements = Enum.ordered_elements enum_elements in
-        let deriving = Fmt.str "[%s irmin]" deriving_str in
+        let deriving = Fmt.str "[%s irmin, qcheck]" deriving_str in
         let last = function
           | `Open -> ["| Other of string"; deriving]
           | `Closed -> [deriving]
@@ -87,7 +87,7 @@ module Stanza_enum_t_struct = struct
       | Breakpoint
       | Exception
       | Other of string
-      [@@deriving irmin]
+      [@@deriving irmin, qcheck]
       let equal = Irmin.Type.(unstage (equal t))
       let merge = Irmin.Merge.idempotent t |}]
 
@@ -99,7 +99,7 @@ module Stanza_enum_t_struct = struct
       | Step
       | Breakpoint
       | Exception
-      [@@deriving irmin]
+      [@@deriving irmin, qcheck]
       let equal = Irmin.Type.(unstage (equal t))
       let merge = Irmin.Merge.idempotent t |}]
 
@@ -209,7 +209,7 @@ module Printer_enum = struct
       | Breakpoint
       | Exception
       | Other of string
-      [@@deriving irmin]
+      [@@deriving irmin, qcheck]
       let equal = Irmin.Type.(unstage (equal t))
       let merge = Irmin.Merge.idempotent t
 
@@ -238,7 +238,7 @@ module Printer_enum = struct
       | Step
       | Breakpoint
       | Exception
-      [@@deriving irmin]
+      [@@deriving irmin, qcheck]
       let equal = Irmin.Type.(unstage (equal t))
       let merge = Irmin.Merge.idempotent t
 
