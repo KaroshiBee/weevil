@@ -10,13 +10,6 @@ module CommandHelper = struct
 
   let module_name = "Dap_commands"
 
-  let struct_decl_str name ~on =
-    match Stringext.cut name ~on with
-    | Some (enum_str, "") ->
-      let enum_str = Sp.unweird_name enum_str in
-      Printf.sprintf "struct type t = %s.t let value=%s.%s let enc = %s.enc end" module_name module_name enum_str module_name
-    | _ -> assert false
-
   let enum_str name ~on =
     match Stringext.cut name ~on with
     | Some (enum_str, "") ->
@@ -29,13 +22,6 @@ end
 module EventHelper = struct
 
   let module_name = "Dap_events"
-
-  let struct_decl_str name =
-    match Stringext.cut name ~on:"Event" with
-    | Some (enum_str, "") ->
-      let enum_str = Sp.unweird_name enum_str in
-      Printf.sprintf "struct type t = %s.t let value=%s.%s let enc = %s.enc end" module_name module_name enum_str module_name
-    | _ -> assert false
 
   let enum_str name =
     match Stringext.cut name ~on:"Event" with
