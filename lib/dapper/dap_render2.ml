@@ -339,6 +339,35 @@ module Stanza_enum_complex_t_struct = struct
       type breakPoint
       type exception_ |}]
 
+end
+
+
+
+module Stanza_enum_complex_getters_sig = struct
+
+  (* the Command and Event enums are special *)
+  let pp =
+    Fmt.of_to_string (function Enum.{enum_elements; _} ->
+        let pp_element =
+          Fmt.of_to_string (function Enum.{element_name; _} ->
+              let uname = String.uncapitalize_ascii element_name in
+              Fmt.str "let %s : %s t = %s" uname uname @@ String.capitalize_ascii element_name
+            )
+        in
+        let pp_elements =
+          Fmt.list ~sep:(Fmt.any "\n") pp_element
+        in
+        let elements = Enum.ordered_elements enum_elements in
+        Fmt.str "%a" pp_elements elements
+      )
+
+  let%expect_test "Check Stanza_enum_complex_getters_sig" =
+    let grp = Enum.test_data ~enum_type:`Closed () in
+    print_endline @@ Format.asprintf "%a" pp grp;
+    [%expect {|
+      let step : step t = Step
+      let breakPoint : breakPoint t = BreakPoint
+      let exception_ : exception_ t = Exception_ |}]
 
 end
 
