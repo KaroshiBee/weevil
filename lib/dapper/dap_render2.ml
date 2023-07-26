@@ -56,14 +56,17 @@ module Field = struct
     | `Enum of Enum.enum
     ]
   ; field_presence : [`Opt | `Req ]
-  ; field_container : container option (* we only deal with one container: t list  *)
+  ; field_container : container option (* we only deal with containers of one type e.g. 'a list *)
   ; field_index : int
   } [@@deriving show, eq]
 
   and object_ = {
-    object_name : string (* what the struct would be called ie Thing *)
-  ; object_t : string (* what 't' would be called i.e. for Thing.t *)
-  ; object_enc : [ `Cyclic | `Raw of string | `Qualified of string ] (* what 'enc' would be called *)
+  (* what the struct would be called ie Thing *)
+    object_name : string
+  (* what 't' would be called i.e. for Thing.t *)
+  ; object_t : string
+  (* what 'enc' would be called, cyclic is special case (needs mu encoder), raw is just as is, qualified needs to be combined with object_name *)
+  ; object_enc : [ `Cyclic | `Raw of string | `Qualified of string ]
   ; object_fields : t list
   } [@@deriving show, eq ]
 
