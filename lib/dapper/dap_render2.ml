@@ -330,9 +330,9 @@ module Field = struct
     let object_fields = [
       { field_name="variables";
         field_dirty_name="_variables_";
-        field_type=`Struct {object_name="Data_encoding";
-                            object_t="json";
-                            object_enc = `Qualified "json";
+        field_type=`Struct {object_name="Irmin.Contents.Json_value";
+                            object_t="t";
+                            object_enc = `Raw "Data_encoding.json";
                             object_fields=[]};
         field_presence=`Opt;
         field_container=None;
@@ -464,7 +464,7 @@ module Stanza_t_struct = struct
     [%expect {|
       type t = {
       format : (string list  [@gen Gen.gen_utf8_str_list]);
-      variables : (Data_encoding.json  option [@gen Gen.gen_json_opt]);
+      variables : (Irmin.Contents.Json_value.t  option [@gen Gen.gen_json_opt]);
       sendTelemetry : (bool  option );
       things : (t tree option );
       stuff : (Stopped_event_enum.t  option )
@@ -565,23 +565,29 @@ end
 
 module Stanza_make_sig = struct
 
-  let pp_field =
-    Fmt.of_to_string (function Field.{field_name; field_type; field_presence; field_container; _} ->
+  let pp_field ~cyclic_field =
+    Fmt.of_to_string (function Field.{field_name; field_type; field_presence; field_container; _} as f ->
         let presence = match field_presence with | `Opt -> "?" | `Req -> "" in
         let container = match field_container with None -> "" | Some {container_name; _} -> container_name in
         match field_type with
         | `Builtin {builtin_name; _} ->
           Fmt.str "%s%s : %s %s" presence field_name builtin_name container
-        | `Struct {object_t; _} ->
+        | `Struct {object_t; _} when cyclic_field = Some f ->
           Fmt.str "%s%s : %s %s" presence field_name object_t container
+        | `Struct {object_t; object_name; _} ->
+          Fmt.str "%s%s : %s.%s %s" presence field_name object_name object_t container
         | `Enum Enum.{enum_name; _} ->
           Fmt.str "%s%s : %s.t %s" presence field_name enum_name container
       )
 
   let pp =
-    Fmt.of_to_string (function Field.{object_fields; _} ->
+    Fmt.of_to_string (function Field.{object_fields; _} as o ->
         let fields = Field.ordered_fields object_fields in
-        let pp_fields = Fmt.list ~sep:(Fmt.any " -> \n") pp_field in
+        let cyclic_field =
+          let xs = Field.cyclic_fields o in
+          List.nth_opt xs 0
+        in
+        let pp_fields = Fmt.list ~sep:(Fmt.any " -> \n") (pp_field ~cyclic_field) in
         Fmt.str "val make : \n%a -> \nunit -> \nt" pp_fields fields
       )
 
@@ -591,7 +597,7 @@ module Stanza_make_sig = struct
     [%expect {|
       val make :
       format : string list ->
-      ?variables : json  ->
+      ?variables : Irmin.Contents.Json_value.t  ->
       ?sendTelemetry : bool  ->
       ?things : t tree ->
       ?stuff : Stopped_event_enum.t  ->
@@ -632,23 +638,29 @@ end
 
 module Stanza_getters_sig = struct
 
-  let pp_field =
-    Fmt.of_to_string (function Field.{field_name; field_type; field_presence; field_container; _} ->
+  let pp_field ~cyclic_field =
+    Fmt.of_to_string (function Field.{field_name; field_type; field_presence; field_container; _} as f ->
         let presence = match field_presence with | `Opt -> "option" | `Req -> "" in
         let container = match field_container with None -> "" | Some {container_name; _} -> container_name in
         match field_type with
         | `Builtin {builtin_name; _} ->
           Fmt.str "val %s : t -> %s %s %s" field_name builtin_name container presence
-        | `Struct {object_t; _} ->
+        | `Struct {object_t; _} when cyclic_field = Some f ->
           Fmt.str "val %s : t -> %s %s %s" field_name object_t container presence
+        | `Struct {object_t; object_name; _} ->
+          Fmt.str "val %s : t -> %s.%s %s %s" field_name object_name object_t container presence
         | `Enum Enum.{enum_name; _} ->
           Fmt.str "val %s : t -> %s.t %s %s" field_name enum_name container presence
       )
 
   let pp =
-    Fmt.of_to_string (function Field.{object_fields; _} ->
+    Fmt.of_to_string (function Field.{object_fields; _} as o ->
         let all_fields = Field.ordered_fields object_fields in
-        let pp_fields = Fmt.list ~sep:(Fmt.any "\n\n") pp_field in
+        let cyclic_field =
+          let xs = Field.cyclic_fields o in
+          List.nth_opt xs 0
+        in
+        let pp_fields = Fmt.list ~sep:(Fmt.any "\n\n") (pp_field ~cyclic_field) in
         Fmt.str "%a" pp_fields all_fields
       )
 
@@ -658,7 +670,7 @@ module Stanza_getters_sig = struct
     [%expect {|
       val format : t -> string list
 
-      val variables : t -> json  option
+      val variables : t -> Irmin.Contents.Json_value.t  option
 
       val sendTelemetry : t -> bool  option
 
@@ -844,7 +856,7 @@ module Printer_object = struct
       module Thing = struct
       type t = {
       format : (string list  [@gen Gen.gen_utf8_str_list]);
-      variables : (Data_encoding.json  option [@gen Gen.gen_json_opt]);
+      variables : (Irmin.Contents.Json_value.t  option [@gen Gen.gen_json_opt]);
       sendTelemetry : (bool  option );
       things : (t tree option );
       stuff : (Stopped_event_enum.t  option )
@@ -922,7 +934,7 @@ module Printer_object = struct
 
       val make :
       format : string list ->
-      ?variables : json  ->
+      ?variables : Irmin.Contents.Json_value.t  ->
       ?sendTelemetry : bool  ->
       ?things : t tree ->
       ?stuff : Stopped_event_enum.t  ->
@@ -933,7 +945,7 @@ module Printer_object = struct
 
       val format : t -> string list
 
-      val variables : t -> json  option
+      val variables : t -> Irmin.Contents.Json_value.t  option
 
       val sendTelemetry : t -> bool  option
 
@@ -943,7 +955,7 @@ module Printer_object = struct
       end = struct
       type t = {
       format : (string list  [@gen Gen.gen_utf8_str_list]);
-      variables : (Data_encoding.json  option [@gen Gen.gen_json_opt]);
+      variables : (Irmin.Contents.Json_value.t  option [@gen Gen.gen_json_opt]);
       sendTelemetry : (bool  option );
       things : (t tree option );
       stuff : (Stopped_event_enum.t  option )
