@@ -51,7 +51,7 @@ module Enum = struct
       {element_name="Step";
        element_dirty_name="step";
        element_index=0};
-      {element_name="Exception";
+      {element_name="Exception_";
        element_dirty_name="exception";
        element_index=2};
     ] in
@@ -95,7 +95,7 @@ module Stanza_enum_t_struct = struct
       type t =
       | Step
       | BreakPoint
-      | Exception
+      | Exception_
       | Other of string
       [@@deriving irmin, qcheck]
       let equal = Irmin.Type.(unstage (equal t))
@@ -108,7 +108,7 @@ module Stanza_enum_t_struct = struct
       type t =
       | Step
       | BreakPoint
-      | Exception
+      | Exception_
       [@@deriving irmin, qcheck]
       let equal = Irmin.Type.(unstage (equal t))
       let merge = Irmin.Merge.idempotent t |}]
@@ -162,12 +162,12 @@ module Stanza_enum_enc_struct = struct
       (function
       | Step -> "step"
       | BreakPoint -> "break-point"
-      | Exception -> "exception"
+      | Exception_ -> "exception"
       | Other s -> s)
       (function
       | "step" -> Ok Step
       | "break-point" -> Ok BreakPoint
-      | "exception" -> Ok Exception
+      | "exception" -> Ok Exception_
       | _ as s -> Ok (Other s))
       string |}]
 
@@ -181,12 +181,12 @@ module Stanza_enum_enc_struct = struct
       (function
       | Step -> "step"
       | BreakPoint -> "break-point"
-      | Exception -> "exception"
+      | Exception_ -> "exception"
       )
       (function
       | "step" -> Ok Step
       | "break-point" -> Ok BreakPoint
-      | "exception" -> Ok Exception
+      | "exception" -> Ok Exception_
       | _ -> Error "Stopped_event_enum")
       string |}]
 
@@ -217,7 +217,7 @@ module Printer_enum = struct
       type t =
       | Step
       | BreakPoint
-      | Exception
+      | Exception_
       | Other of string
       [@@deriving irmin, qcheck]
       let equal = Irmin.Type.(unstage (equal t))
@@ -229,12 +229,12 @@ module Printer_enum = struct
       (function
       | Step -> "step"
       | BreakPoint -> "break-point"
-      | Exception -> "exception"
+      | Exception_ -> "exception"
       | Other s -> s)
       (function
       | "step" -> Ok Step
       | "break-point" -> Ok BreakPoint
-      | "exception" -> Ok Exception
+      | "exception" -> Ok Exception_
       | _ as s -> Ok (Other s))
       string
       end |}]
@@ -247,7 +247,7 @@ module Printer_enum = struct
       type t =
       | Step
       | BreakPoint
-      | Exception
+      | Exception_
       [@@deriving irmin, qcheck]
       let equal = Irmin.Type.(unstage (equal t))
       let merge = Irmin.Merge.idempotent t
@@ -258,12 +258,12 @@ module Printer_enum = struct
       (function
       | Step -> "step"
       | BreakPoint -> "break-point"
-      | Exception -> "exception"
+      | Exception_ -> "exception"
       )
       (function
       | "step" -> Ok Step
       | "break-point" -> Ok BreakPoint
-      | "exception" -> Ok Exception
+      | "exception" -> Ok Exception_
       | _ -> Error "Stopped_event_enum")
       string
       end |}]
@@ -295,7 +295,50 @@ module Stanza_enum_complex_t_sig = struct
       type 'a t
       type step
       type breakPoint
-      type exception |}]
+      type exception_ |}]
+
+end
+
+module Stanza_enum_complex_t_struct = struct
+
+  (* the Command and Event enums are special *)
+  let pp =
+    Fmt.of_to_string (function Enum.{enum_elements; _} ->
+        let pp_element1 =
+          Fmt.of_to_string (function Enum.{element_name; _} ->
+              Fmt.str "| %s" @@ String.capitalize_ascii element_name
+            )
+        in
+        let pp_element2 =
+          Fmt.of_to_string (function Enum.{element_name; _} ->
+              Fmt.str "type %s" @@ String.uncapitalize_ascii element_name
+            )
+        in
+        let pp_elements ~pp =
+          Fmt.list ~sep:(Fmt.any "\n") pp
+        in
+        let elements = Enum.ordered_elements enum_elements in
+        String.concat "\n\n" [
+          Fmt.str "type v = %a" (pp_elements ~pp:pp_element1) elements;
+          Fmt.str "type 'a t = v";
+          Fmt.str "%a" (pp_elements ~pp:pp_element2) elements;
+        ]
+      )
+
+  let%expect_test "Check Stanza_enum_complex_t_struct" =
+    let grp = Enum.test_data ~enum_type:`Closed () in
+    print_endline @@ Format.asprintf "%a" pp grp;
+    [%expect {|
+      type v = | Step
+      | BreakPoint
+      | Exception_
+
+      type 'a t = v
+
+      type step
+      type breakPoint
+      type exception_ |}]
+
 
 end
 
