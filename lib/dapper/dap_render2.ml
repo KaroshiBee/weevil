@@ -16,21 +16,32 @@ end
 
 module Enum = struct
 
-  type t = {
+  type element = {
     element_name : string
   ; element_dirty_name : string
   ; element_index : int
   } [@@deriving show, eq]
 
-  and enum = {
+  and t = {
     enum_name : string
   ; enum_type : [ `Open | `Closed ] (* whether it allows for `| Other of string` *)
-  ; enum_elements : t list
+  ; enum_elements : element list
   }
 
   let ordered_elements els =
     els
     |> List.sort (fun x y -> compare x.element_index y.element_index)
+
+  let of_enum_spec Sp.Enum_spec.{safe_name; enums; suggested; _} =
+    let enum_type = if suggested then `Open else `Closed in
+    let enum_elements =
+      List.mapi (fun element_index (e:Sp.Enum_spec.enum_val) -> {
+          element_name=e.safe_name;
+          element_dirty_name=e.dirty_name;
+          element_index
+        }) enums
+    in
+    {enum_name=safe_name; enum_type; enum_elements}
 
   let test_data ~enum_type () =
     let enum_name = "Stopped_event_enum" in
@@ -269,7 +280,7 @@ module Field = struct
   ; field_type : [
       `Builtin of builtin
     | `Struct of object_
-    | `Enum of Enum.enum
+    | `Enum of Enum.t
     ]
   ; field_presence : [`Opt | `Req ]
   ; field_container : container option (* we only deal with containers of one type e.g. 'a list *)
