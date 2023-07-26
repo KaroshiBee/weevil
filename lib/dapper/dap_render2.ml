@@ -6,6 +6,10 @@ module Dfs = Dap_dfs.Dfs
 
 (* TODO want to be able to easily add new derivings *)
 
+(* NOTE these @@ are awkard when used directly in format string *)
+let deriving_str = "@@deriving"
+
+
 module Enum = struct
 
   type t = {
@@ -44,6 +48,218 @@ module Enum = struct
     {enum_name; enum_t; enum_enc; enum_type; enum_elements}
 
 end
+
+
+
+(* NOTE dont need a sig for the enum types, inferred one is fine *)
+module Stanza_enum_t_struct = struct
+
+  let pp =
+    Fmt.of_to_string (function Enum.{enum_t; enum_elements; enum_type; _} ->
+        let pp_element =
+          Fmt.of_to_string (function Enum.{element_name; _} ->
+              Fmt.str "| %s" element_name
+            )
+        in
+        let pp_elements =
+          Fmt.list ~sep:(Fmt.any "\n") pp_element
+        in
+        let elements = Enum.ordered_elements enum_elements in
+        let deriving = Fmt.str "[%s irmin]" deriving_str in
+        let last = function
+          | `Open -> ["| Other of string"; deriving]
+          | `Closed -> [deriving]
+        in
+        String.concat "\n" @@ List.concat [
+          [Fmt.str "type %s =\n%a" enum_t pp_elements elements];
+          last enum_type;
+          [Fmt.str "let equal = Irmin.Type.(unstage (equal %s))" enum_t;
+           Fmt.str "let merge = Irmin.Merge.idempotent %s" enum_t];
+        ]
+      )
+
+  let%expect_test "Check Stanza_enum_t_struct Open" =
+    let grp = Enum.test_data ~enum_type:`Open () in
+    print_endline @@ Format.asprintf "%a" pp grp;
+    [%expect {|
+      type t =
+      | Step
+      | Breakpoint
+      | Exception
+      | Other of string
+      [@@deriving irmin]
+      let equal = Irmin.Type.(unstage (equal t))
+      let merge = Irmin.Merge.idempotent t |}]
+
+  let%expect_test "Check Stanza_enum_t_struct Closed" =
+    let grp = Enum.test_data ~enum_type:`Closed () in
+    print_endline @@ Format.asprintf "%a" pp grp;
+    [%expect {|
+      type t =
+      | Step
+      | Breakpoint
+      | Exception
+      [@@deriving irmin]
+      let equal = Irmin.Type.(unstage (equal t))
+      let merge = Irmin.Merge.idempotent t |}]
+
+end
+
+module Stanza_enum_enc_struct = struct
+
+  let pp =
+    Fmt.of_to_string (function Enum.{enum_name; enum_enc; enum_elements; enum_type; _} ->
+        let pp_name_to_dirty =
+          Fmt.of_to_string (function Enum.{element_name; element_dirty_name; _} ->
+              Fmt.str "| %s -> \"%s\"" element_name element_dirty_name
+            )
+        in
+        let last1 = function
+          | `Open -> "| Other s -> s"
+          | `Closed -> ""
+        in
+        let pp_dirty_to_name =
+          Fmt.of_to_string (function Enum.{element_name; element_dirty_name; _} ->
+              Fmt.str "| \"%s\" -> Ok %s" element_dirty_name element_name
+            )
+        in
+        let last2 = function
+          | `Open -> "| _ as s -> Ok (Other s)"
+          | `Closed -> Fmt.str "| _ -> Error \"%s\"" enum_name
+        in
+        let pp_elements pp_ =
+          Fmt.list ~sep:(Fmt.any "\n") pp_
+        in
+
+        let elements = Enum.ordered_elements enum_elements in
+        String.concat "\n" [
+          Fmt.str "let %s =" enum_enc;
+          "let open Data_encoding in ";
+          "conv_with_guard";
+          Fmt.str "(function\n%a\n%s)" (pp_elements pp_name_to_dirty) elements (last1 enum_type);
+          Fmt.str "(function\n%a\n%s)" (pp_elements pp_dirty_to_name) elements (last2 enum_type);
+          "string"
+        ]
+      )
+
+  let%expect_test "Check Stanza_enum_enc_struct Open" =
+    let grp = Enum.test_data ~enum_type:`Open () in
+    print_endline @@ Format.asprintf "%a" pp grp;
+    [%expect {|
+      let enc =
+      let open Data_encoding in
+      conv_with_guard
+      (function
+      | Step -> "step"
+      | Breakpoint -> "breakpoint"
+      | Exception -> "exception"
+      | Other s -> s)
+      (function
+      | "step" -> Ok Step
+      | "breakpoint" -> Ok Breakpoint
+      | "exception" -> Ok Exception
+      | _ as s -> Ok (Other s))
+      string |}]
+
+  let%expect_test "Check Stanza_enum_enc_struct Closed" =
+    let grp = Enum.test_data ~enum_type:`Closed () in
+    print_endline @@ Format.asprintf "%a" pp grp;
+    [%expect {|
+      let enc =
+      let open Data_encoding in
+      conv_with_guard
+      (function
+      | Step -> "step"
+      | Breakpoint -> "breakpoint"
+      | Exception -> "exception"
+      )
+      (function
+      | "step" -> Ok Step
+      | "breakpoint" -> Ok Breakpoint
+      | "exception" -> Ok Exception
+      | _ -> Error "Stopped_event_enum")
+      string |}]
+
+end
+
+
+module Printer_enum = struct
+
+  let pp_struct =
+    Fmt.of_to_string (function e ->
+        String.concat "\n\n" [
+          Fmt.str "%a" Stanza_enum_t_struct.pp e;
+          Fmt.str "%a" Stanza_enum_enc_struct.pp e;
+        ]
+      )
+
+  let pp =
+    Fmt.of_to_string (function e ->
+        Fmt.str "module %s = struct\n%a\nend"
+          e.Enum.enum_name pp_struct e
+      )
+
+  let%expect_test "Check Printer_enum open" =
+    let grp = Enum.test_data ~enum_type:`Open () in
+    print_endline @@ Format.asprintf "%a" pp grp;
+    [%expect {|
+      module Stopped_event_enum = struct
+      type t =
+      | Step
+      | Breakpoint
+      | Exception
+      | Other of string
+      [@@deriving irmin]
+      let equal = Irmin.Type.(unstage (equal t))
+      let merge = Irmin.Merge.idempotent t
+
+      let enc =
+      let open Data_encoding in
+      conv_with_guard
+      (function
+      | Step -> "step"
+      | Breakpoint -> "breakpoint"
+      | Exception -> "exception"
+      | Other s -> s)
+      (function
+      | "step" -> Ok Step
+      | "breakpoint" -> Ok Breakpoint
+      | "exception" -> Ok Exception
+      | _ as s -> Ok (Other s))
+      string
+      end |}]
+
+  let%expect_test "Check Printer_enum closed" =
+    let grp = Enum.test_data ~enum_type:`Closed () in
+    print_endline @@ Format.asprintf "%a" pp grp;
+    [%expect {|
+      module Stopped_event_enum = struct
+      type t =
+      | Step
+      | Breakpoint
+      | Exception
+      [@@deriving irmin]
+      let equal = Irmin.Type.(unstage (equal t))
+      let merge = Irmin.Merge.idempotent t
+
+      let enc =
+      let open Data_encoding in
+      conv_with_guard
+      (function
+      | Step -> "step"
+      | Breakpoint -> "breakpoint"
+      | Exception -> "exception"
+      )
+      (function
+      | "step" -> Ok Step
+      | "breakpoint" -> Ok Breakpoint
+      | "exception" -> Ok Exception
+      | _ -> Error "Stopped_event_enum")
+      string
+      end |}]
+
+end
+
 
 module Field = struct
 
@@ -147,9 +363,6 @@ end
 module type PP_struct = sig
   val pp : Format.formatter -> 'a -> unit
 end
-
-(* NOTE these @@ are awkard when used directly in format string *)
-let deriving_str = "@@deriving"
 
 module Stanza_t_sig = struct
 
@@ -463,216 +676,6 @@ module Stanza_enc_struct = struct
       (opt "sendTelemetry_" ( bool))
       (opt "things in a container" (tree_enc e))
       (opt "stuff" ( Stopped_event_enum.enc)))) |}]
-end
-
-
-(* NOTE dont need a sig for the enum types, inferred one is fine *)
-module Stanza_enum_t_struct = struct
-
-  let pp =
-    Fmt.of_to_string (function Enum.{enum_t; enum_elements; enum_type; _} ->
-        let pp_element =
-          Fmt.of_to_string (function Enum.{element_name; _} ->
-              Fmt.str "| %s" element_name
-            )
-        in
-        let pp_elements =
-          Fmt.list ~sep:(Fmt.any "\n") pp_element
-        in
-        let elements = Enum.ordered_elements enum_elements in
-        let deriving = Fmt.str "[%s irmin]" deriving_str in
-        let last = function
-          | `Open -> ["| Other of string"; deriving]
-          | `Closed -> [deriving]
-        in
-        String.concat "\n" @@ List.concat [
-          [Fmt.str "type %s =\n%a" enum_t pp_elements elements];
-          last enum_type;
-          [Fmt.str "let equal = Irmin.Type.(unstage (equal %s))" enum_t;
-           Fmt.str "let merge = Irmin.Merge.idempotent %s" enum_t];
-        ]
-      )
-
-  let%expect_test "Check Stanza_enum_t_struct Open" =
-    let grp = Enum.test_data ~enum_type:`Open () in
-    print_endline @@ Format.asprintf "%a" pp grp;
-    [%expect {|
-      type t =
-      | Step
-      | Breakpoint
-      | Exception
-      | Other of string
-      [@@deriving irmin]
-      let equal = Irmin.Type.(unstage (equal t))
-      let merge = Irmin.Merge.idempotent t |}]
-
-  let%expect_test "Check Stanza_enum_t_struct Closed" =
-    let grp = Enum.test_data ~enum_type:`Closed () in
-    print_endline @@ Format.asprintf "%a" pp grp;
-    [%expect {|
-      type t =
-      | Step
-      | Breakpoint
-      | Exception
-      [@@deriving irmin]
-      let equal = Irmin.Type.(unstage (equal t))
-      let merge = Irmin.Merge.idempotent t |}]
-
-end
-
-module Stanza_enum_enc_struct = struct
-
-  let pp =
-    Fmt.of_to_string (function Enum.{enum_name; enum_enc; enum_elements; enum_type; _} ->
-        let pp_name_to_dirty =
-          Fmt.of_to_string (function Enum.{element_name; element_dirty_name; _} ->
-              Fmt.str "| %s -> \"%s\"" element_name element_dirty_name
-            )
-        in
-        let last1 = function
-          | `Open -> "| Other s -> s"
-          | `Closed -> ""
-        in
-        let pp_dirty_to_name =
-          Fmt.of_to_string (function Enum.{element_name; element_dirty_name; _} ->
-              Fmt.str "| \"%s\" -> Ok %s" element_dirty_name element_name
-            )
-        in
-        let last2 = function
-          | `Open -> "| _ as s -> Ok (Other s)"
-          | `Closed -> Fmt.str "| _ -> Error \"%s\"" enum_name
-        in
-        let pp_elements pp_ =
-          Fmt.list ~sep:(Fmt.any "\n") pp_
-        in
-
-        let elements = Enum.ordered_elements enum_elements in
-        String.concat "\n" [
-          Fmt.str "let %s =" enum_enc;
-          "let open Data_encoding in ";
-          "conv_with_guard";
-          Fmt.str "(function\n%a\n%s)" (pp_elements pp_name_to_dirty) elements (last1 enum_type);
-          Fmt.str "(function\n%a\n%s)" (pp_elements pp_dirty_to_name) elements (last2 enum_type);
-          "string"
-        ]
-      )
-
-  let%expect_test "Check Stanza_enum_enc_struct Open" =
-    let grp = Enum.test_data ~enum_type:`Open () in
-    print_endline @@ Format.asprintf "%a" pp grp;
-    [%expect {|
-      let enc =
-      let open Data_encoding in
-      conv_with_guard
-      (function
-      | Step -> "step"
-      | Breakpoint -> "breakpoint"
-      | Exception -> "exception"
-      | Other s -> s)
-      (function
-      | "step" -> Ok Step
-      | "breakpoint" -> Ok Breakpoint
-      | "exception" -> Ok Exception
-      | _ as s -> Ok (Other s))
-      string |}]
-
-  let%expect_test "Check Stanza_enum_enc_struct Closed" =
-    let grp = Enum.test_data ~enum_type:`Closed () in
-    print_endline @@ Format.asprintf "%a" pp grp;
-    [%expect {|
-      let enc =
-      let open Data_encoding in
-      conv_with_guard
-      (function
-      | Step -> "step"
-      | Breakpoint -> "breakpoint"
-      | Exception -> "exception"
-      )
-      (function
-      | "step" -> Ok Step
-      | "breakpoint" -> Ok Breakpoint
-      | "exception" -> Ok Exception
-      | _ -> Error "Stopped_event_enum")
-      string |}]
-
-end
-
-
-module Printer_enum = struct
-
-  let pp_struct =
-    Fmt.of_to_string (function e ->
-        String.concat "\n\n" [
-          Fmt.str "%a" Stanza_enum_t_struct.pp e;
-          Fmt.str "%a" Stanza_enum_enc_struct.pp e;
-        ]
-      )
-
-  let pp =
-    Fmt.of_to_string (function e ->
-        Fmt.str "module %s = struct\n%a\nend"
-          e.Enum.enum_name pp_struct e
-      )
-
-  let%expect_test "Check Printer_enum open" =
-    let grp = Enum.test_data ~enum_type:`Open () in
-    print_endline @@ Format.asprintf "%a" pp grp;
-    [%expect {|
-      module Stopped_event_enum = struct
-      type t =
-      | Step
-      | Breakpoint
-      | Exception
-      | Other of string
-      [@@deriving irmin]
-      let equal = Irmin.Type.(unstage (equal t))
-      let merge = Irmin.Merge.idempotent t
-
-      let enc =
-      let open Data_encoding in
-      conv_with_guard
-      (function
-      | Step -> "step"
-      | Breakpoint -> "breakpoint"
-      | Exception -> "exception"
-      | Other s -> s)
-      (function
-      | "step" -> Ok Step
-      | "breakpoint" -> Ok Breakpoint
-      | "exception" -> Ok Exception
-      | _ as s -> Ok (Other s))
-      string
-      end |}]
-
-  let%expect_test "Check Printer_enum closed" =
-    let grp = Enum.test_data ~enum_type:`Closed () in
-    print_endline @@ Format.asprintf "%a" pp grp;
-    [%expect {|
-      module Stopped_event_enum = struct
-      type t =
-      | Step
-      | Breakpoint
-      | Exception
-      [@@deriving irmin]
-      let equal = Irmin.Type.(unstage (equal t))
-      let merge = Irmin.Merge.idempotent t
-
-      let enc =
-      let open Data_encoding in
-      conv_with_guard
-      (function
-      | Step -> "step"
-      | Breakpoint -> "breakpoint"
-      | Exception -> "exception"
-      )
-      (function
-      | "step" -> Ok Step
-      | "breakpoint" -> Ok Breakpoint
-      | "exception" -> Ok Exception
-      | _ -> Error "Stopped_event_enum")
-      string
-      end |}]
-
 end
 
 
