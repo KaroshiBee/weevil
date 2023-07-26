@@ -7,7 +7,6 @@ module Dfs = Dap_dfs.Dfs
 (* TODO want to be able to easily add new derivings *)
 
 (* NOTE these @@ are awkard when used directly in format string *)
-
 module Consts = struct
   let atat = "@@"
   let deriving_str = Fmt.str "%sderiving" atat
@@ -272,14 +271,14 @@ module Printer_enum = struct
 end
 
 
-module Field = struct
+module Obj = struct
 
-  type t = {
+  type field = {
     field_name : string
   ; field_dirty_name : string
   ; field_type : [
       `Builtin of builtin
-    | `Struct of object_
+    | `Struct of t
     | `Enum of Enum.t
     ]
   ; field_presence : [`Opt | `Req ]
@@ -288,14 +287,14 @@ module Field = struct
   ; field_index : int
   } [@@deriving show, eq]
 
-  and object_ = {
+  and t = {
   (* what the struct would be called ie Thing *)
     object_name : string
   (* what 't' would be called i.e. for Thing.t *)
   ; object_t : string
   (* what 'enc' would be called, cyclic is special case (needs mu encoder), raw is just as is, qualified needs to be combined with object_name *)
   ; object_enc : [ `Cyclic | `Raw of string | `Qualified of string ]
-  ; object_fields : t list
+  ; object_fields : field list
   } [@@deriving show, eq ]
 
   and builtin = {
@@ -415,7 +414,7 @@ module Stanza_t_sig = struct
 
   (* TODO compose in the deriving irmin *)
   let pp =
-    Fmt.of_to_string (function Field.{object_name=_; _} ->
+    Fmt.of_to_string (function Obj.{object_name=_; _} ->
         let ss = [
           Fmt.str "type t [%s irmin]" Consts.deriving_str;
           Fmt.str "val equal : t -> t -> bool";
@@ -427,7 +426,7 @@ module Stanza_t_sig = struct
       )
 
   let%expect_test "Check Stanza_t_sig" =
-    let grp = Field.test_data () in
+    let grp = Obj.test_data () in
     print_endline @@ Format.asprintf "%a" pp grp;
     [%expect {|
       type t [@@deriving irmin]
@@ -445,7 +444,7 @@ end
 module Stanza_t_struct = struct
 
   let pp_field ~cyclic_field =
-    Fmt.of_to_string (function Field.{field_name; field_type; field_presence; field_container; field_gen_container; _} as f ->
+    Fmt.of_to_string (function Obj.{field_name; field_type; field_presence; field_container; field_gen_container; _} as f ->
         let presence = match field_presence with | `Opt -> "option" | `Req -> "" in
         let container = match field_container with None -> "" | Some {container_name; _} -> container_name in
         let gen_name = match field_gen_container with
@@ -468,11 +467,11 @@ module Stanza_t_struct = struct
       )
 
   let pp =
-    Fmt.of_to_string (function Field.{object_fields; object_t; _} as o ->
-        let fields = Field.ordered_fields object_fields in
-        let cyclic = Field.has_cycle o in
+    Fmt.of_to_string (function Obj.{object_fields; object_t; _} as o ->
+        let fields = Obj.ordered_fields object_fields in
+        let cyclic = Obj.has_cycle o in
         let cyclic_field =
-          let xs = Field.cyclic_fields o in
+          let xs = Obj.cyclic_fields o in
           List.nth_opt xs 0
         in
         let pp_fields = Fmt.list ~sep:(Fmt.any ";\n") (pp_field ~cyclic_field) in
@@ -488,7 +487,7 @@ module Stanza_t_struct = struct
       )
 
   let%expect_test "Check Stanza_struct" =
-    let grp = Field.test_data () in
+    let grp = Obj.test_data () in
     print_endline @@ Format.asprintf "%a" pp grp;
     [%expect {|
       type t = {
@@ -508,30 +507,30 @@ end
 
 module Stanza_gen_struct = struct
 
-  let pp_field_name = Fmt.of_to_string (function Field.{field_name; _} -> field_name)
+  let pp_field_name = Fmt.of_to_string (function Obj.{field_name; _} -> field_name)
 
   let pp_names ~tok = Fmt.list ~sep:(Fmt.any tok) pp_field_name
 
   let pp_gen ~cyclic_field =
     let gen_name_str gen_name container =
-      let s = match container with None -> gen_name | Some Field.{container_name; _} -> Fmt.str "%s_%s" gen_name container_name in
+      let s = match container with None -> gen_name | Some Obj.{container_name; _} -> Fmt.str "%s_%s" gen_name container_name in
       function
       | `Opt -> Fmt.str "Gen.%s_opt" s
       | `Req -> Fmt.str "Gen.%s" s
     in
     let name_str name container =
-      let s = match container with None -> name | Some Field.{container_name; _} -> Fmt.str "(%s %s)" container_name name in
+      let s = match container with None -> name | Some Obj.{container_name; _} -> Fmt.str "(%s %s)" container_name name in
       function `Opt -> Fmt.str "(option %s)" s | `Req -> Fmt.str "(%s)" s
     in
     Fmt.of_to_string (function
       | f when f = cyclic_field -> "t"
-      | Field.{field_gen_container=Some {gen_name; _}; field_container; field_presence; _} ->
+      | Obj.{field_gen_container=Some {gen_name; _}; field_container; field_presence; _} ->
         gen_name_str gen_name field_container field_presence
-      | Field.{field_gen_container=None; field_container; field_presence; field_type=`Builtin {builtin_name; _}; _} ->
+      | Obj.{field_gen_container=None; field_container; field_presence; field_type=`Builtin {builtin_name; _}; _} ->
         name_str builtin_name field_container field_presence
-      | Field.{field_gen_container=None; field_container; field_presence; field_type=`Enum {enum_name; _}; _} ->
+      | Obj.{field_gen_container=None; field_container; field_presence; field_type=`Enum {enum_name; _}; _} ->
         name_str (enum_name^".gen") field_container field_presence
-      | Field.{field_gen_container=None; field_container; field_presence; field_type=`Struct {object_name; _}; _} ->
+      | Obj.{field_gen_container=None; field_container; field_presence; field_type=`Struct {object_name; _}; _} ->
         name_str (object_name^".gen") field_container field_presence
     )
 
@@ -539,9 +538,9 @@ module Stanza_gen_struct = struct
 
   let pp =
     Fmt.of_to_string (function
-        | Field.{object_fields; _} as st when Field.has_cycle st ->
-          let fields = Field.ordered_fields object_fields in
-          let cyclic_fields = Field.cyclic_fields st in
+        | Obj.{object_fields; _} as st when Obj.has_cycle st ->
+          let fields = Obj.ordered_fields object_fields in
+          let cyclic_fields = Obj.cyclic_fields st in
           assert (1 = List.length cyclic_fields);
           let cyclic_field = List.nth cyclic_fields 0 in
           let ss = [
@@ -567,7 +566,7 @@ module Stanza_gen_struct = struct
         )
 
   let%expect_test "Check Stanza_gen_struct" =
-    let grp = Field.test_data () in
+    let grp = Obj.test_data () in
     print_endline @@ Format.asprintf "%a" pp grp;
     [%expect {|
       let gen = QCheck.Gen.(sized @@ fix (fun self n ->
@@ -595,7 +594,7 @@ end
 module Stanza_make_sig = struct
 
   let pp_field ~cyclic_field =
-    Fmt.of_to_string (function Field.{field_name; field_type; field_presence; field_container; _} as f ->
+    Fmt.of_to_string (function Obj.{field_name; field_type; field_presence; field_container; _} as f ->
         let presence = match field_presence with | `Opt -> "?" | `Req -> "" in
         let container = match field_container with None -> "" | Some {container_name; _} -> container_name in
         match field_type with
@@ -610,10 +609,10 @@ module Stanza_make_sig = struct
       )
 
   let pp =
-    Fmt.of_to_string (function Field.{object_fields; _} as o ->
-        let fields = Field.ordered_fields object_fields in
+    Fmt.of_to_string (function Obj.{object_fields; _} as o ->
+        let fields = Obj.ordered_fields object_fields in
         let cyclic_field =
-          let xs = Field.cyclic_fields o in
+          let xs = Obj.cyclic_fields o in
           List.nth_opt xs 0
         in
         let pp_fields = Fmt.list ~sep:(Fmt.any " -> \n") (pp_field ~cyclic_field) in
@@ -621,7 +620,7 @@ module Stanza_make_sig = struct
       )
 
   let%expect_test "Check Stanza_make_sig" =
-    let grp = Field.test_data () in
+    let grp = Obj.test_data () in
     print_endline @@ Format.asprintf "%a" pp grp;
     [%expect {|
       val make :
@@ -638,26 +637,26 @@ end
 module Stanza_make_struct = struct
 
   let pp_field_upper =
-    Fmt.of_to_string (function Field.{field_name; field_presence; _} ->
+    Fmt.of_to_string (function Obj.{field_name; field_presence; _} ->
         let presence = match field_presence with | `Opt -> "?" | `Req -> "~" in
         Fmt.str "%s%s" presence field_name
       )
 
   let pp_field_lower =
-    Fmt.of_to_string (function Field.{field_name; _} ->
+    Fmt.of_to_string (function Obj.{field_name; _} ->
         Fmt.str "%s" field_name
       )
 
   let pp =
-    Fmt.of_to_string (function Field.{object_fields; _} ->
-        let all_fields = Field.ordered_fields object_fields in
+    Fmt.of_to_string (function Obj.{object_fields; _} ->
+        let all_fields = Obj.ordered_fields object_fields in
         let pp_upper = Fmt.list ~sep:(Fmt.any " ") pp_field_upper in
         let pp_lower = Fmt.list ~sep:(Fmt.any "; ") pp_field_lower in
         Fmt.str "let make %a () =\n{%a}\n" pp_upper all_fields pp_lower all_fields
       )
 
   let%expect_test "Check Stanza_make_struct" =
-    let grp = Field.test_data () in
+    let grp = Obj.test_data () in
     print_endline @@ Format.asprintf "%a" pp grp;
     [%expect {|
       let make ~format ?variables ?sendTelemetry ?things ?stuff () =
@@ -668,7 +667,7 @@ end
 module Stanza_getters_sig = struct
 
   let pp_field ~cyclic_field =
-    Fmt.of_to_string (function Field.{field_name; field_type; field_presence; field_container; _} as f ->
+    Fmt.of_to_string (function Obj.{field_name; field_type; field_presence; field_container; _} as f ->
         let presence = match field_presence with | `Opt -> "option" | `Req -> "" in
         let container = match field_container with None -> "" | Some {container_name; _} -> container_name in
         match field_type with
@@ -683,10 +682,10 @@ module Stanza_getters_sig = struct
       )
 
   let pp =
-    Fmt.of_to_string (function Field.{object_fields; _} as o ->
-        let all_fields = Field.ordered_fields object_fields in
+    Fmt.of_to_string (function Obj.{object_fields; _} as o ->
+        let all_fields = Obj.ordered_fields object_fields in
         let cyclic_field =
-          let xs = Field.cyclic_fields o in
+          let xs = Obj.cyclic_fields o in
           List.nth_opt xs 0
         in
         let pp_fields = Fmt.list ~sep:(Fmt.any "\n\n") (pp_field ~cyclic_field) in
@@ -694,7 +693,7 @@ module Stanza_getters_sig = struct
       )
 
   let%expect_test "Check Stanza_getter_sig" =
-    let grp = Field.test_data () in
+    let grp = Obj.test_data () in
     print_endline @@ Format.asprintf "%a" pp grp;
     [%expect {|
       val format : t -> string list
@@ -712,19 +711,19 @@ end
 module Stanza_getters_struct = struct
 
   let pp_field =
-    Fmt.of_to_string (function Field.{field_name; _} ->
+    Fmt.of_to_string (function Obj.{field_name; _} ->
         Fmt.str "let %s t = t.%s" field_name field_name
       )
 
   let pp =
-    Fmt.of_to_string (function Field.{object_fields; _} ->
-        let all_fields = Field.ordered_fields object_fields in
+    Fmt.of_to_string (function Obj.{object_fields; _} ->
+        let all_fields = Obj.ordered_fields object_fields in
         let pp_fields = Fmt.list ~sep:(Fmt.any "\n\n") pp_field in
         Fmt.str "%a" pp_fields all_fields
       )
 
   let%expect_test "Check Stanza_getter_struct" =
-    let grp = Field.test_data () in
+    let grp = Obj.test_data () in
     print_endline @@ Format.asprintf "%a" pp grp;
     [%expect {|
       let format t = t.format
@@ -742,12 +741,12 @@ end
 module Stanza_enc_sig = struct
 
   let pp =
-    Fmt.of_to_string (function Field.{object_t=_; _} ->
+    Fmt.of_to_string (function Obj.{object_t=_; _} ->
         Fmt.str "val enc : t Data_encoding.t"
       )
 
   let%expect_test "Check Stanza_enc_sig" =
-    let grp = Field.test_data () in
+    let grp = Obj.test_data () in
     print_endline @@ Format.asprintf "%a" pp grp;
     [%expect {| val enc : t Data_encoding.t |}]
 end
@@ -759,38 +758,38 @@ module Stanza_enc_struct = struct
   let pp_obj =
     let pp_field =
       let presence = function `Opt -> "opt" | `Req -> "req" in
-      let container field_container = match field_container with None -> "" | Some Field.{container_enc; _} -> container_enc in
+      let container field_container = match field_container with None -> "" | Some Obj.{container_enc; _} -> container_enc in
       Fmt.of_to_string (function
-          | Field.{field_presence; field_container; field_dirty_name; field_type=`Builtin {builtin_enc; _}; _} ->
+          | Obj.{field_presence; field_container; field_dirty_name; field_type=`Builtin {builtin_enc; _}; _} ->
             Fmt.str "(%s \"%s\" (%s %s))" (presence field_presence) field_dirty_name (container field_container) builtin_enc
 
-          | Field.{field_presence; field_container; field_dirty_name; field_type=`Struct {object_enc=`Raw enc; _}; _} ->
+          | Obj.{field_presence; field_container; field_dirty_name; field_type=`Struct {object_enc=`Raw enc; _}; _} ->
             Fmt.str "(%s \"%s\" (%s %s))" (presence field_presence) field_dirty_name (container field_container) enc
 
-          | Field.{field_presence; field_container; field_dirty_name; field_type=`Struct {object_name; object_enc=`Qualified enc; _}; _} ->
+          | Obj.{field_presence; field_container; field_dirty_name; field_type=`Struct {object_name; object_enc=`Qualified enc; _}; _} ->
             Fmt.str "(%s \"%s\" (%s %s.%s))" (presence field_presence) field_dirty_name (container field_container) object_name enc
 
-          | Field.{field_presence; field_container; field_dirty_name; field_type=`Struct {object_enc=`Cyclic; _}; _} ->
+          | Obj.{field_presence; field_container; field_dirty_name; field_type=`Struct {object_enc=`Cyclic; _}; _} ->
             Fmt.str "(%s \"%s\" (%s %s))" (presence field_presence) field_dirty_name (container field_container) mu_arg
 
-          | Field.{field_presence; field_container; field_dirty_name; field_type=`Enum {enum_name; _}; _} ->
+          | Obj.{field_presence; field_container; field_dirty_name; field_type=`Enum {enum_name; _}; _} ->
             Fmt.str "(%s \"%s\" (%s %s.enc))" (presence field_presence) field_dirty_name (container field_container) enum_name
         )
     in
-    Fmt.of_to_string (function Field.{object_fields; _} ->
+    Fmt.of_to_string (function Obj.{object_fields; _} ->
         let n = List.length object_fields in
         if n > 10 then
           raise @@ Invalid_argument (Fmt.str "pp_obj too many fields %d.  Please use pp_objn" n)
         else
           let pp_fields = Fmt.list ~sep:(Fmt.any "\n") pp_field in
-          Fmt.str "(obj%d\n%a)" n pp_fields @@ Field.ordered_fields object_fields
+          Fmt.str "(obj%d\n%a)" n pp_fields @@ Obj.ordered_fields object_fields
       )
 
   let pp_fields ~sep ~enclosing =
-    Fmt.of_to_string (function Field.{object_fields; _} ->
+    Fmt.of_to_string (function Obj.{object_fields; _} ->
         let pp_list = Fmt.list ~sep:(Fmt.any sep) Fmt.string in
-        let fs = List.map (function Field.{field_name; _} -> field_name)
-            @@ Field.ordered_fields object_fields in
+        let fs = List.map (function Obj.{field_name; _} -> field_name)
+            @@ Obj.ordered_fields object_fields in
         Fmt.str "%s%a%s" (fst enclosing) pp_list fs (snd enclosing)
       )
 
@@ -809,7 +808,7 @@ module Stanza_enc_struct = struct
     in
     Fmt.of_to_string (
       function
-        | st when Field.has_cycle st ->
+        | st when Obj.has_cycle st ->
           String.concat "\n" [
             "let enc =";
             "let open Data_encoding in";
@@ -825,7 +824,7 @@ module Stanza_enc_struct = struct
     )
 
   let%expect_test "Check Stanza_enc_struct" =
-    let grp = Field.test_data () in
+    let grp = Obj.test_data () in
     print_endline @@ Format.asprintf "%a" pp grp;
     [%expect {|
       let enc =
@@ -872,14 +871,14 @@ module Printer_object = struct
     Fmt.of_to_string (function o ->
         if with_sig then
           Fmt.str "module %s : sig\n%a\nend = struct\n%a\nend"
-            o.Field.object_name pp_sig o pp_struct o
+            o.Obj.object_name pp_sig o pp_struct o
         else
           Fmt.str "module %s = struct\n%a\nend"
-            o.Field.object_name pp_struct o
+            o.Obj.object_name pp_struct o
       )
 
   let%expect_test "Check Printer_object - no sig" =
-    let grp = Field.test_data () in
+    let grp = Obj.test_data () in
     print_endline @@ Format.asprintf "%a" (pp ~with_sig:false) grp;
     [%expect {|
       module Thing = struct
@@ -947,7 +946,7 @@ module Printer_object = struct
       end |}]
 
   let%expect_test "Check Printer_object" =
-    let grp = Field.test_data () in
+    let grp = Obj.test_data () in
     print_endline @@ Format.asprintf "%a" (pp ~with_sig:true) grp;
     [%expect {|
       module Thing : sig
@@ -1065,9 +1064,9 @@ module Printer_object_big = struct
       )
 
   let grouping max_fields =
-    function Field.{object_name; object_fields; _} as o ->
+    function Obj.{object_name; object_fields; _} as o ->
       (* TODO deal with cyclic big objects *)
-      assert (not @@ Field.has_cycle o);
+      assert (not @@ Obj.has_cycle o);
 
       let n = List.length object_fields in
       let ngroups = 1 + (n / max_fields) in
@@ -1111,7 +1110,7 @@ module Printer_object_big = struct
   let pp_ts ~max_fields =
     let pp_t =
       let pp =
-        Fmt.of_to_string (function Field.{object_name; object_t; _} ->
+        Fmt.of_to_string (function Obj.{object_name; object_t; _} ->
             Fmt.str "%s.%s" object_name object_t
           )
       in
@@ -1119,7 +1118,7 @@ module Printer_object_big = struct
     in
     let pp_arg ~tok =
       let pp =
-        Fmt.of_to_string (function Field.{object_name; _} ->
+        Fmt.of_to_string (function Obj.{object_name; _} ->
             Fmt.str "%s_%s" tok object_name
           )
       in
@@ -1128,18 +1127,18 @@ module Printer_object_big = struct
 
     let pp_equal ~tok1 ~tok2 =
       let pp ~tok =
-        Fmt.of_to_string (function Field.{object_name; _} ->
+        Fmt.of_to_string (function Obj.{object_name; _} ->
             Fmt.str "%s_%s" tok object_name
           )
       in
-      Fmt.of_to_string (function Field.{object_name; _} as o->
+      Fmt.of_to_string (function Obj.{object_name; _} as o->
           Fmt.str "%s.equal %a %a" object_name (pp ~tok:tok1) o (pp ~tok:tok2) o
         )
     in
 
     let pp_merge =
       let pp =
-        Fmt.of_to_string (function Field.{object_name; _} ->
+        Fmt.of_to_string (function Obj.{object_name; _} ->
             Fmt.str "%s.merge" object_name
           )
       in
@@ -1161,7 +1160,7 @@ module Printer_object_big = struct
   let pp_encs ~max_fields =
     let pp_encs =
       let pp =
-        Fmt.of_to_string (function Field.{object_name; _} ->
+        Fmt.of_to_string (function Obj.{object_name; _} ->
             Fmt.str "%s.enc" object_name
           )
       in
@@ -1185,14 +1184,14 @@ module Printer_object_big = struct
 
     let pp_make =
       Fmt.of_to_string (fun o ->
-          let all_fields = Field.ordered_fields o.Field.object_fields in
+          let all_fields = Obj.ordered_fields o.Obj.object_fields in
           Fmt.str "let make %a () = " pp_args all_fields
         )
     in
 
     let pp_t =
       Fmt.of_to_string (
-        function Field.{object_name; _} ->
+        function Obj.{object_name; _} ->
           Fmt.str "t_%s" object_name
       )
     in
@@ -1203,8 +1202,8 @@ module Printer_object_big = struct
 
     let pp_inners =
       let pp_inner =
-        Fmt.of_to_string (function Field.{object_name; object_fields; _} as o ->
-          let all_fields = Field.ordered_fields object_fields in
+        Fmt.of_to_string (function Obj.{object_name; object_fields; _} as o ->
+          let all_fields = Obj.ordered_fields object_fields in
           Fmt.str "let %a =\n%s.make \n%a ()\n in" pp_t o object_name pp_args all_fields
           )
       in
@@ -1222,25 +1221,25 @@ module Printer_object_big = struct
   let pp_getters ~max_fields = Fmt.of_to_string (function o ->
     let objs = grouping max_fields o in
 
-    let pp_t = Fmt.of_to_string (fun Field.{object_name; _} ->
+    let pp_t = Fmt.of_to_string (fun Obj.{object_name; _} ->
         Fmt.str "_t_%s" object_name
       )
     in
     let pp_ts = Fmt.of_to_string (aux_brkts ~sep:"," ~pp:pp_t) in
 
     let pp_field ~obj=
-      Fmt.of_to_string (function Field.{field_name; _} ->
+      Fmt.of_to_string (function Obj.{field_name; _} ->
           Fmt.str "let %s %a =\n  %s.%s %a"
             field_name
             pp_ts objs
-            obj.Field.object_name
+            obj.Obj.object_name
             field_name
             pp_t obj
         )
     in
 
     let pp_fields =
-      Fmt.of_to_string (function Field.{object_fields; _} as o ->
+      Fmt.of_to_string (function Obj.{object_fields; _} as o ->
           Fmt.str "%a" (Fmt.list ~sep:(Fmt.any "\n\n") @@ pp_field ~obj:o) object_fields
         )
     in
@@ -1262,7 +1261,7 @@ module Printer_object_big = struct
     Fmt.of_to_string (function o ->
         Fmt.str
           "module %s : sig\n%a\nend = struct\n%a\nend"
-          o.Field.object_name
+          o.Obj.object_name
           pp_sig o
           (pp_struct ~max_fields) o
       )
@@ -1270,7 +1269,7 @@ module Printer_object_big = struct
   let pp = pp_module ~max_fields:10
 
   let%expect_test "Check Printer_object_big" =
-    let test_data () = Field.(
+    let test_data () = Obj.(
         let object_name = "Big_thing" in
         let object_t = "t" in
         let object_enc = `Qualified "enc" in
