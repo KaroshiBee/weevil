@@ -489,7 +489,7 @@ module Stanza_enum_t_struct = struct
           [Fmt.str "type %s =\n%a" enum_t pp_elements elements];
           last enum_type;
           [Fmt.str "let equal = Irmin.Type.(unstage (equal %s))" enum_t;
-           Fmt.str "let merge = Irmin.Merge.(option (idempotent %s))" enum_t];
+           Fmt.str "let merge = Irmin.Merge.idempotent %s" enum_t];
         ]
       )
 
@@ -504,7 +504,7 @@ module Stanza_enum_t_struct = struct
       | Other of string
       [@@deriving irmin]
       let equal = Irmin.Type.(unstage (equal t))
-      let merge = Irmin.Merge.(option (idempotent t)) |}]
+      let merge = Irmin.Merge.idempotent t |}]
 
   let%expect_test "Check Stanza_enum_t_struct Closed" =
     let grp = Enum.test_data ~enum_type:`Closed () in
@@ -516,7 +516,7 @@ module Stanza_enum_t_struct = struct
       | Exception
       [@@deriving irmin]
       let equal = Irmin.Type.(unstage (equal t))
-      let merge = Irmin.Merge.(option (idempotent t)) |}]
+      let merge = Irmin.Merge.idempotent t |}]
 
 end
 
@@ -626,7 +626,7 @@ module Printer_enum = struct
       | Other of string
       [@@deriving irmin]
       let equal = Irmin.Type.(unstage (equal t))
-      let merge = Irmin.Merge.(option (idempotent t))
+      let merge = Irmin.Merge.idempotent t
 
       let enc =
       let open Data_encoding in
@@ -655,7 +655,7 @@ module Printer_enum = struct
       | Exception
       [@@deriving irmin]
       let equal = Irmin.Type.(unstage (equal t))
-      let merge = Irmin.Merge.(option (idempotent t))
+      let merge = Irmin.Merge.idempotent t
 
       let enc =
       let open Data_encoding in
