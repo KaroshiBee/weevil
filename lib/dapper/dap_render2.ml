@@ -273,6 +273,7 @@ module Field = struct
     ]
   ; field_presence : [`Opt | `Req ]
   ; field_container : container option (* we only deal with containers of one type e.g. 'a list *)
+  ; field_gen_container : gen_container option (* individual generators for fields e.g. [@gen Gen.gen_utf8_str_opt] *)
   ; field_index : int
   } [@@deriving show, eq]
 
@@ -294,8 +295,11 @@ module Field = struct
   and container = {
     container_name : string
   ; container_enc : string
-
   }
+  and gen_container = {
+    gen_name : string
+  }
+
 
   let ordered_fields fields =
     fields
@@ -323,6 +327,7 @@ module Field = struct
                             object_fields=[]};
         field_presence=`Opt;
         field_container=None;
+        field_gen_container=Some {gen_name="gen_json"};
         field_index=2 };
       { field_name="format";
         field_dirty_name="format_";
@@ -331,6 +336,7 @@ module Field = struct
         field_presence=`Req;
         field_container=Some {container_name="list";
                               container_enc="list"};
+        field_gen_container=Some {gen_name="gen_utf8_str"};
         field_index=1 };
       { field_name="sendTelemetry";
         field_dirty_name="sendTelemetry_";
@@ -338,6 +344,7 @@ module Field = struct
                              builtin_enc="bool"};
         field_presence=`Opt;
         field_container=None;
+        field_gen_container=None;
         field_index=3 };
       { field_name="things";
         field_dirty_name="things in a container";
@@ -348,12 +355,14 @@ module Field = struct
         field_presence=`Opt;
         field_container=Some {container_name="tree";
                               container_enc="tree_enc"};
+        field_gen_container=None;
         field_index=4 };
       { field_name="stuff";
         field_dirty_name="stuff";
         field_type=`Enum (Enum.test_data ~enum_type:`Closed ());
         field_presence=`Opt;
         field_container=None;
+        field_gen_container=None;
         field_index=5 };
     ]
     in
@@ -373,6 +382,8 @@ module Stanza_t_sig = struct
           Fmt.str "type %s [%s irmin]" object_t deriving_str;
           Fmt.str "val equal : %s -> %s -> bool" object_t object_t;
           Fmt.str "val merge : %s Irmin.Merge.t" object_t;
+          Fmt.str "val gen : %s QCheck.Gen.t" object_t;
+          Fmt.str "val arb : %s QCheck.arbitrary" object_t;
         ] in
         String.concat "\n\n" ss
       )
@@ -385,23 +396,33 @@ module Stanza_t_sig = struct
 
       val equal : t -> t -> bool
 
-      val merge : t Irmin.Merge.t |}]
+      val merge : t Irmin.Merge.t
+
+      val gen : t QCheck.Gen.t
+
+      val arb : t QCheck.arbitrary |}]
 
 end
 
 module Stanza_t_struct = struct
 
   let pp_field =
-    Fmt.of_to_string (function Field.{field_name; field_type; field_presence; field_container; _} ->
+    Fmt.of_to_string (function Field.{field_name; field_type; field_presence; field_container; field_gen_container; _} ->
         let presence = match field_presence with | `Opt -> "option" | `Req -> "" in
         let container = match field_container with None -> "" | Some {container_name; _} -> container_name in
+        let gen_name = match field_gen_container with
+          | None -> ""
+          | Some {gen_name; _} -> match field_presence with
+            | `Opt -> Fmt.str "[@gen Gen.%s_opt]" gen_name
+            | `Req -> Fmt.str "[@gen Gen.%s]" gen_name
+        in
         match field_type with
         | `Builtin {builtin_name; _} ->
-          Fmt.str "%s : %s %s %s" field_name builtin_name container presence
+          Fmt.str "%s : (%s %s %s %s)" field_name builtin_name container presence gen_name
         | `Struct {object_t; _} ->
-          Fmt.str "%s : %s %s %s" field_name object_t container presence
+          Fmt.str "%s : (%s %s %s %s)" field_name object_t container presence gen_name
         | `Enum Enum.{enum_name; enum_t; _} ->
-          Fmt.str "%s : %s.%s %s %s" field_name enum_name enum_t container presence
+          Fmt.str "%s : (%s.%s %s %s %s)" field_name enum_name enum_t container presence gen_name
       )
 
   let pp ~with_irmin =
@@ -409,7 +430,7 @@ module Stanza_t_struct = struct
         let fields = Field.ordered_fields object_fields in
         let pp_fields = Fmt.list ~sep:(Fmt.any ";\n") pp_field in
         let ss = if with_irmin then [
-            Fmt.str "type %s = {\n%a\n}\n[%s irmin]" object_t pp_fields fields deriving_str;
+            Fmt.str "type %s = {\n%a\n}\n[%s irmin, qcheck]" object_t pp_fields fields deriving_str;
             Fmt.str "let equal = Irmin.Type.(unstage (equal %s))" object_t;
             Fmt.str "let merge = Irmin.Merge.idempotent %s" object_t;
           ] else
@@ -424,13 +445,13 @@ module Stanza_t_struct = struct
     print_endline @@ Format.asprintf "%a" (pp ~with_irmin:true) grp;
     [%expect {|
       type t = {
-      format : string list ;
-      variables : t  option;
-      sendTelemetry : bool  option;
-      things : t tree option;
-      stuff : Stopped_event_enum.t  option
+      format : (string list  [@gen Gen.gen_utf8_str]);
+      variables : (t  option [@gen Gen.gen_json_opt]);
+      sendTelemetry : (bool  option );
+      things : (t tree option );
+      stuff : (Stopped_event_enum.t  option )
       }
-      [@@deriving irmin]
+      [@@deriving irmin, qcheck]
 
       let equal = Irmin.Type.(unstage (equal t))
 
@@ -722,6 +743,10 @@ module Printer_object = struct
 
       val merge : t Irmin.Merge.t
 
+      val gen : t QCheck.Gen.t
+
+      val arb : t QCheck.arbitrary
+
       val make :
       format : string list ->
       ?variables : t  ->
@@ -744,13 +769,13 @@ module Printer_object = struct
       val stuff : t -> Stopped_event_enum.t  option
       end = struct
       type t = {
-      format : string list ;
-      variables : t  option;
-      sendTelemetry : bool  option;
-      things : t tree option;
-      stuff : Stopped_event_enum.t  option
+      format : (string list  [@gen Gen.gen_utf8_str]);
+      variables : (t  option [@gen Gen.gen_json_opt]);
+      sendTelemetry : (bool  option );
+      things : (t tree option );
+      stuff : (Stopped_event_enum.t  option )
       }
-      [@@deriving irmin]
+      [@@deriving irmin, qcheck]
 
       let equal = Irmin.Type.(unstage (equal t))
 
@@ -1024,6 +1049,7 @@ module Printer_object_big = struct
                 field_presence=`Req;
                 field_container=Some {container_name="list";
                                       container_enc="list"};
+                field_gen_container=None;
                 field_index=i };
             )
         in
@@ -1040,6 +1066,10 @@ module Printer_object_big = struct
       val equal : t -> t -> bool
 
       val merge : t Irmin.Merge.t
+
+      val gen : t QCheck.Gen.t
+
+      val arb : t QCheck.arbitrary
 
       val make :
       format0 : string list ->
@@ -1078,6 +1108,10 @@ module Printer_object_big = struct
 
       val merge : t Irmin.Merge.t
 
+      val gen : t QCheck.Gen.t
+
+      val arb : t QCheck.arbitrary
+
       val make :
       format0 : string list ->
       format1 : string list ->
@@ -1094,11 +1128,11 @@ module Printer_object_big = struct
       val format2 : t -> string list
       end = struct
       type t = {
-      format0 : string list ;
-      format1 : string list ;
-      format2 : string list
+      format0 : (string list  );
+      format1 : (string list  );
+      format2 : (string list  )
       }
-      [@@deriving irmin]
+      [@@deriving irmin, qcheck]
 
       let equal = Irmin.Type.(unstage (equal t))
 
@@ -1134,6 +1168,10 @@ module Printer_object_big = struct
 
       val merge : t Irmin.Merge.t
 
+      val gen : t QCheck.Gen.t
+
+      val arb : t QCheck.arbitrary
+
       val make :
       format3 : string list ->
       format4 : string list ->
@@ -1150,11 +1188,11 @@ module Printer_object_big = struct
       val format5 : t -> string list
       end = struct
       type t = {
-      format3 : string list ;
-      format4 : string list ;
-      format5 : string list
+      format3 : (string list  );
+      format4 : (string list  );
+      format5 : (string list  )
       }
-      [@@deriving irmin]
+      [@@deriving irmin, qcheck]
 
       let equal = Irmin.Type.(unstage (equal t))
 
@@ -1190,6 +1228,10 @@ module Printer_object_big = struct
 
       val merge : t Irmin.Merge.t
 
+      val gen : t QCheck.Gen.t
+
+      val arb : t QCheck.arbitrary
+
       val make :
       format6 : string list ->
       format7 : string list ->
@@ -1203,10 +1245,10 @@ module Printer_object_big = struct
       val format7 : t -> string list
       end = struct
       type t = {
-      format6 : string list ;
-      format7 : string list
+      format6 : (string list  );
+      format7 : (string list  )
       }
-      [@@deriving irmin]
+      [@@deriving irmin, qcheck]
 
       let equal = Irmin.Type.(unstage (equal t))
 
