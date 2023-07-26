@@ -485,7 +485,7 @@ module Stanza_gen_struct = struct
 
   let pp_gen ~cyclic_field =
     let gen_name_str gen_name container =
-      let s = match container with None -> gen_name | Some Field.{container_name; _} -> Fmt.str "%s_%s)" gen_name container_name in
+      let s = match container with None -> gen_name | Some Field.{container_name; _} -> Fmt.str "%s_%s" gen_name container_name in
       function
       | `Opt -> Fmt.str "Gen.%s_opt" s
       | `Req -> Fmt.str "Gen.%s" s
@@ -546,7 +546,7 @@ module Stanza_gen_struct = struct
       let _gen_t =
       fun t ->
       let gg = tup5
-      Gen.gen_utf8_str_list)
+      Gen.gen_utf8_str_list
       Gen.gen_json_opt
       (option bool)
       t
@@ -860,7 +860,7 @@ module Printer_object = struct
       let _gen_t =
       fun t ->
       let gg = tup5
-      Gen.gen_utf8_str_list)
+      Gen.gen_utf8_str_list
       Gen.gen_json_opt
       (option bool)
       t
@@ -959,7 +959,7 @@ module Printer_object = struct
       let _gen_t =
       fun t ->
       let gg = tup5
-      Gen.gen_utf8_str_list)
+      Gen.gen_utf8_str_list
       Gen.gen_json_opt
       (option bool)
       t
