@@ -1355,6 +1355,88 @@ module Printer_object = struct
 end
 
 
+module Printer_empty_object = struct
+
+  let pp_sig =
+    Fmt.of_to_string (function _ -> "\
+type t [@@deriving irmin]\
+
+val equal : t -> t -> bool\
+
+val merge : t Irmin.Merge.t\
+
+val gen : t QCheck.Gen.t\
+
+val arb : t QCheck.arbitrary\
+
+val make : unit -> t\
+
+val enc : t Data_encoding.t\
+"
+      )
+
+  let pp_struct =
+    Fmt.of_to_string (function _ ->
+        String.concat "\n\n" [
+          Fmt.str "type t = unit [%s irmin, qcheck]" Consts.deriving_str;
+          "\
+let equal = Irmin.Type.(unstage (equal t))\
+
+let merge = Irmin.Merge.idempotent t\
+
+let make () = ()\
+
+let enc = Data_encoding.empty\
+";
+        ]
+      )
+
+  let pp ~with_sig =
+    Fmt.of_to_string (function o ->
+        if with_sig then
+          Fmt.str "module %s : sig\n%a\nend = struct\n%a\nend"
+            o.Obj.object_name pp_sig o pp_struct o
+        else
+          Fmt.str "module %s = struct\n%a\nend"
+            o.Obj.object_name pp_struct o
+      )
+
+  let%expect_test "Check Printer_empty_object - no sig" =
+    let grp = Obj.test_data () in
+    print_endline @@ Format.asprintf "%a" (pp ~with_sig:false) grp;
+    [%expect {|
+      module Thing = struct
+      type t = unit [@@deriving irmin, qcheck]
+
+      let equal = Irmin.Type.(unstage (equal t))
+      let merge = Irmin.Merge.idempotent t
+      let make () = ()
+      let enc = Data_encoding.empty
+      end |}]
+
+  let%expect_test "Check Printer_empty_object - sig" =
+    let grp = Obj.test_data () in
+    print_endline @@ Format.asprintf "%a" (pp ~with_sig:true) grp;
+    [%expect {|
+      module Thing : sig
+      type t [@@deriving irmin]
+      val equal : t -> t -> bool
+      val merge : t Irmin.Merge.t
+      val gen : t QCheck.Gen.t
+      val arb : t QCheck.arbitrary
+      val make : unit -> t
+      val enc : t Data_encoding.t
+      end = struct
+      type t = unit [@@deriving irmin, qcheck]
+
+      let equal = Irmin.Type.(unstage (equal t))
+      let merge = Irmin.Merge.idempotent t
+      let make () = ()
+      let enc = Data_encoding.empty
+      end |}]
+end
+
+
 module Printer_object_big = struct
   (* for when there are more than 10 fields
      Data_encoding only deals with encoders of max 10 fields,
