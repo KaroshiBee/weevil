@@ -458,7 +458,7 @@ module Printer_enum_complex = struct
     Fmt.of_to_string (fun e ->
         String.concat "\n\n" [
           Fmt.str "%a" Stanza_enum_complex_t_sig.pp e;
-          Fmt.str "let equal = 'a t -> 'b t -> bool";
+          Fmt.str "val equal : 'a t -> 'b t -> bool";
           Fmt.str "%a" Stanza_enum_complex_getters_sig.pp e;
           Fmt.str "\
 val to_string : 'a t -> string\
@@ -477,7 +477,7 @@ val enc : value:'a t -> 'a t Data_encoding.t\
       type breakPoint
       type exception_
 
-      let equal = 'a t -> 'b t -> bool
+      val equal : 'a t -> 'b t -> bool
 
       val step : step t
       val breakPoint : breakPoint t
