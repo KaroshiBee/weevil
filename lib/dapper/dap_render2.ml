@@ -319,7 +319,7 @@ module Stanza_enum_complex_t_struct = struct
         in
         let elements = Enum.ordered_elements enum_elements in
         String.concat "\n\n" [
-          Fmt.str "type v = %a" (pp_elements ~pp:pp_element1) elements;
+          Fmt.str "type v = %a [%s eq]" (pp_elements ~pp:pp_element1) elements Consts.deriving_str;
           Fmt.str "type 'a t = v";
           Fmt.str "%a" (pp_elements ~pp:pp_element2) elements;
         ]
@@ -331,7 +331,7 @@ module Stanza_enum_complex_t_struct = struct
     [%expect {|
       type v = | Step
       | BreakPoint
-      | Exception_
+      | Exception_ [@@deriving eq]
 
       type 'a t = v
 
@@ -399,6 +399,135 @@ module Stanza_enum_complex_getters_struct = struct
       let exception_ : exception_ t = Exception_ |}]
 
 end
+
+module Stanza_enum_complex_tofromstring_struct = struct
+
+  (* the Command and Event enums are special *)
+  let pp ~direction ~name =
+    Fmt.of_to_string (function Enum.{enum_elements; _} ->
+        let pp_element =
+          Fmt.of_to_string (function Enum.{element_name; _} ->
+              let uname = String.uncapitalize_ascii element_name in
+              match direction with
+              | `To_string ->
+                Fmt.str "| (%s : %s t) -> \"%s\""
+                  element_name uname uname
+              | `From_string ->
+                Fmt.str "| \"%s\" -> (%s : %s t)"
+                  uname element_name uname
+            )
+        in
+        let pp_elements =
+          Fmt.list ~sep:(Fmt.any "\n") pp_element
+        in
+        let elements = Enum.ordered_elements enum_elements in
+        match direction with
+        | `To_string ->
+          Fmt.str "let to_string (type a) : a t -> string = function\n%a"
+               pp_elements elements
+        | `From_string ->
+          Fmt.str "let from_string (type a) : string -> a t = function\n%a\n| _ -> failwith \"unknown: %s\""
+               pp_elements elements name
+      )
+
+  let%expect_test "Check Stanza_enum_complex_tostring_struct" =
+    let grp = Enum.test_data ~enum_type:`Closed () in
+    print_endline @@ Format.asprintf "%a" (pp ~direction:`To_string ~name:"Dap_commands") grp;
+    [%expect {|
+      let to_string (type a) : a t -> string = function
+      | (Step : step t) -> "step"
+      | (BreakPoint : breakPoint t) -> "breakPoint"
+      | (Exception_ : exception_ t) -> "exception_" |}]
+
+  let%expect_test "Check Stanza_enum_complex_fromstring_struct" =
+    let grp = Enum.test_data ~enum_type:`Closed () in
+    print_endline @@ Format.asprintf "%a" (pp ~direction:`From_string ~name:"Dap_commands") grp;
+    [%expect {|
+      let from_string (type a) : string -> a t = function
+      | "step" -> (Step : step t)
+      | "breakPoint" -> (BreakPoint : breakPoint t)
+      | "exception_" -> (Exception_ : exception_ t)
+      | _ -> failwith "unknown: Dap_commands" |}]
+
+end
+
+module Printer_enum_complex = struct
+  (* the Command and Event enums are special *)
+  let pp_struct =
+    Fmt.of_to_string (fun e ->
+        String.concat "\n\n" [
+          Fmt.str "%a" Stanza_enum_complex_t_struct.pp e;
+          Fmt.str "let equal = equal_v";
+          Fmt.str "%a" Stanza_enum_complex_getters_struct.pp e;
+          Fmt.str "%a" (Stanza_enum_complex_tofromstring_struct.pp ~direction:`To_string ~name:"TODO") e;
+          Fmt.str "%a" (Stanza_enum_complex_tofromstring_struct.pp ~direction:`From_string ~name:"TODO") e;
+          Fmt.str "\
+let enc ~value =
+  let open Data_encoding in
+  let to_str = to_string in
+  let from_str =
+    let sentinal = to_string value in
+    function
+    | s when s = sentinal ->
+      Ok (from_string s)
+    | _  as s ->
+      let err = Printf.sprintf \"expected '%%s', got '%%s'\" sentinal s in
+      Error err
+  in
+  conv_with_guard
+    to_str from_str string
+            "
+        ]
+      )
+
+  let%expect_test "Check Stanza_enum_complex_struct" =
+    let grp = Enum.test_data ~enum_type:`Closed () in
+    print_endline @@ Format.asprintf "%a" pp_struct grp;
+    [%expect {|
+      type v = | Step
+      | BreakPoint
+      | Exception_ [@@deriving eq]
+
+      type 'a t = v
+
+      type step
+      type breakPoint
+      type exception_
+
+      let equal = equal_v
+
+      let step : step t = Step
+      let breakPoint : breakPoint t = BreakPoint
+      let exception_ : exception_ t = Exception_
+
+      let to_string (type a) : a t -> string = function
+      | (Step : step t) -> "step"
+      | (BreakPoint : breakPoint t) -> "breakPoint"
+      | (Exception_ : exception_ t) -> "exception_"
+
+      let from_string (type a) : string -> a t = function
+      | "step" -> (Step : step t)
+      | "breakPoint" -> (BreakPoint : breakPoint t)
+      | "exception_" -> (Exception_ : exception_ t)
+      | _ -> failwith "unknown: TODO"
+
+      let enc ~value =
+        let open Data_encoding in
+        let to_str = to_string in
+        let from_str =
+          let sentinal = to_string value in
+          function
+          | s when s = sentinal ->
+            Ok (from_string s)
+          | _  as s ->
+            let err = Printf.sprintf "expected '%s', got '%s'" sentinal s in
+            Error err
+        in
+        conv_with_guard
+          to_str from_str string |}]
+
+end
+
 
 module Obj = struct
 
